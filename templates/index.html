@@ -34,10 +34,11 @@
             padding: 6px 8px;
             border-radius: 6px;
             font-size: 0.9em;
+            transition: background-color 0.2s;
         }
 
         .nav a.active {
-            background-color: #007bff;
+            background-color: #555;
             color: white;
         }
 
@@ -56,6 +57,7 @@
             padding-bottom: 4px;
             display: flex;
             justify-content: space-between;
+            color: #dddddd;
         }
 
         .slot {
@@ -64,6 +66,7 @@
             padding: 10px;
             border-radius: 6px;
             border: 1px solid #444;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
         }
 
         .booked {
@@ -148,9 +151,8 @@
 
     <div class="nav">
         {% for d in days %}
-            <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}"
-               class="{% if d == date %}active{% endif %}"
-               {{ d.strftime('%a, %d.%m') }}
+            <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
+                {{ d.strftime('%a, %d.%m') }}
             </a>
         {% endfor %}
     </div>
