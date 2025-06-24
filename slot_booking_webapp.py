@@ -1,96 +1,101 @@
-# slot_booking_webapp.py
-from flask import Flask, render_template
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash
 from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from datetime import datetime, timedelta
+import pytz
+import uuid
 
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "dev-key")
+
+# Google Calendar API Setup
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+
+if not SERVICE_ACCOUNT_FILE:
+    raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS Umgebungsvariable nicht gesetzt!")
 
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
-from googleapiclient.discovery import build
-from datetime import datetime, timedelta
-import pytz
-import re
-import os
+calendar_service = build('calendar', 'v3', credentials=creds)
+CALENDAR_ID = os.getenv("CALENDAR_ID", "primary")
 
-app = Flask(__name__)
-
-# Kalender Setup
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-service = build('calendar', 'v3', credentials=creds)
-
-CENTRAL_CALENDAR_ID = "zentralkalenderzfa@gmail.com"
+# Zeitzone festlegen
 TZ = pytz.timezone("Europe/Berlin")
 
-# Zeithorizont: Mo–Fr dieser & nächster Woche
-def get_week_days():
-    today = datetime.now(TZ)
-    start = today - timedelta(days=today.weekday())  # Montag dieser Woche
-    days = [start + timedelta(days=i) for i in range(10) if (start + timedelta(days=i)).weekday() < 5]
-    return days
+# Login-Credentials aus Umgebungsvariablen
+USERNAME = os.getenv("LOGIN_USERNAME", "admin")
+PASSWORD = os.getenv("LOGIN_PASSWORD", "passwort")
 
-# Slots für ein Datum abrufen
-def get_slots_for_date(target_date):
-    start = TZ.localize(datetime.combine(target_date, datetime.min.time()))
-    end = start + timedelta(days=1)
+# Slot-Times (konfigurierbar)
+TIME_SLOTS = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
 
-    events = service.events().list(
-        calendarId=CENTRAL_CALENDAR_ID,
-        timeMin=start.isoformat(),
-        timeMax=end.isoformat(),
-        singleEvents=True,
-        orderBy='startTime'
-    ).execute().get('items', [])
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form['username'] == USERNAME and request.form['password'] == PASSWORD:
+            return redirect(url_for('day_view'))
+        else:
+            flash('❌ Falscher Benutzername oder Passwort')
+    return render_template('login.html')
+
+@app.route('/day/<date>', methods=['GET'])
+@app.route('/day', methods=['GET'])
+def day_view(date=None):
+    today = datetime.now(TZ).date()
+    if not date:
+        date = today.strftime('%Y-%m-%d')
+    else:
+        date = datetime.strptime(date, '%Y-%m-%d').date()
+
+    # Tage von Mo–Fr anzeigen
+    days = [today + timedelta(days=i) for i in range(10) if (today + timedelta(days=i)).weekday() < 5]
 
     slots = {}
-    for event in events:
-        title = event.get('summary', '').strip()
-        if not re.fullmatch(r"T1 – [0-9]{2}", title):
-            continue  # Nur Slots mit Format "T1 – 01" bis "T1 – 99"
+    for time_str in TIME_SLOTS:
+        dt = TZ.localize(datetime.combine(date, datetime.strptime(time_str, "%H:%M").time()))
+        start = dt.isoformat()
+        end = (dt + timedelta(minutes=119)).isoformat()
 
-        start_time = datetime.fromisoformat(event['start']['dateTime']).astimezone(TZ)
-        key = start_time.strftime('%H:%M')
+        events = calendar_service.events().list(
+            calendarId=CALENDAR_ID,
+            timeMin=start,
+            timeMax=end,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
 
-        if key not in slots:
-            slots[key] = []
+        slot_list = []
+        for event in events.get('items', []):
+            summary = event.get('summary', '')
+            booked = summary.startswith("T1 –")
+            slot_list.append({
+                'id': event['id'],
+                'summary': summary,
+                'booked': booked
+            })
+        slots[time_str] = slot_list
 
-        slots[key].append({
-            'id': event['id'],
-            'summary': title,
-            'start': start_time,
-            'booked': bool(re.search(r'[A-Za-z]', title.replace("T1 –", "")))  # wenn kein Name = frei
-        })
+    return render_template('index.html', slots=slots, date=date, days=days)
 
-    return slots
+@app.route('/book', methods=['POST'])
+def book():
+    slot_id = request.form['slot_id']
+    first_name = request.form['first_name']
+    last_name = request.form['last_name']
+    date = request.form['date']
 
-# Oberfläche
-@app.route("/")
-def index():
-    days = get_week_days()
-    data = []
+    # Hole bestehenden Termin
+    try:
+        event = calendar_service.events().get(calendarId=CALENDAR_ID, eventId=slot_id).execute()
+        event['summary'] = f"T1 – {last_name}, {first_name}"
+        calendar_service.events().update(calendarId=CALENDAR_ID, eventId=slot_id, body=event).execute()
+        return redirect(url_for('day_view', date=date, success=True))
+    except Exception as e:
+        flash(f"Fehler beim Buchen: {str(e)}")
+        return redirect(url_for('day_view', date=date))
 
-    for day in days:
-        day_slots = get_slots_for_date(day)
-        display = {}
-
-        for time, slots in sorted(day_slots.items()):
-            gebucht = sum(1 for s in slots if s['booked'])
-            gesamt = len(slots)
-            status = "✅ {}/{} gebucht".format(gebucht, gesamt) if gebucht < gesamt else "⚠️ voll"
-
-            display[time] = {
-                'slots': slots,
-                'status': status
-            }
-
-        data.append({
-            'date': day.strftime('%A, %d.%m.%Y'),
-            'slots_by_time': display
-        })
-
-    return render_template("slots_overview.html", days=data)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
