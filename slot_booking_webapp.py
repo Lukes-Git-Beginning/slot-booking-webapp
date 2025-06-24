@@ -88,11 +88,18 @@ def book():
     last_name = request.form['last_name']
     date = request.form['date']
 
-    # Hole bestehenden Termin
     try:
         event = calendar_service.events().get(calendarId=CALENDAR_ID, eventId=slot_id).execute()
+
+        # Wenn bereits jemand gebucht hat, abbrechen
+        if event.get('summary', '').startswith("T1 –"):
+            flash("⚠️ Der Slot wurde gerade bereits gebucht.")
+            return redirect(url_for('day_view', date=date))
+
+        # Markiere den Slot sofort als gebucht
         event['summary'] = f"T1 – {last_name}, {first_name}"
         calendar_service.events().update(calendarId=CALENDAR_ID, eventId=slot_id, body=event).execute()
+
         return redirect(url_for('day_view', date=date, success=True))
     except Exception as e:
         flash(f"Fehler beim Buchen: {str(e)}")
