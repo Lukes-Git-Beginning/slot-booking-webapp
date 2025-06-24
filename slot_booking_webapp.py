@@ -1,6 +1,13 @@
 # slot_booking_webapp.py
 from flask import Flask, render_template
-from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
+
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import pytz
