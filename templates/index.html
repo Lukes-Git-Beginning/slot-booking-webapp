@@ -149,7 +149,7 @@
     <div class="nav">
         {% for d in days %}
             <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}"
-               class="{% if d.date() == date %}active{% endif %}">
+               class="{% if d == date %}active{% endif %}"
                {{ d.strftime('%a, %d.%m') }}
             </a>
         {% endfor %}
