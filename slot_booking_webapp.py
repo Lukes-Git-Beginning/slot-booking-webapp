@@ -46,9 +46,10 @@ def login():
 def day_view(date=None):
     today = datetime.now(TZ).date()
     if not date:
-        date = today.strftime('%Y-%m-%d')
+        date = today
     else:
-        date = datetime.strptime(date, '%Y-%m-%d').date()
+        if isinstance(date, str):
+            date = datetime.strptime(date, '%Y-%m-%d').date()
 
     # Tage von Mo–Fr anzeigen
     days = [today + timedelta(days=i) for i in range(10) if (today + timedelta(days=i)).weekday() < 5]
