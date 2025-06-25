@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>T1 Slot-Buchung</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         body {
@@ -20,10 +20,13 @@
 
         .sidebar {
             width: 260px;
+            position: relative;
+            z-index: 1;
         }
 
         .main-content {
             flex: 1;
+            z-index: 0;
         }
 
         h1 {
@@ -218,6 +221,7 @@
         inline: true,
         defaultDate: "{{ date.strftime('%Y-%m-%d') }}",
         locale: "de",
+        theme: "dark",
         onChange: function(selectedDates, dateStr) {
             window.location.href = "/day/" + dateStr;
         }
