@@ -12,21 +12,48 @@
             color: #e0e0e0;
             font-family: 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 15px;
+            padding: 0;
             display: flex;
             flex-direction: row;
-            gap: 30px;
+            height: 100vh;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            z-index: 1000;
         }
 
         .sidebar {
             width: 260px;
+            background-color: #1e1e1e;
+            border-right: 1px solid #333;
+            padding: 15px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
             position: relative;
-            z-index: 1;
+            z-index: 10;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        #calendar {
+            font-size: 0.9em;
         }
 
         .main-content {
             flex: 1;
-            z-index: 0;
+            padding: 30px;
+            overflow-y: auto;
         }
 
         h1 {
@@ -148,11 +175,9 @@
     </style>
 </head>
 <body>
-<div class="sidebar">
-    <div style="margin-bottom: 20px;">
-        <input id="calendar" type="text" placeholder="Datum wählen" readonly style="width: 100%; padding: 8px; background-color: #2a2a2a; border: none; color: #fff; border-radius: 6px;">
-    </div>
-
+<button class="sidebar-toggle" onclick="toggleSidebar()">📅</button>
+<div class="sidebar" id="sidebar">
+    <input id="calendar" type="text" placeholder="Datum wählen" readonly style="width: 100%; padding: 8px; background-color: #2a2a2a; border: none; color: #fff; border-radius: 6px;">
     <div class="week-summary">
         <h3>📈 Wochenauslastung</h3>
         {% for week in weekly_summary %}
@@ -164,7 +189,6 @@
         {% endfor %}
     </div>
 </div>
-
 <div class="main-content">
     <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
 
@@ -215,7 +239,6 @@
         </div>
     {% endfor %}
 </div>
-
 <script>
     flatpickr("#calendar", {
         inline: true,
@@ -226,6 +249,11 @@
             window.location.href = "/day/" + dateStr;
         }
     });
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('open');
+    }
 </script>
 </body>
 </html>
