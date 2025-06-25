@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>T1 Slot-Buchung</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -11,6 +13,17 @@
             font-family: 'Segoe UI', sans-serif;
             margin: 0;
             padding: 15px;
+            display: flex;
+            flex-direction: row;
+            gap: 30px;
+        }
+
+        .sidebar {
+            width: 260px;
+        }
+
+        .main-content {
+            flex: 1;
         }
 
         h1 {
@@ -34,7 +47,6 @@
             padding: 6px 8px;
             border-radius: 6px;
             font-size: 0.9em;
-            transition: background-color 0.2s;
         }
 
         .nav a.active {
@@ -107,40 +119,50 @@
             background-color: #0056b3;
         }
 
-        @media (min-width: 768px) {
-            body {
-                padding: 30px;
-            }
+        .week-summary {
+            margin-top: 30px;
+        }
 
-            h1 {
-                font-size: 2em;
-            }
+        .week-summary h3 {
+            font-size: 1em;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
 
-            .nav a {
-                font-size: 1em;
-            }
+        .week-summary-bar {
+            height: 12px;
+            background-color: #444;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 6px;
+        }
 
-            .time-header {
-                font-size: 1.4em;
-            }
-
-            form {
-                gap: 10px;
-                align-items: center;
-            }
-
-            input[type="text"] {
-                max-width: 200px;
-            }
-
-            button {
-                flex: 0 0 auto;
-                width: auto;
-            }
+        .week-label {
+            font-size: 0.9em;
+            margin-bottom: 2px;
         }
     </style>
 </head>
 <body>
+<div class="sidebar">
+    <div style="margin-bottom: 20px;">
+        <input id="calendar" type="text" placeholder="Datum wählen" readonly style="width: 100%; padding: 8px; background-color: #2a2a2a; border: none; color: #fff; border-radius: 6px;">
+    </div>
+
+    <div class="week-summary">
+        <h3>📈 Wochenauslastung</h3>
+        {% for week in weekly_summary %}
+            <div class="week-label">{{ week.label }}</div>
+            <div class="week-summary-bar">
+                <div style="width: {{ (week.booked / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #e74c3c;"></div>
+                <div style="width: {{ (week.free / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #2ecc71;"></div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="main-content">
     <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
 
     {% if request.args.get('success') %}
@@ -157,23 +179,14 @@
         {% endfor %}
     </div>
 
-    {% set total_day = 0 %}
-    {% set booked_day = 0 %}
-    {% for slot_list in slots.values() %}
-        {% set total_day = total_day + slot_list|length %}
-        {% set booked_day = booked_day + (slot_list|selectattr('booked')|list|length) %}
-    {% endfor %}
-
-    <p style="margin-top: 10px; color: #aaa;">
-        📊 Gesamtauslastung: <strong>{{ booked_day }}/{{ total_day }}</strong> gebucht
-    </p>
-
-    {% for time, slot_list in slots.items() %}
+    {% for time, slot_obj in slots.items() %}
+        {% set slot_list = slot_obj.events %}
         {% set total = slot_list|length %}
         {% set booked = slot_list|selectattr('booked')|list|length %}
+        {% set beraters = slot_obj.available_beraters %}
         <div class="time-section">
             <div class="time-header">
-                <span>🕒 {{ time }} Uhr</span>
+                <span>🕒 {{ time }} Uhr<br><small style="color:#aaa; font-weight: normal;">Berater verfügbar: {{ beraters }}</small></span>
                 <span>{{ booked }} / {{ total }} gebucht</span>
             </div>
 
@@ -198,5 +211,17 @@
             {% endif %}
         </div>
     {% endfor %}
+</div>
+
+<script>
+    flatpickr("#calendar", {
+        inline: true,
+        defaultDate: "{{ date.strftime('%Y-%m-%d') }}",
+        locale: "de",
+        onChange: function(selectedDates, dateStr) {
+            window.location.href = "/day/" + dateStr;
+        }
+    });
+</script>
 </body>
 </html>
