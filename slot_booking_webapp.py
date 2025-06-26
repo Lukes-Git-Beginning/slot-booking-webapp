@@ -35,7 +35,7 @@ def get_current_kw(d):
 
 def load_availability():
     try:
-        with open("availability.json", "r", encoding="utf-8") as f:
+        with open("static/availability.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         print("⚠️ Warnung: availability.json nicht gefunden. Rückgabe: leeres Verzeichnis.")
