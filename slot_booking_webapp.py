@@ -1,13 +1,17 @@
 # slot_booking_webapp.py
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta, date
+from dotenv import load_dotenv
 import pytz
 import json
 import os
 
+load_dotenv()
+
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "defaultsecret")
 
 # Kalender Setup
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -75,6 +79,24 @@ def extract_detailed_summary(availability):
     for label, slots in by_week.items():
         formatted.append({"label": label, "slots": slots})
     return formatted
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if username == os.environ.get("LOGIN_USER") and password == os.environ.get("LOGIN_PASS"):
+            session["logged_in"] = True
+            return redirect(url_for("index"))
+        else:
+            flash("Falscher Benutzername oder Passwort.")
+            return redirect(url_for("login"))
+    return render_template("login.html")
+
+@app.before_request
+def require_login():
+    if request.endpoint not in ("login", "static") and not session.get("logged_in"):
+        return redirect(url_for("login"))
 
 @app.route("/day/<date_str>")
 def day_view(date_str):
