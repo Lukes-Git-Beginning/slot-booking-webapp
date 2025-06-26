@@ -1,156 +1,127 @@
-import os
-import json
-from flask import Flask, render_template, request, redirect, url_for, flash
+# slot_booking_webapp.py
+from flask import Flask, render_template, request, redirect, url_for
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import pytz
+import json
+import os
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "dev-key")
 
-# Google Calendar API Setup
+# Kalender Setup
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-
-if not SERVICE_ACCOUNT_FILE:
-    raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS Umgebungsvariable nicht gesetzt!")
+TZ = pytz.timezone("Europe/Berlin")
 
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+service = build('calendar', 'v3', credentials=creds)
 
-calendar_service = build('calendar', 'v3', credentials=creds)
-CALENDAR_ID = os.getenv("CALENDAR_ID", "primary")
+CENTRAL_CALENDAR_ID = "zentralkalenderzfa@gmail.com"
 
-# Zeitzone
-TZ = pytz.timezone("Europe/Berlin")
+# Zeithorizont: Mo–Fr dieser & nächster Woche
+def get_week_days():
+    today = datetime.now(TZ)
+    start = today - timedelta(days=today.weekday())
+    days = [start + timedelta(days=i) for i in range(10) if (start + timedelta(days=i)).weekday() < 5]
+    return days
 
-# Login
-USERNAME = os.getenv("LOGIN_USERNAME", "admin")
-PASSWORD = os.getenv("LOGIN_PASSWORD", "passwort")
+def get_week_start(d):
+    return d - timedelta(days=d.weekday())
 
-# Slot-Zeiten
-TIME_SLOTS = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+def get_current_kw(d):
+    return d.isocalendar()[1]
 
-# Verfügbarkeit aus JSON laden
-try:
-    with open("availability.json", encoding="utf-8") as f:
-        availability_data = json.load(f)
-except FileNotFoundError:
-    availability_data = {}
+def load_availability():
+    with open("availability.json", "r", encoding="utf-8") as f:
+        return json.load(f)
 
-@app.route('/', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        if request.form['username'] == USERNAME and request.form['password'] == PASSWORD:
-            return redirect(url_for('day_view'))
+def extract_weekly_summary(availability):
+    by_week = {}
+    for slot_time, data in availability.items():
+        dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
+        week = dt.strftime("KW %V (%d.%m.)")
+        if week not in by_week:
+            by_week[week] = {"booked": 0, "free": 0}
+        if data:
+            by_week[week]["free"] += len(data)
         else:
-            flash('❌ Falscher Benutzername oder Passwort')
-    return render_template('login.html')
+            by_week[week]["booked"] += 1
+    summary = []
+    for label, values in by_week.items():
+        summary.append({"label": label, "booked": values["booked"], "free": values["free"]})
+    return summary
 
-@app.route('/day/<date>', methods=['GET'])
-@app.route('/day', methods=['GET'])
-def day_view(date=None):
-    today = datetime.now(TZ).date()
-    if not date:
-        date = today
-    else:
-        if isinstance(date, str):
-            date = datetime.strptime(date, '%Y-%m-%d').date()
+def extract_detailed_summary(availability):
+    by_week = {}
+    for slot_time, data in availability.items():
+        dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
+        week = dt.strftime("KW %V (%d.%m.)")
+        hour = dt.strftime("%H:%M")
+        if week not in by_week:
+            by_week[week] = {}
+        if hour not in by_week[week]:
+            by_week[week][hour] = {"booked": 0, "free": 0}
+        if data:
+            by_week[week][hour]["free"] += len(data)
+        else:
+            by_week[week][hour]["booked"] += 1
+    formatted = []
+    for label, slots in by_week.items():
+        formatted.append({"label": label, "slots": slots})
+    return formatted
 
-    start_of_week = date - timedelta(days=date.weekday())  # Montag der Woche des gewählten Datums
-    days = [start_of_week + timedelta(days=i) for i in range(5)]  # Mo–Fr der Woche
+@app.route("/day/<date_str>")
+def day_view(date_str):
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return redirect(url_for("day_view", date=datetime.today().strftime("%Y-%m-%d")))
 
+    # Slots simulieren (normalerweise hier: Kalenderabfrage)
+    availability = load_availability()
     slots = {}
-    for time_str in TIME_SLOTS:
-        dt = TZ.localize(datetime.combine(date, datetime.strptime(time_str, "%H:%M").time()))
-        start = dt.isoformat()
-        end = (dt + timedelta(minutes=119)).isoformat()
-
-        events = calendar_service.events().list(
-            calendarId=CALENDAR_ID,
-            timeMin=start,
-            timeMax=end,
-            singleEvents=True,
-            orderBy='startTime'
-        ).execute()
-
-        slot_list = []
-        for event in events.get('items', []):
-            summary = event.get('summary', '')
-            color = event.get('colorId', '')
-
-            if color in ['11', '6']:
-                booked = False
-            else:
-                booked = summary.startswith("T1 –")
-
-            slot_list.append({
-                'id': event['id'],
-                'summary': summary,
-                'booked': booked
-            })
-
-        key = f"{date.strftime('%Y-%m-%d')} {time_str}"
-        available_beraters = len(availability_data.get(key, []))
-
-        slots[time_str] = {
-            'events': slot_list,
-            'available_beraters': available_beraters
+    for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
+        key = f"{date_str} {hour}"
+        events = []
+        if key in availability:
+            for idx, entry in enumerate(availability[key]):
+                events.append({
+                    "id": f"{key}-{idx}",
+                    "booked": False,
+                    "summary": ""
+                })
+        slots[hour] = {
+            "events": events,
+            "available_beraters": len(availability.get(key, []))
         }
 
-    # 4-Wochen-Auslastung vorbereiten
-    weekly_summary = []
-    for offset in [0, 7, 14, 21]:
-        week_start = today + timedelta(days=-today.weekday() + offset)
-        total = 0
-        booked = 0
-        for i in range(5):
-            day = week_start + timedelta(days=i)
-            for time_str in TIME_SLOTS:
-                key = f"{day.strftime('%Y-%m-%d')} {time_str}"
-                total += len(availability_data.get(key, []))
-                dt = TZ.localize(datetime.combine(day, datetime.strptime(time_str, "%H:%M").time()))
-                start = dt.isoformat()
-                end = (dt + timedelta(minutes=119)).isoformat()
-                events = calendar_service.events().list(
-                    calendarId=CALENDAR_ID,
-                    timeMin=start,
-                    timeMax=end,
-                    singleEvents=True,
-                    orderBy='startTime'
-                ).execute()
-                for event in events.get('items', []):
-                    if event.get('summary', '').startswith("T1 –") and event.get('colorId') not in ['11', '6']:
-                        booked += 1
+    return render_template(
+        "index.html",
+        slots=slots,
+        date=date_obj,
+        days=get_week_days(),
+        week_start=get_week_start(date_obj),
+        current_kw=get_current_kw(date_obj),
+        weekly_summary=extract_weekly_summary(availability),
+        weekly_detailed=extract_detailed_summary(availability),
+        timedelta=timedelta  # ✅ damit {% timedelta %} funktioniert
+    )
 
-        weekly_summary.append({
-            'label': f"KW {week_start.isocalendar()[1]} ({week_start.strftime('%d.%m.')})",
-            'free': total - booked,
-            'booked': booked
-        })
+@app.route("/")
+def index():
+    return redirect(url_for("day_view", date=datetime.today().strftime("%Y-%m-%d")))
 
-    return render_template('index.html', slots=slots, date=date, days=days, weekly_summary=weekly_summary)
-
-@app.route('/book', methods=['POST'])
+@app.route("/book", methods=["POST"])
 def book():
-    slot_id = request.form['slot_id']
-    first_name = request.form['first_name']
-    last_name = request.form['last_name']
-    date = request.form['date']
-
-    try:
-        event = calendar_service.events().get(calendarId=CALENDAR_ID, eventId=slot_id).execute()
-        if event.get('summary', '').startswith("T1 –") and event.get('colorId') not in ['11', '6']:
-            flash("⚠️ Der Slot wurde gerade bereits gebucht.")
-            return redirect(url_for('day_view', date=date))
-
-        event['summary'] = f"T1 – {last_name}, {first_name}"
-        calendar_service.events().update(calendarId=CALENDAR_ID, eventId=slot_id, body=event).execute()
-        return redirect(url_for('day_view', date=date, success=True))
-    except Exception as e:
-        flash(f"Fehler beim Buchen: {str(e)}")
-        return redirect(url_for('day_view', date=date))
+    # Buchung simuliert
+    slot_id = request.form.get("slot_id")
+    first = request.form.get("first_name")
+    last = request.form.get("last_name")
+    date = request.form.get("date")
+    print(f"Buchung für {first} {last} in Slot {slot_id} am {date}")
+    return redirect(url_for("day_view", date=date, success=True))
 
 if __name__ == '__main__':
     app.run(debug=True)
