@@ -1,259 +1,161 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T1 Slot-Buchung</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <style>
-        body {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: row;
-            height: 100vh;
-        }
-
-        .sidebar-toggle {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background-color: #333;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 10px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-
-        .sidebar {
-            width: 260px;
-            background-color: #1e1e1e;
-            border-right: 1px solid #333;
-            padding: 15px;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            position: relative;
-            z-index: 10;
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        #calendar {
-            font-size: 0.9em;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }
-
-        h1 {
-            color: #ffffff;
-            font-size: 1.5em;
-        }
-
-        .nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
-        .nav a {
-            flex: 1 1 auto;
-            text-align: center;
-            text-decoration: none;
-            color: #cccccc;
-            background-color: #333;
-            padding: 6px 8px;
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-
-        .nav a.active {
-            background-color: #555;
-            color: white;
-        }
-
-        .time-section {
-            margin-top: 30px;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-        }
-
-        .time-header {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-            color: #dddddd;
-        }
-
-        .slot {
-            background-color: #2c2c2c;
-            margin: 6px 0;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #444;
-            box-shadow: 0 0 8px rgba(0,0,0,0.2);
-        }
-
-        .booked {
-            background-color: #402020;
-        }
-
-        .slot p {
-            margin: 5px 0;
-        }
-
-        form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        input[type="text"] {
-            flex: 1 1 45%;
-            padding: 6px;
-            border-radius: 4px;
-            border: none;
-            background-color: #444;
-            color: #fff;
-            min-width: 100px;
-        }
-
-        button {
-            flex: 1 1 100%;
-            padding: 8px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .week-summary {
-            margin-top: 30px;
-        }
-
-        .week-summary h3 {
-            font-size: 1em;
-            color: #ccc;
-            margin-bottom: 10px;
-        }
-
-        .week-summary-bar {
-            height: 12px;
-            background-color: #444;
-            border-radius: 6px;
-            overflow: hidden;
-            display: flex;
-            margin-bottom: 6px;
-        }
-
-        .week-label {
-            font-size: 0.9em;
-            margin-bottom: 2px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T1 Slot-Buchung</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+    }
+    .sidebar {
+      width: 260px;
+      padding: 20px;
+      background-color: #1e1e1e;
+      border-right: 1px solid #333;
+    }
+    .main-content {
+      flex: 1;
+      padding: 30px;
+    }
+    .slot.green { border-left: 5px solid #2ecc71; }
+    .slot.yellow { border-left: 5px solid #f1c40f; }
+    .slot.orange { border-left: 5px solid #e67e22; }
+    .slot.red { border-left: 5px solid #e74c3c; }
+    .week-summary-bar, .slot-load-bar {
+      height: 12px;
+      background-color: #444;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      margin-bottom: 6px;
+    }
+    .slot-load-bar-label {
+      font-size: 0.9em;
+      margin-bottom: 2px;
+    }
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      gap: 10px;
+    }
+    .calendar-nav a {
+      background-color: #333;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: #ccc;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
-<button class="sidebar-toggle" onclick="toggleSidebar()">📅</button>
-<div class="sidebar" id="sidebar">
-    <input id="calendar" type="text" placeholder="Datum wählen" readonly style="width: 100%; padding: 8px; background-color: #2a2a2a; border: none; color: #fff; border-radius: 6px;">
-    <div class="week-summary">
-        <h3>📈 Wochenauslastung</h3>
-        {% for week in weekly_summary %}
-            <div class="week-label">{{ week.label }}</div>
-            <div class="week-summary-bar">
-                <div style="width: {{ (week.booked / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #e74c3c;"></div>
-                <div style="width: {{ (week.free / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #2ecc71;"></div>
-            </div>
-        {% endfor %}
-    </div>
+<div class="sidebar">
+  <input id="calendar" type="text" placeholder="Datum wählen" readonly style="width: 100%; padding: 8px; background-color: #2a2a2a; border: none; color: #fff; border-radius: 6px;">
+  <div class="week-summary">
+    <h3 style="margin-top: 20px;">📈 Wochenauslastung</h3>
+    {% for week in weekly_summary %}
+      <div><strong>{{ week.label }}</strong></div>
+      <div class="week-summary-bar">
+        <div style="width: {{ (week.booked / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #e74c3c;"></div>
+        <div style="width: {{ (week.free / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #2ecc71;"></div>
+      </div>
+    {% endfor %}
+
+    <h4 style="margin-top: 20px;">⏱️ Auslastung je Uhrzeit</h4>
+    {% for week in weekly_detailed %}
+      <div style="margin-bottom: 10px;"><strong>{{ week.label }}</strong></div>
+      {% for time, values in week.slots.items() %}
+        {% set sum = values.booked + values.free + 0.01 %}
+        <div class="slot-load-bar-label">{{ time }} ({{ values.booked }}/{{ values.booked + values.free }})</div>
+        <div class="slot-load-bar">
+          <div style="width: {{ (values.booked / sum) * 100 }}%; background-color: #e74c3c;"></div>
+          <div style="width: {{ (values.free / sum) * 100 }}%; background-color: #2ecc71;"></div>
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
 </div>
 <div class="main-content">
-    <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
+  <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
 
-    {% if request.args.get('success') %}
-        <p style="background-color: #2e7d32; padding: 10px; border-radius: 5px; margin-top: 10px;">
-            ✅ Buchung erfolgreich eingetragen!
-        </p>
+  <div class="calendar-nav">
+    <a href="{{ url_for('day_view', date=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">⬅️</a>
+    <span><strong>KW {{ current_kw }}</strong></span>
+    <a href="{{ url_for('day_view', date=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">➡️</a>
+  </div>
+
+  <div class="nav">
+    {% for d in days %}
+      <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}" style="padding: 8px 12px; border-radius: 6px; background-color: #333; color: {% if d == date %}white{% else %}#ccc{% endif %};">
+        {{ d.strftime('%a, %d.%m') }}
+      </a>
+    {% endfor %}
+  </div>
+
+  {% for time, slot_obj in slots.items() %}
+    {% set slot_list = slot_obj.events %}
+    {% set total = slot_list|length %}
+    {% set booked = slot_list|selectattr('booked')|list|length %}
+    {% set beraters = slot_obj.available_beraters %}
+    {% set ratio = 100 * booked / (total + 0.01) %}
+    {% if ratio == 100 %}
+      {% set load_class = 'red' %}
+    {% elif ratio >= 80 %}
+      {% set load_class = 'orange' %}
+    {% elif ratio >= 50 %}
+      {% set load_class = 'yellow' %}
+    {% else %}
+      {% set load_class = 'green' %}
     {% endif %}
 
-    <div class="nav">
-        {% for d in days %}
-            <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
-                {{ d.strftime('%a, %d.%m') }}
-            </a>
-        {% endfor %}
-    </div>
+    <div class="time-section">
+      <div class="time-header">
+        <span>🕒 {{ time }} Uhr<br><small style="color:#aaa; font-weight: normal;">Berater verfügbar: {{ beraters }}</small></span>
+        <span>{{ booked }} / {{ total }} gebucht</span>
+      </div>
 
-    {% for time, slot_obj in slots.items() %}
-        {% set slot_list = slot_obj.events %}
-        {% set total = slot_list|length %}
-        {% set booked = slot_list|selectattr('booked')|list|length %}
-        {% set beraters = slot_obj.available_beraters %}
-        <div class="time-section">
-            <div class="time-header">
-                <span>🕒 {{ time }} Uhr<br><small style="color:#aaa; font-weight: normal;">Berater verfügbar: {{ beraters }}</small></span>
-                <span>{{ booked }} / {{ total }} gebucht</span>
-            </div>
-
-            {% if booked < total %}
-                {% for slot in slot_list %}
-                    <div class="slot {% if slot.booked %}booked{% endif %}">
-                        {% if not slot.booked %}
-                            <form method="POST" action="{{ url_for('book') }}">
-                                <input type="hidden" name="slot_id" value="{{ slot.id }}">
-                                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                                <input type="text" name="first_name" placeholder="Vorname" required>
-                                <input type="text" name="last_name" placeholder="Nachname" required>
-                                <button type="submit">Slot buchen</button>
-                            </form>
-                        {% else %}
-                            <p>✅ Gebucht: {{ slot.summary }}</p>
-                        {% endif %}
-                    </div>
-                {% endfor %}
+      {% if booked < total %}
+        {% for slot in slot_list %}
+          <div class="slot {{ load_class }} {% if slot.booked %}booked{% endif %}">
+            {% if not slot.booked %}
+              <form method="POST" action="{{ url_for('book') }}">
+                <input type="hidden" name="slot_id" value="{{ slot.id }}">
+                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                <input type="text" name="first_name" placeholder="Vorname" required>
+                <input type="text" name="last_name" placeholder="Nachname" required>
+                <button type="submit">Slot buchen</button>
+              </form>
             {% else %}
-                <p style="color: #bbb; font-style: italic;">⚠️ Alle Slots um {{ time }} Uhr sind bereits belegt.</p>
+              <p>✅ Gebucht: {{ slot.summary }}</p>
             {% endif %}
-        </div>
-    {% endfor %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p style="color: #bbb; font-style: italic;">⚠️ Alle Slots um {{ time }} Uhr sind bereits belegt.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
 </div>
 <script>
-    flatpickr("#calendar", {
-        inline: true,
-        defaultDate: "{{ date.strftime('%Y-%m-%d') }}",
-        locale: "de",
-        theme: "dark",
-        onChange: function(selectedDates, dateStr) {
-            window.location.href = "/day/" + dateStr;
-        }
-    });
-
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('open');
+  flatpickr("#calendar", {
+    inline: true,
+    defaultDate: "{{ date.strftime('%Y-%m-%d') }}",
+    locale: "de",
+    theme: "dark",
+    onChange: function(selectedDates, dateStr) {
+      window.location.href = "/day/" + dateStr;
     }
+  });
 </script>
 </body>
 </html>
