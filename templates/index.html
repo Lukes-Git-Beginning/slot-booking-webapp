@@ -1,161 +1,181 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>T1 Slot-Buchung</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <style>
-    body {
-      background-color: #1e1e1e;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      display: flex;
-      flex-direction: row;
-      gap: 20px;
-    }
-    .sidebar {
-      width: 260px;
-      padding: 20px;
-      background-color: #1e1e1e;
-      border-right: 1px solid #333;
-    }
-    .main-content {
-      flex: 1;
-      padding: 30px;
-    }
-    .slot.green { border-left: 5px solid #2ecc71; }
-    .slot.yellow { border-left: 5px solid #f1c40f; }
-    .slot.orange { border-left: 5px solid #e67e22; }
-    .slot.red { border-left: 5px solid #e74c3c; }
-    .week-summary-bar, .slot-load-bar {
-      height: 12px;
-      background-color: #444;
-      border-radius: 6px;
-      overflow: hidden;
-      display: flex;
-      margin-bottom: 6px;
-    }
-    .slot-load-bar-label {
-      font-size: 0.9em;
-      margin-bottom: 2px;
-    }
-    .calendar-nav {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 15px;
-      gap: 10px;
-    }
-    .calendar-nav a {
-      background-color: #333;
-      padding: 4px 10px;
-      border-radius: 6px;
-      color: #ccc;
-      text-decoration: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T1 Slot-Buchung</title>
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/css/datepicker-bs5.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/js/datepicker-full.min.js"></script>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: #2a2a2a;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            height: 100vh;
+        }
+
+        .main {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.6em;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .nav, .week-switch {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .nav a, .week-switch button {
+            padding: 6px 10px;
+            background-color: #333;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #ccc;
+            border: none;
+            cursor: pointer;
+        }
+
+        .nav a.active, .week-switch button.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .time-section {
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #2a2a2a;
+            border-left: 6px solid #2a2a2a;
+        }
+
+        .time-section.green { border-left-color: #2ecc71; }
+        .time-section.yellow { border-left-color: #f1c40f; }
+        .time-section.orange { border-left-color: #e67e22; }
+        .time-section.red { border-left-color: #e74c3c; }
+
+        .slot {
+            margin-top: 6px;
+            padding: 8px;
+            background-color: #333;
+            border-radius: 6px;
+        }
+
+        input[type="text"] {
+            padding: 6px;
+            background-color: #444;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button[type="submit"] {
+            padding: 6px 12px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+    </style>
 </head>
 <body>
 <div class="sidebar">
-  <input id="calendar" type="text" placeholder="Datum wählen" readonly style="width: 100%; padding: 8px; background-color: #2a2a2a; border: none; color: #fff; border-radius: 6px;">
-  <div class="week-summary">
-    <h3 style="margin-top: 20px;">📈 Wochenauslastung</h3>
+    <input type="text" id="datepicker" class="form-control" readonly>
+    <p><strong>📊 Wochenauslastung</strong></p>
     {% for week in weekly_summary %}
-      <div><strong>{{ week.label }}</strong></div>
-      <div class="week-summary-bar">
-        <div style="width: {{ (week.booked / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #e74c3c;"></div>
-        <div style="width: {{ (week.free / (week.booked + week.free + 0.01)) * 100 }}%; background-color: #2ecc71;"></div>
-      </div>
-    {% endfor %}
-
-    <h4 style="margin-top: 20px;">⏱️ Auslastung je Uhrzeit</h4>
-    {% for week in weekly_detailed %}
-      <div style="margin-bottom: 10px;"><strong>{{ week.label }}</strong></div>
-      {% for time, values in week.slots.items() %}
-        {% set sum = values.booked + values.free + 0.01 %}
-        <div class="slot-load-bar-label">{{ time }} ({{ values.booked }}/{{ values.booked + values.free }})</div>
-        <div class="slot-load-bar">
-          <div style="width: {{ (values.booked / sum) * 100 }}%; background-color: #e74c3c;"></div>
-          <div style="width: {{ (values.free / sum) * 100 }}%; background-color: #2ecc71;"></div>
+        <div style="margin-bottom: 6px;">
+            <div>{{ week.label }}</div>
+            <div style="background-color: #444; height: 12px; border-radius: 4px; overflow: hidden;">
+                <div style="background-color: #2ecc71; width: {{ (week.free / (week.booked + week.free + 1e-5) * 100)|round(0, 'floor') }}%; height: 100%; float: left;"></div>
+                <div style="background-color: #e74c3c; width: {{ (week.booked / (week.booked + week.free + 1e-5) * 100)|round(0, 'floor') }}%; height: 100%; float: left;"></div>
+            </div>
         </div>
-      {% endfor %}
     {% endfor %}
-  </div>
 </div>
-<div class="main-content">
-  <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
-
-  <div class="calendar-nav">
-    <a href="{{ url_for('day_view', date_str=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">⬅️</a>
-    <span><strong>KW {{ current_kw }}</strong></span>
-    <a href="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">➡️</a>
-  </div>
-
-  <div class="nav">
-    {% for d in days %}
-      <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}" style="padding: 8px 12px; border-radius: 6px; background-color: #333; color: {% if d == date %}white{% else %}#ccc{% endif %};">
-        {{ d.strftime('%a, %d.%m') }}
-      </a>
-    {% endfor %}
-  </div>
-
-  {% for time, slot_obj in slots.items() %}
-    {% set slot_list = slot_obj.events %}
-    {% set total = slot_list|length %}
-    {% set booked = slot_list|selectattr('booked')|list|length %}
-    {% set beraters = slot_obj.available_beraters %}
-    {% set ratio = 100 * booked / (total + 0.01) %}
-    {% if ratio == 100 %}
-      {% set load_class = 'red' %}
-    {% elif ratio >= 80 %}
-      {% set load_class = 'orange' %}
-    {% elif ratio >= 50 %}
-      {% set load_class = 'yellow' %}
-    {% else %}
-      {% set load_class = 'green' %}
-    {% endif %}
-
-    <div class="time-section">
-      <div class="time-header">
-        <span>🕒 {{ time }} Uhr<br><small style="color:#aaa; font-weight: normal;">Berater verfügbar: {{ beraters }}</small></span>
-        <span>{{ booked }} / {{ total }} gebucht</span>
-      </div>
-
-      {% if booked < total %}
-        {% for slot in slot_list %}
-          <div class="slot {{ load_class }} {% if slot.booked %}booked{% endif %}">
-            {% if not slot.booked %}
-              <form method="POST" action="{{ url_for('book') }}">
-                <input type="hidden" name="slot_id" value="{{ slot.id }}">
-                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                <input type="text" name="first_name" placeholder="Vorname" required>
-                <input type="text" name="last_name" placeholder="Nachname" required>
-                <button type="submit">Slot buchen</button>
-              </form>
-            {% else %}
-              <p>✅ Gebucht: {{ slot.summary }}</p>
-            {% endif %}
-          </div>
-        {% endfor %}
-      {% else %}
-        <p style="color: #bbb; font-style: italic;">⚠️ Alle Slots um {{ time }} Uhr sind bereits belegt.</p>
-      {% endif %}
+<div class="main">
+    <div class="week-switch">
+        <form method="GET" action="{{ url_for('day_view', date_str=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">
+            <button>⬅️</button>
+        </form>
+        <div style="padding: 6px 12px; font-weight: bold;">KW {{ current_kw }}</div>
+        <form method="GET" action="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">
+            <button>➡️</button>
+        </form>
     </div>
-  {% endfor %}
+
+    <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
+
+    <div class="nav">
+        {% for d in days %}
+            <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
+                {{ d.strftime('%a, %d.%m') }}
+            </a>
+        {% endfor %}
+    </div>
+
+    {% for hour, slot in slots.items() %}
+        {% set total = slot.events|length %}
+        {% set booked = slot.events|selectattr('booked')|list|length %}
+        {% set ratio = (booked / (total + 0.01)) %}
+        {% set color = 'green' %}
+        {% if ratio >= 1.0 %}
+            {% set color = 'red' %}
+        {% elif ratio >= 0.8 %}
+            {% set color = 'orange' %}
+        {% elif ratio >= 0.5 %}
+            {% set color = 'yellow' %}
+        {% endif %}
+        <div class="time-section {{ color }}">
+            <div><strong>🕒 {{ hour }} Uhr</strong></div>
+            <div>Berater verfügbar: {{ slot.available_beraters }} / {{ total }} gebucht</div>
+            {% if booked < total %}
+                {% for s in slot.events %}
+                    {% if not s.booked %}
+                        <div class="slot">
+                            <form method="POST" action="{{ url_for('book') }}">
+                                <input type="hidden" name="slot_id" value="{{ s.id }}">
+                                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                                <input type="text" name="first_name" placeholder="Vorname" required>
+                                <input type="text" name="last_name" placeholder="Nachname" required>
+                                <button type="submit">Slot buchen</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <p style="color: #ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</p>
+            {% endif %}
+        </div>
+    {% endfor %}
 </div>
 <script>
-  flatpickr("#calendar", {
-    inline: true,
-    defaultDate: "{{ date.strftime('%Y-%m-%d') }}",
-    locale: "de",
-    theme: "dark",
-    onChange: function(selectedDates, dateStr) {
-      window.location.href = "/day/" + dateStr;
-    }
-  });
+    const input = document.getElementById("datepicker");
+    const dp = new Datepicker(input, {
+        autohide: true,
+        format: 'yyyy-mm-dd'
+    });
+    input.addEventListener('changeDate', e => {
+        const date = e.target.value;
+        window.location.href = "/day/" + date;
+    });
 </script>
 </body>
 </html>
