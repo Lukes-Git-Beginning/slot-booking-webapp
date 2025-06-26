@@ -24,10 +24,9 @@ service = build('calendar', 'v3', credentials=creds)
 
 CENTRAL_CALENDAR_ID = "zentralkalenderzfa@gmail.com"
 
-# Zeithorizont: Mo–Fr dieser & nächster Woche
-def get_week_days():
-    today = datetime.now(TZ)
-    start = today - timedelta(days=today.weekday())
+# Zeithorizont: Mo–Fr dieser & nächster Woche, relativ zum gegebenen Tag
+def get_week_days(anchor_date):
+    start = anchor_date - timedelta(days=anchor_date.weekday())
     days = [start + timedelta(days=i) for i in range(10) if (start + timedelta(days=i)).weekday() < 5]
     return days
 
@@ -126,7 +125,7 @@ def day_view(date_str):
         "index.html",
         slots=slots,
         date=date_obj,
-        days=get_week_days(),
+        days=get_week_days(date_obj),
         week_start=get_week_start(date_obj),
         current_kw=get_current_kw(date_obj),
         weekly_summary=extract_weekly_summary(availability),
