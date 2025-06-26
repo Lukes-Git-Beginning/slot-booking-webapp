@@ -1,11 +1,9 @@
-# generate_availability.py
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import pytz
 import json
 
-# Setup
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_ACCOUNT_FILE = 'service_account.json'
 TZ = pytz.timezone('Europe/Berlin')
@@ -14,7 +12,6 @@ creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('calendar', 'v3', credentials=creds)
 
-# Beraterkalender
 consultants = {
     "Daniel": "daniel.herbort.zfa@gmail.com",
     "Simon": "simonmast9@gmail.com",
@@ -42,10 +39,11 @@ slots = {
 
 availability = {}
 today = datetime.now(TZ)
+slot_count = 0
 
 for day_offset in range(30):
     day = today + timedelta(days=day_offset)
-    weekday = day.strftime('%a')[:2]  # Mo, Di, ...
+    weekday = day.strftime('%a')[:2]
     if weekday in slots:
         for time in slots[weekday]:
             start_naive = datetime.strptime(f"{day.strftime('%Y-%m-%d')} {time}", "%Y-%m-%d %H:%M")
@@ -54,24 +52,40 @@ for day_offset in range(30):
             slot_key = f"{day.strftime('%Y-%m-%d')} {time}"
 
             available = []
+
             for name, cal_id in consultants.items():
                 if name in restricted_slots and time not in restricted_slots[name]:
                     continue
 
-                events_result = service.freebusy().query(body={
-                    "timeMin": start.isoformat(),
-                    "timeMax": end.isoformat(),
-                    "timeZone": 'Europe/Berlin',
-                    "items": [{"id": cal_id}]
-                }).execute()
+                try:
+                    events_result = service.events().list(
+                        calendarId=cal_id,
+                        timeMin=start.isoformat(),
+                        timeMax=end.isoformat(),
+                        singleEvents=True,
+                        orderBy='startTime',
+                        maxResults=10
+                    ).execute()
+                    events = events_result.get('items', [])
 
-                busy = events_result['calendars'][cal_id]['busy']
-                if not busy:
-                    available.append(name)
+                    # prüfen ob blockiert
+                    has_conflict = False
+                    for event in events:
+                        summary = event.get('summary', '').lower()
+                        if any(block in summary for block in ['t2', 't1,5', 't2,5', 't3', 't3,5']):
+                            has_conflict = True
+                            break
+                    if not has_conflict:
+                        available.append(name)
+
+                except Exception as e:
+                    print(f"❌ Fehler bei {name} ({cal_id}): {e}")
 
             availability[slot_key] = available
+            print(f"{slot_key}: {len(available)} verfügbar → {', '.join(available)}")
+            slot_count += 1
 
-with open("availability.json", "w", encoding="utf-8") as f:
+with open("static/availability.json", "w", encoding="utf-8") as f:
     json.dump(availability, f, ensure_ascii=False, indent=2)
 
-print("✅ availability.json erfolgreich generiert")
+print(f"\n✅ availability.json erfolgreich generiert ({slot_count} Slots analysiert)")
