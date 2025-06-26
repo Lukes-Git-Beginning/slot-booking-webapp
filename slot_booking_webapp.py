@@ -121,9 +121,9 @@ def book():
     slot_id = request.form.get("slot_id")
     first = request.form.get("first_name")
     last = request.form.get("last_name")
-    date_value = request.form.get("date")
-    print(f"Buchung für {first} {last} in Slot {slot_id} am {date_value}")
-    return redirect(url_for("day_view", date_str=date_value, success=True))
+    date = request.form.get("date")
+    print(f"Buchung für {first} {last} in Slot {slot_id} am {date}")
+    return redirect(url_for("day_view", date_str=date, success=True))
 
 if __name__ == '__main__':
     app.run(debug=True)
