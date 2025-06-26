@@ -77,9 +77,8 @@ def day_view(date_str):
     try:
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
-        return redirect(url_for("day_view", date=datetime.today().strftime("%Y-%m-%d")))
+        return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
-    # Slots simulieren (normalerweise hier: Kalenderabfrage)
     availability = load_availability()
     slots = {}
     for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
@@ -106,22 +105,21 @@ def day_view(date_str):
         current_kw=get_current_kw(date_obj),
         weekly_summary=extract_weekly_summary(availability),
         weekly_detailed=extract_detailed_summary(availability),
-        timedelta=timedelta  # ✅ damit {% timedelta %} funktioniert
+        timedelta=timedelta
     )
 
 @app.route("/")
 def index():
-    return redirect(url_for("day_view", date=datetime.today().strftime("%Y-%m-%d")))
+    return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
 @app.route("/book", methods=["POST"])
 def book():
-    # Buchung simuliert
     slot_id = request.form.get("slot_id")
     first = request.form.get("first_name")
     last = request.form.get("last_name")
-    date = request.form.get("date")
-    print(f"Buchung für {first} {last} in Slot {slot_id} am {date}")
-    return redirect(url_for("day_view", date=date, success=True))
+    date_value = request.form.get("date")
+    print(f"Buchung für {first} {last} in Slot {slot_id} am {date_value}")
+    return redirect(url_for("day_view", date_str=date_value, success=True))
 
 if __name__ == '__main__':
     app.run(debug=True)
