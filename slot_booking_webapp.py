@@ -34,8 +34,12 @@ def get_current_kw(d):
     return d.isocalendar()[1]
 
 def load_availability():
-    with open("availability.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open("availability.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("⚠️ Warnung: availability.json nicht gefunden. Rückgabe: leeres Verzeichnis.")
+        return {}
 
 def extract_weekly_summary(availability):
     by_week = {}
