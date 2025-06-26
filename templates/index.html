@@ -89,14 +89,14 @@
   <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
 
   <div class="calendar-nav">
-    <a href="{{ url_for('day_view', date=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">⬅️</a>
+    <a href="{{ url_for('day_view', date_str=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">⬅️</a>
     <span><strong>KW {{ current_kw }}</strong></span>
-    <a href="{{ url_for('day_view', date=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">➡️</a>
+    <a href="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">➡️</a>
   </div>
 
   <div class="nav">
     {% for d in days %}
-      <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}" style="padding: 8px 12px; border-radius: 6px; background-color: #333; color: {% if d == date %}white{% else %}#ccc{% endif %};">
+      <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}" style="padding: 8px 12px; border-radius: 6px; background-color: #333; color: {% if d == date %}white{% else %}#ccc{% endif %};">
         {{ d.strftime('%a, %d.%m') }}
       </a>
     {% endfor %}
