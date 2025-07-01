@@ -12,6 +12,17 @@ creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('calendar', 'v3', credentials=creds)
 
+# Feste Map EN -> DE Kürzel
+weekday_map = {
+    'Monday': 'Mo',
+    'Tuesday': 'Di',
+    'Wednesday': 'Mi',
+    'Thursday': 'Do',
+    'Friday': 'Fr',
+    'Saturday': 'Sa',
+    'Sunday': 'So'
+}
+
 consultants = {
     "Daniel": "daniel.herbort.zfa@gmail.com",
     "Simon": "simonmast9@gmail.com",
@@ -43,49 +54,59 @@ slot_count = 0
 
 for day_offset in range(30):
     day = today + timedelta(days=day_offset)
-    weekday = day.strftime('%a')[:2]
-    if weekday in slots:
-        for time in slots[weekday]:
-            start_naive = datetime.strptime(f"{day.strftime('%Y-%m-%d')} {time}", "%Y-%m-%d %H:%M")
-            start = TZ.localize(start_naive)
-            end = start + timedelta(hours=2)
-            slot_key = f"{day.strftime('%Y-%m-%d')} {time}"
+    weekday_en = day.strftime('%A')  # z.B. 'Tuesday'
+    weekday = weekday_map.get(weekday_en, None)
 
-            available = []
+    if weekday not in slots:
+        print(f"⏭️  {day.strftime('%Y-%m-%d')} ({weekday_en}) übersprungen (kein definierter Slot-Tag)")
+        continue
 
-            for name, cal_id in consultants.items():
-                if name in restricted_slots and time not in restricted_slots[name]:
-                    continue
+    for time in slots[weekday]:
+        start_naive = datetime.strptime(f"{day.strftime('%Y-%m-%d')} {time}", "%Y-%m-%d %H:%M")
+        start = TZ.localize(start_naive)
+        end = start + timedelta(hours=2)
+        slot_key = f"{day.strftime('%Y-%m-%d')} {time}"
 
-                try:
-                    events_result = service.events().list(
-                        calendarId=cal_id,
-                        timeMin=start.isoformat(),
-                        timeMax=end.isoformat(),
-                        singleEvents=True,
-                        orderBy='startTime',
-                        maxResults=10
-                    ).execute()
-                    events = events_result.get('items', [])
+        available = []
 
-                    # prüfen ob blockiert
-                    has_conflict = False
-                    for event in events:
-                        summary = event.get('summary', '').lower()
-                        if any(block in summary for block in ['t2', 't1,5', 't2,5', 't3', 't3,5']):
-                            has_conflict = True
-                            break
-                    if not has_conflict:
-                        available.append(name)
+        for name, cal_id in consultants.items():
+            if name in restricted_slots and time not in restricted_slots[name]:
+                print(f"🔒 {name} ausgeschlossen für {slot_key} (nicht in allowed times)")
+                continue
 
-                except Exception as e:
-                    print(f"❌ Fehler bei {name} ({cal_id}): {e}")
+            try:
+                events_result = service.events().list(
+                    calendarId=cal_id,
+                    timeMin=start.isoformat(),
+                    timeMax=end.isoformat(),
+                    singleEvents=True,
+                    orderBy='startTime',
+                    maxResults=10
+                ).execute()
+                events = events_result.get('items', [])
 
-            availability[slot_key] = available
-            print(f"{slot_key}: {len(available)} verfügbar → {', '.join(available)}")
-            slot_count += 1
+                has_conflict = True  # Standard: blockiert
+                for event in events:
+                    summary = event.get('summary', '').strip().lower()
+                    if 't1-bereit' in summary or 't1 bereit' in summary:
+                        has_conflict = False
+                        print(f"✅ {name} hat Slot {slot_key} FREI mit Event: '{summary}'")
+                        break
+                    else:
+                        print(f"⛔️ {name} blockiert Slot {slot_key} mit Event: '{summary}'")
+
+                if not has_conflict:
+                    available.append(name)
+
+            except Exception as e:
+                print(f"❌ Fehler bei {name} ({cal_id}): {e}")
+
+        availability[slot_key] = available
+        if not available:
+            print(f"🚫 Slot {slot_key} hat KEINEN verfügbaren Berater!")
+        slot_count += 1
 
 with open("static/availability.json", "w", encoding="utf-8") as f:
     json.dump(availability, f, ensure_ascii=False, indent=2)
 
-print(f"\n✅ availability.json erfolgreich generiert ({slot_count} Slots analysiert)")
+print(f"\\n✅ availability.json erfolgreich generiert ({slot_count} Slots analysiert)")
