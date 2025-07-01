@@ -1,0 +1,494 @@
+{
+  "2025-07-01 11:00": [
+    "Sara"
+  ],
+  "2025-07-01 14:00": [
+    "Ann-Kathrin",
+    "Dominik"
+  ],
+  "2025-07-01 16:00": [
+    "Ann-Kathrin",
+    "Dominik"
+  ],
+  "2025-07-01 18:00": [
+    "Sara",
+    "Dominik"
+  ],
+  "2025-07-01 20:00": [
+    "Simon",
+    "Sara",
+    "Dominik"
+  ],
+  "2025-07-02 11:00": [
+    "Sara"
+  ],
+  "2025-07-02 14:00": [
+    "Ann-Kathrin"
+  ],
+  "2025-07-02 16:00": [
+    "Ann-Kathrin"
+  ],
+  "2025-07-02 18:00": [
+    "Sara"
+  ],
+  "2025-07-02 20:00": [
+    "Simon",
+    "Sara"
+  ],
+  "2025-07-03 11:00": [
+    "Patrick"
+  ],
+  "2025-07-03 14:00": [
+    "Patrick"
+  ],
+  "2025-07-03 16:00": [
+    "Patrick"
+  ],
+  "2025-07-03 18:00": [
+    "Patrick"
+  ],
+  "2025-07-03 20:00": [
+    "Simon",
+    "Patrick"
+  ],
+  "2025-07-04 09:00": [
+    "Patrick"
+  ],
+  "2025-07-04 11:00": [
+    "Patrick"
+  ],
+  "2025-07-04 14:00": [],
+  "2025-07-07 11:00": [
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-07 14:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-07 16:00": [
+    "Ann-Kathrin",
+    "Patrick"
+  ],
+  "2025-07-07 18:00": [
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-07 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-08 11:00": [
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-08 14:00": [
+    "Ann-Kathrin",
+    "Patrick"
+  ],
+  "2025-07-08 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick"
+  ],
+  "2025-07-08 18:00": [
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-08 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-09 11:00": [
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-09 14:00": [
+    "Ann-Kathrin",
+    "Patrick"
+  ],
+  "2025-07-09 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick"
+  ],
+  "2025-07-09 18:00": [
+    "Tim",
+    "Sara"
+  ],
+  "2025-07-09 20:00": [
+    "Simon",
+    "Sara"
+  ],
+  "2025-07-10 11:00": [
+    "Patrick"
+  ],
+  "2025-07-10 14:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-10 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick"
+  ],
+  "2025-07-10 18:00": [
+    "Tim",
+    "Sara"
+  ],
+  "2025-07-10 20:00": [
+    "Simon",
+    "Sara"
+  ],
+  "2025-07-11 09:00": [
+    "Ann-Kathrin",
+    "Patrick"
+  ],
+  "2025-07-11 11:00": [
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-11 14:00": [
+    "Ann-Kathrin",
+    "Sara"
+  ],
+  "2025-07-14 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-14 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-14 16:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-14 18:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-14 20:00": [
+    "Simon",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-15 11:00": [
+    "Daniel",
+    "Sara"
+  ],
+  "2025-07-15 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-15 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-15 18:00": [
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-15 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-16 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-16 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-16 16:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-16 18:00": [
+    "Tim",
+    "Sara"
+  ],
+  "2025-07-16 20:00": [
+    "Simon",
+    "Sara"
+  ],
+  "2025-07-17 11:00": [
+    "Daniel",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-17 14:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-17 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-17 18:00": [
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-17 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-18 09:00": [
+    "Ann-Kathrin",
+    "Patrick"
+  ],
+  "2025-07-18 11:00": [
+    "Daniel",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-18 14:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Dominik"
+  ],
+  "2025-07-21 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-21 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-21 16:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-21 18:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-21 20:00": [
+    "Simon",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-22 11:00": [
+    "Daniel",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-22 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-22 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-22 18:00": [
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-22 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-23 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-23 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-23 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-23 18:00": [
+    "Tim",
+    "Sara"
+  ],
+  "2025-07-23 20:00": [
+    "Simon",
+    "Sara"
+  ],
+  "2025-07-24 11:00": [
+    "Daniel",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-24 14:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-24 16:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-24 18:00": [
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-24 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-25 09:00": [
+    "Patrick"
+  ],
+  "2025-07-25 11:00": [
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-25 14:00": [
+    "Sara",
+    "Dominik"
+  ],
+  "2025-07-28 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-28 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-28 16:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-28 18:00": [
+    "Ann-Kathrin",
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-28 20:00": [
+    "Simon",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-29 11:00": [
+    "Daniel",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-29 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-29 16:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-29 18:00": [
+    "Tim",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-29 20:00": [
+    "Simon",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-30 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-07-30 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-30 16:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-07-30 18:00": [
+    "Tim",
+    "Sara"
+  ],
+  "2025-07-30 20:00": [
+    "Simon",
+    "Sara"
+  ]
+}
