@@ -8,6 +8,7 @@ import pytz
 import json
 import os
 
+# .env laden (empfohlen!)
 load_dotenv()
 
 app = Flask(__name__)
@@ -79,24 +80,45 @@ def extract_detailed_summary(availability):
         formatted.append({"label": label, "slots": slots})
     return formatted
 
+# -------- LOGIN-Bereich --------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        if username == os.environ.get("LOGIN_USER") and password == os.environ.get("LOGIN_PASS"):
+        # Admin-Login
+        if username.lower() == "admin" and password == os.environ.get("ADMIN_PASS", "deinadminpass"):
             session["logged_in"] = True
+            session["is_admin"] = True
+            return redirect(url_for("admin_panel"))
+        # Normaler Nutzer-Login
+        elif username == os.environ.get("LOGIN_USER") and password == os.environ.get("LOGIN_PASS"):
+            session["logged_in"] = True
+            session["is_admin"] = False
             return redirect(url_for("index"))
         else:
             flash("Falscher Benutzername oder Passwort.")
             return redirect(url_for("login"))
     return render_template("login.html")
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
 @app.before_request
 def require_login():
     if request.endpoint not in ("login", "static") and not session.get("logged_in"):
         return redirect(url_for("login"))
 
+# -------- ADMIN PANEL --------
+@app.route("/admin_panel")
+def admin_panel():
+    if not session.get("logged_in") or not session.get("is_admin"):
+        return redirect(url_for("login"))
+    return render_template("admin_panel.html")
+
+# -------- NORMALER SLOT-BUCHUNGSBEREICH --------
 @app.route("/day/<date_str>")
 def day_view(date_str):
     try:

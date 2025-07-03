@@ -1,0 +1,15 @@
+body.bg-dark {
+    background: #17181c;
+    color: #e8e8e8;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+input, button {
+    outline: none;
+    border: none;
+}
+input:focus, button:focus {
+    box-shadow: 0 0 0 2px #2784fa44;
+}
+a { text-decoration: none; }
+::-webkit-scrollbar { width: 0.6em; background: #23272f;}
+::-webkit-scrollbar-thumb { background: #2b2f37; border-radius: 1em;}
