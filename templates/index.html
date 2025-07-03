@@ -102,6 +102,15 @@
       border-radius: 4px;
       margin-top: 5px;
     }
+    .kw-dropdown {
+      margin-left: 1rem;
+      margin-right: 1rem;
+      background: #23272f;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 6px;
+      padding: 5px 10px;
+    }
   </style>
 </head>
 <body>
@@ -120,6 +129,8 @@
     {% endfor %}
   </div>
   <div class="main">
+
+    <!-- KW Dropdown-Auswahl -->
     <div class="week-switch">
       <form method="GET" action="{{ url_for('day_view', date_str=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">
         <button>⬅️</button>
@@ -130,7 +141,23 @@
       <form method="GET" action="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">
         <button>➡️</button>
       </form>
+      <!-- KW-Dropdown hier: -->
+      <form style="margin-left:20px;">
+        <label for="kw_select" style="font-weight:bold; color:#ccc;">Kalenderwoche:</label>
+        <select id="kw_select" class="kw-dropdown" name="kw_select" onchange="if(this.value){ window.location.href=this.value; }">
+          {% for wdelta in range(-5, 6) %}
+            {% set target_date = date + timedelta(days=(wdelta*7)) %}
+            {% set week_start_opt = get_week_start(target_date) %}
+            {% set kw = week_start_opt.isocalendar()[1] %}
+            <option value="{{ url_for('day_view', date_str=week_start_opt.strftime('%Y-%m-%d')) }}"
+              {% if week_start_opt == week_start %}selected{% endif %}>
+              KW {{ kw }} (ab {{ week_start_opt.strftime('%d.%m.') }})
+            </option>
+          {% endfor %}
+        </select>
+      </form>
     </div>
+
     <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y')|replace('Monday','Montag')|replace('Tuesday','Dienstag')|replace('Wednesday','Mittwoch')|replace('Thursday','Donnerstag')|replace('Friday','Freitag') }}</h1>
     <div class="nav">
       {% for d in days %}
@@ -190,4 +217,3 @@
   </script>
 </body>
 </html>
-
