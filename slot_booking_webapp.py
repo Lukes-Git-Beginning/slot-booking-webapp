@@ -8,13 +8,11 @@ import pytz
 import json
 import os
 
-# .env laden (empfohlen!)
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "defaultsecret")
 
-# Kalender Setup
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 TZ = pytz.timezone("Europe/Berlin")
@@ -25,7 +23,6 @@ service = build('calendar', 'v3', credentials=creds)
 
 CENTRAL_CALENDAR_ID = "zentralkalenderzfa@gmail.com"
 
-# Zeithorizont: Mo–Fr dieser & nächster Woche, relativ zum gegebenen Tag
 def get_week_days(anchor_date):
     start = anchor_date - timedelta(days=anchor_date.weekday())
     days = [start + timedelta(days=i) for i in range(10) if (start + timedelta(days=i)).weekday() < 5]
@@ -80,21 +77,28 @@ def extract_detailed_summary(availability):
         formatted.append({"label": label, "slots": slots})
     return formatted
 
-# -------- LOGIN-Bereich --------
+def get_booked_slot_count(date_str, hour):
+    """Zählt die Anzahl T1-Termine im Kalender für einen Slot."""
+    slot_start = TZ.localize(datetime.strptime(f"{date_str} {hour}", "%Y-%m-%d %H:%M"))
+    slot_end = slot_start + timedelta(hours=2)
+    events_result = service.events().list(
+        calendarId=CENTRAL_CALENDAR_ID,
+        timeMin=slot_start.isoformat(),
+        timeMax=slot_end.isoformat(),
+        singleEvents=True,
+        orderBy='startTime'
+    ).execute()
+    events = events_result.get('items', [])
+    t1_events = [event for event in events if event.get("summary", "").strip().lower().startswith("t1")]
+    return len(t1_events)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        # Admin-Login
-        if username.lower() == "admin" and password == os.environ.get("ADMIN_PASS", "deinadminpass"):
+        if username == os.environ.get("LOGIN_USER") and password == os.environ.get("LOGIN_PASS"):
             session["logged_in"] = True
-            session["is_admin"] = True
-            return redirect(url_for("admin_panel"))
-        # Normaler Nutzer-Login
-        elif username == os.environ.get("LOGIN_USER") and password == os.environ.get("LOGIN_PASS"):
-            session["logged_in"] = True
-            session["is_admin"] = False
             return redirect(url_for("index"))
         else:
             flash("Falscher Benutzername oder Passwort.")
@@ -111,14 +115,6 @@ def require_login():
     if request.endpoint not in ("login", "static") and not session.get("logged_in"):
         return redirect(url_for("login"))
 
-# -------- ADMIN PANEL --------
-@app.route("/admin_panel")
-def admin_panel():
-    if not session.get("logged_in") or not session.get("is_admin"):
-        return redirect(url_for("login"))
-    return render_template("admin_panel.html")
-
-# -------- NORMALER SLOT-BUCHUNGSBEREICH --------
 @app.route("/day/<date_str>")
 def day_view(date_str):
     try:
@@ -130,17 +126,13 @@ def day_view(date_str):
     slots = {}
     for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
         key = f"{date_str} {hour}"
-        events = []
-        if key in availability:
-            for idx, entry in enumerate(availability[key]):
-                events.append({
-                    "id": f"{key}-{idx}",
-                    "booked": False,
-                    "summary": ""
-                })
+        berater_count = len(availability.get(key, []))
+        booked = get_booked_slot_count(date_str, hour)
+        free = max(0, berater_count - booked)
         slots[hour] = {
-            "events": events,
-            "available_beraters": len(availability.get(key, []))
+            "booked": booked,
+            "free": free,
+            "total": berater_count,
         }
 
     return render_template(
@@ -161,12 +153,31 @@ def index():
 
 @app.route("/book", methods=["POST"])
 def book():
-    slot_id = request.form.get("slot_id")
     first = request.form.get("first_name")
     last = request.form.get("last_name")
     date = request.form.get("date")
-    print(f"Buchung für {first} {last} in Slot {slot_id} am {date}")
-    return redirect(url_for("day_view", date_str=date, success=True))
+    hour = request.form.get("hour")
+
+    key = f"{date} {hour}"
+    berater_count = len(load_availability().get(key, []))
+    booked = get_booked_slot_count(date, hour)
+    if booked >= berater_count:
+        flash("Slot ist bereits voll belegt.", "danger")
+        return redirect(url_for("day_view", date_str=date))
+
+    slot_num = booked + 1
+    event_title = f"T1-{slot_num:02d} – {last}, {first}"
+    slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
+    slot_end = slot_start + timedelta(hours=2)
+    event_body = {
+        "summary": event_title,
+        "start": {"dateTime": slot_start.isoformat()},
+        "end": {"dateTime": slot_end.isoformat()},
+    }
+    service.events().insert(calendarId=CENTRAL_CALENDAR_ID, body=event_body).execute()
+    flash("Slot erfolgreich gebucht!", "success")
+    return redirect(url_for("day_view", date_str=date))
 
 if __name__ == '__main__':
     app.run(debug=True)
+
