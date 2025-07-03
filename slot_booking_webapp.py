@@ -100,6 +100,7 @@ def get_slot_status(date_str, hour, berater_count):
         found = False
         for event in events:
             summary = event.get("summary", "")
+            # Slot ist "belegt", wenn im Kalender ein Event mit Name existiert (nicht nur T1-XX)
             if summary.startswith(slot_id):
                 found = True
                 if "–" in summary:  # Slot mit Name = belegt
@@ -187,6 +188,7 @@ def book():
     last = request.form.get("last_name")
     date = request.form.get("date")
     hour = request.form.get("hour")
+    color_id = request.form.get("color", "9")  # Default: blau
 
     key = f"{date} {hour}"
     berater_count = len(load_availability().get(key, []))
@@ -204,11 +206,12 @@ def book():
     # Slot jetzt mit Name buchen (neues Event anlegen)
     slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
-    event_title = f"{slot_id} – {last}, {first}"
+    event_title = f"{last}, {first}"   # <--- NUR Name, kein T1-XX mehr!
     event_body = {
         "summary": event_title,
         "start": {"dateTime": slot_start.isoformat()},
         "end": {"dateTime": slot_end.isoformat()},
+        "colorId": color_id
     }
     service.events().insert(calendarId=CENTRAL_CALENDAR_ID, body=event_body).execute()
     flash("Slot erfolgreich gebucht!", "success")

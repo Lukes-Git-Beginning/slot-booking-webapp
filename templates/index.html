@@ -8,24 +8,109 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/css/datepicker-bs5.min.css">
   <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/js/datepicker-full.min.js"></script>
   <style>
-    body { background-color: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; }
-    .sidebar { width: 280px; background-color: #2a2a2a; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100vh; position: relative; transition: transform 0.3s ease-in-out; transform: translateX(-100%);}
-    .sidebar.visible { transform: translateX(0);}
-    .sidebar-toggle { position: absolute; top: 20px; right: -42px; background-color: #2a2a2a; color: white; border: none; border-radius: 4px; padding: 10px; font-size: 20px; cursor: pointer; box-shadow: 2px 2px 6px rgba(0,0,0,0.5);}
-    .main { flex-grow: 1; padding: 20px; }
-    h1 { font-size: 1.6em; margin-bottom: 10px; color: #fff; }
-    .nav, .week-switch { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
-    .nav a, .week-switch button { padding: 6px 10px; background-color: #333; border-radius: 6px; text-decoration: none; color: #ccc; border: none; cursor: pointer;}
-    .nav a.active, .week-switch button.active { background-color: #007bff; color: #fff;}
-    .time-section { border-radius: 6px; padding: 10px; margin-bottom: 15px; background-color: #2a2a2a; border-left: 6px solid #2a2a2a; }
+    body {
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .sidebar {
+      width: 280px;
+      background-color: #2a2a2a;
+      padding: 20px;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+      height: 100vh;
+      position: relative;
+      transition: transform 0.3s ease-in-out;
+      transform: translateX(-100%);
+    }
+    .sidebar.visible {
+      transform: translateX(0);
+    }
+    .sidebar-toggle {
+      position: absolute;
+      top: 20px;
+      right: -42px;
+      background-color: #2a2a2a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+    }
+    .main {
+      flex-grow: 1;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 1.6em;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .nav, .week-switch {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 15px;
+    }
+    .nav a, .week-switch button {
+      padding: 6px 10px;
+      background-color: #333;
+      border-radius: 6px;
+      text-decoration: none;
+      color: #ccc;
+      border: none;
+      cursor: pointer;
+    }
+    .nav a.active, .week-switch button.active {
+      background-color: #007bff;
+      color: #fff;
+    }
+    .time-section {
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 15px;
+      background-color: #2a2a2a;
+      border-left: 6px solid #2a2a2a;
+    }
     .time-section.green { border-left-color: #2ecc71; }
     .time-section.yellow { border-left-color: #f1c40f; }
     .time-section.orange { border-left-color: #e67e22; }
     .time-section.red { border-left-color: #e74c3c; }
-    .slot { margin-top: 6px; padding: 8px; background-color: #333; border-radius: 6px; }
-    input[type="text"] { padding: 6px; background-color: #444; color: #fff; border: none; border-radius: 4px; }
-    button[type="submit"] { padding: 6px 12px; background-color: #007bff; color: #fff; border: none; border-radius: 4px; margin-top: 5px; }
-    .kw-dropdown { margin-left: 1rem; margin-right: 1rem; background: #23272f; color: #fff; border: 1px solid #555; border-radius: 6px; padding: 5px 10px; }
+    .slot {
+      margin-top: 6px;
+      padding: 8px;
+      background-color: #333;
+      border-radius: 6px;
+    }
+    input[type="text"] {
+      padding: 6px;
+      background-color: #444;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+    }
+    button[type="submit"] {
+      padding: 6px 12px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+    .kw-dropdown {
+      margin-left: 1rem;
+      margin-right: 1rem;
+      background: #23272f;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 6px;
+      padding: 5px 10px;
+    }
     .flash-success { background: #38a169; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
     .flash-danger { background: #e74c3c; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
   </style>
@@ -123,6 +208,11 @@
                   <input type="hidden" name="hour" value="{{ hour }}">
                   <input type="text" name="first_name" placeholder="Vorname" required>
                   <input type="text" name="last_name" placeholder="Nachname" required>
+                  <select name="color" required style="margin-left:8px;">
+                    <option value="11">Grün</option>
+                    <option value="9" selected>Blau</option>
+                    <option value="5">Gelb</option>
+                  </select>
                   <button type="submit">Slot buchen</button>
                 </form>
               </div>
