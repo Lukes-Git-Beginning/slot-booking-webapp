@@ -1,4 +1,3 @@
-# slot_booking_webapp.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -78,7 +77,11 @@ def extract_detailed_summary(availability):
     return formatted
 
 def get_slot_status(date_str, hour, berater_count):
-    """Ermittelt für einen Zeitslot alle Buchungsplätze, Status (frei/belegt), und prüft auf Überbuchung."""
+    """
+    Für einen Slot (Tag+Uhrzeit) wird gezählt, wie viele echte Termine schon im Kalender sind.
+    Die Zahl der maximal möglichen Slots ergibt sich aus berater_count * 4.
+    Buchungsformulare gibt es nur für die noch freien Slots.
+    """
     max_slots = berater_count * 4
     slot_start = TZ.localize(datetime.strptime(f"{date_str} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
@@ -91,33 +94,18 @@ def get_slot_status(date_str, hour, berater_count):
     ).execute()
     events = events_result.get('items', [])
 
-    slots = []
-    taken_count = 0
-    free_ids = []
-    # Suche alle „T1-XX“ und unterscheide belegt/frei
-    for i in range(1, max_slots + 1):
-        slot_id = f"T1-{i:02d}"
-        found = False
-        for event in events:
-            summary = event.get("summary", "")
-            # Slot ist "belegt", wenn im Kalender ein Event mit Name existiert (nicht nur T1-XX)
-            if summary.startswith(slot_id):
-                found = True
-                if "–" in summary:  # Slot mit Name = belegt
-                    taken_count += 1
-                    slots.append({"id": slot_id, "booked": True, "summary": summary})
-                else:  # Slot ohne Name = frei
-                    slots.append({"id": slot_id, "booked": False, "summary": summary})
-                    free_ids.append(slot_id)
-                break
-        if not found:
-            # Slot existiert noch nicht → als frei listen
-            slots.append({"id": slot_id, "booked": False, "summary": ""})
-            free_ids.append(slot_id)
+    # Zähle alle Events, deren Summary NICHT exakt zwei Ziffern ist (keine Platzhalter)
+    gebuchte = [event for event in events if not (event.get("summary", "").strip().isdigit() and len(event.get("summary", "").strip()) == 2)]
+    taken_count = len(gebuchte)
+    freie_count = max(0, max_slots - taken_count)
 
-    # Überbuchung wenn mehr gebucht als erlaubt
+    # Für das Template: Dummy-Slots für noch freie Plätze
+    slots = []
+    for i in range(1, freie_count + 1):
+        slots.append({"id": f"SLOT-{i:02d}", "booked": False, "summary": ""})
+
     overbooked = taken_count > max_slots
-    return slots, taken_count, max_slots, free_ids, overbooked
+    return slots, taken_count, max_slots, freie_count, overbooked
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -154,12 +142,12 @@ def day_view(date_str):
     for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
         key = f"{date_str} {hour}"
         berater_count = len(availability.get(key, []))
-        slot_list, booked, total, free_ids, overbooked = get_slot_status(date_str, hour, berater_count)
+        slot_list, booked, total, freie_count, overbooked = get_slot_status(date_str, hour, berater_count)
         slots[hour] = {
             "events": slot_list,
             "booked": booked,
             "total": total,
-            "free_ids": free_ids,
+            "free_count": freie_count,
             "available_beraters": berater_count,
             "overbooked": overbooked,
         }
@@ -192,21 +180,17 @@ def book():
 
     key = f"{date} {hour}"
     berater_count = len(load_availability().get(key, []))
-    slot_list, booked, total, free_ids, overbooked = get_slot_status(date, hour, berater_count)
+    slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
 
     # Überbuchung prüfen
-    if overbooked:
-        flash("Achtung: Es sind zu wenige Berater für diese Terminanzahl verfügbar. Bitte kontaktiere den Admin.", "danger")
-        return redirect(url_for("day_view", date_str=date))
-    # Prüfen ob der Slot wirklich noch frei ist
-    if slot_id not in free_ids:
-        flash("Slot ist leider nicht mehr frei.", "danger")
+    if overbooked or freie_count <= 0:
+        flash("Slot ist bereits voll belegt.", "danger")
         return redirect(url_for("day_view", date_str=date))
 
     # Slot jetzt mit Name buchen (neues Event anlegen)
     slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
-    event_title = f"{last}, {first}"   # <--- NUR Name, kein T1-XX mehr!
+    event_title = f"{last}, {first}"
     event_body = {
         "summary": event_title,
         "start": {"dateTime": slot_start.isoformat()},

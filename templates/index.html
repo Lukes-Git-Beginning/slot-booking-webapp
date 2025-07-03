@@ -150,7 +150,6 @@
       <form method="GET" action="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">
         <button>➡️</button>
       </form>
-      <!-- KW-Dropdown hier: -->
       <form style="margin-left:20px;">
         <label for="kw_select" style="font-weight:bold; color:#ccc;">Kalenderwoche:</label>
         <select id="kw_select" class="kw-dropdown" name="kw_select" onchange="if(this.value){ window.location.href=this.value; }">
@@ -176,8 +175,8 @@
       {% endfor %}
     </div>
     {% for hour, slot in slots.items() %}
-      {% set total = slot.events|length %}
-      {% set booked = slot.events|selectattr('booked')|list|length %}
+      {% set total = slot.total %}
+      {% set booked = slot.booked %}
       {% set ratio = (booked / (total + 0.01)) %}
       {% set color = 'green' %}
       {% if slot.overbooked %}
@@ -196,27 +195,25 @@
           <div style="color: #e74c3c; font-weight: bold; margin: 5px 0;">
             ⚠️ Achtung: Es sind zu wenige Berater für diese Terminanzahl! Bitte kontaktiere den Admin.
           </div>
-        {% elif booked >= total %}
+        {% elif slot.free_count == 0 %}
           <div style="color: #ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</div>
         {% else %}
           {% for s in slot.events %}
-            {% if not s.booked %}
-              <div class="slot">
-                <form method="POST" action="{{ url_for('book') }}">
-                  <input type="hidden" name="slot_id" value="{{ s.id }}">
-                  <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                  <input type="hidden" name="hour" value="{{ hour }}">
-                  <input type="text" name="first_name" placeholder="Vorname" required>
-                  <input type="text" name="last_name" placeholder="Nachname" required>
-                  <select name="color" required style="margin-left:8px;">
-                    <option value="11">Grün</option>
-                    <option value="9" selected>Blau</option>
-                    <option value="5">Gelb</option>
-                  </select>
-                  <button type="submit">Slot buchen</button>
-                </form>
-              </div>
-            {% endif %}
+            <div class="slot">
+              <form method="POST" action="{{ url_for('book') }}">
+                <input type="hidden" name="slot_id" value="{{ s.id }}">
+                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="hour" value="{{ hour }}">
+                <input type="text" name="first_name" placeholder="Vorname" required>
+                <input type="text" name="last_name" placeholder="Nachname" required>
+                <select name="color" required style="margin-left:8px;">
+                  <option value="11">Grün</option>
+                  <option value="9" selected>Blau</option>
+                  <option value="5">Gelb</option>
+                </select>
+                <button type="submit">Slot buchen</button>
+              </form>
+            </div>
           {% endfor %}
         {% endif %}
       </div>
