@@ -144,7 +144,8 @@ def day_view(date_str):
         current_kw=get_current_kw(date_obj),
         weekly_summary=extract_weekly_summary(availability),
         weekly_detailed=extract_detailed_summary(availability),
-        timedelta=timedelta
+        timedelta=timedelta,
+        get_week_start=get_week_start   # <-- DAS WICHTIGE!
     )
 
 @app.route("/")
@@ -180,4 +181,3 @@ def book():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
