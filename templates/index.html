@@ -235,6 +235,12 @@
     function toggleSidebar() {
       document.getElementById("sidebar").classList.toggle("visible");
     }
+    // Sanfter Auto-Reload alle 45 Sekunden, außer bei aktivem Input
+    setInterval(function() {
+      if (document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+        window.location.reload();
+      }
+    }, 45000);
   </script>
 </body>
 </html>
