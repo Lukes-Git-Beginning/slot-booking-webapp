@@ -5,146 +5,51 @@
   <title>Slot Buchung</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/css/datepicker-bs5.min.css">
   <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/js/datepicker-full.min.js"></script>
-  <style>
-    body {
-      background-color: #1e1e1e;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-    }
-    .sidebar {
-      width: 280px;
-      background-color: #2a2a2a;
-      padding: 20px;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-      height: 100vh;
-      position: relative;
-      transition: transform 0.3s ease-in-out;
-      transform: translateX(-100%);
-    }
-    .sidebar.visible {
-      transform: translateX(0);
-    }
-    .sidebar-toggle {
-      position: absolute;
-      top: 20px;
-      right: -42px;
-      background-color: #2a2a2a;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 10px;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.5);
-    }
-    .main {
-      flex-grow: 1;
-      padding: 20px;
-    }
-    h1 {
-      font-size: 1.6em;
-      margin-bottom: 10px;
-      color: #fff;
-    }
-    .nav, .week-switch {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 15px;
-    }
-    .nav a, .week-switch button {
-      padding: 6px 10px;
-      background-color: #333;
-      border-radius: 6px;
-      text-decoration: none;
-      color: #ccc;
-      border: none;
-      cursor: pointer;
-    }
-    .nav a.active, .week-switch button.active {
-      background-color: #007bff;
-      color: #fff;
-    }
-    .time-section {
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 15px;
-      background-color: #2a2a2a;
-      border-left: 6px solid #2a2a2a;
-    }
-    .time-section.green { border-left-color: #2ecc71; }
-    .time-section.yellow { border-left-color: #f1c40f; }
-    .time-section.orange { border-left-color: #e67e22; }
-    .time-section.red { border-left-color: #e74c3c; }
-    .slot {
-      margin-top: 6px;
-      padding: 8px;
-      background-color: #333;
-      border-radius: 6px;
-    }
-    input[type="text"] {
-      padding: 6px;
-      background-color: #444;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-    }
-    button[type="submit"] {
-      padding: 6px 12px;
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      margin-top: 5px;
-    }
-    .kw-dropdown {
-      margin-left: 1rem;
-      margin-right: 1rem;
-      background: #23272f;
-      color: #fff;
-      border: 1px solid #555;
-      border-radius: 6px;
-      padding: 5px 10px;
-    }
-    .flash-success { background: #38a169; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
-    .flash-danger { background: #e74c3c; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
-  </style>
 </head>
 <body>
+  <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
   <div class="sidebar" id="sidebar">
     <button class="sidebar-toggle" onclick="toggleSidebar()">📅</button>
     <input type="text" id="datepicker" class="form-control" readonly>
     <p><strong>📊 Wochenauslastung</strong></p>
     {% for week in weekly_summary %}
+      {% set usage = week.booked / (week.booked + week.free + 1e-5) %}
+      {% set usage_pct = (usage * 100) | round(0, 'floor') %}
       <div style="margin-bottom: 6px;">
-        <div>{{ week.label }}</div>
+        <div>
+          {{ week.label }}
+          <span style="float:right; font-size:0.95em; color:#999;">
+            {{ usage_pct }}%
+          </span>
+        </div>
         <div style="background-color: #444; height: 12px; border-radius: 4px; overflow: hidden;">
-          <div style="background-color: #2ecc71; width: {{ (week.free / (week.booked + week.free + 1e-5) * 100)|round(0, 'floor') }}%; height: 100%; float: left;"></div>
-          <div style="background-color: #e74c3c; width: {{ (week.booked / (week.booked + week.free + 1e-5) * 100)|round(0, 'floor') }}%; height: 100%; float: left;"></div>
+          <div style="
+            background-color:
+              {% if usage < 0.5 %}var(--green)
+              {% elif usage < 0.8 %}var(--yellow)
+              {% elif usage < 0.95 %}var(--orange)
+              {% else %}var(--red){% endif %};
+            width: {{ usage_pct }}%; height: 100%; float: left;">
+          </div>
         </div>
       </div>
     {% endfor %}
   </div>
   <div class="main">
-
-    <!-- Flash-Messages für Bestätigung/Fehler -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="flash-{{ category }}">{{ message }}</div>
       {% endfor %}
     {% endwith %}
 
-    <!-- KW Dropdown-Auswahl -->
     <div class="week-switch">
       <form method="GET" action="{{ url_for('day_view', date_str=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">
         <button>⬅️</button>
       </form>
-      <div style="padding: 6px 12px; font-weight: bold; color: #fff; border: 1px solid #555; border-radius: 4px;">
+      <div style="padding: 6px 12px; font-weight: bold; color: var(--text-color); border: 1px solid #555; border-radius: 4px;">
         KW {{ current_kw }}
       </div>
       <form method="GET" action="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">
@@ -167,6 +72,7 @@
     </div>
 
     <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y')|replace('Monday','Montag')|replace('Tuesday','Dienstag')|replace('Wednesday','Mittwoch')|replace('Thursday','Donnerstag')|replace('Friday','Freitag') }}</h1>
+    <p style="margin-bottom:16px;"><a href="{{ url_for('scoreboard') }}" style="font-weight:bold; color:var(--accent);">🏆 Mein Ranking & Punkte</a></p>
     <div class="nav">
       {% for d in days %}
         <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
@@ -189,15 +95,19 @@
         {% set color = 'yellow' %}
       {% endif %}
       <div class="time-section {{ color }}">
-        <div><strong>🕒 {{ hour }} Uhr</strong></div>
-        <div>Berater verfügbar: {{ slot.available_beraters }} / {{ total }} Plätze, {{ booked }} gebucht</div>
-        {% if slot.overbooked %}
-          <div style="color: #e74c3c; font-weight: bold; margin: 5px 0;">
-            ⚠️ Achtung: Es sind zu wenige Berater für diese Terminanzahl! Bitte kontaktiere den Admin.
-          </div>
-        {% elif slot.free_count == 0 %}
-          <div style="color: #ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</div>
-        {% else %}
+        <div class="info">
+          <div><strong>🕒 {{ hour }} Uhr</strong></div>
+          <div>Berater verfügbar: {{ slot.available_beraters }} / {{ total }} Plätze, {{ booked }} gebucht</div>
+          {% if slot.overbooked %}
+            <div style="color: var(--red); font-weight: bold; margin: 5px 0;">
+              ⚠️ Achtung: Es sind zu wenige Berater für diese Terminanzahl! Bitte kontaktiere den Admin.
+            </div>
+          {% elif slot.free_count == 0 %}
+            <div style="color: #ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</div>
+          {% endif %}
+        </div>
+        <div class="slot-form-container">
+        {% if not slot.overbooked and slot.free_count > 0 %}
           {% for s in slot.events %}
             <div class="slot">
               <form method="POST" action="{{ url_for('book') }}">
@@ -206,20 +116,35 @@
                 <input type="hidden" name="hour" value="{{ hour }}">
                 <input type="text" name="first_name" placeholder="Vorname" required>
                 <input type="text" name="last_name" placeholder="Nachname" required>
+                <textarea name="description" placeholder="Beschreibung (optional)"></textarea>
                 <select name="color" required style="margin-left:8px;">
-                  <option value="11">Grün</option>
-                  <option value="9" selected>Blau</option>
-                  <option value="5">Gelb</option>
+                  <option value="11">Normales Potential</option>
+                  <option value="9" selected>Top Potential</option>
+                  <option value="5">Closer nötig</option>
                 </select>
                 <button type="submit">Slot buchen</button>
               </form>
             </div>
           {% endfor %}
         {% endif %}
+        </div>
       </div>
     {% endfor %}
   </div>
   <script>
+    // Light/Dark Mode Toggle
+    const body = document.body;
+    const toggle = document.getElementById("mode-toggle");
+    function setMode(dark) {
+      body.classList.toggle('lightmode', !dark);
+      body.classList.toggle('darkmode', dark);
+      toggle.innerHTML = dark ? '🌙' : '☀️';
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+    toggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+    window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
+
+    // Datepicker
     const input = document.getElementById("datepicker");
     const dp = new Datepicker(input, {
       autohide: true,
@@ -229,10 +154,11 @@
       const date = e.target.value;
       window.location.href = "/day/" + date;
     });
+
     function toggleSidebar() {
       document.getElementById("sidebar").classList.toggle("visible");
     }
-    // Sanfter Auto-Reload alle 45 Sekunden, außer bei aktivem Input
+
     setInterval(function() {
       if (document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
         window.location.reload();
