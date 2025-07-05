@@ -61,6 +61,16 @@
       color: #888;
       margin-bottom: 18px;
     }
+    .champion-badge {
+      background:#ffe680;
+      color:#a37800;
+      font-weight:700;
+      padding:6px 18px;
+      border-radius:8px;
+      margin-bottom:18px;
+      display:inline-block;
+      font-size:1.09em;
+    }
     @media (max-width: 600px) {
       .score-table th, .score-table td {
         padding: 7px 6px;
@@ -74,6 +84,9 @@
   <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
   <div class="main">
     <div class="score-title">🏆 Punkte-Ranking ({{ month }})</div>
+    {% if champion %}
+      <div class="champion-badge">👑 Champion des letzten Monats: {{ champion }}</div>
+    {% endif %}
     <div class="score-hint"><strong>Dein Punktestand:</strong> {{ user_score }}</div>
     <table class="score-table">
       <thead>
