@@ -158,7 +158,6 @@ def get_slot_points(hour, slot_date):
     return 0
 
 def get_slot_suggestions(availability, n=5):
-    """Empfiehlt freie Slots mit maximalen Punkten und frühestem Datum (max n Ergebnisse)"""
     now = datetime.now(TZ).date()
     slot_list = []
     for slot_time, beraterlist in availability.items():
@@ -177,7 +176,6 @@ def get_slot_suggestions(availability, n=5):
                 "punkte": punkte,
                 "freie": freie
             })
-    # **Neue Sortierung**: Erst Punkte absteigend, dann Datum aufsteigend, dann Freie absteigend
     slot_list.sort(key=lambda s: (-s["punkte"], s["date_raw"], -s["freie"], s["hour"]))
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
@@ -198,6 +196,48 @@ def add_points_to_user(user, points):
     with open("static/scores.json", "w", encoding="utf-8") as f:
         json.dump(scores, f, ensure_ascii=False, indent=2)
 
+def check_and_set_champion():
+    now = datetime.now(TZ)
+    this_month = now.strftime("%Y-%m")
+    last_month = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+    try:
+        with open("static/champions.json", "r", encoding="utf-8") as f:
+            champions = json.load(f)
+    except FileNotFoundError:
+        champions = {}
+
+    # Bereits gespeichert?
+    if last_month in champions:
+        return champions[last_month]
+
+    # Ranking auslesen
+    try:
+        with open("static/scores.json", "r", encoding="utf-8") as f:
+            scores = json.load(f)
+    except FileNotFoundError:
+        scores = {}
+
+    # Sieger bestimmen
+    month_scores = [(user, user_scores.get(last_month, 0)) for user, user_scores in scores.items()]
+    month_scores = [x for x in month_scores if x[1] > 0]
+    month_scores.sort(key=lambda x: x[1], reverse=True)
+
+    if month_scores:
+        champion_user = month_scores[0][0]
+        champions[last_month] = champion_user
+        with open("static/champions.json", "w", encoding="utf-8") as f:
+            json.dump(champions, f, ensure_ascii=False, indent=2)
+        return champion_user
+    return None
+
+def get_champion_for_month(month):
+    try:
+        with open("static/champions.json", "r", encoding="utf-8") as f:
+            champions = json.load(f)
+        return champions.get(month)
+    except FileNotFoundError:
+        return None
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     userlist = get_userlist()
@@ -207,6 +247,13 @@ def login():
         if username in userlist and password == userlist[username]:
             session["logged_in"] = True
             session["user"] = username
+            # --- Champion-Check für den letzten Monat:
+            champ = check_and_set_champion()
+            if champ == username:
+                flash("🏆 Glückwunsch! Du warst Top-Telefonist des letzten Monats!", "success")
+                session["is_champion"] = True
+            else:
+                session["is_champion"] = False
             return redirect(url_for("index"))
         else:
             flash("Falscher Benutzername oder Passwort.", "danger")
@@ -323,7 +370,8 @@ def scoreboard():
     ranking = [(u, v.get(month, 0)) for u, v in scores.items()]
     ranking.sort(key=lambda x: x[1], reverse=True)
     user_score = scores.get(user, {}).get(month, 0) if user else 0
-    return render_template("scoreboard.html", ranking=ranking, user_score=user_score, month=month, current_user=user)
+    champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
+    return render_template("scoreboard.html", ranking=ranking, user_score=user_score, month=month, current_user=user, champion=champion)
 
 @app.route("/my-calendar")
 def my_calendar():
