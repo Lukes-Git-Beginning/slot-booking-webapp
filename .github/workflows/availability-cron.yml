@@ -1,0 +1,32 @@
+name: Generate Availability
+
+on:
+  schedule:
+    - cron:  '5 * * * *'    # Jede Stunde, 5 Minuten nach voller Stunde
+  workflow_dispatch:         # Manuell starten möglich
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate availability.json
+        run: python generate_availability.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add static/availability.json
+          git commit -m "Auto: Update availability.json [skip ci]" || echo "No changes to commit"
+          git push
