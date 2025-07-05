@@ -19,6 +19,38 @@
       background: var(--box-bg);
       color: var(--accent);
     }
+    .slot-suggest-box {
+      background: var(--box-bg);
+      border-radius: 9px;
+      padding: 10px 14px;
+      margin-top: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    }
+    .slot-suggest-title {
+      font-size: 1.08em;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: var(--accent);
+    }
+    .slot-suggest-table {
+      width: 100%;
+      font-size: 0.98em;
+      color: var(--text-color);
+      border-spacing: 0;
+      border-collapse: collapse;
+    }
+    .slot-suggest-table td, .slot-suggest-table th {
+      padding: 4px 3px;
+    }
+    .slot-suggest-table th {
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .slot-suggest-pts {
+      font-weight: 700;
+      color: var(--green);
+    }
   </style>
 </head>
 <body>
@@ -49,6 +81,32 @@
         {{ week.booked }}/{{ week.possible }} gebucht
       </div>
     {% endfor %}
+
+    <!-- SLOT-VORSCHLAGBOX -->
+    <div class="slot-suggest-box">
+      <div class="slot-suggest-title">💡 Slot-Vorschläge für mehr Punkte</div>
+      {% if slot_suggestions %}
+        <table class="slot-suggest-table">
+          <tr>
+            <th>Datum</th>
+            <th>Uhrzeit</th>
+            <th>Punkte</th>
+            <th>Frei</th>
+          </tr>
+          {% for s in slot_suggestions %}
+            <tr>
+              <td>{{ s.date }}</td>
+              <td>{{ s.hour }}</td>
+              <td class="slot-suggest-pts">{{ s.punkte }}</td>
+              <td>{{ s.freie }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <div style="font-size:0.96em; color:var(--yellow);">Gerade keine passenden Slot-Vorschläge! 🎉</div>
+      {% endif %}
+    </div>
+    <!-- ENDE SLOT-VORSCHLAGBOX -->
   </div>
   <div class="main">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -128,8 +186,8 @@
                   <input type="text" name="last_name" placeholder="Nachname" required>
                   <textarea name="description" placeholder="Beschreibung (optional)"></textarea>
                   <select name="color" required style="margin-left:8px;">
-                    <option value="2">Normales Potential</option>
-                    <option value="7" selected>Top Potential</option>
+                    <option value="2" selected>Normales Potential</option>
+                    <option value="7">Top Potential</option>
                     <option value="5">Closer nötig</option>
                   </select>
                   <button type="submit">Slot buchen</button>
