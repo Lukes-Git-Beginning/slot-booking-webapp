@@ -22,6 +22,15 @@ service = build('calendar', 'v3', credentials=creds)
 
 CENTRAL_CALENDAR_ID = "zentralkalenderzfa@gmail.com"
 
+def get_userlist():
+    userlist_raw = os.environ.get("USERLIST", "")
+    userdict = {}
+    for entry in userlist_raw.split(","):
+        if ":" in entry:
+            user, pw = entry.split(":", 1)
+            userdict[user.strip()] = pw.strip()
+    return userdict
+
 def get_week_days(anchor_date):
     start = anchor_date - timedelta(days=anchor_date.weekday())
     days = [start + timedelta(days=i) for i in range(10) if (start + timedelta(days=i)).weekday() < 5]
@@ -47,11 +56,11 @@ def extract_weekly_summary(availability):
         dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
         week = dt.strftime("KW %V (%d.%m.)")
         if week not in by_week:
-            by_week[week] = {"booked": 0, "free": 0}
-        if data:
-            by_week[week]["free"] += len(data)
-        else:
-            by_week[week]["booked"] += 1
+            by_week[week] = {"booked": 0, "free": 0, "possible": 0}
+        possible = max(len(data), 1) * 4
+        by_week[week]["possible"] += possible
+        by_week[week]["free"] += len(data) * 4
+        by_week[week]["booked"] += (possible - len(data) * 4)
     summary = []
     for label, values in by_week.items():
         summary.append({"label": label, "booked": values["booked"], "free": values["free"]})
@@ -77,11 +86,6 @@ def extract_detailed_summary(availability):
     return formatted
 
 def get_slot_status(date_str, hour, berater_count):
-    """
-    Für einen Slot (Tag+Uhrzeit) wird gezählt, wie viele echte Termine schon im Kalender sind.
-    Die Zahl der maximal möglichen Slots ergibt sich aus berater_count * 4.
-    Buchungsformulare gibt es nur für die noch freien Slots.
-    """
     max_slots = berater_count * 4
     slot_start = TZ.localize(datetime.strptime(f"{date_str} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
@@ -93,30 +97,56 @@ def get_slot_status(date_str, hour, berater_count):
         orderBy='startTime'
     ).execute()
     events = events_result.get('items', [])
-
-    # Zähle alle Events, deren Summary NICHT exakt zwei Ziffern ist (keine Platzhalter)
     gebuchte = [event for event in events if not (event.get("summary", "").strip().isdigit() and len(event.get("summary", "").strip()) == 2)]
     taken_count = len(gebuchte)
     freie_count = max(0, max_slots - taken_count)
-
-    # Für das Template: Dummy-Slots für noch freie Plätze
     slots = []
     for i in range(1, freie_count + 1):
         slots.append({"id": f"SLOT-{i:02d}", "booked": False, "summary": ""})
-
     overbooked = taken_count > max_slots
     return slots, taken_count, max_slots, freie_count, overbooked
 
+def get_slot_points(hour, slot_date):
+    now = datetime.now(TZ).date()
+    if (slot_date - now).days >= 28:
+        return 0
+    if hour in ["18:00", "20:00"]:
+        return 1
+    elif hour == "11:00":
+        return 2
+    elif hour in ["14:00", "16:00"]:
+        return 3
+    return 0
+
+def add_points_to_user(user, points):
+    try:
+        with open("static/scores.json", "r", encoding="utf-8") as f:
+            scores = json.load(f)
+    except FileNotFoundError:
+        scores = {}
+
+    month = datetime.now(TZ).strftime("%Y-%m")
+    if user not in scores:
+        scores[user] = {}
+    if month not in scores[user]:
+        scores[user][month] = 0
+    scores[user][month] += points
+
+    with open("static/scores.json", "w", encoding="utf-8") as f:
+        json.dump(scores, f, ensure_ascii=False, indent=2)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    userlist = get_userlist()
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        if username == os.environ.get("LOGIN_USER") and password == os.environ.get("LOGIN_PASS"):
+        if username in userlist and password == userlist[username]:
             session["logged_in"] = True
+            session["user"] = username
             return redirect(url_for("index"))
         else:
-            flash("Falscher Benutzername oder Passwort.")
+            flash("Falscher Benutzername oder Passwort.", "danger")
             return redirect(url_for("login"))
     return render_template("login.html")
 
@@ -162,7 +192,7 @@ def day_view(date_str):
         weekly_summary=extract_weekly_summary(availability),
         weekly_detailed=extract_detailed_summary(availability),
         timedelta=timedelta,
-        get_week_start=get_week_start   # <- Für das KW-Dropdown im Template!
+        get_week_start=get_week_start
     )
 
 @app.route("/")
@@ -174,32 +204,59 @@ def book():
     slot_id = request.form.get("slot_id")
     first = request.form.get("first_name")
     last = request.form.get("last_name")
+    description = request.form.get("description", "")
     date = request.form.get("date")
     hour = request.form.get("hour")
-    color_id = request.form.get("color", "9")  # Default: blau
+    color_id = request.form.get("color", "9")
+    user = session.get("user")
 
     key = f"{date} {hour}"
     berater_count = len(load_availability().get(key, []))
     slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
 
-    # Überbuchung prüfen
+    slot_date = datetime.strptime(date, "%Y-%m-%d").date()
+    points = get_slot_points(hour, slot_date)
+
     if overbooked or freie_count <= 0:
         flash("Slot ist bereits voll belegt.", "danger")
         return redirect(url_for("day_view", date_str=date))
 
-    # Slot jetzt mit Name buchen (neues Event anlegen)
     slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
     event_title = f"{last}, {first}"
     event_body = {
         "summary": event_title,
+        "description": description,
         "start": {"dateTime": slot_start.isoformat()},
         "end": {"dateTime": slot_end.isoformat()},
         "colorId": color_id
     }
     service.events().insert(calendarId=CENTRAL_CALENDAR_ID, body=event_body).execute()
-    flash("Slot erfolgreich gebucht!", "success")
+
+    if user and points > 0:
+        add_points_to_user(user, points)
+        feedback = f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten."
+    elif user and points == 0:
+        feedback = "Slot erfolgreich gebucht! Für weit entfernte Termine werden keine Punkte vergeben."
+    else:
+        feedback = "Slot erfolgreich gebucht!"
+
+    flash(feedback, "success")
     return redirect(url_for("day_view", date_str=date))
+
+@app.route("/scoreboard")
+def scoreboard():
+    user = session.get("user")
+    try:
+        with open("static/scores.json", "r", encoding="utf-8") as f:
+            scores = json.load(f)
+    except FileNotFoundError:
+        scores = {}
+    month = datetime.now(TZ).strftime("%Y-%m")
+    ranking = [(u, v.get(month, 0)) for u, v in scores.items()]
+    ranking.sort(key=lambda x: x[1], reverse=True)
+    user_score = scores.get(user, {}).get(month, 0) if user else 0
+    return render_template("scoreboard.html", ranking=ranking, user_score=user_score, month=month, current_user=user)
 
 if __name__ == '__main__':
     app.run(debug=True)

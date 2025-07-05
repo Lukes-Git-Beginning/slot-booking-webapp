@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Punkte & Ranking</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+</head>
+<body>
+  <div class="main">
+    <h1>🏆 Punkte-Ranking ({{ month }})</h1>
+    <p><strong>Dein Punktestand:</strong> {{ user_score }}</p>
+    <table style="width:100%; margin-top:30px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Platz</th>
+          <th style="text-align:left;">Name</th>
+          <th style="text-align:left;">Punkte</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i, (name, score) in enumerate(ranking, 1) %}
+        <tr{% if name == current_user %} style="background:#d3f9d8;"{% endif %}>
+          <td>{{ i }}</td>
+          <td>{{ name }}</td>
+          <td>{{ score }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href="{{ url_for('index') }}" style="margin-top: 2rem; display:inline-block;">Zurück zur Slot-Buchung</a>
+  </div>
+</body>
+</html>
