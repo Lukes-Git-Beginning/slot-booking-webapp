@@ -17,6 +17,12 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 TZ = pytz.timezone("Europe/Berlin")
 
+# Hier anpassen: Wie viele Slots gibt es pro Berater und Uhrzeit?
+SLOTS_PER_BERATER = 4  # <-- einfach auf 3 ändern, wenn gewünscht
+
+# Welche User sollen beim Monats-Champion ausgeschlossen werden?
+EXCLUDE_CHAMPION_USERS = ["callcenter", "admin"]
+
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('calendar', 'v3', credentials=creds)
@@ -62,7 +68,7 @@ def extract_weekly_summary(availability, current_date=None):
     for slot_time, beraterlist in availability.items():
         dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
         key = week_key_from_date(dt)
-        week_possible[key] += len(beraterlist) * 4
+        week_possible[key] += len(beraterlist) * SLOTS_PER_BERATER
         monday = dt - timedelta(days=dt.weekday())
         friday = monday + timedelta(days=4)
         week_dates[key] = (monday, friday)
@@ -125,7 +131,7 @@ def extract_detailed_summary(availability):
     return formatted
 
 def get_slot_status(date_str, hour, berater_count):
-    max_slots = berater_count * 4
+    max_slots = berater_count * SLOTS_PER_BERATER
     slot_start = TZ.localize(datetime.strptime(f"{date_str} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
     events_result = service.events().list(
@@ -166,7 +172,7 @@ def get_slot_suggestions(availability, n=5):
         hour = dt.strftime("%H:%M")
         if slot_date < now:
             continue
-        freie = len(beraterlist) * 4
+        freie = len(beraterlist) * SLOTS_PER_BERATER
         if freie > 0:
             punkte = get_slot_points(hour, slot_date)
             slot_list.append({
@@ -217,8 +223,12 @@ def check_and_set_champion():
     except FileNotFoundError:
         scores = {}
 
-    # Sieger bestimmen
-    month_scores = [(user, user_scores.get(last_month, 0)) for user, user_scores in scores.items()]
+    # Sieger bestimmen, EXKLUDIERE bestimmte User
+    month_scores = [
+        (user, user_scores.get(last_month, 0))
+        for user, user_scores in scores.items()
+        if user.lower() not in EXCLUDE_CHAMPION_USERS
+    ]
     month_scores = [x for x in month_scores if x[1] > 0]
     month_scores.sort(key=lambda x: x[1], reverse=True)
 
