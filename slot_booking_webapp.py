@@ -158,6 +158,7 @@ def get_slot_points(hour, slot_date):
     return 0
 
 def get_slot_suggestions(availability, n=5):
+    """Empfiehlt freie Slots mit maximalen Punkten und frühestem Datum (max n Ergebnisse)"""
     now = datetime.now(TZ).date()
     slot_list = []
     for slot_time, beraterlist in availability.items():
@@ -171,11 +172,13 @@ def get_slot_suggestions(availability, n=5):
             punkte = get_slot_points(hour, slot_date)
             slot_list.append({
                 "date": dt.strftime("%a, %d.%m."),
+                "date_raw": slot_date,
                 "hour": hour,
                 "punkte": punkte,
                 "freie": freie
             })
-    slot_list.sort(key=lambda s: (-s["punkte"], -s["freie"], s["date"], s["hour"]))
+    # **Neue Sortierung**: Erst Punkte absteigend, dann Datum aufsteigend, dann Freie absteigend
+    slot_list.sort(key=lambda s: (-s["punkte"], s["date_raw"], -s["freie"], s["hour"]))
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
 def add_points_to_user(user, points):
