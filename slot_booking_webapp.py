@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import pytz
 import json
 import os
+from collections import defaultdict
 
 load_dotenv()
 
@@ -50,20 +51,52 @@ def load_availability():
         print("⚠️ Warnung: availability.json nicht gefunden. Rückgabe: leeres Verzeichnis.")
         return {}
 
-def extract_weekly_summary(availability):
-    by_week = {}
+def extract_weekly_summary(availability, current_date=None):
+    """
+    Gibt pro Woche ein Dict zurück:
+    [
+      {
+        "label": "KW 28",
+        "range": "08.07. – 12.07.",
+        "start_date": "2025-07-08",
+        "usage_pct": 57,
+        "usage": 0.57,
+        "current": True/False
+      },
+      ...
+    ]
+    """
+    by_week = defaultdict(lambda: {"booked": 0, "free": 0, "dates": []})
+
     for slot_time, data in availability.items():
         dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
-        week = dt.strftime("KW %V (%d.%m.)")
-        if week not in by_week:
-            by_week[week] = {"booked": 0, "free": 0, "possible": 0}
+        weeknum = dt.isocalendar()[1]
+        year = dt.year
+        monday = dt - timedelta(days=dt.weekday())
+        friday = monday + timedelta(days=4)
+        week_key = f"{year}-KW{weeknum}"
+
+        by_week[week_key]["label"] = f"KW {weeknum}"
+        by_week[week_key]["start"] = monday
+        by_week[week_key]["end"] = friday
+        by_week[week_key]["dates"].append(dt.date())
         possible = max(len(data), 1) * 4
-        by_week[week]["possible"] += possible
-        by_week[week]["free"] += len(data) * 4
-        by_week[week]["booked"] += (possible - len(data) * 4)
+        by_week[week_key]["free"] += len(data) * 4
+        by_week[week_key]["booked"] += (possible - len(data) * 4)
+
     summary = []
-    for label, values in by_week.items():
-        summary.append({"label": label, "booked": values["booked"], "free": values["free"]})
+    for key, values in sorted(by_week.items(), key=lambda x: x[1]["start"]):
+        start = values["start"]
+        end = values["end"]
+        usage = (values["booked"] / (values["booked"] + values["free"] + 1e-5)) if (values["booked"] + values["free"]) > 0 else 0
+        summary.append({
+            "label": values["label"],
+            "range": f"{start.strftime('%d.%m.')} – {end.strftime('%d.%m.')}",
+            "start_date": start.strftime("%Y-%m-%d"),
+            "usage_pct": int(round(usage*100)),
+            "usage": usage,
+            "current": (current_date is not None and start <= current_date <= end)
+        })
     return summary
 
 def extract_detailed_summary(availability):
@@ -182,6 +215,8 @@ def day_view(date_str):
             "overbooked": overbooked,
         }
 
+    weekly_summary = extract_weekly_summary(availability, current_date=date_obj)
+
     return render_template(
         "index.html",
         slots=slots,
@@ -189,7 +224,7 @@ def day_view(date_str):
         days=get_week_days(date_obj),
         week_start=get_week_start(date_obj),
         current_kw=get_current_kw(date_obj),
-        weekly_summary=extract_weekly_summary(availability),
+        weekly_summary=weekly_summary,
         weekly_detailed=extract_detailed_summary(availability),
         timedelta=timedelta,
         get_week_start=get_week_start
