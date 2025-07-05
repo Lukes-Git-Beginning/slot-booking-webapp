@@ -52,32 +52,21 @@ def load_availability():
         return {}
 
 def week_key_from_date(dt):
-    """Erzeugt ein Schlüssel wie '2025-KW27' für ein Datum."""
     return f"{dt.year}-KW{dt.isocalendar()[1]}"
 
 def extract_weekly_summary(availability, current_date=None):
-    """
-    Berechnet für jede Woche:
-    - mögliche Slots auf Basis Beraterverfügbarkeit (alle Tage/Uhrzeiten)
-    - gebuchte Slots (Kalendertermine)
-    """
     week_possible = defaultdict(int)
     week_booked = defaultdict(int)
     week_dates = {}
 
-    # Schritt 1: Berechne alle möglichen Slots pro Woche aus Verfügbarkeit
     for slot_time, beraterlist in availability.items():
         dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
         key = week_key_from_date(dt)
-        # Jeder Berater bringt 4 Slots
         week_possible[key] += len(beraterlist) * 4
-        # Speichere Wochenstart/-ende für die Anzeige
         monday = dt - timedelta(days=dt.weekday())
         friday = monday + timedelta(days=4)
         week_dates[key] = (monday, friday)
 
-    # Schritt 2: Gebuchte Slots zählen (aus zentralem Kalender)
-    # Kalenderabfrage für den gesamten Zeitraum aller vorhandenen Wochen (Performance: 5-6 Wochen ≈ OK)
     if week_dates:
         min_start = min([rng[0] for rng in week_dates.values()])
         max_end = max([rng[1] for rng in week_dates.values()]) + timedelta(days=1)
@@ -95,7 +84,6 @@ def extract_weekly_summary(availability, current_date=None):
                 key = week_key_from_date(dt)
                 week_booked[key] += 1
 
-    # Schritt 3: Wochen zusammenbauen
     summary = []
     for key, possible in week_possible.items():
         booked = week_booked.get(key, 0)
@@ -114,7 +102,6 @@ def extract_weekly_summary(availability, current_date=None):
                 start.date() <= current_date <= end.date()
             )
         })
-    # Nach Datum sortieren
     summary.sort(key=lambda s: s["start_date"])
     return summary
 
@@ -169,6 +156,30 @@ def get_slot_points(hour, slot_date):
     elif hour in ["14:00", "16:00"]:
         return 3
     return 0
+
+def get_slot_suggestions(availability, n=5):
+    """Empfiehlt freie Slots, die am meisten Punkte bringen (max n Ergebnisse)"""
+    now = datetime.now(TZ).date()
+    slot_list = []
+    for slot_time, beraterlist in availability.items():
+        dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
+        slot_date = dt.date()
+        hour = dt.strftime("%H:%M")
+        if slot_date < now:
+            continue
+        freie = len(beraterlist) * 4
+        if freie > 0:
+            punkte = get_slot_points(hour, slot_date)
+            slot_list.append({
+                "date": dt.strftime("%a, %d.%m."),
+                "hour": hour,
+                "punkte": punkte,
+                "freie": freie
+            })
+    # Sortieren: Erst nach Punkten (absteigend), dann nach freien Plätzen (absteigend)
+    slot_list.sort(key=lambda s: (-s["punkte"], -s["freie"], s["date"], s["hour"]))
+    # Nur Top-n zurückgeben, und keine Slots mit 0 Punkten
+    return [s for s in slot_list if s["punkte"] > 0][:n]
 
 def add_points_to_user(user, points):
     try:
@@ -235,6 +246,7 @@ def day_view(date_str):
         }
 
     weekly_summary = extract_weekly_summary(availability, current_date=date_obj)
+    slot_suggestions = get_slot_suggestions(availability)
 
     return render_template(
         "index.html",
@@ -246,7 +258,8 @@ def day_view(date_str):
         weekly_summary=weekly_summary,
         weekly_detailed=extract_detailed_summary(availability),
         timedelta=timedelta,
-        get_week_start=get_week_start
+        get_week_start=get_week_start,
+        slot_suggestions=slot_suggestions
     )
 
 @app.route("/")
