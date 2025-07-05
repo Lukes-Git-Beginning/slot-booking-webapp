@@ -75,22 +75,6 @@ body {
   padding: 20px;
 }
 
-#mode-toggle {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  z-index: 100;
-  background: var(--sidebar-bg);
-  color: var(--accent);
-  border: none;
-  border-radius: 30px;
-  font-size: 1.6rem;
-  padding: 10px 16px;
-  cursor: pointer;
-  box-shadow: 1px 2px 8px rgba(0,0,0,0.07);
-  transition: background var(--transition), color var(--transition);
-}
-
 h1 {
   font-size: 1.6em;
   margin-bottom: 10px;
@@ -126,9 +110,7 @@ h1 {
   margin-bottom: 15px;
   background-color: var(--sidebar-bg);
   border-left: 6px solid var(--sidebar-bg);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: block;
 }
 
 .time-section.green { border-left-color: var(--green);}
@@ -137,15 +119,7 @@ h1 {
 .time-section.red { border-left-color: var(--red);}
 
 .time-section > .info {
-  flex: 1 1 auto;
-}
-
-.time-section > .slot-form-container {
-  min-width: 310px;
-  margin-left: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  width: 100%;
 }
 
 .slot {
@@ -197,10 +171,37 @@ button[type="submit"] {
 .flash-success { background: var(--green); color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
 .flash-danger { background: var(--red); color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
 
+/* Sidebar KW-Link */
+.kw-link {
+  display: block;
+  padding: 4px 4px 4px 0;
+  border-radius: 5px;
+  transition: background 0.14s;
+}
+.kw-link.active, .kw-link:hover {
+  background: var(--box-bg);
+  color: var(--accent);
+}
+
+#mode-toggle {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 100;
+  background: var(--sidebar-bg);
+  color: var(--accent);
+  border: none;
+  border-radius: 30px;
+  font-size: 1.6rem;
+  padding: 10px 16px;
+  cursor: pointer;
+  box-shadow: 1px 2px 8px rgba(0,0,0,0.07);
+  transition: background var(--transition), color var(--transition);
+}
+
 @media (max-width: 960px) {
   .sidebar { display: none; }
   .main { padding: 10px; }
-  .time-section > .slot-form-container { min-width: 100%; }
 }
 
 ::-webkit-scrollbar {
