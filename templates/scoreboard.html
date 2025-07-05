@@ -4,30 +4,129 @@
   <meta charset="UTF-8">
   <title>Punkte & Ranking</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 32px;
+      background: var(--box-bg);
+      border-radius: var(--card-radius);
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+    }
+    .score-table th, .score-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #353940;
+      font-size: 1.06em;
+    }
+    .score-table th {
+      background: var(--sidebar-bg);
+      color: var(--text-color);
+    }
+    .score-table tr:last-child td {
+      border-bottom: none;
+    }
+    .score-table tr.highlight {
+      background: #b7f5cb;
+      color: #23272f;
+      font-weight: 600;
+    }
+    .score-title {
+      margin-bottom: 0.4em;
+      font-size: 1.8em;
+      color: var(--text-color);
+    }
+    .scoreboard-links {
+      margin-top: 32px;
+      display: flex;
+      gap: 24px;
+    }
+    .scoreboard-links a {
+      color: var(--accent);
+      font-weight: bold;
+      text-decoration: none;
+      padding: 10px 18px;
+      background: var(--sidebar-bg);
+      border-radius: 7px;
+      border: 1px solid #4442;
+      transition: background .15s;
+    }
+    .scoreboard-links a:hover {
+      background: var(--box-bg);
+    }
+    .score-hint {
+      font-size: 1.06em;
+      color: #888;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 600px) {
+      .score-table th, .score-table td {
+        padding: 7px 6px;
+        font-size: 0.97em;
+      }
+      .score-title { font-size: 1.25em; }
+    }
+  </style>
 </head>
 <body>
+  <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
   <div class="main">
-    <h1>🏆 Punkte-Ranking ({{ month }})</h1>
-    <p><strong>Dein Punktestand:</strong> {{ user_score }}</p>
-    <table style="width:100%; margin-top:30px;">
+    <div class="score-title">🏆 Punkte-Ranking ({{ month }})</div>
+    <div class="score-hint"><strong>Dein Punktestand:</strong> {{ user_score }}</div>
+    <table class="score-table">
       <thead>
         <tr>
-          <th style="text-align:left;">Platz</th>
-          <th style="text-align:left;">Name</th>
-          <th style="text-align:left;">Punkte</th>
+          <th>Platz</th>
+          <th>Name</th>
+          <th>Punkte</th>
         </tr>
       </thead>
       <tbody>
-        {% for i, (name, score) in enumerate(ranking, 1) %}
-        <tr{% if name == current_user %} style="background:#d3f9d8;"{% endif %}>
-          <td>{{ i }}</td>
-          <td>{{ name }}</td>
-          <td>{{ score }}</td>
-        </tr>
+        {% for entry in ranking %}
+          <tr{% if entry[0] == current_user %} class="highlight"{% endif %}>
+            <td>{{ loop.index }}</td>
+            <td>{{ entry[0] }}</td>
+            <td>{{ entry[1] }}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
-    <a href="{{ url_for('index') }}" style="margin-top: 2rem; display:inline-block;">Zurück zur Slot-Buchung</a>
+    <div class="scoreboard-links">
+      <a href="{{ url_for('index') }}">⬅️ Zurück zur Slot-Buchung</a>
+      <a href="{{ url_for('logout') }}" style="color:#e74c3c;">Abmelden</a>
+    </div>
   </div>
+  <script>
+    // Light/Dark Mode Toggle (identisch zur Hauptseite)
+    const body = document.body;
+    const toggle = document.getElementById("mode-toggle");
+    function setMode(dark) {
+      body.classList.toggle('lightmode', !dark);
+      body.classList.toggle('darkmode', dark);
+      toggle.innerHTML = dark ? '🌙' : '☀️';
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+    toggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+    window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
+  </script>
+  <style>
+    #mode-toggle {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      z-index: 100;
+      background: var(--sidebar-bg);
+      color: var(--accent);
+      border: none;
+      border-radius: 30px;
+      font-size: 1.6rem;
+      padding: 10px 16px;
+      cursor: pointer;
+      box-shadow: 1px 2px 8px rgba(0,0,0,0.07);
+      transition: background var(--transition), color var(--transition);
+    }
+  </style>
 </body>
 </html>
