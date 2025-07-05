@@ -45,6 +45,9 @@
           width: {{ week.usage_pct }}%; height: 100%;">
         </div>
       </div>
+      <div style="font-size:0.9em; color:#bbb; margin-bottom:12px;">
+        {{ week.booked }}/{{ week.possible }} gebucht
+      </div>
     {% endfor %}
   </div>
   <div class="main">
