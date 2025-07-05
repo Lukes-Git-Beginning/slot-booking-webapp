@@ -77,15 +77,15 @@ body {
 
 #mode-toggle {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  bottom: 24px;
+  left: 24px;
   z-index: 100;
   background: var(--sidebar-bg);
   color: var(--accent);
   border: none;
   border-radius: 30px;
   font-size: 1.6rem;
-  padding: 8px 12px;
+  padding: 10px 16px;
   cursor: pointer;
   box-shadow: 1px 2px 8px rgba(0,0,0,0.07);
   transition: background var(--transition), color var(--transition);
