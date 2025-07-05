@@ -51,55 +51,71 @@ def load_availability():
         print("⚠️ Warnung: availability.json nicht gefunden. Rückgabe: leeres Verzeichnis.")
         return {}
 
+def week_key_from_date(dt):
+    """Erzeugt ein Schlüssel wie '2025-KW27' für ein Datum."""
+    return f"{dt.year}-KW{dt.isocalendar()[1]}"
+
 def extract_weekly_summary(availability, current_date=None):
     """
-    Gibt pro Woche ein Dict zurück:
-    [
-      {
-        "label": "KW 28",
-        "range": "08.07. – 12.07.",
-        "start_date": "2025-07-08",
-        "usage_pct": 57,
-        "usage": 0.57,
-        "current": True/False
-      },
-      ...
-    ]
+    Berechnet für jede Woche:
+    - mögliche Slots auf Basis Beraterverfügbarkeit (alle Tage/Uhrzeiten)
+    - gebuchte Slots (Kalendertermine)
     """
-    by_week = defaultdict(lambda: {"booked": 0, "free": 0, "dates": []})
+    week_possible = defaultdict(int)
+    week_booked = defaultdict(int)
+    week_dates = {}
 
-    for slot_time, data in availability.items():
+    # Schritt 1: Berechne alle möglichen Slots pro Woche aus Verfügbarkeit
+    for slot_time, beraterlist in availability.items():
         dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
-        weeknum = dt.isocalendar()[1]
-        year = dt.year
+        key = week_key_from_date(dt)
+        # Jeder Berater bringt 4 Slots
+        week_possible[key] += len(beraterlist) * 4
+        # Speichere Wochenstart/-ende für die Anzeige
         monday = dt - timedelta(days=dt.weekday())
         friday = monday + timedelta(days=4)
-        week_key = f"{year}-KW{weeknum}"
+        week_dates[key] = (monday, friday)
 
-        by_week[week_key]["label"] = f"KW {weeknum}"
-        by_week[week_key]["start"] = monday
-        by_week[week_key]["end"] = friday
-        by_week[week_key]["dates"].append(dt.date())
-        possible = max(len(data), 1) * 4
-        by_week[week_key]["free"] += len(data) * 4
-        by_week[week_key]["booked"] += (possible - len(data) * 4)
+    # Schritt 2: Gebuchte Slots zählen (aus zentralem Kalender)
+    # Kalenderabfrage für den gesamten Zeitraum aller vorhandenen Wochen (Performance: 5-6 Wochen ≈ OK)
+    if week_dates:
+        min_start = min([rng[0] for rng in week_dates.values()])
+        max_end = max([rng[1] for rng in week_dates.values()]) + timedelta(days=1)
+        events_result = service.events().list(
+            calendarId=CENTRAL_CALENDAR_ID,
+            timeMin=TZ.localize(datetime.combine(min_start.date(), datetime.min.time())).isoformat(),
+            timeMax=TZ.localize(datetime.combine(max_end.date(), datetime.max.time())).isoformat(),
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        events = events_result.get('items', [])
+        for event in events:
+            if "start" in event and "dateTime" in event["start"]:
+                dt = datetime.fromisoformat(event["start"]["dateTime"])
+                key = week_key_from_date(dt)
+                week_booked[key] += 1
 
+    # Schritt 3: Wochen zusammenbauen
     summary = []
-    for key, values in sorted(by_week.items(), key=lambda x: x[1]["start"]):
-        start = values["start"]
-        end = values["end"]
-        usage = (values["booked"] / (values["booked"] + values["free"] + 1e-5)) if (values["booked"] + values["free"]) > 0 else 0
+    for key, possible in week_possible.items():
+        booked = week_booked.get(key, 0)
+        start, end = week_dates[key]
+        usage = booked / (possible + 1e-5) if possible > 0 else 0
         summary.append({
-            "label": values["label"],
+            "label": key.replace("-", " "),
             "range": f"{start.strftime('%d.%m.')} – {end.strftime('%d.%m.')}",
             "start_date": start.strftime("%Y-%m-%d"),
-            "usage_pct": int(round(usage*100)),
+            "usage_pct": int(round(usage * 100)),
             "usage": usage,
+            "possible": possible,
+            "booked": booked,
             "current": (
                 current_date is not None and
                 start.date() <= current_date <= end.date()
             )
         })
+    # Nach Datum sortieren
+    summary.sort(key=lambda s: s["start_date"])
     return summary
 
 def extract_detailed_summary(availability):
