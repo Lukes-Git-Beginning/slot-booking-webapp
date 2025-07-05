@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Mein Kalender – Eigene Buchungen</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <style>
+    .mycal-table { width: 100%; border-collapse: collapse; margin-top: 2em; background: var(--box-bg); border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);}
+    .mycal-table th, .mycal-table td { padding: 12px 10px; border-bottom: 1px solid #4445; text-align: left;}
+    .mycal-table th { background: var(--sidebar-bg); color: var(--accent);}
+    .mycal-table tr:last-child td { border-bottom: none;}
+    .mycal-cal-header { font-size: 1.6em; font-weight: 600; margin-top: 0.7em;}
+    .mycal-color { width: 16px; height: 16px; display: inline-block; border-radius: 4px; margin-right: 7px; }
+    .c2 { background: #b3dc82;}      /* Sage */
+    .c7 { background: #1b887a;}      /* Peacock */
+    .c5 { background: #fad165;}      /* Banana */
+  </style>
+</head>
+<body>
+  <button onclick="window.location.href='{{ url_for('index') }}'" style="position:fixed;top:24px;left:24px;z-index:30;background:var(--sidebar-bg);color:var(--accent);padding:8px 18px;border-radius:7px;border:none;font-size:1.07em;cursor:pointer;">⬅️ Zurück</button>
+  <div class="main">
+    <div class="mycal-cal-header">📆 Meine gebuchten Slots ({{ user }})</div>
+    {% if my_events %}
+      <table class="mycal-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Uhrzeit</th>
+            <th>Potential</th>
+            <th>Buchung</th>
+            <th>Punkte</th>
+            <th>Beschreibung</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in my_events %}
+            <tr>
+              <td>{{ ev.date }}</td>
+              <td>{{ ev.hour }}</td>
+              <td>
+                <span class="mycal-color c{{ ev.color_id|int }}"></span>
+                {% if ev.color_id == '2' %}Normales Potential
+                {% elif ev.color_id == '7' %}Top Potential
+                {% elif ev.color_id == '5' %}Closer nötig
+                {% else %}Sonstiges{% endif %}
+              </td>
+              <td>{{ ev.summary }}</td>
+              <td style="font-weight:bold;">{{ ev.points }}</td>
+              <td>{{ ev.desc }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="color:var(--yellow);margin-top:2em;">Du hast aktuell keine gebuchten Slots in dieser Woche.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

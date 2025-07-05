@@ -158,7 +158,6 @@ def get_slot_points(hour, slot_date):
     return 0
 
 def get_slot_suggestions(availability, n=5):
-    """Empfiehlt freie Slots, die am meisten Punkte bringen (max n Ergebnisse)"""
     now = datetime.now(TZ).date()
     slot_list = []
     for slot_time, beraterlist in availability.items():
@@ -176,9 +175,7 @@ def get_slot_suggestions(availability, n=5):
                 "punkte": punkte,
                 "freie": freie
             })
-    # Sortieren: Erst nach Punkten (absteigend), dann nach freien Plätzen (absteigend)
     slot_list.sort(key=lambda s: (-s["punkte"], -s["freie"], s["date"], s["hour"]))
-    # Nur Top-n zurückgeben, und keine Slots mit 0 Punkten
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
 def add_points_to_user(user, points):
@@ -324,6 +321,48 @@ def scoreboard():
     ranking.sort(key=lambda x: x[1], reverse=True)
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     return render_template("scoreboard.html", ranking=ranking, user_score=user_score, month=month, current_user=user)
+
+@app.route("/my-calendar")
+def my_calendar():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+
+    today = datetime.now(TZ).date()
+    start = today - timedelta(days=today.weekday())
+    end = start + timedelta(days=6)
+
+    events_result = service.events().list(
+        calendarId=CENTRAL_CALENDAR_ID,
+        timeMin=TZ.localize(datetime.combine(start, datetime.min.time())).isoformat(),
+        timeMax=TZ.localize(datetime.combine(end, datetime.max.time())).isoformat(),
+        singleEvents=True,
+        orderBy='startTime'
+    ).execute()
+    events = events_result.get('items', [])
+
+    my_events = []
+    for event in events:
+        if "summary" in event:
+            summary = event["summary"]
+            if user.lower() in summary.lower():
+                start_dt = datetime.fromisoformat(event["start"]["dateTime"])
+                color_id = event.get("colorId", "9")
+                hour = start_dt.strftime("%H:%M")
+                slot_date = start_dt.date()
+                points = get_slot_points(hour, slot_date)
+                my_events.append({
+                    "date": start_dt.strftime("%A, %d.%m.%Y"),
+                    "hour": hour,
+                    "summary": summary,
+                    "color_id": color_id,
+                    "points": points,
+                    "desc": event.get("description", ""),
+                })
+
+    my_events.sort(key=lambda e: (e["date"], e["hour"]))
+
+    return render_template("my_calendar.html", my_events=my_events, user=user)
 
 if __name__ == '__main__':
     app.run(debug=True)
