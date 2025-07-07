@@ -1,0 +1,39 @@
+name: Migrate Calendar
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # ⏰ Jede volle Stunde UTC
+  workflow_dispatch:      # 🖱️ Manuelles Auslösen möglich
+
+jobs:
+  run-migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: 📦 Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth google-auth-oauthlib
+
+      - name: 🔑 Write credentials.json
+        env:
+          CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+        run: |
+          echo "$CREDS_JSON" > credentials.json
+
+      - name: 🔑 Write token.json
+        env:
+          TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+        run: |
+          echo "$TOKEN_JSON" > token.json
+
+      - name: 🏃 Run Migrate Script
+        run: python Migrate.py
