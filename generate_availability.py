@@ -36,8 +36,6 @@ consultants = {
 
 restricted_slots = {
     "Simon": ["20:00"],
-    "Christian": ["11:00", "16:00", "18:00"],
-    "Tim": ["11:00", "16:00", "18:00"]
 }
 
 slots = {
