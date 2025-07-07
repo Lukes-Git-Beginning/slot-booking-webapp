@@ -3,7 +3,7 @@ import re
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request  # ✅ WICHTIG!
+from google.auth.transport.requests import Request  # WICHTIG für Token-Refresh!
 
 # ----------------- Konfiguration -----------------
 CLIENT_SECRET_FILE = 'credentials.json'
@@ -14,7 +14,7 @@ NEW_CALENDAR_ID = 'zentralkalenderzfa@gmail.com'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 # -------------------------------------------------
 
-ONLY_TWO_DIGITS_REGEX = re.compile(r"^\d{2}$")  # Überspringt alle Summaries wie "01", "12", etc.
+ONLY_TWO_DIGITS_REGEX = re.compile(r"^\d{2}$")  # Überspringt alle Platzhalter wie "01", "12", etc.
 
 def authenticate_google():
     creds = None
@@ -33,11 +33,22 @@ def authenticate_google():
             token.write(creds.to_json())
     return build('calendar', 'v3', credentials=creds)
 
+def extract_name(summary):
+    """
+    Holt den Name-Teil ohne Status-Anhänge.
+    Beispiel: 'Mustermann, Max – abgesagt' => 'Mustermann, Max'
+    """
+    return summary.split("–")[0].strip().lower()
+
 def events_are_equal(e1, e2):
-    return (
-        e1.get("summary", "") == e2.get("summary", "") and
-        e1.get("start", {}).get("dateTime", "") == e2.get("start", {}).get("dateTime", "")
-    )
+    """
+    Vergleicht Name + Startzeit und ignoriert Statusanhänge.
+    """
+    name1 = extract_name(e1.get("summary", ""))
+    name2 = extract_name(e2.get("summary", ""))
+    time1 = e1.get("start", {}).get("dateTime", "")
+    time2 = e2.get("start", {}).get("dateTime", "")
+    return name1 == name2 and time1 == time2
 
 def main():
     service = authenticate_google()
@@ -70,6 +81,7 @@ def main():
 
     for old_ev in old_events:
         summary = old_ev.get("summary", "").strip()
+
         # Filter: Nur echte Termine migrieren, keine Platzhalter mit nur zwei Ziffern
         if ONLY_TWO_DIGITS_REGEX.fullmatch(summary):
             filtered += 1
@@ -79,6 +91,7 @@ def main():
         duplicate = any(events_are_equal(old_ev, new_ev) for new_ev in new_events)
         if duplicate:
             skipped += 1
+            print(f"Duplikat übersprungen: {summary}")
             continue
 
         event_body = {
@@ -87,7 +100,7 @@ def main():
             "end": old_ev.get("end"),
             "description": old_ev.get("description", ""),
             "location": old_ev.get("location", ""),
-            "colorId": old_ev.get("colorId", "9"),
+            "colorId": old_ev.get("colorId", "9"),  # Farbe übernehmen!
         }
         if "attendees" in old_ev:
             event_body["attendees"] = old_ev["attendees"]
