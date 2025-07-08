@@ -101,7 +101,7 @@ def extract_weekly_summary(availability, current_date=None):
             "start_date": start.strftime("%Y-%m-%d"),
             "usage_pct": int(round(usage * 100)),
             "usage": usage,
-            "possible": possible,
+            "possible": possible,   # Immer aus availability.json!
             "booked": booked,
             "current": (
                 current_date is not None and
