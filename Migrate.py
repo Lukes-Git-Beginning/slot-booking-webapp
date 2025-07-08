@@ -14,7 +14,7 @@ NEW_CALENDAR_ID = 'zentralkalenderzfa@gmail.com'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 # -------------------------------------------------
 
-ONLY_TWO_DIGITS_REGEX = re.compile(r"^\d{2}$")  # Überspringt alle Platzhalter wie "01", "12", etc.
+ONLY_TWO_DIGITS_REGEX = re.compile(r"^\\d{2}$")  # Überspringt alle Platzhalter wie "01", "12", etc.
 
 def authenticate_google():
     creds = None
@@ -36,13 +36,13 @@ def authenticate_google():
 def extract_name(summary):
     """
     Holt den Name-Teil ohne Status-Anhänge.
-    Beispiel: 'Mustermann, Max – abgesagt' => 'Mustermann, Max'
+    Beispiel: 'T1 Patricia Seifert (erschienen)' => 'T1 Patricia Seifert'
     """
-    return summary.split("–")[0].strip().lower()
+    return summary.split("–")[0].split("(")[0].strip().lower()
 
 def events_are_equal(e1, e2):
     """
-    Vergleicht Name + Startzeit und ignoriert Statusanhänge.
+    Vergleicht Name + Startzeit und ignoriert Status-Anhänge.
     """
     name1 = extract_name(e1.get("summary", ""))
     name2 = extract_name(e2.get("summary", ""))
@@ -55,7 +55,7 @@ def main():
     now = datetime.datetime.utcnow()
     time_min = now.isoformat() + "Z"
 
-    print("Lese ALLE zukünftigen Termine aus dem alten Kalender aus...")
+    print("Lese ALLE zukünftigen Termine aus dem ALTEN Kalender aus...")
     old_events_result = service.events().list(
         calendarId=OLD_CALENDAR_ID,
         timeMin=time_min,
@@ -64,9 +64,9 @@ def main():
         maxResults=2500
     ).execute()
     old_events = old_events_result.get('items', [])
-    print(f"Gefundene Termine im alten Kalender: {len(old_events)}")
+    print(f"Gefundene Termine im ALTEN Kalender: {len(old_events)}")
 
-    print("Lese ALLE zukünftigen Termine aus dem neuen Kalender aus...")
+    print("Lese ALLE zukünftigen Termine aus dem NEUEN Kalender aus...")
     new_events_result = service.events().list(
         calendarId=NEW_CALENDAR_ID,
         timeMin=time_min,
@@ -75,44 +75,44 @@ def main():
         maxResults=2500
     ).execute()
     new_events = new_events_result.get('items', [])
-    print(f"Gefundene Termine im neuen Kalender: {len(new_events)}")
+    print(f"Gefundene Termine im NEUEN Kalender: {len(new_events)}")
 
-    migrated, skipped, filtered = 0, 0, 0
+    migrated, skipped, filtered, updated = 0, 0, 0, 0
 
-    for old_ev in old_events:
-        summary = old_ev.get("summary", "").strip()
+    for new_ev in new_events:
+        summary_new = new_ev.get("summary", "").strip()
 
-        # Filter: Nur echte Termine migrieren, keine Platzhalter mit nur zwei Ziffern
-        if ONLY_TWO_DIGITS_REGEX.fullmatch(summary):
+        # Platzhalter überspringen
+        if ONLY_TWO_DIGITS_REGEX.fullmatch(summary_new):
             filtered += 1
-            print(f"Zwei-Ziffern-Platzhalter übersprungen: {summary}")
+            print(f"Platzhalter übersprungen: {summary_new}")
             continue
 
-        duplicate = any(events_are_equal(old_ev, new_ev) for new_ev in new_events)
-        if duplicate:
-            skipped += 1
-            print(f"Duplikat übersprungen: {summary}")
-            continue
+        # Finde passendes Alt-Event (Name + Startzeit)
+        matching_old = [o for o in old_events if events_are_equal(o, new_ev)]
 
-        event_body = {
-            "summary": summary,
-            "start": old_ev.get("start"),
-            "end": old_ev.get("end"),
-            "description": old_ev.get("description", ""),
-            "location": old_ev.get("location", ""),
-            "colorId": old_ev.get("colorId", "9"),  # Farbe übernehmen!
-        }
-        if "attendees" in old_ev:
-            event_body["attendees"] = old_ev["attendees"]
+        if matching_old:
+            old_ev = matching_old[0]
+            if old_ev['summary'] != new_ev['summary']:
+                # Status hat sich geändert ➜ Alt löschen & neu anlegen
+                service.events().delete(calendarId=OLD_CALENDAR_ID, eventId=old_ev['id']).execute()
+                service.events().insert(calendarId=OLD_CALENDAR_ID, body=new_ev).execute()
+                updated += 1
+                print(f"Status geändert ➜ Alt gelöscht & neu angelegt: {new_ev['summary']}")
+            else:
+                skipped += 1
+                print(f"Unverändert ➜ übersprungen: {summary_new}")
+        else:
+            # Alt fehlt ➜ neu anlegen
+            service.events().insert(calendarId=OLD_CALENDAR_ID, body=new_ev).execute()
+            migrated += 1
+            print(f"Neu in ALT übertragen: {summary_new}")
 
-        service.events().insert(calendarId=NEW_CALENDAR_ID, body=event_body).execute()
-        migrated += 1
-        print(f"Übertragen: {event_body['summary']} am {event_body['start'].get('dateTime', '')}")
+    print("\\n--- MIGRATION FERTIG ---")
+    print(f"Neu übertragen: {migrated} Termine")
+    print(f"Status-Updates (ersetzt): {updated} Termine")
+    print(f"Übersprungen (unverändert): {skipped} Termine")
+    print(f"Gefiltert (Platzhalter): {filtered} Termine")
 
-    print("\n--- MIGRATION FERTIG ---")
-    print(f"Übertragen: {migrated} Termine")
-    print(f"Übersprungen (Duplikate): {skipped} Termine")
-    print(f"Nicht migriert (nur 2-stellige Platzhalter): {filtered} Termine")
-
-if __name__ == "__main__":
+if __name__ == \"__main__\":
     main()
