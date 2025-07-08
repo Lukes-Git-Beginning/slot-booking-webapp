@@ -114,5 +114,5 @@ def main():
     print(f"Übersprungen (unverändert): {skipped} Termine")
     print(f"Gefiltert (Platzhalter): {filtered} Termine")
 
-if __name__ == \"__main__\":
+if __name__ == "__main__":
     main()
