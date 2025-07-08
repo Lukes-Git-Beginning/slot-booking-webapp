@@ -134,6 +134,7 @@ def get_slot_status(date_str, hour, berater_count):
     max_slots = berater_count * SLOTS_PER_BERATER
     slot_start = TZ.localize(datetime.strptime(f"{date_str} {hour}", "%Y-%m-%d %H:%M"))
     slot_end = slot_start + timedelta(hours=2)
+
     events_result = service.events().list(
         calendarId=CENTRAL_CALENDAR_ID,
         timeMin=slot_start.isoformat(),
@@ -142,13 +143,28 @@ def get_slot_status(date_str, hour, berater_count):
         orderBy='startTime'
     ).execute()
     events = events_result.get('items', [])
-    gebuchte = [event for event in events if not (event.get("summary", "").strip().isdigit() and len(event.get("summary", "").strip()) == 2)]
+
+    gebuchte = []
+    for event in events:
+        summary = event.get("summary", "").strip()
+        # Filter: Nur echte Buchungen zählen (keine Dummy-Platzhalter wie '01')
+        if summary.isdigit() and len(summary) == 2:
+            continue
+        gebuchte.append(event)
+
     taken_count = len(gebuchte)
+
+    if taken_count > max_slots:
+        print(f"⚠️ Überbuchung erkannt: {taken_count} gebucht bei max {max_slots} – {date_str} {hour}")
+
     freie_count = max(0, max_slots - taken_count)
+
     slots = []
     for i in range(1, freie_count + 1):
         slots.append({"id": f"SLOT-{i:02d}", "booked": False, "summary": ""})
+
     overbooked = taken_count > max_slots
+
     return slots, taken_count, max_slots, freie_count, overbooked
 
 def get_slot_points(hour, slot_date):
