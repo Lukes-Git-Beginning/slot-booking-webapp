@@ -2,7 +2,7 @@ name: Migrate Calendar
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # ⏰ Alle 30 Minuten
+    - cron: '0 18 * * *'  # ⏰ Täglich um 18:00 UTC = 20:00 MESZ
   workflow_dispatch:      # 🖱️ Manuelles Auslösen möglich
 
 jobs:
