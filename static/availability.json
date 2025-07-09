@@ -1,23 +1,4 @@
 {
-  "2025-07-09 11:00": [
-    "Christian",
-    "Patrick"
-  ],
-  "2025-07-09 14:00": [
-    "Ann-Kathrin",
-    "Patrick"
-  ],
-  "2025-07-09 16:00": [
-    "Tim",
-    "Patrick"
-  ],
-  "2025-07-09 18:00": [
-    "Ann-Kathrin"
-  ],
-  "2025-07-09 20:00": [
-    "Simon",
-    "Sara"
-  ],
   "2025-07-10 11:00": [
     "Patrick"
   ],
@@ -556,6 +537,22 @@
     "Simon",
     "Sara",
     "Patrick",
+    "Dominik"
+  ],
+  "2025-08-08 09:00": [
+    "Ann-Kathrin",
+    "Patrick"
+  ],
+  "2025-08-08 11:00": [
+    "Daniel",
+    "Christian",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-08-08 14:00": [
+    "Ann-Kathrin",
+    "Sara",
     "Dominik"
   ]
 }
