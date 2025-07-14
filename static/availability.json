@@ -1,27 +1,4 @@
 {
-  "2025-07-14 11:00": [
-    "Ann-Kathrin",
-    "Patrick"
-  ],
-  "2025-07-14 14:00": [
-    "Ann-Kathrin",
-    "Patrick"
-  ],
-  "2025-07-14 16:00": [
-    "Ann-Kathrin",
-    "Patrick"
-  ],
-  "2025-07-14 18:00": [
-    "Ann-Kathrin",
-    "Patrick",
-    "Dominik"
-  ],
-  "2025-07-14 20:00": [
-    "Simon",
-    "Ann-Kathrin",
-    "Patrick",
-    "Dominik"
-  ],
   "2025-07-15 11:00": [],
   "2025-07-15 14:00": [
     "Ann-Kathrin",
@@ -551,5 +528,33 @@
     "Sara",
     "Patrick",
     "Dominik"
+  ],
+  "2025-08-13 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Christian",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-08-13 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-08-13 16:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Tim",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-08-13 18:00": [
+    "Tim",
+    "Sara"
+  ],
+  "2025-08-13 20:00": [
+    "Simon",
+    "Sara"
   ]
 }
