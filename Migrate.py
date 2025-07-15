@@ -1,12 +1,10 @@
 import datetime
 import re
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request  # Wichtig!
 
 # ----------------- Konfiguration -----------------
-CLIENT_SECRET_FILE = 'credentials.json'
+SERVICE_ACCOUNT_FILE = 'service_account.json'
 
 OLD_CALENDAR_ID = '989b1f7cafbd2e77679dd48fff1f3d1317d6292a6ab97f01a84d2eb1659c595b@group.calendar.google.com'
 NEW_CALENDAR_ID = 'zentralkalenderzfa@gmail.com'
@@ -14,23 +12,11 @@ NEW_CALENDAR_ID = 'zentralkalenderzfa@gmail.com'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 # -------------------------------------------------
 
-ONLY_TWO_DIGITS_REGEX = re.compile(r"^\d{2}$")  # Überspringt Platzhalter wie "01", "12", etc.
+ONLY_TWO_DIGITS_REGEX = re.compile(r"^\\d{2}$")  # Überspringt Platzhalter wie "01", "12", etc.
 
 def authenticate_google():
-    creds = None
-    try:
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    except Exception:
-        pass
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('calendar', 'v3', credentials=creds)
 
 def extract_name(summary):
@@ -52,7 +38,7 @@ def events_are_equal(e1, e2):
 
 def main():
     service = authenticate_google()
-    now = datetime.datetime.utcnow()  # ⚠️ Deprecated, kannst du ersetzen mit datetime.datetime.now(datetime.UTC) falls gewünscht
+    now = datetime.datetime.utcnow()
     time_min = now.isoformat() + "Z"
 
     print("Lese ALLE zukünftigen Termine aus dem ALTEN Kalender aus...")
@@ -90,8 +76,7 @@ def main():
         # Finde eventuellen Match im neuen Kalender
         match = None
         for new_ev in new_events:
-            if extract_name(summary) == extract_name(new_ev.get("summary", "")) and \
-               old_ev.get("start", {}).get("dateTime", "") == new_ev.get("start", {}).get("dateTime", ""):
+            if events_are_equal(old_ev, new_ev):
                 match = new_ev
                 break
 
@@ -100,9 +85,9 @@ def main():
                 # Status geändert ➜ Alt-Event löschen, Neu-Event ersetzen
                 try:
                     service.events().delete(calendarId=NEW_CALENDAR_ID, eventId=match['id']).execute()
-                    print(f"Status geändert ➜ Alt gelöscht: {summary}")
+                    print(f"Status geändert ➜ Alt gelöscht im NEUEN Kalender: {summary}")
                 except Exception as e:
-                    print(f"⚠️  Konnte Alt nicht löschen: {summary} — Grund: {e}")
+                    print(f"⚠️  Konnte Alt nicht löschen (NEU): {summary} — Grund: {e}")
                 try:
                     service.events().delete(calendarId=OLD_CALENDAR_ID, eventId=old_ev['id']).execute()
                     print(f"Status geändert ➜ ALT Kalender: Alt-Termin gelöscht: {summary}")
@@ -144,7 +129,7 @@ def main():
             migrated += 1
             print(f"Neu ➜ übertragen: {summary} am {event_body['start'].get('dateTime', '')}")
 
-    print("\n--- MIGRATION FERTIG ---")
+    print("\\n--- MIGRATION FERTIG ---")
     print(f"Übertragen (neu): {migrated}")
     print(f"Übersprungen (unverändert): {skipped}")
     print(f"Status geändert & ersetzt: {replaced}")
