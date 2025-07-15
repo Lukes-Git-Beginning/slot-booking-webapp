@@ -2,8 +2,8 @@ name: Generate Availability
 
 on:
   schedule:
-    - cron:  '5 * * * *'    # Jede Stunde, 5 Minuten nach voller Stunde
-  workflow_dispatch:         # Manuell starten möglich
+    - cron: '5 * * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,6 +16,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
+
+      - name: Create service_account.json
+        run: echo "${{ secrets.GOOGLE_CREDS_JSON }}" > service_account.json
+
+      - name: Ensure static directory exists
+        run: mkdir -p static
 
       - name: Install dependencies
         run: pip install -r requirements.txt
