@@ -12,7 +12,7 @@ NEW_CALENDAR_ID = 'zentralkalenderzfa@gmail.com'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 # -------------------------------------------------
 
-ONLY_TWO_DIGITS_REGEX = re.compile(r"^\\d{2}$")  # Überspringt Platzhalter wie "01", "12", etc.
+ONLY_TWO_DIGITS_REGEX = re.compile(r"^\d{2}$")  # Überspringt Platzhalter wie "01", "12", etc.
 
 def authenticate_google():
     creds = service_account.Credentials.from_service_account_file(
@@ -38,8 +38,8 @@ def events_are_equal(e1, e2):
 
 def main():
     service = authenticate_google()
-    now = datetime.datetime.utcnow()
-    time_min = now.isoformat() + "Z"
+    now = datetime.datetime.now(datetime.UTC)  # Fix für Deprecation-Warnung
+    time_min = now.isoformat()
 
     print("Lese ALLE zukünftigen Termine aus dem ALTEN Kalender aus...")
     old_events_result = service.events().list(
@@ -68,6 +68,7 @@ def main():
     for old_ev in old_events:
         summary = old_ev.get("summary", "").strip()
 
+        # 🟢 Immer Platzhalter filtern
         if ONLY_TWO_DIGITS_REGEX.fullmatch(summary):
             filtered += 1
             print(f"Zwei-Ziffern-Platzhalter ➜ übersprungen: {summary}")
@@ -94,7 +95,12 @@ def main():
                 except Exception as e:
                     print(f"⚠️  ALT Kalender: Alt-Termin konnte nicht gelöscht werden: {summary} — Grund: {e}")
 
-                # Neu anlegen
+                # 🟢 Filter hier auch: keine Platzhalter ersetzen
+                if ONLY_TWO_DIGITS_REGEX.fullmatch(summary):
+                    filtered += 1
+                    print(f"Zwei-Ziffern-Platzhalter ➜ NICHT neu angelegt: {summary}")
+                    continue
+
                 event_body = {
                     "summary": summary,
                     "start": old_ev.get("start"),
@@ -113,7 +119,12 @@ def main():
                 skipped += 1
                 print(f"Unverändert ➜ übersprungen: {summary}")
         else:
-            # Neuer Termin ➜ übertragen
+            # 🟢 Platzhalter vor finalem Insert blocken
+            if ONLY_TWO_DIGITS_REGEX.fullmatch(summary):
+                filtered += 1
+                print(f"Zwei-Ziffern-Platzhalter ➜ NICHT übertragen: {summary}")
+                continue
+
             event_body = {
                 "summary": summary,
                 "start": old_ev.get("start"),
@@ -129,7 +140,7 @@ def main():
             migrated += 1
             print(f"Neu ➜ übertragen: {summary} am {event_body['start'].get('dateTime', '')}")
 
-    print("\\n--- MIGRATION FERTIG ---")
+    print("\n--- MIGRATION FERTIG ---")
     print(f"Übertragen (neu): {migrated}")
     print(f"Übersprungen (unverändert): {skipped}")
     print(f"Status geändert & ersetzt: {replaced}")
