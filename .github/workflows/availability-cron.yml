@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Create service_account.json from Secret
-        run: echo "${{ secrets.google_creds_json }}" > service_account.json
+      - name: Create service_account.json from Base64
+        run: echo "${{ secrets.GOOGLE_CREDS_BASE64 }}" | base64 --decode > service_account.json
 
       - name: Ensure static directory exists
         run: mkdir -p static
@@ -36,4 +36,3 @@ jobs:
           git add static/availability.json
           git commit -m "Auto: Update availability.json [skip ci]" || echo "No changes to commit"
           git push
-
