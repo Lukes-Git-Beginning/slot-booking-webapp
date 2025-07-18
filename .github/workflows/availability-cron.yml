@@ -2,7 +2,7 @@ name: Generate Availability
 
 on:
   schedule:
-    - cron: '5 * * * *'
+    - cron: '5 * * * *'  # stündlich um 5 nach
   workflow_dispatch:
 
 jobs:
@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Create service_account.json
-        run: echo "${{ secrets.GOOGLE_CREDS_JSON }}" > service_account.json
+      - name: Create service_account.json from Secret
+        run: echo "${{ secrets.google_creds_json }}" > service_account.json
 
       - name: Ensure static directory exists
         run: mkdir -p static
@@ -36,3 +36,4 @@ jobs:
           git add static/availability.json
           git commit -m "Auto: Update availability.json [skip ci]" || echo "No changes to commit"
           git push
+
