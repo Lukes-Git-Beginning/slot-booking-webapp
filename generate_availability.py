@@ -119,7 +119,7 @@ for day_offset in range(30):
 cutoff_date = today - timedelta(days=6)
 availability = {
     k: v for k, v in availability.items()
-    if datetime.strptime(k.split(" ")[0], "%Y-%m-%d") >= cutoff_date
+    if TZ.localize(datetime.strptime(k.split(" ")[0], "%Y-%m-%d")) >= cutoff_date
 }
 
 # Datei speichern
