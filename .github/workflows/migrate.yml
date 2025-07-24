@@ -2,7 +2,7 @@ name: Migrate Calendar
 
 on:
   schedule:
-    - cron: '0 18 * * *'
+    - cron: '0 18 * * *'  # täglich 18:00 Uhr
   workflow_dispatch:
 
 jobs:
@@ -16,15 +16,15 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
       - name: 📦 Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-api-python-client google-auth google-auth-oauthlib
+          pip install -r requirements.txt
 
-      - name: Create service_account.json from Base64
+      - name: 🔑 Create service_account.json from Base64
         run: echo "${{ secrets.GOOGLE_CREDS_BASE64 }}" | base64 --decode > service_account.json
 
       - name: 🏃 Run Migrate Script
-        run: python slot-booking-webapp-main/Migrate.py
+        run: python Migrate.py
