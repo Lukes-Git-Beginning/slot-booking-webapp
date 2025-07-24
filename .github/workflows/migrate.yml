@@ -2,8 +2,8 @@ name: Migrate Calendar
 
 on:
   schedule:
-    - cron: '0 18 * * *'  # ⏰ Täglich um 18:00 UTC = 20:00 MESZ
-  workflow_dispatch:      # 🖱️ Manuelles Auslösen möglich
+    - cron: '0 18 * * *'
+  workflow_dispatch:
 
 jobs:
   run-migrate:
@@ -23,17 +23,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-api-python-client google-auth google-auth-oauthlib
 
-      - name: 🔑 Write credentials.json
+      - name: 🔑 Decode credentials from base64
         env:
-          CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+          CREDS_JSON_B64: ${{ secrets.GOOGLE_CREDS_JSON }}
         run: |
-          echo "$CREDS_JSON" > credentials.json
-
-      - name: 🔑 Write token.json
-        env:
-          TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
-        run: |
-          echo "$TOKEN_JSON" > token.json
+          echo "$CREDS_JSON_B64" | base64 --decode > credentials.json
 
       - name: 🏃 Run Migrate Script
-        run: python Migrate.py
+        run: python slot-booking-webapp-main/Migrate.py
