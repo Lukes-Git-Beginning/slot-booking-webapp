@@ -3,6 +3,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import pytz
 import json
+import os
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_ACCOUNT_FILE = 'service_account.json'
@@ -12,7 +13,6 @@ creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('calendar', 'v3', credentials=creds)
 
-# Feste Map EN -> DE Kürzel
 weekday_map = {
     'Monday': 'Mo',
     'Tuesday': 'Di',
@@ -47,12 +47,23 @@ slots = {
 }
 
 availability = {}
+availability_file = "static/availability.json"
 today = datetime.now(TZ)
 slot_count = 0
 
+# Vorhandene Verfügbarkeiten laden
+if os.path.exists(availability_file):
+    try:
+        with open(availability_file, "r", encoding="utf-8") as f:
+            availability = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Fehler beim Laden der alten availability.json: {e}")
+        availability = {}
+
+# Neue Slots berechnen
 for day_offset in range(30):
     day = today + timedelta(days=day_offset)
-    weekday_en = day.strftime('%A')  # z.B. 'Tuesday'
+    weekday_en = day.strftime('%A')
     weekday = weekday_map.get(weekday_en, None)
 
     if weekday not in slots:
@@ -83,7 +94,7 @@ for day_offset in range(30):
                 ).execute()
                 events = events_result.get('items', [])
 
-                has_conflict = True  # Standard: blockiert
+                has_conflict = True
                 for event in events:
                     summary = event.get('summary', '').strip().lower()
                     if 't1-bereit' in summary or 't1 bereit' in summary:
@@ -104,7 +115,15 @@ for day_offset in range(30):
             print(f"🚫 Slot {slot_key} hat KEINEN verfügbaren Berater!")
         slot_count += 1
 
-with open("static/availability.json", "w", encoding="utf-8") as f:
+# Alte Einträge älter als 7 Tage entfernen
+cutoff_date = today - timedelta(days=6)
+availability = {
+    k: v for k, v in availability.items()
+    if datetime.strptime(k.split(" ")[0], "%Y-%m-%d") >= cutoff_date
+}
+
+# Datei speichern
+with open(availability_file, "w", encoding="utf-8") as f:
     json.dump(availability, f, ensure_ascii=False, indent=2)
 
-print(f"\\n✅ availability.json erfolgreich generiert ({slot_count} Slots analysiert)")
+print(f"\n✅ availability.json erfolgreich aktualisiert ({slot_count} neue Slots analysiert)")
