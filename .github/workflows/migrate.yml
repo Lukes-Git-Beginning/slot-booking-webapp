@@ -24,10 +24,8 @@ jobs:
           pip install google-api-python-client google-auth google-auth-oauthlib
 
       - name: 🔑 Decode credentials from base64
-        env:
-          CREDS_JSON_B64: ${{ secrets.GOOGLE_CREDS_JSON }}
-        run: |
-          echo "$CREDS_JSON_B64" | base64 --decode > credentials.json
+      - name: Create service_account.json from Base64
+        run: echo "${{ secrets.GOOGLE_CREDS_BASE64 }}" | base64 --decode > service_account.json
 
       - name: 🏃 Run Migrate Script
         run: python slot-booking-webapp-main/Migrate.py
