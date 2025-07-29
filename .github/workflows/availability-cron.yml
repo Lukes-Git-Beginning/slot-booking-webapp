@@ -2,8 +2,8 @@ name: Generate Availability
 
 on:
   schedule:
-    - cron: '5 7-18/1 * * *'   # alle 60 min: 09:05–20:05 DE-Zeit
-    - cron: '35 7-17/1 * * *'  # alle 60 min: 09:35–19:35 DE-Zeit
+        # Mo–Fr von 05:00 bis 14:00 UTC → stündlich = 10 Läufe/Tag
+    - cron: '5 5-14 * * 1-5'  # 5 Minuten nach jeder vollen Stunde
   workflow_dispatch:
 
 jobs:
