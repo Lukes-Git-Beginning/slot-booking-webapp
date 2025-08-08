@@ -38,17 +38,17 @@
 /* Lightmode-Overrides (per Body-Klasse gesetzt) */
 body.lightmode {
   /* CHANGED: Light-Mode dezenter (helles Grau statt sehr hell/weiß) */
-  --bg: #f3f4f6;           /* vorher #eef4fb */
-  --bg-grad-1: #f3f4f6;    /* vorher #f3f7fb */
-  --bg-grad-2: #e9edf3;    /* vorher #e7eef6 */
+  --bg: #f3f4f6;
+  --bg-grad-1: #f3f4f6;
+  --bg-grad-2: #e9edf3;
   --text-color: #0b1320;
   --muted: #475569;
   --accent: #2563eb;
 
   /* CHANGED: Karten leicht matter statt knall-weiß */
-  --box-bg: rgba(255,255,255,.80);   /* vorher .65 */
-  --box-border: rgba(0,0,0,.10);     /* vorher .08 */
-  --shadow: 0 8px 24px rgba(0,0,0,.12); /* minimal softer */
+  --box-bg: rgba(255,255,255,.80);
+  --box-border: rgba(0,0,0,.10);
+  --shadow: 0 8px 24px rgba(0,0,0,.12);
 
   --success-bg: rgba(16,185,129,.12);
   --success-bd: rgba(16,185,129,.25);
@@ -56,8 +56,8 @@ body.lightmode {
   --danger-bd: rgba(239,68,68,.25);
 
   /* CHANGED: Inputs ein Tick dunkler, weniger „Flutlicht“ */
-  --input-bg: rgba(255,255,255,.90); /* vorher .85 */
-  --input-bd: rgba(0,0,0,.12);       /* vorher .10 */
+  --input-bg: rgba(255,255,255,.90);
+  --input-bd: rgba(0,0,0,.12);
 }
 
 /* ---------- Base ---------- */
@@ -68,9 +68,8 @@ body {
   margin: 0;
   color: var(--text-color);
   font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: 
-    /* CHANGED: Light-Mode Glow minimal reduziert */
-    radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent), /* vorher .08 */
+  background:
+    radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent),
     linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
   background-attachment: fixed;
 }
@@ -131,8 +130,6 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
 .sidebar.collapsed { transform: translateX(-100%); }
 .sidebar:not(.collapsed) { transform: translateX(0); }
 
-/* HINWEIS: Der frühere Kalender-Icon-Button in der Sidebar ist in HTML entfernt.
-   Diese Regel kann bleiben (kein Effekt) oder gelöscht werden. */
 .sidebar .sidebar-toggle {
   position: absolute; right: -14px; top: 12px;
   border-radius: 50%;
@@ -288,3 +285,24 @@ a:hover { text-decoration: underline; }
 .text-sm { font-size: .9em; }
 .text-muted { color: var(--muted); }
 .hidden { display: none !important; }
+
+/* ===== Ergänzungen/Fixes ===== */
+
+/* 1) Hamburger-Button nicht über H2 legen */
+#sidebar-tab {
+  top: 64px; /* vorher 14px inlined im HTML */
+}
+
+/* 2) „Mein Kalender“ wie Buttons stylen */
+a.glass-soft {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--text-color);
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+}
+a.glass-soft:hover { text-decoration: none; }
