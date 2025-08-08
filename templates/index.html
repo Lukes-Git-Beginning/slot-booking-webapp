@@ -15,30 +15,29 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 
   <style>
-    /* kleine lokale Styles */
     .panel { padding:16px; margin-bottom:16px; }
     #calendar { background: var(--box-bg); border:1px solid #4445; border-radius:12px; overflow:hidden; }
-    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
-    @media (max-width: 1100px){ .grid-3 { grid-template-columns:1fr; } }
-    /* Floating-Button zum Öffnen der Sidebar */
-    #sidebar-open {
-      position: fixed; left: 16px; top: 16px; z-index: 60;
-      padding: 8px 10px; border-radius: 10px; border:1px solid var(--box-border);
-      background: var(--box-bg); backdrop-filter: blur(8px) saturate(120%);
+    /* kleiner runder Sidebar-Button */
+    #sidebar-tab {
+      position: fixed; left: 14px; top: 14px; z-index: 60;
+      width: 40px; height: 40px; border-radius: 50%;
+      display:flex; align-items:center; justify-content:center;
+      border:1px solid var(--box-border); background: var(--box-bg);
+      backdrop-filter: blur(8px) saturate(120%);
     }
   </style>
 </head>
 <body>
   <!-- Light/Dark Toggle -->
   <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
-  <!-- Sidebar öffnen (weil sie initial collapsed ist) -->
-  <button id="sidebar-open" class="glass-soft">☰ Menü</button>
+  <!-- Kleiner runder Button statt „Suchleisten“-Look -->
+  <button id="sidebar-tab" title="Menü">≡</button>
 
-  <!-- Sidebar: initial eingeklappt -->
+  <!-- Sidebar (eingeklappt per CSS; öffnet via Button) -->
   <div class="sidebar collapsed" id="sidebar">
     <button class="sidebar-toggle" onclick="toggleSidebar()">📅</button>
 
-    <input type="text" id="datepicker" class="form-control" readonly style="margin-bottom: 1.5em;">
+    <input type="text" id="datepicker" class="form-control" readonly style="margin-bottom: 1.2em;">
     <p><strong>📊 Wochenauslastung</strong></p>
 
     {% for week in weekly_summary %}
@@ -82,18 +81,9 @@
       {% endfor %}
     {% endwith %}
 
-    <section class="glass panel">
-      <h2><i class="ti ti-layout-grid"></i> Übersicht</h2>
-      <div class="grid-3">
-        <a href="#kalender" class="stat">📆 Kalender</a>
-        <a href="#auslastung" class="stat">📈 4‑Wochen Auslastung</a>
-        <a href="#buchung" class="stat">📝 Slot buchen</a>
-      </div>
-    </section>
-
     <!-- Kalender -->
     <section id="kalender" class="glass panel">
-      <h2><i class="ti ti-calendar-month"></i> Kalender (Zentralkalender)</h2>
+      <h2>Kalender (Zentralkalender)</h2>
       <div style="display:flex; gap:8px; margin-bottom:8px;">
         <button id="fc-today" class="glass-soft" style="padding:6px 10px; cursor:pointer;">Heute</button>
         <select id="fc-view" class="glass-soft" style="padding:6px 10px; cursor:pointer;">
@@ -109,15 +99,15 @@
 
     <!-- 4‑Wochen Auslastung -->
     <section id="auslastung" class="glass panel">
-      <h2><i class="ti ti-activity"></i> Wochenauslastung (nächste 4 Wochen)</h2>
-      <div class="grid-3">
+      <h2>Wochenauslastung (nächste 4 Wochen)</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
         {% for w in weekly_summary[:4] %}
           {% set ratio = (w.booked / (w.possible + 1e-5)) if w.possible > 0 else 0 %}
           {% set cls = "background:rgba(16,185,129,.20); border-color:rgba(16,185,129,.35);" if ratio < 0.5 else
                        "background:rgba(234,179,8,.20); border-color:rgba(234,179,8,.35);" if ratio < 0.8 else
                        "background:rgba(249,115,22,.20); border-color:rgba(249,115,22,.35);" if ratio < 1 else
                        "background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.35);" %}
-          <div class="kachel" style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); {{ cls }}">
+          <div class="glass-soft" style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); {{ cls }}">
             <div style="font-size:.9em; color:#cbd5e1">{{ w.label }}</div>
             <div style="font-size:1.6em; font-weight:700">{{ (ratio*100)|round|int }}%</div>
             <div style="font-size:.85em; color:#94a3b8">{{ w.booked }} / {{ w.possible }} gebucht</div>
@@ -140,7 +130,7 @@
 
     <!-- Buchung -->
     <section id="buchung" class="glass panel">
-      <h2><i class="ti ti-clipboard-plus"></i> Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
+      <h2>Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
       <div class="nav">
         {% for d in days %}
           <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
@@ -214,10 +204,10 @@
     const sidebar = document.getElementById("sidebar");
     const main = document.getElementById("main");
     function toggleSidebar(){
-      sidebar.classList.toggle("collapsed");
-      main.classList.toggle("with-sidebar");
+      const collapsed = sidebar.classList.toggle("collapsed");
+      main.classList.toggle("with-sidebar", !collapsed);
     }
-    document.getElementById("sidebar-open").addEventListener("click", toggleSidebar);
+    document.getElementById("sidebar-tab").addEventListener("click", toggleSidebar);
 
     // === Datepicker ===
     const dpInput = document.getElementById("datepicker");
