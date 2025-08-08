@@ -2,13 +2,15 @@ name: Generate Availability
 
 on:
   schedule:
-        # Mo–Fr von 05:00 bis 14:00 UTC → stündlich = 10 Läufe/Tag
+    # Mo–Fr von 05:00 bis 14:00 UTC → stündlich = 10 Läufe/Tag
     - cron: '5 5-14 * * 1-5'  # 5 Minuten nach jeder vollen Stunde
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GOOGLE_CREDS_BASE64: ${{ secrets.GOOGLE_CREDS_BASE64 }}  # <--- Hier hinzufügen
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,9 +19,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
-
-      - name: Create service_account.json from Base64
-        run: echo "${{ secrets.GOOGLE_CREDS_BASE64 }}" | base64 --decode > service_account.json
 
       - name: Ensure static directory exists
         run: mkdir -p static
@@ -37,3 +36,4 @@ jobs:
           git add static/availability.json
           git commit -m "Auto: Update availability.json [skip ci]" || echo "No changes to commit"
           git push
+

@@ -1,17 +1,18 @@
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+import os
+import json
 from datetime import datetime, timedelta
 import pytz
-import json
-import os
+from googleapiclient.discovery import build
+from creds_loader import load_google_credentials
 
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-SERVICE_ACCOUNT_FILE = 'service_account.json'
-TZ = pytz.timezone('Europe/Berlin')
+# ----------------- Google Calendar API Setup -----------------
+SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]  # nur lesen
+creds = load_google_credentials(SCOPES)
+service = build("calendar", "v3", credentials=creds)
 
-creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-service = build('calendar', 'v3', credentials=creds)
+# ----------------- Konfiguration -----------------
+CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
+TZ = pytz.timezone("Europe/Berlin")
 
 weekday_map = {
     'Monday': 'Mo',
