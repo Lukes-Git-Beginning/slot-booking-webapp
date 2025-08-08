@@ -13,7 +13,6 @@
 
   <style>
     .panel { padding:16px; margin-bottom:16px; }
-    #calendar { background: var(--box-bg); border:1px solid var(--box-border); border-radius:12px; overflow:hidden; }
     #sidebar-tab {
       position: fixed; left: 14px; top: 14px; z-index: 60;
       width: 40px; height: 40px; border-radius: 50%;
@@ -21,6 +20,7 @@
       border:1px solid var(--box-border); background: var(--box-bg);
       backdrop-filter: blur(8px) saturate(120%);
     }
+    #kalender-section.collapsed { display: none; }
   </style>
 </head>
 <body>
@@ -34,8 +34,7 @@
     <p><strong>📊 Wochenauslastung</strong></p>
     {% for week in weekly_summary %}
       <a href="{{ url_for('day_view', date_str=week.start_date) }}"
-         class="kw-link{% if week.current %} active{% endif %}"
-         style="font-weight:{% if week.current %}bold{% else %}normal{% endif %}; color:var(--text-color); margin-bottom:2px;">
+         class="kw-link{% if week.current %} active{% endif %}">
         {{ week.label }} ({{ week.range }})
         <span style="float:right; font-size:0.95em; color:#999;">{{ week.usage_pct }}%</span>
       </a>
@@ -47,7 +46,7 @@
           {% else %}var(--red){% endif %};
           width: {{ week.usage_pct }}%; height:100%;"></div>
       </div>
-      <div style="font-size:0.9em; color:#bbb; margin-bottom:12px;">{{ week.booked }}/{{ week.possible }} gebucht</div>
+      <div class="text-sm text-muted">{{ week.booked }}/{{ week.possible }} gebucht</div>
     {% endfor %}
 
     <div class="slot-suggest-box">
@@ -74,19 +73,44 @@
     {% endwith %}
 
     <!-- Kalender -->
-    <section id="kalender" class="glass panel">
-      <h2>Kalender (Zentralkalender)</h2>
+    <section id="kalender-section" class="glass panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h2>Kalender (Zentralkalender)</h2>
+        <button id="toggle-kalender" class="glass-soft">Kalender ausblenden</button>
+      </div>
       <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <button id="fc-today" class="glass-soft" style="padding:6px 10px; cursor:pointer;">Heute</button>
-        <select id="fc-view" class="glass-soft" style="padding:6px 10px; cursor:pointer;">
+        <button id="fc-today" class="glass-soft">Heute</button>
+        <select id="fc-view" class="glass-soft">
           <option value="timeGridDay">Tag</option>
           <option value="timeGridWeek" selected>Woche</option>
           <option value="dayGridMonth">Monat</option>
         </select>
-        <button id="fc-refresh" class="glass-soft" style="padding:6px 10px; cursor:pointer;">Refresh</button>
-        <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="padding:6px 10px; text-decoration:none;">Mein Kalender</a>
+        <button id="fc-refresh" class="glass-soft">Refresh</button>
+        <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="text-decoration:none;">Mein Kalender</a>
       </div>
       <div id="calendar"></div>
+    </section>
+
+    <!-- Buchungsbereich -->
+    <section id="buchung" class="glass panel">
+      <h2>📅 Slot buchen</h2>
+      {% for section in slot_sections %}
+        <div class="time-section {{ section.color }}">
+          <div class="info">
+            <strong>{{ section.time }}</strong><br>
+            {{ section.free }} / {{ section.total }} frei
+          </div>
+          <div class="slot">
+            <form action="{{ url_for('book_slot') }}" method="POST">
+              <input type="hidden" name="time" value="{{ section.time }}">
+              <input type="text" name="nachname" placeholder="Nachname" required>
+              <input type="text" name="vorname" placeholder="Vorname" required>
+              <textarea name="bemerkung" placeholder="Bemerkung"></textarea>
+              <button type="submit">Buchen</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
     </section>
   </div>
 
@@ -104,13 +128,17 @@
     window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
 
     // Sidebar Toggle
-    const sidebar = document.getElementById("sidebar");
-    const main = document.getElementById("main");
-    function toggleSidebar(){
-      const collapsed = sidebar.classList.toggle("collapsed");
-      main.classList.toggle("with-sidebar", !collapsed);
-    }
-    document.getElementById("sidebar-tab").addEventListener("click", toggleSidebar);
+    document.getElementById("sidebar-tab").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.toggle("collapsed");
+      document.getElementById("main").classList.toggle("with-sidebar");
+    });
+
+    // Kalender Ein-/Ausblenden
+    document.getElementById("toggle-kalender").addEventListener("click", function(){
+      const section = document.getElementById("kalender-section");
+      section.classList.toggle("collapsed");
+      this.textContent = section.classList.contains("collapsed") ? "Kalender einblenden" : "Kalender ausblenden";
+    });
 
     // FullCalendar
     document.addEventListener("DOMContentLoaded", function () {
@@ -120,12 +148,14 @@
         const calendar = new FullCalendar.Calendar(calEl, {
           timeZone: "Europe/Berlin",
           initialView: "timeGridWeek",
-          initialDate: "{{ date.strftime('%Y-%m-%d') }}", // startet mit gewähltem Datum
+          initialDate: "{{ date.strftime('%Y-%m-%d') }}",
           headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
           slotDuration: "00:30:00",
           nowIndicator: true,
           height: "auto",
           eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
+          slotMinTime: "08:00:00",
+          slotMaxTime: "22:00:00",
           events: {
             url: "/api/calendar/events",
             failure: () => console.warn("Events konnten nicht geladen werden."),
