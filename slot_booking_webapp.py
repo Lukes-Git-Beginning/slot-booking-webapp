@@ -287,7 +287,7 @@ def book():
     color_id = request.form.get("color", "9")
     user = session.get("user")
 
-    key = f"{date} {hour}"`
+    key = f"{date} {hour}"
     berater_count = len(load_availability().get(key, []))
     slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
     slot_date = datetime.strptime(date, "%Y-%m-%d").date()
