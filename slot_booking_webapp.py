@@ -131,7 +131,6 @@ def get_slot_status(date_str, hour, berater_count):
     ).execute()
     events = events_result.get('items', [])
 
-    # Filtere zweistellige Platzhalter wie "01"
     gebuchte = [ev for ev in events if not (ev.get("summary", "").isdigit() and len(ev.get("summary", "")) == 2)]
     taken_count = len(gebuchte)
     freie_count = max(0, max_slots - taken_count)
@@ -363,7 +362,6 @@ def my_calendar():
 
 # -------- FullCalendar API: zeigt ALLE Termine des Zentralkalenders (mit Google-Farben) --------
 GOOGLE_COLOR_MAP = {
-    # https://developers.google.com/calendar/api/v3/reference/colors
     "1":  "#a4bdfc", "2":  "#7ae7bf", "3":  "#dbadff", "4":  "#ff887c",
     "5":  "#fbd75b", "6":  "#ffb878", "7":  "#46d6db", "8":  "#e1e1e1",
     "9":  "#5484ed", "10": "#51b749", "11": "#dc2127"
@@ -373,20 +371,20 @@ GOOGLE_COLOR_MAP = {
 def api_calendar_events():
     """
     Liefert Events aus dem Zentralkalender für FullCalendar.
-    Erwartet ?start=...&end=... (ISO-8601/Z). Fällt sonst auf heute..+14 Tage zurück.
+    Erwartet ?start=...&end=... (ISO-8601/Z). Fällt sonst auf ±30 Tage zurück.
     """
     start_param = request.args.get("start")
     end_param = request.args.get("end")
 
-    def fix_iso(s):  # 'Z' => '+00:00'
+    def fix_iso(s):
         return s.replace("Z", "+00:00") if s else s
 
     if start_param and end_param:
         time_min = fix_iso(start_param)
         time_max = fix_iso(end_param)
     else:
-        start = datetime.now(TZ)
-        end = start + timedelta(days=14)
+        start = datetime.now(TZ) - timedelta(days=30)
+        end = datetime.now(TZ) + timedelta(days=30)
         time_min = start.isoformat()
         time_max = end.isoformat()
 
@@ -414,7 +412,7 @@ def api_calendar_events():
             "title": ev.get("summary", ""),
             "start": start_dt,
             "end": end_dt,
-            "allDay": bool(start.get("date"))  # true wenn Ganztägig
+            "allDay": bool(start.get("date"))
         }
         if color:
             mapped["backgroundColor"] = color
