@@ -5,45 +5,37 @@
   <title>Slot Buchung</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Bestehendes Admin CSS (Farben/Variablen, Sidebar etc.) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-
-  <!-- Icons -->
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
 
-  <!-- Datepicker (wie gehabt) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/css/datepicker-bs5.min.css">
   <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/js/datepicker-full.min.js"></script>
 
-  <!-- FullCalendar (neues Kalender-Panel) -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 
   <style>
-    /* iOS-Glasoptik – additiv zu admin_style.css */
-    .glass { background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
-             border:1px solid rgba(255,255,255,.12); backdrop-filter: blur(12px) saturate(140%);
-             -webkit-backdrop-filter: blur(12px) saturate(140%); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
-    .glass-soft { background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-             border:1px solid rgba(255,255,255,.10); backdrop-filter: blur(8px) saturate(120%);
-             -webkit-backdrop-filter: blur(8px) saturate(120%); border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.28); }
+    /* kleine lokale Styles */
     .panel { padding:16px; margin-bottom:16px; }
-    .panel h2 { margin:0 0 10px 0; font-size:1.2em; display:flex; align-items:center; gap:8px; }
-    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
-    .grid-3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; }
-    @media (max-width: 1100px){ .grid-2, .grid-3 { grid-template-columns: 1fr; } }
-    .stat { padding:12px; border:1px solid rgba(255,255,255,.1); border-radius:10px; background: var(--box-bg); text-decoration:none; color:inherit; }
-    .divider { height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent); margin:10px 0; }
     #calendar { background: var(--box-bg); border:1px solid #4445; border-radius:12px; overflow:hidden; }
-    .kachel { padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    @media (max-width: 1100px){ .grid-3 { grid-template-columns:1fr; } }
+    /* Floating-Button zum Öffnen der Sidebar */
+    #sidebar-open {
+      position: fixed; left: 16px; top: 16px; z-index: 60;
+      padding: 8px 10px; border-radius: 10px; border:1px solid var(--box-border);
+      background: var(--box-bg); backdrop-filter: blur(8px) saturate(120%);
+    }
   </style>
 </head>
 <body>
-  <!-- Dark/Light Toggle bleibt -->
+  <!-- Light/Dark Toggle -->
   <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
+  <!-- Sidebar öffnen (weil sie initial collapsed ist) -->
+  <button id="sidebar-open" class="glass-soft">☰ Menü</button>
 
-  <!-- Sidebar (bestehend) -->
-  <div class="sidebar" id="sidebar">
+  <!-- Sidebar: initial eingeklappt -->
+  <div class="sidebar collapsed" id="sidebar">
     <button class="sidebar-toggle" onclick="toggleSidebar()">📅</button>
 
     <input type="text" id="datepicker" class="form-control" readonly style="margin-bottom: 1.5em;">
@@ -67,7 +59,6 @@
       <div style="font-size:0.9em; color:#bbb; margin-bottom:12px;">{{ week.booked }}/{{ week.possible }} gebucht</div>
     {% endfor %}
 
-    <!-- Slot-Vorschläge (bestehend) -->
     <div class="slot-suggest-box">
       <div class="slot-suggest-title">💡 Slot-Vorschläge</div>
       {% if slot_suggestions %}
@@ -84,14 +75,13 @@
   </div>
 
   <!-- Main -->
-  <div class="main">
+  <div class="main" id="main">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="flash-{{ category }}">{{ message }}</div>
       {% endfor %}
     {% endwith %}
 
-    <!-- Landing / Quick-Nav -->
     <section class="glass panel">
       <h2><i class="ti ti-layout-grid"></i> Übersicht</h2>
       <div class="grid-3">
@@ -99,11 +89,9 @@
         <a href="#auslastung" class="stat">📈 4‑Wochen Auslastung</a>
         <a href="#buchung" class="stat">📝 Slot buchen</a>
       </div>
-      <div class="divider"></div>
-      <p style="color:#aaa; font-size:0.95em;">Alle Bereiche bleiben parallel geöffnet – ideal für iOS (Glaslook).</p>
     </section>
 
-    <!-- Kalender-Panel -->
+    <!-- Kalender -->
     <section id="kalender" class="glass panel">
       <h2><i class="ti ti-calendar-month"></i> Kalender (Zentralkalender)</h2>
       <div style="display:flex; gap:8px; margin-bottom:8px;">
@@ -114,23 +102,22 @@
           <option value="dayGridMonth">Monat</option>
         </select>
         <button id="fc-refresh" class="glass-soft" style="padding:6px 10px; cursor:pointer;">Refresh</button>
-        <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="padding:6px 10px; text-decoration:none;">❤️ Mein Kalender</a>
+        <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="padding:6px 10px; text-decoration:none;">Mein Kalender</a>
       </div>
       <div id="calendar"></div>
-      <div style="color:#8aa; font-size:0.9em; margin-top:6px;">Quelle: <code>/api/calendar/events</code> (30s Polling; falls Route fehlt, bleibt das Panel leer).</div>
     </section>
 
-    <!-- 4‑Wochen Auslastung (Kacheln) -->
+    <!-- 4‑Wochen Auslastung -->
     <section id="auslastung" class="glass panel">
       <h2><i class="ti ti-activity"></i> Wochenauslastung (nächste 4 Wochen)</h2>
-      <div class="grid-2">
+      <div class="grid-3">
         {% for w in weekly_summary[:4] %}
           {% set ratio = (w.booked / (w.possible + 1e-5)) if w.possible > 0 else 0 %}
           {% set cls = "background:rgba(16,185,129,.20); border-color:rgba(16,185,129,.35);" if ratio < 0.5 else
                        "background:rgba(234,179,8,.20); border-color:rgba(234,179,8,.35);" if ratio < 0.8 else
                        "background:rgba(249,115,22,.20); border-color:rgba(249,115,22,.35);" if ratio < 1 else
                        "background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.35);" %}
-          <div class="kachel" style="{{ cls }}">
+          <div class="kachel" style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); {{ cls }}">
             <div style="font-size:.9em; color:#cbd5e1">{{ w.label }}</div>
             <div style="font-size:1.6em; font-weight:700">{{ (ratio*100)|round|int }}%</div>
             <div style="font-size:.85em; color:#94a3b8">{{ w.booked }} / {{ w.possible }} gebucht</div>
@@ -138,6 +125,7 @@
           </div>
         {% endfor %}
       </div>
+
       {% if slot_suggestions %}
       <div class="glass-soft" style="padding:12px; margin-top:12px;">
         <div class="text-sm" style="color:#cbd5e1; margin-bottom:6px;">Empfohlene Slots</div>
@@ -214,32 +202,31 @@
   </div>
 
   <script>
-    // === Light/Dark Mode (bestehend) ===
+    // === Mode Toggle ===
     const body = document.body;
-    const toggle = document.getElementById("mode-toggle");
-    function setMode(dark) {
-      body.classList.toggle('lightmode', !dark);
-      body.classList.toggle('darkmode', dark);
-      toggle.innerHTML = dark ? '🌙' : '☀️';
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-    toggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+    const modeToggle = document.getElementById("mode-toggle");
+    function setMode(dark){ body.classList.toggle('lightmode', !dark); body.classList.toggle('darkmode', dark);
+      modeToggle.innerHTML = dark ? '🌙' : '☀️'; localStorage.setItem('theme', dark ? 'dark' : 'light'); }
+    modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
     window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
 
-    // === Datepicker (bestehend) ===
-    const input = document.getElementById("datepicker");
-    if (input) {
-      const dp = new Datepicker(input, { autohide: true, format: 'yyyy-mm-dd' });
-      input.addEventListener('changeDate', e => {
-        const date = e.target.value;
-        window.location.href = "/day/" + date;
-      });
+    // === Sidebar Toggle ===
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("main");
+    function toggleSidebar(){
+      sidebar.classList.toggle("collapsed");
+      main.classList.toggle("with-sidebar");
     }
-    function toggleSidebar() {
-      document.getElementById("sidebar").classList.toggle("visible");
+    document.getElementById("sidebar-open").addEventListener("click", toggleSidebar);
+
+    // === Datepicker ===
+    const dpInput = document.getElementById("datepicker");
+    if (dpInput) {
+      const dp = new Datepicker(dpInput, { autohide: true, format: 'yyyy-mm-dd' });
+      dpInput.addEventListener('changeDate', e => window.location.href = "/day/" + e.target.value);
     }
 
-    // === FullCalendar (neu, optional) ===
+    // === FullCalendar ===
     document.addEventListener("DOMContentLoaded", function () {
       const calEl = document.getElementById("calendar");
       if (!calEl) return;
@@ -251,7 +238,6 @@
           slotDuration: "00:30:00",
           nowIndicator: true,
           height: "auto",
-          eventDisplay: "block",
           eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
           events: "/api/calendar/events"
         });
