@@ -361,38 +361,36 @@ def my_calendar():
     my_events.sort(key=lambda e: (e["date"], e["hour"]))
     return render_template("my_calendar.html", my_events=my_events, user=user)
 
+# -------- FullCalendar API: zeigt ALLE Termine des Zentralkalenders (mit Google-Farben) --------
+GOOGLE_COLOR_MAP = {
+    # https://developers.google.com/calendar/api/v3/reference/colors
+    "1":  "#a4bdfc", "2":  "#7ae7bf", "3":  "#dbadff", "4":  "#ff887c",
+    "5":  "#fbd75b", "6":  "#ffb878", "7":  "#46d6db", "8":  "#e1e1e1",
+    "9":  "#5484ed", "10": "#51b749", "11": "#dc2127"
+}
+
 @app.get("/api/calendar/events")
 def api_calendar_events():
     """
-    Liefert Events für FullCalendar.
-    Erwartet Query-Params ?start=...&end=... (ISO-8601). Default: heute..+14 Tage.
+    Liefert Events aus dem Zentralkalender für FullCalendar.
+    Erwartet ?start=...&end=... (ISO-8601/Z). Fällt sonst auf heute..+14 Tage zurück.
     """
     start_param = request.args.get("start")
     end_param = request.args.get("end")
 
-    def fix_iso(s):
-        # FullCalendar sendet oft 'Z' -> Python mag '+00:00'
+    def fix_iso(s):  # 'Z' => '+00:00'
         return s.replace("Z", "+00:00") if s else s
 
     if start_param and end_param:
-        try:
-            start_iso = fix_iso(start_param)
-            end_iso = fix_iso(end_param)
-            # Wir geben einfach die Strings so weiter – Google API akzeptiert ISO8601
-            time_min = start_iso
-            time_max = end_iso
-        except Exception:
-            start = datetime.now(TZ)
-            end = start + timedelta(days=14)
-            time_min = start.isoformat()
-            time_max = end.isoformat()
+        time_min = fix_iso(start_param)
+        time_max = fix_iso(end_param)
     else:
         start = datetime.now(TZ)
         end = start + timedelta(days=14)
         time_min = start.isoformat()
         time_max = end.isoformat()
 
-    events_result = service.events().list(
+    res = service.events().list(
         calendarId=CENTRAL_CALENDAR_ID,
         timeMin=time_min,
         timeMax=time_max,
@@ -401,25 +399,29 @@ def api_calendar_events():
         maxResults=2500
     ).execute()
 
-    items = events_result.get("items", [])
-
-    def map_event(ev):
+    items = res.get("items", [])
+    out = []
+    for ev in items:
         start = ev.get("start", {})
         end = ev.get("end", {})
-        start_dt = start.get("dateTime") or start.get("date")  # all-day fallback
+        start_dt = start.get("dateTime") or start.get("date")
         end_dt = end.get("dateTime") or end.get("date")
-        return {
+        color_id = ev.get("colorId", "")
+        color = GOOGLE_COLOR_MAP.get(color_id, None)
+
+        mapped = {
             "id": ev.get("id"),
             "title": ev.get("summary", ""),
             "start": start_dt,
             "end": end_dt,
-            # optionales Mapping: färbt Events nach Google colorId leicht ein
-            "extendedProps": {
-                "colorId": ev.get("colorId", "")
-            }
+            "allDay": bool(start.get("date"))  # true wenn Ganztägig
         }
+        if color:
+            mapped["backgroundColor"] = color
+            mapped["borderColor"] = color
+        out.append(mapped)
 
-    return jsonify([map_event(e) for e in items])
+    return jsonify(out)
 
 if __name__ == '__main__':
     app.run(debug=True)
