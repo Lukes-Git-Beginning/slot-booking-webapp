@@ -215,6 +215,7 @@
     document.getElementById("sidebar-tab").addEventListener("click", () => {
       const collapsed = sidebar.classList.toggle("collapsed");
       main.classList.toggle("with-sidebar", !collapsed);
+document.body.classList.toggle("sidebar-open", !collapsed);
     });
 
     // FullCalendar globale Referenz (für updateSize nach Einblenden)
