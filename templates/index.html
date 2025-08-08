@@ -12,11 +12,6 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 
   <style>
-    body.lightmode {
-      --bg: #f1f3f6; /* sanftes Hellgrau statt reinweiß */
-      --bg-grad-1: #f6f8fa;
-      --bg-grad-2: #e9edf2;
-    }
     .panel { padding:16px; margin-bottom:16px; }
     #calendar { background: var(--box-bg); border:1px solid var(--box-border); border-radius:12px; overflow:hidden; }
     #sidebar-tab {
@@ -93,8 +88,6 @@
       </div>
       <div id="calendar"></div>
     </section>
-
-    {% include 'buchung_section.html' %}
   </div>
 
   <script>
@@ -127,7 +120,7 @@
         const calendar = new FullCalendar.Calendar(calEl, {
           timeZone: "Europe/Berlin",
           initialView: "timeGridWeek",
-          initialDate: "{{ date.strftime('%Y-%m-%d') }}",
+          initialDate: "{{ date.strftime('%Y-%m-%d') }}", // startet mit gewähltem Datum
           headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
           slotDuration: "00:30:00",
           nowIndicator: true,
@@ -135,14 +128,6 @@
           eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
           events: {
             url: "/api/calendar/events",
-            method: "GET",
-            extraParams: function() {
-              const view = calendar.view;
-              return {
-                start: view.currentStart.toISOString(),
-                end: view.currentEnd.toISOString()
-              };
-            },
             failure: () => console.warn("Events konnten nicht geladen werden."),
           }
         });
