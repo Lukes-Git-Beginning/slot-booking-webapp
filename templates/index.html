@@ -14,16 +14,17 @@
   <style>
     .panel { padding:16px; margin-bottom:16px; }
     #calendar { background: var(--box-bg); border:1px solid var(--box-border); border-radius:12px; overflow:hidden; }
+    /* Kalender-Panel einklappen */
+    #kalender-panel.hidden { display:none; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--box-border); background: var(--box-bg); }
+    /* Der Button selbst (Position wird in CSS auf 64px versetzt) */
     #sidebar-tab {
-      position: fixed; left: 14px; top: 14px; z-index: 60;
+      position: fixed; left: 14px; z-index: 60;
       width: 40px; height: 40px; border-radius: 50%;
       display:flex; align-items:center; justify-content:center;
       border:1px solid var(--box-border); background: var(--box-bg);
       backdrop-filter: blur(8px) saturate(120%);
     }
-    /* Kalender-Panel einklappen */
-    #kalender-panel.hidden { display:none; }
-    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--box-border); background: var(--box-bg); }
   </style>
 </head>
 <body>
@@ -216,12 +217,19 @@
       main.classList.toggle("with-sidebar", !collapsed);
     });
 
-    // Kalender ein/ausblenden (beidseitig)
+    // FullCalendar globale Referenz (für updateSize nach Einblenden)
+    let FCAL = null;
+
+    // Kalender ein/ausblenden (mit updateSize)
     const toggleCalBtn = document.getElementById("toggle-cal");
     const calPanel = document.getElementById("kalender-panel");
     toggleCalBtn.addEventListener("click", () => {
       calPanel.classList.toggle("hidden");
-      toggleCalBtn.textContent = calPanel.classList.contains("hidden") ? "Kalender einblenden" : "Kalender ausblenden";
+      const visible = !calPanel.classList.contains("hidden");
+      toggleCalBtn.textContent = visible ? "Kalender ausblenden" : "Kalender einblenden";
+      if (visible && FCAL) {
+        setTimeout(() => FCAL.updateSize(), 0);
+      }
     });
 
     // FullCalendar
@@ -229,7 +237,7 @@
       const calEl = document.getElementById("calendar");
       if (!calEl) return;
       try {
-        const calendar = new FullCalendar.Calendar(calEl, {
+        FCAL = new FullCalendar.Calendar(calEl, {
           timeZone: "Europe/Berlin",
           initialView: "timeGridWeek",
           initialDate: "{{ date.strftime('%Y-%m-%d') }}",
@@ -244,7 +252,7 @@
             url: "/api/calendar/events",
             method: "GET",
             extraParams: function() {
-              const view = calendar.view;
+              const view = FCAL.view;
               return {
                 start: view.currentStart.toISOString(),
                 end: view.currentEnd.toISOString()
@@ -253,11 +261,11 @@
             failure: () => console.warn("Events konnten nicht geladen werden."),
           }
         });
-        calendar.render();
-        document.getElementById("fc-view").addEventListener("change", e => calendar.changeView(e.target.value));
-        document.getElementById("fc-today").addEventListener("click", () => calendar.today());
-        document.getElementById("fc-refresh").addEventListener("click", () => calendar.refetchEvents());
-        setInterval(() => calendar.refetchEvents(), 30000);
+        FCAL.render();
+        document.getElementById("fc-view").addEventListener("change", e => FCAL.changeView(e.target.value));
+        document.getElementById("fc-today").addEventListener("click", () => FCAL.today());
+        document.getElementById("fc-refresh").addEventListener("click", () => FCAL.refetchEvents());
+        setInterval(() => FCAL.refetchEvents(), 30000);
       } catch(e) { console.warn("Kalender-Panel optional:", e); }
     });
   </script>
