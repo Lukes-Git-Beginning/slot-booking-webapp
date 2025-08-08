@@ -13,6 +13,7 @@
 
   <style>
     .panel { padding:16px; margin-bottom:16px; }
+    #calendar { background: var(--box-bg); border:1px solid var(--box-border); border-radius:12px; overflow:hidden; }
     #sidebar-tab {
       position: fixed; left: 14px; top: 14px; z-index: 60;
       width: 40px; height: 40px; border-radius: 50%;
@@ -20,7 +21,9 @@
       border:1px solid var(--box-border); background: var(--box-bg);
       backdrop-filter: blur(8px) saturate(120%);
     }
-    #kalender-section.collapsed { display: none; }
+    /* Kalender-Panel einklappen */
+    #kalender-panel.hidden { display:none; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--box-border); background: var(--box-bg); }
   </style>
 </head>
 <body>
@@ -53,10 +56,12 @@
       <div class="slot-suggest-title">💡 Slot-Vorschläge</div>
       {% if slot_suggestions %}
         <table class="slot-suggest-table">
-          <tr><th>Datum</th><th>Uhrzeit</th><th>Punkte</th><th>Frei</th></tr>
-          {% for s in slot_suggestions %}
-            <tr><td>{{ s.date }}</td><td>{{ s.hour }}</td><td class="slot-suggest-pts">{{ s.punkte }}</td><td>{{ s.freie }}</td></tr>
-          {% endfor %}
+          <thead><tr><th>Datum</th><th>Uhrzeit</th><th>Punkte</th><th>Frei</th></tr></thead>
+          <tbody>
+            {% for s in slot_suggestions %}
+              <tr><td>{{ s.date }}</td><td>{{ s.hour }}</td><td class="slot-suggest-pts">{{ s.punkte }}</td><td>{{ s.freie }}</td></tr>
+            {% endfor %}
+          </tbody>
         </table>
       {% else %}
         <div style="font-size:0.96em; color:var(--yellow);">Aktuell keine Vorschläge.</div>
@@ -72,42 +77,118 @@
       {% endfor %}
     {% endwith %}
 
-    <!-- Kalender -->
-    <section id="kalender-section" class="glass panel">
+    <!-- Kalender (Zentralkalender) -->
+    <section id="kalender" class="glass panel">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <h2>Kalender (Zentralkalender)</h2>
-        <button id="toggle-kalender" class="glass-soft">Kalender ausblenden</button>
+        <button id="toggle-cal" class="glass-soft">Kalender ausblenden</button>
       </div>
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <button id="fc-today" class="glass-soft">Heute</button>
-        <select id="fc-view" class="glass-soft">
-          <option value="timeGridDay">Tag</option>
-          <option value="timeGridWeek" selected>Woche</option>
-          <option value="dayGridMonth">Monat</option>
-        </select>
-        <button id="fc-refresh" class="glass-soft">Refresh</button>
-        <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="text-decoration:none;">Mein Kalender</a>
+      <div id="kalender-panel">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button id="fc-today" class="glass-soft">Heute</button>
+          <select id="fc-view" class="glass-soft">
+            <option value="timeGridDay">Tag</option>
+            <option value="timeGridWeek" selected>Woche</option>
+            <option value="dayGridMonth">Monat</option>
+          </select>
+          <button id="fc-refresh" class="glass-soft">Refresh</button>
+          <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="text-decoration:none;">Mein Kalender</a>
+        </div>
+        <div id="calendar"></div>
       </div>
-      <div id="calendar"></div>
     </section>
 
-    <!-- Buchungsbereich -->
-    <section id="buchung" class="glass panel">
-      <h2>📅 Slot buchen</h2>
-      {% for section in slot_sections %}
-        <div class="time-section {{ section.color }}">
-          <div class="info">
-            <strong>{{ section.time }}</strong><br>
-            {{ section.free }} / {{ section.total }} frei
+    <!-- 4‑Wochen Auslastung -->
+    <section id="auslastung" class="glass panel">
+      <h2>Wochenauslastung (nächste 4 Wochen)</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+        {% for w in weekly_summary[:4] %}
+          {% set ratio = (w.booked / (w.possible + 1e-5)) if w.possible > 0 else 0 %}
+          {% set cls = "background:rgba(16,185,129,.20); border-color:rgba(16,185,129,.35);" if ratio < 0.5 else
+                       "background:rgba(234,179,8,.20); border-color:rgba(234,179,8,.35);" if ratio < 0.8 else
+                       "background:rgba(249,115,22,.20); border-color:rgba(249,115,22,.35);" if ratio < 1 else
+                       "background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.35);" %}
+          <div class="glass-soft" style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); {{ cls }}">
+            <div style="font-size:.9em; color:#cbd5e1">{{ w.label }}</div>
+            <div style="font-size:1.6em; font-weight:700">{{ (ratio*100)|round|int }}%</div>
+            <div style="font-size:.85em; color:#94a3b8">{{ w.booked }} / {{ w.possible }} gebucht</div>
+            <div style="font-size:.8em; color:#94a3b8">{{ w.range }}</div>
           </div>
-          <div class="slot">
-            <form action="{{ url_for('book_slot') }}" method="POST">
-              <input type="hidden" name="time" value="{{ section.time }}">
-              <input type="text" name="nachname" placeholder="Nachname" required>
-              <input type="text" name="vorname" placeholder="Vorname" required>
-              <textarea name="bemerkung" placeholder="Bemerkung"></textarea>
-              <button type="submit">Buchen</button>
-            </form>
+        {% endfor %}
+      </div>
+
+      {% if slot_suggestions %}
+      <div class="glass-soft" style="padding:12px; margin-top:12px;">
+        <div class="text-sm" style="color:#cbd5e1; margin-bottom:6px;">Empfohlene Slots</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          {% for s in slot_suggestions %}
+            <div class="chip">{{ s.date }} • {{ s.hour }} • frei ~{{ s.freie }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- Buchung -->
+    <section id="buchung" class="glass panel">
+      <h2>Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
+      <div class="nav">
+        {% for d in days %}
+          <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
+            {{ d.strftime('%a, %d.%m') }}
+          </a>
+        {% endfor %}
+      </div>
+
+      {% for hour, slot in slots.items() %}
+        {% set total = slot.total %}
+        {% set booked = slot.booked %}
+        {% set ratio = (booked / (total + 0.01)) %}
+        {% set color = 'green' %}
+        {% if slot.overbooked %}
+          {% set color = 'red' %}
+        {% elif ratio >= 1.0 %}
+          {% set color = 'red' %}
+        {% elif ratio >= 0.8 %}
+          {% set color = 'orange' %}
+        {% elif ratio >= 0.5 %}
+          {% set color = 'yellow' %}
+        {% endif %}
+
+        <div class="time-section {{ color }}">
+          <div class="info" style="width:100%;">
+            <div><strong>🕒 {{ hour }} Uhr</strong></div>
+            <div>Berater verfügbar: {{ slot.available_beraters }} / {{ total }} Plätze, {{ booked }} gebucht</div>
+
+            {% if slot.overbooked %}
+              <div style="color: var(--red); font-weight: bold; margin: 5px 0;">⚠️ Achtung: Es sind zu wenige Berater für diese Terminanzahl!</div>
+            {% elif slot.free_count == 0 %}
+              <div style="color:#ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</div>
+            {% endif %}
+
+            {% if not slot.overbooked and slot.free_count > 0 %}
+              {% for s in slot.events %}
+                <div class="slot">
+                  <form method="POST" action="{{ url_for('book') }}">
+                    <input type="hidden" name="slot_id" value="{{ s.id }}">
+                    <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                    <input type="hidden" name="hour" value="{{ hour }}">
+                    <input type="text" name="first_name" placeholder="Vorname" required>
+                    <input type="text" name="last_name" placeholder="Nachname" required>
+                    <textarea name="description" placeholder="Beschreibung (optional)"></textarea>
+                    <select name="color" required style="margin-left:8px;">
+                      <option value="2">Normales Potential</option>
+                      <option value="7">Top Potential</option>
+                      <option value="5">Closer nötig</option>
+                      <option value="9" selected>Blau</option>
+                      <option value="10">Grün</option>
+                      <option value="11">Rot</option>
+                    </select>
+                    <button type="submit">Slot buchen</button>
+                  </form>
+                </div>
+              {% endfor %}
+            {% endif %}
           </div>
         </div>
       {% endfor %}
@@ -128,16 +209,19 @@
     window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
 
     // Sidebar Toggle
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("main");
     document.getElementById("sidebar-tab").addEventListener("click", () => {
-      document.getElementById("sidebar").classList.toggle("collapsed");
-      document.getElementById("main").classList.toggle("with-sidebar");
+      const collapsed = sidebar.classList.toggle("collapsed");
+      main.classList.toggle("with-sidebar", !collapsed);
     });
 
-    // Kalender Ein-/Ausblenden
-    document.getElementById("toggle-kalender").addEventListener("click", function(){
-      const section = document.getElementById("kalender-section");
-      section.classList.toggle("collapsed");
-      this.textContent = section.classList.contains("collapsed") ? "Kalender einblenden" : "Kalender ausblenden";
+    // Kalender ein/ausblenden (beidseitig)
+    const toggleCalBtn = document.getElementById("toggle-cal");
+    const calPanel = document.getElementById("kalender-panel");
+    toggleCalBtn.addEventListener("click", () => {
+      calPanel.classList.toggle("hidden");
+      toggleCalBtn.textContent = calPanel.classList.contains("hidden") ? "Kalender einblenden" : "Kalender ausblenden";
     });
 
     // FullCalendar
@@ -158,6 +242,14 @@
           slotMaxTime: "22:00:00",
           events: {
             url: "/api/calendar/events",
+            method: "GET",
+            extraParams: function() {
+              const view = calendar.view;
+              return {
+                start: view.currentStart.toISOString(),
+                end: view.currentEnd.toISOString()
+              };
+            },
             failure: () => console.warn("Events konnten nicht geladen werden."),
           }
         });
