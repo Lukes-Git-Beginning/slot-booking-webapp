@@ -3,6 +3,7 @@ import json
 import pytz
 from collections import defaultdict
 from datetime import datetime, timedelta
+from dateutil import parser
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from googleapiclient.discovery import build
 from creds_loader import load_google_credentials
@@ -286,7 +287,7 @@ def book():
     color_id = request.form.get("color", "9")
     user = session.get("user")
 
-    key = f"{date} {hour}"
+    key = f"{date} {hour}"`
     berater_count = len(load_availability().get(key, []))
     slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
     slot_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -360,7 +361,7 @@ def my_calendar():
     my_events.sort(key=lambda e: (e["date"], e["hour"]))
     return render_template("my_calendar.html", my_events=my_events, user=user)
 
-# -------- FullCalendar API: zeigt ALLE Termine des Zentralkalenders (mit Google-Farben) --------
+# -------- FullCalendar API --------
 GOOGLE_COLOR_MAP = {
     "1":  "#a4bdfc", "2":  "#7ae7bf", "3":  "#dbadff", "4":  "#ff887c",
     "5":  "#fbd75b", "6":  "#ffb878", "7":  "#46d6db", "8":  "#e1e1e1",
@@ -369,22 +370,23 @@ GOOGLE_COLOR_MAP = {
 
 @app.get("/api/calendar/events")
 def api_calendar_events():
-    """
-    Liefert Events aus dem Zentralkalender für FullCalendar.
-    Erwartet ?start=...&end=... (ISO-8601/Z). Fällt sonst auf ±30 Tage zurück.
-    """
+    def to_iso_with_tz(s):
+        if not s:
+            return None
+        dt = parser.isoparse(s)
+        if dt.tzinfo is None:
+            dt = TZ.localize(dt)
+        return dt.isoformat()
+
     start_param = request.args.get("start")
     end_param = request.args.get("end")
 
-    def fix_iso(s):
-        return s.replace("Z", "+00:00") if s else s
-
     if start_param and end_param:
-        time_min = fix_iso(start_param)
-        time_max = fix_iso(end_param)
+        time_min = to_iso_with_tz(start_param)
+        time_max = to_iso_with_tz(end_param)
     else:
-        start = datetime.now(TZ) - timedelta(days=30)
-        end = datetime.now(TZ) + timedelta(days=30)
+        start = datetime.now(TZ)
+        end = start + timedelta(days=30)
         time_min = start.isoformat()
         time_max = end.isoformat()
 
