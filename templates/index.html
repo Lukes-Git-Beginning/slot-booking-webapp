@@ -8,16 +8,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/css/datepicker-bs5.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/js/datepicker-full.min.js"></script>
-
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 
   <style>
     .panel { padding:16px; margin-bottom:16px; }
     #calendar { background: var(--box-bg); border:1px solid var(--box-border); border-radius:12px; overflow:hidden; }
-    /* kleiner runder Sidebar-Button */
     #sidebar-tab {
       position: fixed; left: 14px; top: 14px; z-index: 60;
       width: 40px; height: 40px; border-radius: 50%;
@@ -30,16 +26,15 @@
 <body>
   <!-- Light/Dark Toggle -->
   <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
-  <!-- Kleiner runder Button zum Öffnen/Schließen der Sidebar -->
+  <!-- Sidebar Toggle -->
   <button id="sidebar-tab" title="Menü">≡</button>
 
   <!-- Sidebar (eingeklappt per CSS; öffnet via Button) -->
   <div class="sidebar collapsed" id="sidebar">
-    <!-- Entfernt: <button class="sidebar-toggle">📅</button> -->
+    <!-- Entfernt: ehem. Kalender-Icon-Button -->
+    <!-- Entfernt: Datepicker (zeigte nichts an) -->
 
-    <input type="text" id="datepicker" class="form-control" readonly style="margin-bottom: 1.2em;">
     <p><strong>📊 Wochenauslastung</strong></p>
-
     {% for week in weekly_summary %}
       <a href="{{ url_for('day_view', date_str=week.start_date) }}"
          class="kw-link{% if week.current %} active{% endif %}"
@@ -97,7 +92,7 @@
       <div id="calendar"></div>
     </section>
 
-    <!-- 4‑Wochen Auslastung -->
+    <!-- 4‑Wochen Auslastung (unverändert) -->
     <section id="auslastung" class="glass panel">
       <h2>Wochenauslastung (nächste 4 Wochen)</h2>
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
@@ -128,7 +123,7 @@
       {% endif %}
     </section>
 
-    <!-- Buchung -->
+    <!-- Buchung (unverändert) -->
     <section id="buchung" class="glass panel">
       <h2>Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
       <div class="nav">
@@ -192,7 +187,7 @@
   </div>
 
   <script>
-    // === Mode Toggle ===
+    // Theme Toggle
     const body = document.body;
     const modeToggle = document.getElementById("mode-toggle");
     function setMode(dark){
@@ -204,7 +199,7 @@
     modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
     window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
 
-    // === Sidebar Toggle ===
+    // Sidebar Toggle
     const sidebar = document.getElementById("sidebar");
     const main = document.getElementById("main");
     function toggleSidebar(){
@@ -213,14 +208,7 @@
     }
     document.getElementById("sidebar-tab").addEventListener("click", toggleSidebar);
 
-    // === Datepicker ===
-    const dpInput = document.getElementById("datepicker");
-    if (dpInput) {
-      const dp = new Datepicker(dpInput, { autohide: true, format: 'yyyy-mm-dd' });
-      dpInput.addEventListener('changeDate', e => window.location.href = "/day/" + e.target.value);
-    }
-
-    // === FullCalendar ===
+    // FullCalendar
     document.addEventListener("DOMContentLoaded", function () {
       const calEl = document.getElementById("calendar");
       if (!calEl) return;
@@ -228,12 +216,15 @@
         const calendar = new FullCalendar.Calendar(calEl, {
           timeZone: "Europe/Berlin",
           initialView: "timeGridWeek",
-          headerToolbar: { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
+          headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
           slotDuration: "00:30:00",
           nowIndicator: true,
           height: "auto",
           eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
-          events: "/api/calendar/events"
+          events: {
+            url: "/api/calendar/events",
+            failure: () => console.warn("Events konnten nicht geladen werden."),
+          }
         });
         calendar.render();
         document.getElementById("fc-view").addEventListener("change", e => calendar.changeView(e.target.value));
