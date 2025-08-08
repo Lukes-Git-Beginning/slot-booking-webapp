@@ -37,24 +37,27 @@
 
 /* Lightmode-Overrides (per Body-Klasse gesetzt) */
 body.lightmode {
-  --bg: #eef4fb;
-  --bg-grad-1: #f3f7fb;
-  --bg-grad-2: #e7eef6;
+  /* CHANGED: Light-Mode dezenter (helles Grau statt sehr hell/weiß) */
+  --bg: #f3f4f6;           /* vorher #eef4fb */
+  --bg-grad-1: #f3f4f6;    /* vorher #f3f7fb */
+  --bg-grad-2: #e9edf3;    /* vorher #e7eef6 */
   --text-color: #0b1320;
   --muted: #475569;
   --accent: #2563eb;
 
-  --box-bg: rgba(255,255,255,.65);
-  --box-border: rgba(0,0,0,.08);
-  --shadow: 0 8px 24px rgba(0,0,0,.15);
+  /* CHANGED: Karten leicht matter statt knall-weiß */
+  --box-bg: rgba(255,255,255,.80);   /* vorher .65 */
+  --box-border: rgba(0,0,0,.10);     /* vorher .08 */
+  --shadow: 0 8px 24px rgba(0,0,0,.12); /* minimal softer */
 
   --success-bg: rgba(16,185,129,.12);
   --success-bd: rgba(16,185,129,.25);
   --danger-bg: rgba(239,68,68,.12);
   --danger-bd: rgba(239,68,68,.25);
 
-  --input-bg: rgba(255,255,255,.85);
-  --input-bd: rgba(0,0,0,.10);
+  /* CHANGED: Inputs ein Tick dunkler, weniger „Flutlicht“ */
+  --input-bg: rgba(255,255,255,.90); /* vorher .85 */
+  --input-bd: rgba(0,0,0,.12);       /* vorher .10 */
 }
 
 /* ---------- Base ---------- */
@@ -65,8 +68,10 @@ body {
   margin: 0;
   color: var(--text-color);
   font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.08), transparent),
-              linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
+  background: 
+    /* CHANGED: Light-Mode Glow minimal reduziert */
+    radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent), /* vorher .08 */
+    linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
   background-attachment: fixed;
 }
 
@@ -126,6 +131,8 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
 .sidebar.collapsed { transform: translateX(-100%); }
 .sidebar:not(.collapsed) { transform: translateX(0); }
 
+/* HINWEIS: Der frühere Kalender-Icon-Button in der Sidebar ist in HTML entfernt.
+   Diese Regel kann bleiben (kein Effekt) oder gelöscht werden. */
 .sidebar .sidebar-toggle {
   position: absolute; right: -14px; top: 12px;
   border-radius: 50%;
