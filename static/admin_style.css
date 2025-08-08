@@ -288,9 +288,28 @@ a:hover { text-decoration: underline; }
 
 /* ===== Ergänzungen/Fixes ===== */
 
-/* 1) Hamburger-Button nicht über H2 legen */
+/* --- Burger-Button Positionierung & Overlap-Fix --- */
 #sidebar-tab {
-  top: 64px; /* vorher 14px inlined im HTML */
+  position: fixed;
+  top: 18px;
+  left: 16px;            /* Standard: Sidebar zu */
+  z-index: 60;
+  width: 40px; height: 40px; border-radius: 50%;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--box-border); background: var(--box-bg);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* Wenn Sidebar offen, Burger rechts neben die Sidebar schieben */
+body.sidebar-open #sidebar-tab {
+  left: 326px;           /* 310px Sidebar + 16px Abstand */
+}
+
+/* Main oben Platz lassen, damit Burger nichts überlappt */
+.main { padding-top: 74px; }   /* vorher 18px – Rest bleibt gleich */
+@media (max-width: 1100px) {
+  /* auf kleinen Screens weniger Luft, sonst wird’s zu luftig */
+  .main { padding-top: 58px; }
 }
 
 /* 2) „Mein Kalender“ wie Buttons stylen */
