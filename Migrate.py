@@ -1,24 +1,18 @@
 import datetime
 import os
 import re
-from google.oauth2 import service_account
+from creds_loader import load_google_credentials
 from googleapiclient.discovery import build
 
 # ----------------- Konfiguration -----------------
-SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "service_account.json")
-
 OLD_CALENDAR_ID = '989b1f7cafbd2e77679dd48fff1f3d1317d6292a6ab97f01a84d2eb1659c595b@group.calendar.google.com'
 NEW_CALENDAR_ID = 'zentralkalenderzfa@gmail.com'
 
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-# -------------------------------------------------
+SCOPES = ["https://www.googleapis.com/auth/calendar"]  # Schreibrechte
+creds = load_google_credentials(SCOPES)
+service = build("calendar", "v3", credentials=creds)
 
 ONLY_TWO_DIGITS_REGEX = re.compile(r"^\d{2}$")  # Überspringt Platzhalter wie "01", "12", etc.
-
-def authenticate_google():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    return build('calendar', 'v3', credentials=creds)
 
 def extract_name(summary):
     """
@@ -38,7 +32,6 @@ def events_are_equal(e1, e2):
     return name1 == name2 and time1 == time2
 
 def main():
-    service = authenticate_google()
     now = datetime.datetime.now(datetime.UTC)  # Fix für Deprecation-Warnung
     time_min = now.isoformat()
 
@@ -149,3 +142,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

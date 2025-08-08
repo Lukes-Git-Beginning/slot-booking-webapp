@@ -1,114 +1,89 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<<<<<<< HEAD
   <meta charset="UTF-8">
   <title>Slot Buchung</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css" rel="stylesheet">
+
+  <!-- Bestehendes Admin CSS (Farben/Variablen, Sidebar etc.) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+
+  <!-- Datepicker (wie gehabt) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/css/datepicker-bs5.min.css">
   <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.4.0/dist/js/datepicker-full.min.js"></script>
+
+  <!-- FullCalendar (neues Kalender-Panel) -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
+
   <style>
-    .kw-link {
-      display: block;
-      padding: 4px 4px 4px 0;
-      border-radius: 5px;
-      transition: background 0.14s;
-    }
-    .kw-link.active, .kw-link:hover {
-      background: var(--box-bg);
-      color: var(--accent);
-    }
-    .slot-suggest-box {
-      background: var(--box-bg);
-      border-radius: 9px;
-      padding: 10px 14px;
-      margin-top: 24px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
-    }
-    .slot-suggest-title {
-      font-size: 1.08em;
-      font-weight: 600;
-      margin-bottom: 5px;
-      color: var(--accent);
-    }
-    .slot-suggest-table {
-      width: 100%;
-      font-size: 0.98em;
-      color: var(--text-color);
-      border-spacing: 0;
-      border-collapse: collapse;
-    }
-    .slot-suggest-table td, .slot-suggest-table th {
-      padding: 4px 3px;
-    }
-    .slot-suggest-table th {
-      font-weight: 600;
-      color: var(--accent);
-    }
-    .slot-suggest-pts {
-      font-weight: 700;
-      color: var(--green);
-    }
+    /* iOS-Glasoptik – additiv zu admin_style.css */
+    .glass { background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+             border:1px solid rgba(255,255,255,.12); backdrop-filter: blur(12px) saturate(140%);
+             -webkit-backdrop-filter: blur(12px) saturate(140%); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+    .glass-soft { background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+             border:1px solid rgba(255,255,255,.10); backdrop-filter: blur(8px) saturate(120%);
+             -webkit-backdrop-filter: blur(8px) saturate(120%); border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.28); }
+    .panel { padding:16px; margin-bottom:16px; }
+    .panel h2 { margin:0 0 10px 0; font-size:1.2em; display:flex; align-items:center; gap:8px; }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    .grid-3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; }
+    @media (max-width: 1100px){ .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    .stat { padding:12px; border:1px solid rgba(255,255,255,.1); border-radius:10px; background: var(--box-bg); text-decoration:none; color:inherit; }
+    .divider { height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent); margin:10px 0; }
+    #calendar { background: var(--box-bg); border:1px solid #4445; border-radius:12px; overflow:hidden; }
+    .kachel { padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); }
   </style>
 </head>
 <body>
+  <!-- Dark/Light Toggle bleibt -->
   <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
+
+  <!-- Sidebar (bestehend) -->
   <div class="sidebar" id="sidebar">
     <button class="sidebar-toggle" onclick="toggleSidebar()">📅</button>
+
     <input type="text" id="datepicker" class="form-control" readonly style="margin-bottom: 1.5em;">
     <p><strong>📊 Wochenauslastung</strong></p>
+
     {% for week in weekly_summary %}
       <a href="{{ url_for('day_view', date_str=week.start_date) }}"
          class="kw-link{% if week.current %} active{% endif %}"
          style="font-weight:{% if week.current %}bold{% else %}normal{% endif %}; color:var(--text-color); margin-bottom:2px;">
         {{ week.label }} ({{ week.range }})
-        <span style="float:right; font-size:0.95em; color:#999;">
-          {{ week.usage_pct }}%
-        </span>
+        <span style="float:right; font-size:0.95em; color:#999;">{{ week.usage_pct }}%</span>
       </a>
-      <div style="background-color: #444; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 10px;">
+      <div style="background-color:#444; height:8px; border-radius:4px; overflow:hidden; margin-bottom:10px;">
         <div style="background-color:
           {% if week.usage < 0.5 %}var(--green)
           {% elif week.usage < 0.8 %}var(--yellow)
           {% elif week.usage < 0.95 %}var(--orange)
           {% else %}var(--red){% endif %};
-          width: {{ week.usage_pct }}%; height: 100%;">
-        </div>
+          width: {{ week.usage_pct }}%; height:100%;"></div>
       </div>
-      <div style="font-size:0.9em; color:#bbb; margin-bottom:12px;">
-        {{ week.booked }}/{{ week.possible }} gebucht
-      </div>
+      <div style="font-size:0.9em; color:#bbb; margin-bottom:12px;">{{ week.booked }}/{{ week.possible }} gebucht</div>
     {% endfor %}
 
-    <!-- SLOT-VORSCHLAGBOX -->
+    <!-- Slot-Vorschläge (bestehend) -->
     <div class="slot-suggest-box">
-      <div class="slot-suggest-title">💡 Slot-Vorschläge für mehr Punkte</div>
+      <div class="slot-suggest-title">💡 Slot-Vorschläge</div>
       {% if slot_suggestions %}
         <table class="slot-suggest-table">
-          <tr>
-            <th>Datum</th>
-            <th>Uhrzeit</th>
-            <th>Punkte</th>
-            <th>Frei</th>
-          </tr>
+          <tr><th>Datum</th><th>Uhrzeit</th><th>Punkte</th><th>Frei</th></tr>
           {% for s in slot_suggestions %}
-            <tr>
-              <td>{{ s.date }}</td>
-              <td>{{ s.hour }}</td>
-              <td class="slot-suggest-pts">{{ s.punkte }}</td>
-              <td>{{ s.freie }}</td>
-            </tr>
+            <tr><td>{{ s.date }}</td><td>{{ s.hour }}</td><td class="slot-suggest-pts">{{ s.punkte }}</td><td>{{ s.freie }}</td></tr>
           {% endfor %}
         </table>
       {% else %}
-        <div style="font-size:0.96em; color:var(--yellow);">Gerade keine passenden Slot-Vorschläge! 🎉</div>
+        <div style="font-size:0.96em; color:var(--yellow);">Aktuell keine Vorschläge.</div>
       {% endif %}
     </div>
-    <!-- ENDE SLOT-VORSCHLAGBOX -->
   </div>
+
+  <!-- Main -->
   <div class="main">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -116,92 +91,130 @@
       {% endfor %}
     {% endwith %}
 
-    <div class="week-switch">
-      <form method="GET" action="{{ url_for('day_view', date_str=(week_start - timedelta(days=7)).strftime('%Y-%m-%d')) }}">
-        <button>⬅️</button>
-      </form>
-      <div style="padding: 6px 12px; font-weight: bold; color: var(--text-color); border: 1px solid #555; border-radius: 4px;">
-        KW {{ current_kw }}
+    <!-- Landing / Quick-Nav -->
+    <section class="glass panel">
+      <h2><i class="ti ti-layout-grid"></i> Übersicht</h2>
+      <div class="grid-3">
+        <a href="#kalender" class="stat">📆 Kalender</a>
+        <a href="#auslastung" class="stat">📈 4‑Wochen Auslastung</a>
+        <a href="#buchung" class="stat">📝 Slot buchen</a>
       </div>
-      <form method="GET" action="{{ url_for('day_view', date_str=(week_start + timedelta(days=7)).strftime('%Y-%m-%d')) }}">
-        <button>➡️</button>
-      </form>
-      <form style="margin-left:20px;">
-        <label for="kw_select" style="font-weight:bold; color:#ccc;">Kalenderwoche:</label>
-        <select id="kw_select" class="kw-dropdown" name="kw_select" onchange="if(this.value){ window.location.href=this.value; }">
-          {% for wdelta in range(-5, 6) %}
-            {% set target_date = date + timedelta(days=(wdelta*7)) %}
-            {% set week_start_opt = get_week_start(target_date) %}
-            {% set kw = week_start_opt.isocalendar()[1] %}
-            <option value="{{ url_for('day_view', date_str=week_start_opt.strftime('%Y-%m-%d')) }}"
-              {% if week_start_opt == week_start %}selected{% endif %}>
-              KW {{ kw }} (ab {{ week_start_opt.strftime('%d.%m.') }})
-            </option>
-          {% endfor %}
-        </select>
-      </form>
-    </div>
+      <div class="divider"></div>
+      <p style="color:#aaa; font-size:0.95em;">Alle Bereiche bleiben parallel geöffnet – ideal für iOS (Glaslook).</p>
+    </section>
 
-    <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y')|replace('Monday','Montag')|replace('Tuesday','Dienstag')|replace('Wednesday','Mittwoch')|replace('Thursday','Donnerstag')|replace('Friday','Freitag') }}</h1>
-    <p style="margin-bottom:16px;"><a href="{{ url_for('scoreboard') }}" style="font-weight:bold; color:var(--accent);">🏆 Mein Ranking & Punkte</a></p>
-    <div class="nav">
-      {% for d in days %}
-        <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
-          {{ d.strftime('%a, %d.%m') }}
-        </a>
-      {% endfor %}
-    </div>
-    {% for hour, slot in slots.items() %}
-      {% set total = slot.total %}
-      {% set booked = slot.booked %}
-      {% set ratio = (booked / (total + 0.01)) %}
-      {% set color = 'green' %}
-      {% if slot.overbooked %}
-        {% set color = 'red' %}
-      {% elif ratio >= 1.0 %}
-        {% set color = 'red' %}
-      {% elif ratio >= 0.8 %}
-        {% set color = 'orange' %}
-      {% elif ratio >= 0.5 %}
-        {% set color = 'yellow' %}
-      {% endif %}
-      <div class="time-section {{ color }}">
-        <div class="info" style="width:100%;">
-          <div><strong>🕒 {{ hour }} Uhr</strong></div>
-          <div>Berater verfügbar: {{ slot.available_beraters }} / {{ total }} Plätze, {{ booked }} gebucht</div>
-          {% if slot.overbooked %}
-            <div style="color: var(--red); font-weight: bold; margin: 5px 0;">
-              ⚠️ Achtung: Es sind zu wenige Berater für diese Terminanzahl! Bitte kontaktiere den Admin.
-            </div>
-          {% elif slot.free_count == 0 %}
-            <div style="color: #ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</div>
-          {% endif %}
-          {% if not slot.overbooked and slot.free_count > 0 %}
-            {% for s in slot.events %}
-              <div class="slot">
-                <form method="POST" action="{{ url_for('book') }}">
-                  <input type="hidden" name="slot_id" value="{{ s.id }}">
-                  <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                  <input type="hidden" name="hour" value="{{ hour }}">
-                  <input type="text" name="first_name" placeholder="Vorname" required>
-                  <input type="text" name="last_name" placeholder="Nachname" required>
-                  <textarea name="description" placeholder="Beschreibung (optional)"></textarea>
-                  <select name="color" required style="margin-left:8px;">
-                    <option value="2" selected>Normales Potential</option>
-                    <option value="7">Top Potential</option>
-                    <option value="5">Closer nötig</option>
-                  </select>
-                  <button type="submit">Slot buchen</button>
-                </form>
-              </div>
-            {% endfor %}
-          {% endif %}
+    <!-- Kalender-Panel -->
+    <section id="kalender" class="glass panel">
+      <h2><i class="ti ti-calendar-month"></i> Kalender (Zentralkalender)</h2>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <button id="fc-today" class="glass-soft" style="padding:6px 10px; cursor:pointer;">Heute</button>
+        <select id="fc-view" class="glass-soft" style="padding:6px 10px; cursor:pointer;">
+          <option value="timeGridDay">Tag</option>
+          <option value="timeGridWeek" selected>Woche</option>
+          <option value="dayGridMonth">Monat</option>
+        </select>
+        <button id="fc-refresh" class="glass-soft" style="padding:6px 10px; cursor:pointer;">Refresh</button>
+        <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="padding:6px 10px; text-decoration:none;">❤️ Mein Kalender</a>
+      </div>
+      <div id="calendar"></div>
+      <div style="color:#8aa; font-size:0.9em; margin-top:6px;">Quelle: <code>/api/calendar/events</code> (30s Polling; falls Route fehlt, bleibt das Panel leer).</div>
+    </section>
+
+    <!-- 4‑Wochen Auslastung (Kacheln) -->
+    <section id="auslastung" class="glass panel">
+      <h2><i class="ti ti-activity"></i> Wochenauslastung (nächste 4 Wochen)</h2>
+      <div class="grid-2">
+        {% for w in weekly_summary[:4] %}
+          {% set ratio = (w.booked / (w.possible + 1e-5)) if w.possible > 0 else 0 %}
+          {% set cls = "background:rgba(16,185,129,.20); border-color:rgba(16,185,129,.35);" if ratio < 0.5 else
+                       "background:rgba(234,179,8,.20); border-color:rgba(234,179,8,.35);" if ratio < 0.8 else
+                       "background:rgba(249,115,22,.20); border-color:rgba(249,115,22,.35);" if ratio < 1 else
+                       "background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.35);" %}
+          <div class="kachel" style="{{ cls }}">
+            <div style="font-size:.9em; color:#cbd5e1">{{ w.label }}</div>
+            <div style="font-size:1.6em; font-weight:700">{{ (ratio*100)|round|int }}%</div>
+            <div style="font-size:.85em; color:#94a3b8">{{ w.booked }} / {{ w.possible }} gebucht</div>
+            <div style="font-size:.8em; color:#94a3b8">{{ w.range }}</div>
+          </div>
+        {% endfor %}
+      </div>
+      {% if slot_suggestions %}
+      <div class="glass-soft" style="padding:12px; margin-top:12px;">
+        <div class="text-sm" style="color:#cbd5e1; margin-bottom:6px;">Empfohlene Slots</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          {% for s in slot_suggestions %}
+            <div class="glass-soft" style="padding:6px 10px; border-radius:10px;">{{ s.date }} • {{ s.hour }} • frei ~{{ s.freie }}</div>
+          {% endfor %}
         </div>
       </div>
-    {% endfor %}
+      {% endif %}
+    </section>
+
+    <!-- Buchung -->
+    <section id="buchung" class="glass panel">
+      <h2><i class="ti ti-clipboard-plus"></i> Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
+      <div class="nav">
+        {% for d in days %}
+          <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
+            {{ d.strftime('%a, %d.%m') }}
+          </a>
+        {% endfor %}
+      </div>
+
+      {% for hour, slot in slots.items() %}
+        {% set total = slot.total %}
+        {% set booked = slot.booked %}
+        {% set ratio = (booked / (total + 0.01)) %}
+        {% set color = 'green' %}
+        {% if slot.overbooked %}
+          {% set color = 'red' %}
+        {% elif ratio >= 1.0 %}
+          {% set color = 'red' %}
+        {% elif ratio >= 0.8 %}
+          {% set color = 'orange' %}
+        {% elif ratio >= 0.5 %}
+          {% set color = 'yellow' %}
+        {% endif %}
+
+        <div class="time-section {{ color }}">
+          <div class="info" style="width:100%;">
+            <div><strong>🕒 {{ hour }} Uhr</strong></div>
+            <div>Berater verfügbar: {{ slot.available_beraters }} / {{ total }} Plätze, {{ booked }} gebucht</div>
+
+            {% if slot.overbooked %}
+              <div style="color: var(--red); font-weight: bold; margin: 5px 0;">⚠️ Achtung: Es sind zu wenige Berater für diese Terminanzahl!</div>
+            {% elif slot.free_count == 0 %}
+              <div style="color:#ccc; font-style: italic;">⚠️ Alle Slots um {{ hour }} Uhr sind bereits belegt.</div>
+            {% endif %}
+
+            {% if not slot.overbooked and slot.free_count > 0 %}
+              {% for s in slot.events %}
+                <div class="slot">
+                  <form method="POST" action="{{ url_for('book') }}">
+                    <input type="hidden" name="slot_id" value="{{ s.id }}">
+                    <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                    <input type="hidden" name="hour" value="{{ hour }}">
+                    <input type="text" name="first_name" placeholder="Vorname" required>
+                    <input type="text" name="last_name" placeholder="Nachname" required>
+                    <textarea name="description" placeholder="Beschreibung (optional)"></textarea>
+                    <select name="color" required style="margin-left:8px;">
+                      <option value="2" selected>Normales Potential</option>
+                      <option value="7">Top Potential</option>
+                      <option value="5">Closer nötig</option>
+                    </select>
+                    <button type="submit">Slot buchen</button>
+                  </form>
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </section>
   </div>
+
   <script>
-    // Light/Dark Mode Toggle
+    // === Light/Dark Mode (bestehend) ===
     const body = document.body;
     const toggle = document.getElementById("mode-toggle");
     function setMode(dark) {
@@ -213,240 +226,42 @@
     toggle.onclick = () => setMode(!body.classList.contains('darkmode'));
     window.onload = () => setMode(localStorage.getItem('theme') !== 'light');
 
-    // Datepicker
+    // === Datepicker (bestehend) ===
     const input = document.getElementById("datepicker");
-    const dp = new Datepicker(input, {
-      autohide: true,
-      format: 'yyyy-mm-dd'
-    });
-    input.addEventListener('changeDate', e => {
-      const date = e.target.value;
-      window.location.href = "/day/" + date;
-    });
-
+    if (input) {
+      const dp = new Datepicker(input, { autohide: true, format: 'yyyy-mm-dd' });
+      input.addEventListener('changeDate', e => {
+        const date = e.target.value;
+        window.location.href = "/day/" + date;
+      });
+    }
     function toggleSidebar() {
       document.getElementById("sidebar").classList.toggle("visible");
     }
 
-    setInterval(function() {
-      if (document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
-        window.location.reload();
-      }
-    }, 45000);
+    // === FullCalendar (neu, optional) ===
+    document.addEventListener("DOMContentLoaded", function () {
+      const calEl = document.getElementById("calendar");
+      if (!calEl) return;
+      try {
+        const calendar = new FullCalendar.Calendar(calEl, {
+          timeZone: "Europe/Berlin",
+          initialView: "timeGridWeek",
+          headerToolbar: { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
+          slotDuration: "00:30:00",
+          nowIndicator: true,
+          height: "auto",
+          eventDisplay: "block",
+          eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
+          events: "/api/calendar/events"
+        });
+        calendar.render();
+        document.getElementById("fc-view").addEventListener("change", e => calendar.changeView(e.target.value));
+        document.getElementById("fc-today").addEventListener("click", () => calendar.today());
+        document.getElementById("fc-refresh").addEventListener("click", () => calendar.refetchEvents());
+        setInterval(() => calendar.refetchEvents(), 30000);
+      } catch(e) { console.warn("Kalender-Panel optional:", e); }
+    });
   </script>
-  <style>
-    #mode-toggle {
-      position: fixed;
-      bottom: 24px;
-      left: 24px;
-      z-index: 100;
-      background: var(--sidebar-bg);
-      color: var(--accent);
-      border: none;
-      border-radius: 30px;
-      font-size: 1.6rem;
-      padding: 10px 16px;
-      cursor: pointer;
-      box-shadow: 1px 2px 8px rgba(0,0,0,0.07);
-      transition: background var(--transition), color var(--transition);
-    }
-  </style>
-=======
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T1 Slot-Buchung</title>
-    <style>
-        body {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding: 15px;
-        }
-
-        h1 {
-            color: #ffffff;
-            font-size: 1.5em;
-        }
-
-        .nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
-        .nav a {
-            flex: 1 1 auto;
-            text-align: center;
-            text-decoration: none;
-            color: #cccccc;
-            background-color: #333;
-            padding: 6px 8px;
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-
-        .nav a.active {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .time-section {
-            margin-top: 30px;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-        }
-
-        .time-header {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .slot {
-            background-color: #2c2c2c;
-            margin: 6px 0;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #444;
-        }
-
-        .booked {
-            background-color: #402020;
-        }
-
-        .slot p {
-            margin: 5px 0;
-        }
-
-        form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        input[type="text"] {
-            flex: 1 1 45%;
-            padding: 6px;
-            border-radius: 4px;
-            border: none;
-            background-color: #444;
-            color: #fff;
-            min-width: 100px;
-        }
-
-        button {
-            flex: 1 1 100%;
-            padding: 8px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        @media (min-width: 768px) {
-            body {
-                padding: 30px;
-            }
-
-            h1 {
-                font-size: 2em;
-            }
-
-            .nav a {
-                font-size: 1em;
-            }
-
-            .time-header {
-                font-size: 1.4em;
-            }
-
-            form {
-                gap: 10px;
-                align-items: center;
-            }
-
-            input[type="text"] {
-                max-width: 200px;
-            }
-
-            button {
-                flex: 0 0 auto;
-                width: auto;
-            }
-        }
-    </style>
-</head>
-<body>
-    <h1>📅 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h1>
-
-    {% if request.args.get('success') %}
-        <p style="background-color: #2e7d32; padding: 10px; border-radius: 5px; margin-top: 10px;">
-            ✅ Buchung erfolgreich eingetragen!
-        </p>
-    {% endif %}
-
-    <div class="nav">
-        {% for d in days %}
-            <a href="{{ url_for('day_view', date=d.strftime('%Y-%m-%d')) }}"
-               class="{% if d.date() == date %}active{% endif %}">
-               {{ d.strftime('%a, %d.%m') }}
-            </a>
-        {% endfor %}
-    </div>
-
-    {% set total_day = 0 %}
-    {% set booked_day = 0 %}
-    {% for slot_list in slots.values() %}
-        {% set total_day = total_day + slot_list|length %}
-        {% set booked_day = booked_day + (slot_list|selectattr('booked')|list|length) %}
-    {% endfor %}
-
-    <p style="margin-top: 10px; color: #aaa;">
-        📊 Gesamtauslastung: <strong>{{ booked_day }}/{{ total_day }}</strong> gebucht
-    </p>
-
-    {% for time, slot_list in slots.items() %}
-        {% set total = slot_list|length %}
-        {% set booked = slot_list|selectattr('booked')|list|length %}
-        <div class="time-section">
-            <div class="time-header">
-                <span>🕒 {{ time }} Uhr</span>
-                <span>{{ booked }} / {{ total }} gebucht</span>
-            </div>
-
-            {% if booked < total %}
-                {% for slot in slot_list %}
-                    <div class="slot {% if slot.booked %}booked{% endif %}">
-                        {% if not slot.booked %}
-                            <form method="POST" action="{{ url_for('book') }}">
-                                <input type="hidden" name="slot_id" value="{{ slot.id }}">
-                                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                                <input type="text" name="first_name" placeholder="Vorname" required>
-                                <input type="text" name="last_name" placeholder="Nachname" required>
-                                <button type="submit">Slot buchen</button>
-                            </form>
-                        {% else %}
-                            <p>✅ Gebucht: {{ slot.summary }}</p>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p style="color: #bbb; font-style: italic;">⚠️ Alle Slots um {{ time }} Uhr sind bereits belegt.</p>
-            {% endif %}
-        </div>
-    {% endfor %}
->>>>>>> 9d7aa2b (Initial commit)
 </body>
 </html>
