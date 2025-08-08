@@ -117,10 +117,15 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
   box-shadow: var(--shadow);
-  transform: translateX(0);
   transition: transform .25s ease;
   z-index: 50;
 }
+
+/* default: eingeklappt; per JS wird .collapsed entfernt */
+.sidebar { transform: translateX(-100%); }
+.sidebar.collapsed { transform: translateX(-100%); }
+.sidebar:not(.collapsed) { transform: translateX(0); }
+
 .sidebar .sidebar-toggle {
   position: absolute; right: -14px; top: 12px;
   border-radius: 50%;
@@ -130,14 +135,14 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
 }
 
 .main {
-  margin-left: 310px;
   padding: 18px;
+  margin-left: 0;
+  transition: margin-left .25s ease;
 }
+.main.with-sidebar { margin-left: 310px; }
 
 @media (max-width: 1100px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.visible { transform: translateX(0); }
-  .main { margin-left: 0; padding: 14px; }
+  .main.with-sidebar { margin-left: 0; }
 }
 
 /* ---------- Glasblöcke ---------- */

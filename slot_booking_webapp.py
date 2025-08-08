@@ -3,7 +3,7 @@ import json
 import pytz
 from collections import defaultdict
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from googleapiclient.discovery import build
 from creds_loader import load_google_credentials
 
@@ -360,6 +360,66 @@ def my_calendar():
             })
     my_events.sort(key=lambda e: (e["date"], e["hour"]))
     return render_template("my_calendar.html", my_events=my_events, user=user)
+
+@app.get("/api/calendar/events")
+def api_calendar_events():
+    """
+    Liefert Events für FullCalendar.
+    Erwartet Query-Params ?start=...&end=... (ISO-8601). Default: heute..+14 Tage.
+    """
+    start_param = request.args.get("start")
+    end_param = request.args.get("end")
+
+    def fix_iso(s):
+        # FullCalendar sendet oft 'Z' -> Python mag '+00:00'
+        return s.replace("Z", "+00:00") if s else s
+
+    if start_param and end_param:
+        try:
+            start_iso = fix_iso(start_param)
+            end_iso = fix_iso(end_param)
+            # Wir geben einfach die Strings so weiter – Google API akzeptiert ISO8601
+            time_min = start_iso
+            time_max = end_iso
+        except Exception:
+            start = datetime.now(TZ)
+            end = start + timedelta(days=14)
+            time_min = start.isoformat()
+            time_max = end.isoformat()
+    else:
+        start = datetime.now(TZ)
+        end = start + timedelta(days=14)
+        time_min = start.isoformat()
+        time_max = end.isoformat()
+
+    events_result = service.events().list(
+        calendarId=CENTRAL_CALENDAR_ID,
+        timeMin=time_min,
+        timeMax=time_max,
+        singleEvents=True,
+        orderBy='startTime',
+        maxResults=2500
+    ).execute()
+
+    items = events_result.get("items", [])
+
+    def map_event(ev):
+        start = ev.get("start", {})
+        end = ev.get("end", {})
+        start_dt = start.get("dateTime") or start.get("date")  # all-day fallback
+        end_dt = end.get("dateTime") or end.get("date")
+        return {
+            "id": ev.get("id"),
+            "title": ev.get("summary", ""),
+            "start": start_dt,
+            "end": end_dt,
+            # optionales Mapping: färbt Events nach Google colorId leicht ein
+            "extendedProps": {
+                "colorId": ev.get("colorId", "")
+            }
+        }
+
+    return jsonify([map_event(e) for e in items])
 
 if __name__ == '__main__':
     app.run(debug=True)
