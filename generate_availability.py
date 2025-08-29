@@ -50,23 +50,32 @@ slots = {
 }
 
 def safe_api_call(func, *args, **kwargs):
-    """API Call mit Retry-Logic und Error Handling"""
+    """
+    API-Call mit Retry-Logik, Error Handling und auto-execute() für Google-Requests.
+    Gibt bei Erfolg immer ein dict (execute()-Result) zurück, sonst None.
+    """
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            return func(*args, **kwargs)
+            req_or_result = func(*args, **kwargs)  # z.B. service.events().list(...)
+            # WICHTIG: Wenn es ein HttpRequest ist → execute()
+            if hasattr(req_or_result, "execute") and callable(req_or_result.execute):
+                return req_or_result.execute()
+            return req_or_result
         except HttpError as e:
-            if e.resp.status == 429:  # Rate limit
+            status = getattr(getattr(e, "resp", None), "status", None)
+            if status == 429:
                 wait_time = (2 ** attempt) * 2
-                print(f"⏳ Rate limit erreicht, warte {wait_time}s...")
+                print(f"⏳ Rate limit erreicht, warte {wait_time}s …")
                 time.sleep(wait_time)
-            elif e.resp.status >= 500:
+                continue
+            if status and status >= 500:
                 wait_time = 2 ** attempt
-                print(f"⚠️ Server-Fehler, Retry in {wait_time}s...")
+                print(f"⚠️ Server-Fehler {status}, Retry in {wait_time}s …")
                 time.sleep(wait_time)
-            else:
-                print(f"❌ API Fehler: {e}")
-                return None
+                continue
+            print(f"❌ API-Fehler: {e}")
+            return None
         except Exception as e:
             print(f"❌ Unerwarteter Fehler: {e}")
             if attempt == max_retries - 1:
