@@ -28,25 +28,37 @@ EXCLUDE_CHAMPION_USERS = ["callcenter", "admin"]
 
 # ----------------- Hilfsfunktionen mit Error Handling -----------------
 def safe_calendar_call(func, *args, **kwargs):
-    """Wrapper für Google Calendar API calls mit Retry und Error Handling"""
+    """
+    Wrapper für Google Calendar API calls mit Retry, Error Handling
+    und auto-execute(): Wenn das Ergebnis eine .execute()-Methode hat,
+    wird sie aufgerufen und ein dict zurückgegeben.
+    """
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            return func(*args, **kwargs)
+            req_or_result = func(*args, **kwargs)  # z.B. service.events().list(...)
+            # WICHTIG: Wenn es ein HttpRequest ist → execute()
+            if hasattr(req_or_result, "execute") and callable(req_or_result.execute):
+                return req_or_result.execute()
+            # Falls bereits ein fertiges dict/Result übergeben wurde
+            return req_or_result
         except HttpError as e:
-            if e.resp.status == 429:  # Rate limit
+            status = getattr(getattr(e, "resp", None), "status", None)
+            if status == 429:  # Rate limit
                 wait_time = (2 ** attempt) * 2
-                print(f"Rate limit hit, waiting {wait_time}s...")
+                print(f"[Calendar] Rate limit, retry in {wait_time}s …")
                 time.sleep(wait_time)
-            elif e.resp.status >= 500:  # Server error
+                continue
+            if status and status >= 500:  # Server error
                 wait_time = 2 ** attempt
-                print(f"Server error, retrying in {wait_time}s...")
+                print(f"[Calendar] Server-Fehler {status}, retry in {wait_time}s …")
                 time.sleep(wait_time)
-            else:
-                print(f"Calendar API error: {e}")
-                return None
+                continue
+            # andere Fehler nicht retryn
+            print(f"[Calendar] API-Fehler: {e}")
+            return None
         except Exception as e:
-            print(f"Unexpected error in calendar call: {e}")
+            print(f"[Calendar] Unerwarteter Fehler: {e}")
             if attempt == max_retries - 1:
                 return None
             time.sleep(2 ** attempt)
