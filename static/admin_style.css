@@ -1,6 +1,6 @@
 /* ===========================
    ZFA Slot Manager – Admin Style (Glasoptik)
-   Ersetzt die alte admin_style.css vollständig.
+   Mobile-optimierte Version mit Fixes
    =========================== */
 
 /* ---------- Farb- & UI-Variablen ---------- */
@@ -25,6 +25,10 @@
   --success-bd: rgba(16,185,129,.35);
   --danger-bg: rgba(239,68,68,.15);
   --danger-bd: rgba(239,68,68,.35);
+  --warning-bg: rgba(234,179,8,.15);
+  --warning-bd: rgba(234,179,8,.35);
+  --info-bg: rgba(59,130,246,.15);
+  --info-bd: rgba(59,130,246,.35);
 
   --radius-lg: 14px;
   --radius-md: 12px;
@@ -35,9 +39,8 @@
   --input-bd: rgba(255,255,255,.18);
 }
 
-/* Lightmode-Overrides (per Body-Klasse gesetzt) */
+/* Lightmode-Overrides */
 body.lightmode {
-  /* CHANGED: Light-Mode dezenter (helles Grau statt sehr hell/weiß) */
   --bg: #f3f4f6;
   --bg-grad-1: #f3f4f6;
   --bg-grad-2: #e9edf3;
@@ -45,7 +48,6 @@ body.lightmode {
   --muted: #475569;
   --accent: #2563eb;
 
-  /* CHANGED: Karten leicht matter statt knall-weiß */
   --box-bg: rgba(255,255,255,.80);
   --box-border: rgba(0,0,0,.10);
   --shadow: 0 8px 24px rgba(0,0,0,.12);
@@ -54,15 +56,23 @@ body.lightmode {
   --success-bd: rgba(16,185,129,.25);
   --danger-bg: rgba(239,68,68,.12);
   --danger-bd: rgba(239,68,68,.25);
+  --warning-bg: rgba(234,179,8,.12);
+  --warning-bd: rgba(234,179,8,.25);
 
-  /* CHANGED: Inputs ein Tick dunkler, weniger „Flutlicht“ */
   --input-bg: rgba(255,255,255,.90);
   --input-bd: rgba(0,0,0,.12);
 }
 
 /* ---------- Base ---------- */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+* { 
+  box-sizing: border-box; 
+  -webkit-tap-highlight-color: transparent; /* Entfernt blaue Highlights auf Mobile */
+}
+
+html, body { 
+  height: 100%; 
+  overflow-x: hidden; /* Verhindert horizontales Scrollen */
+}
 
 body {
   margin: 0;
@@ -72,6 +82,7 @@ body {
     radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent),
     linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
   background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Fokus sichtbar & zugänglich */
@@ -87,13 +98,31 @@ button, .btn {
   border: 1px solid var(--box-border);
   background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
   color: var(--text-color);
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 10px;
   transition: transform .06s ease, background .2s ease, border-color .2s ease;
   box-shadow: 0 2px 10px rgba(0,0,0,.2);
+  font-size: 14px;
+  white-space: nowrap;
+  -webkit-appearance: none;
+  appearance: none;
 }
-button:hover, .btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.2); }
-button:active, .btn:active { transform: translateY(0); }
+
+button:hover:not(:disabled), 
+.btn:hover:not(:disabled) { 
+  transform: translateY(-1px); 
+  border-color: rgba(255,255,255,.2); 
+}
+
+button:active:not(:disabled), 
+.btn:active:not(:disabled) { 
+  transform: translateY(0); 
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 input, select, textarea {
   width: 100%;
@@ -101,17 +130,38 @@ input, select, textarea {
   background: var(--input-bg);
   border: 1px solid var(--input-bd);
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   outline: none;
+  font-size: 16px; /* Verhindert Zoom auf iOS */
+  -webkit-appearance: none;
+  appearance: none;
 }
-textarea { min-height: 70px; resize: vertical; }
 
-label { display:block; margin: 6px 0 4px; color: var(--muted); }
+textarea { 
+  min-height: 70px; 
+  resize: vertical; 
+  font-family: inherit;
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 30px;
+}
+
+label { 
+  display: block; 
+  margin: 6px 0 4px; 
+  color: var(--muted); 
+  font-size: 14px;
+}
 
 /* ---------- Layout: Sidebar + Main ---------- */
 .sidebar {
   position: fixed;
-  top: 0; left: 0;
+  top: 0; 
+  left: 0;
   width: 290px;
   height: 100vh;
   padding: 16px;
@@ -123,30 +173,56 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
   box-shadow: var(--shadow);
   transition: transform .25s ease;
   z-index: 50;
+  transform: translateX(-100%);
 }
 
-/* default: eingeklappt; per JS wird .collapsed entfernt */
-.sidebar { transform: translateX(-100%); }
-.sidebar.collapsed { transform: translateX(-100%); }
-.sidebar:not(.collapsed) { transform: translateX(0); }
-
-.sidebar .sidebar-toggle {
-  position: absolute; right: -14px; top: 12px;
-  border-radius: 50%;
-  width: 34px; height: 34px;
-  border: 1px solid var(--box-border);
-  background: var(--box-bg);
+.sidebar:not(.collapsed) { 
+  transform: translateX(0); 
 }
 
 .main {
-  padding: 18px;
+  padding: 74px 18px 18px;
   margin-left: 0;
   transition: margin-left .25s ease;
+  min-height: 100vh;
 }
-.main.with-sidebar { margin-left: 310px; }
 
+.main.with-sidebar { 
+  margin-left: 290px; 
+}
+
+/* Mobile Responsive */
 @media (max-width: 1100px) {
-  .main.with-sidebar { margin-left: 0; }
+  .sidebar {
+    width: 85%;
+    max-width: 320px;
+  }
+  
+  .main.with-sidebar { 
+    margin-left: 0; 
+  }
+  
+  /* Overlay wenn Sidebar offen ist */
+  .sidebar:not(.collapsed)::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 100%;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    padding: 60px 12px 12px;
+  }
+  
+  .panel {
+    padding: 12px;
+  }
 }
 
 /* ---------- Glasblöcke ---------- */
@@ -158,6 +234,7 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
   -webkit-backdrop-filter: blur(12px) saturate(140%);
   box-shadow: var(--shadow);
 }
+
 .glass-soft {
   background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
   border: 1px solid var(--box-border);
@@ -165,71 +242,146 @@ label { display:block; margin: 6px 0 4px; color: var(--muted); }
   backdrop-filter: blur(8px) saturate(120%);
   -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
-.panel { padding: 16px; margin-bottom: 16px; }
-.panel h2 { margin: 0 0 10px; font-size: 1.2em; display:flex; align-items:center; gap:8px; }
+
+.panel { 
+  padding: 16px; 
+  margin-bottom: 16px; 
+}
+
+.panel h2 { 
+  margin: 0 0 10px; 
+  font-size: 1.2em; 
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 /* ---------- Nav / KW-Leiste ---------- */
 .nav {
-  display: flex; flex-wrap: wrap; gap: 8px;
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 8px;
   margin: 8px 0 14px;
 }
+
 .nav a {
   text-decoration: none;
   color: var(--text-color);
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 10px;
   border: 1px solid var(--box-border);
   background: var(--box-bg);
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
-.nav a.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(90,177,255,.25) inset; }
+
+.nav a.active { 
+  border-color: var(--accent); 
+  box-shadow: 0 0 0 2px rgba(90,177,255,.25) inset; 
+}
+
+.nav a:hover:not(.active) {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.2);
+}
 
 /* Sidebar KW-Links */
 .kw-link {
-  display:block; padding:8px 10px; border-radius: 8px; text-decoration:none;
+  display: block; 
+  padding: 10px 12px; 
+  border-radius: 8px; 
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
 }
-.kw-link.active { background: rgba(90,177,255,.12); border-left:3px solid var(--accent); }
+
+.kw-link.active { 
+  background: rgba(90,177,255,.12); 
+  border-left: 3px solid var(--accent); 
+}
+
+.kw-link:hover:not(.active) {
+  background: rgba(255,255,255,.05);
+}
 
 /* ---------- Slot Sektionen ---------- */
 .time-section {
   display: flex;
   gap: 14px;
-  padding: 12px;
+  padding: 14px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--box-border);
   background: var(--box-bg);
   margin-bottom: 12px;
+  transition: all 0.2s ease;
 }
-.time-section .info { flex: 1; }
-.time-section .slot { margin-top: 8px; }
+
+.time-section .info { 
+  flex: 1; 
+}
+
+.time-section .slot { 
+  margin-top: 12px; 
+}
 
 .time-section.green  { box-shadow: inset 0 0 0 2px rgba(16,185,129,.20); }
 .time-section.yellow { box-shadow: inset 0 0 0 2px rgba(234,179,8,.20); }
 .time-section.orange { box-shadow: inset 0 0 0 2px rgba(249,115,22,.20); }
 .time-section.red    { box-shadow: inset 0 0 0 2px rgba(239,68,68,.20); }
 
-/* Slot-Form */
+/* Slot-Form Responsive */
 .slot form {
   display: grid;
   grid-template-columns: 1.2fr 1.2fr 2fr 1fr auto;
   gap: 8px;
+  align-items: start;
 }
+
 @media (max-width: 900px) {
-  .slot form { grid-template-columns: 1fr 1fr; }
-  .slot form textarea { grid-column: 1 / -1; }
+  .slot form { 
+    grid-template-columns: 1fr 1fr; 
+  }
+  
+  .slot form textarea { 
+    grid-column: 1 / -1; 
+  }
+  
+  .slot form select { 
+    grid-column: 1 / -1; 
+  }
+  
+  .slot form button { 
+    grid-column: 1 / -1; 
+    width: 100%;
+  }
 }
 
 /* ---------- Flash Messages ---------- */
 [class^="flash-"] {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--box-border);
   background: var(--box-bg);
   margin-bottom: 12px;
+  animation: slideIn 0.3s ease;
 }
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .flash-success { background: var(--success-bg); border-color: var(--success-bd); }
 .flash-danger  { background: var(--danger-bg);  border-color: var(--danger-bd);  }
-.flash-warning { background: rgba(234,179,8,.15); border-color: rgba(234,179,8,.35); }
-.flash-info    { background: rgba(59,130,246,.15); border-color: rgba(59,130,246,.35); }
+.flash-warning { background: var(--warning-bg); border-color: var(--warning-bd); }
+.flash-info    { background: var(--info-bg);    border-color: var(--info-bd); }
 
 /* ---------- Tabellen ---------- */
 table {
@@ -240,21 +392,104 @@ table {
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
-th, td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; }
-thead th { font-weight: 600; color: var(--muted); background: rgba(255,255,255,.04); }
+
+th, td { 
+  padding: 10px; 
+  border-bottom: 1px solid rgba(255,255,255,.08); 
+  text-align: left; 
+}
+
+thead th { 
+  font-weight: 600; 
+  color: var(--muted); 
+  background: rgba(255,255,255,.04); 
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
 
 /* Slot-Vorschläge in Sidebar */
-.slot-suggest-box { margin-top: 16px; }
-.slot-suggest-title { font-weight: 600; margin-bottom: 8px; color: var(--muted); }
-.slot-suggest-table { font-size: .95em; }
-.slot-suggest-pts { font-weight: 700; }
+.slot-suggest-box { 
+  margin-top: 20px; 
+  padding-top: 16px;
+  border-top: 1px solid var(--box-border);
+}
+
+.slot-suggest-title { 
+  font-weight: 600; 
+  margin-bottom: 10px; 
+  color: var(--muted); 
+}
+
+.slot-suggest-table { 
+  font-size: .95em; 
+}
+
+.slot-suggest-table td {
+  padding: 6px 8px;
+}
+
+.slot-suggest-pts { 
+  font-weight: 700; 
+  color: var(--green);
+}
 
 /* ---------- Mode Toggle ---------- */
 #mode-toggle {
-  position: fixed; right: 16px; bottom: 16px; z-index: 100;
-  width: 44px; height: 44px; border-radius: 50%;
+  position: fixed; 
+  right: 16px; 
+  bottom: 16px; 
+  z-index: 100;
+  width: 44px; 
+  height: 44px; 
+  border-radius: 50%;
   background: var(--box-bg);
   border: 1px solid var(--box-border);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.3s ease;
+}
+
+#mode-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* ---------- Burger Menu ---------- */
+#sidebar-tab {
+  position: fixed;
+  top: 18px;
+  left: 16px;
+  z-index: 60;
+  width: 40px; 
+  height: 40px; 
+  border-radius: 50%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  border: 1px solid var(--box-border); 
+  background: var(--box-bg);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  transition: left 0.25s ease, transform 0.2s ease;
+  font-size: 20px;
+}
+
+#sidebar-tab:hover {
+  transform: scale(1.05);
+}
+
+body.sidebar-open #sidebar-tab {
+  left: 306px;
+}
+
+@media (max-width: 1100px) {
+  body.sidebar-open #sidebar-tab {
+    left: calc(85vw - 30px);
+    max-left: 290px;
+  }
 }
 
 /* ---------- Kalender-Panel ---------- */
@@ -262,66 +497,103 @@ thead th { font-weight: 600; color: var(--muted); background: rgba(255,255,255,.
   border-radius: var(--radius-lg);
   border: 1px solid var(--box-border);
   background: var(--box-bg);
+  min-height: 400px;
 }
-.fc { --fc-border-color: rgba(255,255,255,.1); --fc-page-bg-color: transparent; }
-.fc .fc-toolbar-title { font-size: 1.05em; }
+
+.fc { 
+  --fc-border-color: rgba(255,255,255,.1); 
+  --fc-page-bg-color: transparent; 
+}
+
+.fc .fc-toolbar-title { 
+  font-size: 1.1em; 
+}
+
 .fc .fc-button {
   background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
   border: 1px solid var(--box-border);
   color: var(--text-color);
   border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
 }
+
 .fc .fc-button-primary:not(:disabled).fc-button-active,
 .fc .fc-button-primary:not(:disabled):active {
   background: rgba(90,177,255,.18);
   border-color: var(--accent);
 }
 
-/* ---------- Links ---------- */
-a { color: var(--accent); }
-a:hover { text-decoration: underline; }
+.fc .fc-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.2);
+}
 
-/* ---------- Kleinzeug ---------- */
+/* ---------- Links ---------- */
+a { 
+  color: var(--accent); 
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover { 
+  text-decoration: underline; 
+}
+
+/* ---------- Utility Classes ---------- */
 .text-sm { font-size: .9em; }
 .text-muted { color: var(--muted); }
 .hidden { display: none !important; }
 
-/* ===== Ergänzungen/Fixes ===== */
-
-/* --- Burger-Button Positionierung & Overlap-Fix --- */
-#sidebar-tab {
-  position: fixed;
-  top: 18px;
-  left: 16px;            /* Standard: Sidebar zu */
-  z-index: 60;
-  width: 40px; height: 40px; border-radius: 50%;
-  display:flex; align-items:center; justify-content:center;
-  border:1px solid var(--box-border); background: var(--box-bg);
-  backdrop-filter: blur(8px) saturate(120%);
+/* ---------- Loading Indicator ---------- */
+.loading-indicator {
+  animation: pulse 1.5s ease infinite;
 }
 
-/* Wenn Sidebar offen, Burger rechts neben die Sidebar schieben */
-body.sidebar-open #sidebar-tab {
-  left: 326px;           /* 310px Sidebar + 16px Abstand */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
-/* Main oben Platz lassen, damit Burger nichts überlappt */
-.main { padding-top: 74px; }   /* vorher 18px – Rest bleibt gleich */
-@media (max-width: 1100px) {
-  /* auf kleinen Screens weniger Luft, sonst wird’s zu luftig */
-  .main { padding-top: 58px; }
-}
-
-/* 2) „Mein Kalender“ wie Buttons stylen */
-a.glass-soft {
+/* ---------- Chips ---------- */
+.chip {
   display: inline-flex;
   align-items: center;
-  text-decoration: none;
-  color: var(--text-color);
-  font: inherit;
-  padding: 6px 10px;
-  border-radius: 8px;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
   border: 1px solid var(--box-border);
   background: var(--box-bg);
+  font-size: 13px;
+  white-space: nowrap;
 }
-a.glass-soft:hover { text-decoration: none; }
+
+/* ---------- Accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Print Styles ---------- */
+@media print {
+  .sidebar,
+  #mode-toggle,
+  #sidebar-tab,
+  .nav,
+  .slot form button {
+    display: none !important;
+  }
+  
+  .main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
