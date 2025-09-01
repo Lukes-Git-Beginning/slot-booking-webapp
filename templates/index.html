@@ -8,14 +8,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
 
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
-
   <style>
     .panel { padding:16px; margin-bottom:16px; }
-    #calendar { background: var(--box-bg); border:1px solid var(--box-border); border-radius:12px; overflow:hidden; }
-    /* Kalender-Panel einklappen */
-    #kalender-panel.hidden { display:none; }
     .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--box-border); background: var(--box-bg); }
     #sidebar-tab {
       position: fixed; left: 14px; top: 18px; z-index: 60;
@@ -28,24 +22,306 @@
     body.sidebar-open #sidebar-tab {
       left: 306px;
     }
-    /* Loading indicator */
+    
+    /* Enhanced Loading States */
     .loading-indicator {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
       color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 10px 20px;
+      border-radius: 25px;
       display: none;
       z-index: 1000;
+      font-weight: 500;
+      box-shadow: 0 4px 15px rgba(90,177,255,0.4);
+      animation: slideInRight 0.3s ease;
     }
-    .loading-indicator.show { display: block; }
+    .loading-indicator.show { display: flex; align-items: center; gap: 10px; }
+    .loading-indicator::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes slideInRight {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Button Loading State */
+    button.loading {
+      position: relative;
+      color: transparent !important;
+      pointer-events: none;
+    }
+    button.loading::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 50%;
+      left: 50%;
+      margin-left: -8px;
+      margin-top: -8px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+    }
+    
+    /* Success Animation */
+    .success-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 30px 40px;
+      border-radius: 20px;
+      z-index: 2000;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(16,185,129,0.4);
+      animation: successPop 0.6s ease forwards;
+    }
+    
+    .success-popup .icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+      animation: successCheck 0.8s ease 0.3s forwards;
+      opacity: 0;
+    }
+    
+    .success-popup .text {
+      font-size: 18px;
+      font-weight: 600;
+      animation: fadeInUp 0.5s ease 0.4s forwards;
+      opacity: 0;
+    }
+    
+    @keyframes successPop {
+      0% { transform: translate(-50%, -50%) scale(0); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+    
+    @keyframes successCheck {
+      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    
+    @keyframes fadeInUp {
+      to { transform: translateY(0); opacity: 1; }
+      from { transform: translateY(10px); opacity: 0; }
+    }
+    
+    /* Slot Hover Effect */
+    .time-section {
+      transition: all 0.3s ease;
+    }
+    .time-section:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+    
+    /* Form Submit Animation */
+    .slot form.submitting {
+      animation: pulse 1s ease infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    /* Keyboard Shortcut Hints */
+    .kbd-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: none;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .kbd-hint.show { display: block; animation: fadeIn 0.3s ease; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .kbd {
+      background: rgba(255,255,255,0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-family: monospace;
+      margin: 0 2px;
+    }
+    
+    /* Quick Actions Panel */
+    .quick-actions {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: 16px;
+      padding: 20px;
+      width: 90%;
+      max-width: 500px;
+      z-index: 1500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(20px);
+    }
+    
+    .quick-actions.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .quick-actions h3 {
+      margin: 0 0 15px;
+      color: var(--accent);
+    }
+    
+    .quick-actions .action-item {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .quick-actions .action-item:hover {
+      background: rgba(90,177,255,0.1);
+      transform: translateX(5px);
+    }
+    
+    .quick-actions .shortcut {
+      margin-left: auto;
+      opacity: 0.6;
+    }
+    
+    /* Overlay for modals */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1400;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    .overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    /* External Links Button Style */
+    .external-links {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .external-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: 10px;
+      color: var(--text-color);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+    
+    .external-links a:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      background: rgba(90,177,255,0.1);
+    }
   </style>
 </head>
 <body>
-  <!-- Loading Indicator -->
-  <div class="loading-indicator" id="loadingIndicator">Lade...</div>
+  <!-- Loading Indicator (Enhanced) -->
+  <div class="loading-indicator" id="loadingIndicator">Lädt...</div>
+  
+  <!-- Success Popup -->
+  <div class="success-popup" id="successPopup" style="display:none;">
+    <div class="icon">✅</div>
+    <div class="text">Erfolgreich gebucht!</div>
+  </div>
+  
+  <!-- Keyboard Hints -->
+  <div class="kbd-hint" id="kbdHint">
+    Drücke <kbd>?</kbd> für Tastaturkürzel
+  </div>
+  
+  <!-- Quick Actions Panel (Command Palette) -->
+  <div class="overlay" id="overlay"></div>
+  <div class="quick-actions" id="quickActions">
+    <h3>⚡ Quick Actions</h3>
+    <div class="action-item" data-action="toggle-sidebar">
+      <span>📊 Sidebar toggle</span>
+      <span class="shortcut"><kbd>S</kbd></span>
+    </div>
+    <div class="action-item" data-action="toggle-theme">
+      <span>🌙 Theme wechseln</span>
+      <span class="shortcut"><kbd>T</kbd></span>
+    </div>
+    <div class="action-item" data-action="my-calendar">
+      <span>👤 Meine Buchungen</span>
+      <span class="shortcut"><kbd>M</kbd></span>
+    </div>
+    <div class="action-item" data-action="scoreboard">
+      <span>🏆 Scoreboard</span>
+      <span class="shortcut"><kbd>P</kbd></span>
+    </div>
+    <div class="action-item" data-action="next-day">
+      <span➡️ Nächster Tag</span>
+      <span class="shortcut"><kbd>→</kbd></span>
+    </div>
+    <div class="action-item" data-action="prev-day">
+      <span>⬅️ Vorheriger Tag</span>
+      <span class="shortcut"><kbd>←</kbd></span>
+    </div>
+    <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--box-border); color:var(--muted); font-size:12px;">
+      <kbd>ESC</kbd> zum Schließen • <kbd>Ctrl+K</kbd> oder <kbd>Cmd+K</kbd> öffnet diese Ansicht
+    </div>
+  </div>
   
   <!-- Light/Dark Toggle -->
   <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
@@ -97,25 +373,19 @@
       {% endfor %}
     {% endwith %}
 
-    <!-- Kalender (Zentralkalender) - JETZT STANDARDMÄSSIG SICHTBAR -->
-    <section id="kalender" class="glass panel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <h2>📅 Kalender (Zentralkalender)</h2>
-        <button id="toggle-cal" class="glass-soft">Kalender ausblenden</button>
-      </div>
-      <div id="kalender-panel"> <!-- KEIN class="hidden" mehr! -->
-        <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
-          <button id="fc-today" class="glass-soft">Heute</button>
-          <select id="fc-view" class="glass-soft">
-            <option value="timeGridDay">Tag</option>
-            <option value="timeGridWeek" selected>Woche</option>
-            <option value="dayGridMonth">Monat</option>
-          </select>
-          <button id="fc-refresh" class="glass-soft">🔄 Refresh</button>
-          <a href="{{ url_for('my_calendar') }}" class="glass-soft" style="text-decoration:none;">📋 Mein Kalender</a>
-          <a href="{{ url_for('scoreboard') }}" class="glass-soft" style="text-decoration:none;">🏆 Scoreboard</a>
-        </div>
-        <div id="calendar"></div>
+    <!-- Quick Links -->
+    <section class="glass panel">
+      <h2>🔗 Quick Links</h2>
+      <div class="external-links">
+        <a href="https://calendar.google.com" target="_blank">
+          📅 Google Kalender öffnen
+        </a>
+        <a href="{{ url_for('my_calendar') }}">
+          📋 Meine Buchungen
+        </a>
+        <a href="{{ url_for('scoreboard') }}">
+          🏆 Scoreboard
+        </a>
       </div>
     </section>
 
@@ -218,9 +488,6 @@
                       <option value="2">🟢 Normales Potential</option>
                       <option value="7">🔵 Top Potential</option>
                       <option value="5">🟡 Closer nötig</option>
-                      <option value="9" selected>Standard (Blau)</option>
-                      <option value="10">Grün</option>
-                      <option value="11">Rot</option>
                     </select>
                     <button type="submit">Slot buchen</button>
                   </form>
@@ -234,16 +501,55 @@
   </div>
 
   <script>
-    // Loading indicator
-    function showLoading() {
-      document.getElementById('loadingIndicator').classList.add('show');
+    // Enhanced Loading States
+    function showLoading(text = 'Lädt...') {
+      const indicator = document.getElementById('loadingIndicator');
+      indicator.textContent = text;
+      indicator.classList.add('show');
     }
     
-    // Theme Toggle mit LocalStorage
+    function hideLoading() {
+      document.getElementById('loadingIndicator').classList.remove('show');
+    }
+    
+    // Success Animation
+    function showSuccess(message = 'Erfolgreich gebucht!') {
+      const popup = document.getElementById('successPopup');
+      popup.querySelector('.text').textContent = message;
+      popup.style.display = 'block';
+      
+      // Entferne nach Animation
+      setTimeout(() => {
+        popup.style.display = 'none';
+      }, 2000);
+    }
+    
+    // Enhanced Form Submit with Loading States
+    document.querySelectorAll('.slot form').forEach(form => {
+      form.addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.classList.add('loading');
+        btn.disabled = true;
+        this.classList.add('submitting');
+        showLoading('Buchung wird verarbeitet...');
+        
+        // Success wird vom Server via Flash Message getriggert
+        setTimeout(() => {
+          if (document.querySelector('.flash-success')) {
+            showSuccess();
+          }
+        }, 500);
+      });
+    });
+    
+    // Theme Toggle mit LocalStorage und Animation
     const body = document.body;
     const modeToggle = document.getElementById("mode-toggle");
     
-    function setMode(dark) {
+    function setMode(dark, animate = true) {
+      if (animate) {
+        body.style.transition = 'background 0.3s ease';
+      }
       body.classList.toggle('lightmode', !dark);
       body.classList.toggle('darkmode', dark);
       modeToggle.innerHTML = dark ? '🌙' : '☀️';
@@ -253,7 +559,15 @@
     // Theme beim Laden setzen
     window.addEventListener('DOMContentLoaded', () => {
       const savedTheme = localStorage.getItem('theme');
-      setMode(savedTheme !== 'light');
+      setMode(savedTheme !== 'light', false);
+      
+      // Show keyboard hint after 3 seconds
+      setTimeout(() => {
+        document.getElementById('kbdHint').classList.add('show');
+        setTimeout(() => {
+          document.getElementById('kbdHint').classList.remove('show');
+        }, 5000);
+      }, 3000);
     });
     
     modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
@@ -263,6 +577,13 @@
     const main = document.getElementById("main");
     const sidebarTab = document.getElementById("sidebar-tab");
     
+    function toggleSidebar() {
+      const collapsed = sidebar.classList.toggle("collapsed");
+      main.classList.toggle("with-sidebar", !collapsed);
+      body.classList.toggle("sidebar-open", !collapsed);
+      localStorage.setItem('sidebar-open', !collapsed);
+    }
+    
     // Sidebar Status aus LocalStorage laden
     const sidebarOpen = localStorage.getItem('sidebar-open') === 'true';
     if (sidebarOpen) {
@@ -271,132 +592,136 @@
       body.classList.add("sidebar-open");
     }
     
-    sidebarTab.addEventListener("click", () => {
-      const collapsed = sidebar.classList.toggle("collapsed");
-      main.classList.toggle("with-sidebar", !collapsed);
-      body.classList.toggle("sidebar-open", !collapsed);
-      localStorage.setItem('sidebar-open', !collapsed);
-    });
-
-    // FullCalendar globale Referenz
-    let FCAL = null;
-
-    // Kalender ein/ausblenden mit LocalStorage
-    const toggleCalBtn = document.getElementById("toggle-cal");
-    const calPanel = document.getElementById("kalender-panel");
+    sidebarTab.addEventListener("click", toggleSidebar);
     
-    // Kalender-Status aus LocalStorage laden
-    const calendarHidden = localStorage.getItem('calendar-hidden') === 'true';
-    if (calendarHidden) {
-      calPanel.classList.add("hidden");
-      toggleCalBtn.textContent = "Kalender einblenden";
+    // KEYBOARD SHORTCUTS
+    const quickActions = document.getElementById('quickActions');
+    const overlay = document.getElementById('overlay');
+    
+    function showQuickActions() {
+      quickActions.classList.add('show');
+      overlay.classList.add('show');
     }
     
-    toggleCalBtn.addEventListener("click", () => {
-      calPanel.classList.toggle("hidden");
-      const visible = !calPanel.classList.contains("hidden");
-      toggleCalBtn.textContent = visible ? "Kalender ausblenden" : "Kalender einblenden";
-      localStorage.setItem('calendar-hidden', !visible);
+    function hideQuickActions() {
+      quickActions.classList.remove('show');
+      overlay.classList.remove('show');
+    }
+    
+    // Quick Actions Click Handler
+    document.querySelectorAll('.action-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const action = this.dataset.action;
+        hideQuickActions();
+        
+        switch(action) {
+          case 'toggle-sidebar':
+            toggleSidebar();
+            break;
+          case 'toggle-theme':
+            setMode(!body.classList.contains('darkmode'));
+            break;
+          case 'my-calendar':
+            window.location.href = "{{ url_for('my_calendar') }}";
+            break;
+          case 'scoreboard':
+            window.location.href = "{{ url_for('scoreboard') }}";
+            break;
+          case 'next-day':
+            navigateDay(1);
+            break;
+          case 'prev-day':
+            navigateDay(-1);
+            break;
+        }
+      });
+    });
+    
+    // Navigate days
+    function navigateDay(direction) {
+      const currentDate = new Date("{{ date.strftime('%Y-%m-%d') }}");
+      currentDate.setDate(currentDate.getDate() + direction);
       
-      // FullCalendar resize wenn wieder sichtbar
-      if (visible && FCAL) {
-        setTimeout(() => FCAL.updateSize(), 100);
+      // Skip weekends
+      if (currentDate.getDay() === 0) { // Sunday
+        currentDate.setDate(currentDate.getDate() + (direction > 0 ? 1 : -2));
+      } else if (currentDate.getDay() === 6) { // Saturday
+        currentDate.setDate(currentDate.getDate() + (direction > 0 ? 2 : -1));
+      }
+      
+      const dateStr = currentDate.toISOString().split('T')[0];
+      window.location.href = `/day/${dateStr}`;
+    }
+    
+    // Keyboard Event Listener
+    document.addEventListener('keydown', function(e) {
+      // Ignoriere wenn in Input/Textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+      }
+      
+      // Cmd/Ctrl + K - Quick Actions
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        showQuickActions();
+        return;
+      }
+      
+      // ESC - Close modals
+      if (e.key === 'Escape') {
+        hideQuickActions();
+        if (!sidebar.classList.contains('collapsed')) {
+          toggleSidebar();
+        }
+        return;
+      }
+      
+      // ? - Show help
+      if (e.key === '?' && !e.shiftKey) {
+        e.preventDefault();
+        showQuickActions();
+        return;
+      }
+      
+      // Single key shortcuts (not in modals)
+      if (!quickActions.classList.contains('show')) {
+        switch(e.key.toLowerCase()) {
+          case 's':
+            e.preventDefault();
+            toggleSidebar();
+            break;
+          case 't':
+            e.preventDefault();
+            setMode(!body.classList.contains('darkmode'));
+            break;
+          case 'm':
+            e.preventDefault();
+            window.location.href = "{{ url_for('my_calendar') }}";
+            break;
+          case 'p':
+            e.preventDefault();
+            window.location.href = "{{ url_for('scoreboard') }}";
+            break;
+          case 'arrowright':
+            e.preventDefault();
+            navigateDay(1);
+            break;
+          case 'arrowleft':
+            e.preventDefault();
+            navigateDay(-1);
+            break;
+        }
       }
     });
-
-    // FullCalendar Initialisierung
-    document.addEventListener("DOMContentLoaded", function () {
-      const calEl = document.getElementById("calendar");
-      if (!calEl) return;
-      
-      try {
-        FCAL = new FullCalendar.Calendar(calEl, {
-          timeZone: "Europe/Berlin",
-          locale: 'de',
-          initialView: localStorage.getItem('fc-view') || "timeGridWeek",
-          initialDate: "{{ date.strftime('%Y-%m-%d') }}",
-          headerToolbar: { 
-            left: "prev,next today", 
-            center: "title", 
-            right: "dayGridMonth,timeGridWeek,timeGridDay" 
-          },
-          buttonText: {
-            today: 'Heute',
-            month: 'Monat',
-            week: 'Woche',
-            day: 'Tag'
-          },
-          slotDuration: "00:30:00",
-          nowIndicator: true,
-          height: "auto",
-          eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
-          slotMinTime: "08:00:00",
-          slotMaxTime: "22:00:00",
-          weekends: false,  // Keine Wochenenden anzeigen
-          businessHours: {
-            daysOfWeek: [1, 2, 3, 4, 5],
-            startTime: '09:00',
-            endTime: '21:00',
-          },
-          events: {
-            url: "/api/calendar/events",
-            method: "GET",
-            extraParams: function() {
-              const view = FCAL.view;
-              return {
-                start: view.currentStart.toISOString(),
-                end: view.currentEnd.toISOString()
-              };
-            },
-            failure: function() {
-              console.warn("Events konnten nicht geladen werden.");
-              // User-freundliche Fehlermeldung
-              if (!document.querySelector('.calendar-error')) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'flash-warning calendar-error';
-                errorDiv.textContent = '⚠️ Kalender konnte nicht geladen werden. Bitte Seite neu laden.';
-                calEl.parentElement.insertBefore(errorDiv, calEl);
-              }
-            },
-          },
-          eventClick: function(info) {
-            // Optional: Event-Details anzeigen
-            console.log('Event clicked:', info.event.title);
-          },
-          loading: function(isLoading) {
-            if (isLoading) {
-              document.getElementById('loadingIndicator').classList.add('show');
-            } else {
-              document.getElementById('loadingIndicator').classList.remove('show');
-            }
-          }
-        });
-        
-        FCAL.render();
-        
-        // View-Wechsel mit LocalStorage
-        document.getElementById("fc-view").addEventListener("change", e => {
-          FCAL.changeView(e.target.value);
-          localStorage.setItem('fc-view', e.target.value);
-        });
-        
-        // Restore saved view
-        const savedView = localStorage.getItem('fc-view');
-        if (savedView) {
-          document.getElementById("fc-view").value = savedView;
-        }
-        
-        document.getElementById("fc-today").addEventListener("click", () => FCAL.today());
-        document.getElementById("fc-refresh").addEventListener("click", () => {
-          showLoading();
-          FCAL.refetchEvents();
-        });
-        
-        // Auto-refresh alle 30 Sekunden
-        setInterval(() => FCAL.refetchEvents(), 30000);
-        
-      } catch(e) { 
-        console.error("Kalender-Initialisierung fehlgeschlagen:", e);
+    
+    // Close Quick Actions on overlay click
+    overlay.addEventListener('click', hideQuickActions);
+    
+    // Check for success message on page load
+    window.addEventListener('load', () => {
+      const successMsg = document.querySelector('.flash-success');
+      if (successMsg) {
+        setTimeout(() => showSuccess(successMsg.textContent), 500);
       }
     });
   </script>

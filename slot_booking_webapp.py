@@ -4,7 +4,6 @@ import pytz
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
-from dateutil import parser
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -348,7 +347,7 @@ def logout():
 
 @app.before_request
 def require_login():
-    if request.endpoint not in ("login", "static", "api_calendar_events") and not session.get("logged_in"):
+    if request.endpoint not in ("login", "static") and not session.get("logged_in"):
         return redirect(url_for("login"))
 
 @app.route("/day/<date_str>")
@@ -519,85 +518,6 @@ def my_calendar():
     
     my_events.sort(key=lambda e: (e["date"], e["hour"]))
     return render_template("my_calendar.html", my_events=my_events, user=user)
-
-# -------- FullCalendar API --------
-GOOGLE_COLOR_MAP = {
-    "1":  "#a4bdfc", "2":  "#7ae7bf", "3":  "#dbadff", "4":  "#ff887c",
-    "5":  "#fbd75b", "6":  "#ffb878", "7":  "#46d6db", "8":  "#e1e1e1",
-    "9":  "#5484ed", "10": "#51b749", "11": "#dc2127"
-}
-
-@app.get("/api/calendar/events")
-def api_calendar_events():
-    """API Endpoint für FullCalendar mit Error Handling"""
-    def to_iso_with_tz(s):
-        if not s:
-            return None
-        try:
-            dt = parser.isoparse(s)
-            if dt.tzinfo is None:
-                dt = TZ.localize(dt)
-            return dt.isoformat()
-        except Exception as e:
-            print(f"Fehler beim Parsen von Datum: {e}")
-            return None
-
-    start_param = request.args.get("start")
-    end_param = request.args.get("end")
-
-    if start_param and end_param:
-        time_min = to_iso_with_tz(start_param)
-        time_max = to_iso_with_tz(end_param)
-    else:
-        start = datetime.now(TZ)
-        end = start + timedelta(days=30)
-        time_min = start.isoformat()
-        time_max = end.isoformat()
-
-    if not time_min or not time_max:
-        return jsonify([])
-
-    res = safe_calendar_call(
-        service.events().list,
-        calendarId=CENTRAL_CALENDAR_ID,
-        timeMin=time_min,
-        timeMax=time_max,
-        singleEvents=True,
-        orderBy='startTime',
-        maxResults=2500
-    )
-
-    if not res:
-        return jsonify([])
-
-    items = res.get("items", [])
-    out = []
-    
-    for ev in items:
-        try:
-            start = ev.get("start", {})
-            end = ev.get("end", {})
-            start_dt = start.get("dateTime") or start.get("date")
-            end_dt = end.get("dateTime") or end.get("date")
-            color_id = ev.get("colorId", "")
-            color = GOOGLE_COLOR_MAP.get(color_id, None)
-
-            mapped = {
-                "id": ev.get("id"),
-                "title": ev.get("summary", ""),
-                "start": start_dt,
-                "end": end_dt,
-                "allDay": bool(start.get("date"))
-            }
-            if color:
-                mapped["backgroundColor"] = color
-                mapped["borderColor"] = color
-            out.append(mapped)
-        except Exception as e:
-            print(f"Fehler beim Verarbeiten von Event: {e}")
-            continue
-
-    return jsonify(out)
 
 if __name__ == '__main__':
     app.run(debug=False)  # Debug auf False für Produktion!
