@@ -2,37 +2,513 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Login • ZFA Slot Manager</title>
+  <title>Login • Slot Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  
   <style>
-    body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { max-width:420px; width:100%; }
-    .brand { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-    .brand i { font-size:24px; color:var(--accent); }
+    /* Login Page Specific Styles */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* Animated Background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 20% 80%, rgba(90,177,255,0.1), transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(16,185,129,0.1), transparent 50%),
+                  radial-gradient(circle at 40% 40%, rgba(249,115,22,0.05), transparent 50%);
+      animation: backgroundShift 20s ease infinite;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-10px, -10px) rotate(120deg); }
+      66% { transform: translate(10px, -10px) rotate(240deg); }
+    }
+    
+    .login-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+    }
+    
+    .login-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 40px 30px;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: fadeInScale 0.5s ease;
+    }
+    
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    /* Logo Section */
+    .logo-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo-container {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 15px;
+      background: linear-gradient(135deg, rgba(90,177,255,0.1), rgba(90,177,255,0.05));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(90,177,255,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .logo-container::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--accent), transparent, var(--accent));
+      border-radius: 20px;
+      opacity: 0;
+      animation: logoGlow 3s ease infinite;
+    }
+    
+    @keyframes logoGlow {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.5; }
+    }
+    
+    .logo-container img {
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Falls kein Logo vorhanden, Fallback-Icon */
+    .logo-fallback {
+      font-size: 48px;
+      color: var(--accent);
+      animation: pulse 2s ease infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .login-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-color);
+      margin: 0 0 5px;
+    }
+    
+    .login-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0;
+    }
+    
+    /* Form Styles */
+    .login-form {
+      margin-top: 25px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .input-wrapper {
+      position: relative;
+    }
+    
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 15px 12px 40px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      color: var(--text-color);
+      font-size: 15px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+    
+    .input-wrapper input:focus {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(90,177,255,0.1);
+    }
+    
+    .input-wrapper input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+    
+    .input-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 18px;
+      transition: color 0.3s ease;
+    }
+    
+    .input-wrapper:focus-within .input-icon {
+      color: var(--accent);
+    }
+    
+    /* Submit Button */
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      margin-top: 25px;
+    }
+    
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s ease, height 0.6s ease;
+    }
+    
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(90,177,255,0.4);
+    }
+    
+    .submit-btn:active::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    .submit-btn.loading {
+      color: transparent;
+      pointer-events: none;
+    }
+    
+    .submit-btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 50%;
+      left: 50%;
+      margin-left: -10px;
+      margin-top: -10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Flash Messages */
+    .flash-message {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .flash-danger {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #ff6b6b;
+    }
+    
+    .flash-success {
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: #10b981;
+    }
+    
+    /* Additional Info */
+    .login-footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+    }
+    
+    .login-footer p {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+      line-height: 1.6;
+    }
+    
+    .features-list {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+    }
+    
+    .feature-item {
+      text-align: center;
+      flex: 1;
+    }
+    
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .feature-text {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0;
+    }
+    
+    /* Dark/Light Mode Toggle */
+    #theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    
+    #theme-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    /* Responsive */
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 30px 20px;
+      }
+      
+      .login-title {
+        font-size: 20px;
+      }
+      
+      .features-list {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="glass panel card">
-    <div class="brand"><i class="ti ti-calendar-bolt"></i><div><strong>ZFA Slot Manager</strong><div style="font-size:.85em;color:#9aa;">Login</div></div></div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="flash-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('login') }}" class="glass-soft" style="padding:12px; border-radius:12px;">
-      <label for="username">Benutzername</label>
-      <input id="username" name="username" type="text" required>
-
-      <label for="password" style="margin-top:10px;">Passwort</label>
-      <input id="password" name="password" type="password" required>
-
-      <button type="submit" style="margin-top:12px; width:100%;">Anmelden</button>
-    </form>
-    <div style="margin-top:10px; font-size:.9em; color:#9aa;">Tipp: Auf iOS „Zum Home‑Bildschirm“ für App‑Gefühl.</div>
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" aria-label="Theme wechseln">🌙</button>
+  
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Logo Section -->
+      <div class="logo-section">
+        <div class="logo-container">
+          <!-- Versuche Logo zu laden, falls nicht vorhanden, zeige Icon -->
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';">
+          <div id="logoFallback" class="logo-fallback" style="display:none;">📅</div>
+        </div>
+        <h1 class="login-title">Slot Manager</h1>
+        <p class="login-subtitle">Termine einfach verwalten</p>
+      </div>
+      
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-message flash-{{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+      
+      <!-- Login Form -->
+      <form method="POST" action="{{ url_for('login') }}" class="login-form" id="loginForm">
+        <div class="form-group">
+          <label for="username">Benutzername</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input 
+              type="text" 
+              id="username" 
+              name="username" 
+              placeholder="Dein Benutzername" 
+              required 
+              autocomplete="username"
+              autofocus
+            >
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Passwort</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              placeholder="Dein Passwort" 
+              required
+              autocomplete="current-password"
+            >
+          </div>
+        </div>
+        
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Anmelden
+        </button>
+      </form>
+      
+      <!-- Footer Info -->
+      <div class="login-footer">
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon">📅</div>
+            <p class="feature-text">Slots buchen</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🏆</div>
+            <p class="feature-text">Punkte sammeln</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <p class="feature-text">Statistiken</p>
+          </div>
+        </div>
+        <p style="margin-top: 15px;">
+          Bei Problemen wende dich an den Administrator
+        </p>
+      </div>
+    </div>
   </div>
+  
+  <script>
+    // Form Submit Animation
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      const btn = document.getElementById('submitBtn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+    });
+    
+    // Theme Toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+    
+    function setTheme(dark) {
+      body.classList.toggle('lightmode', !dark);
+      body.classList.toggle('darkmode', dark);
+      themeToggle.innerHTML = dark ? '🌙' : '☀️';
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+    
+    // Load saved theme
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme');
+      setTheme(savedTheme !== 'light');
+    });
+    
+    themeToggle.addEventListener('click', () => {
+      setTheme(!body.classList.contains('darkmode'));
+    });
+    
+    // Auto-focus animation
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'scale(1.02)';
+      });
+      
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'scale(1)';
+      });
+    });
+    
+    // Enter key navigation
+    document.getElementById('username').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('password').focus();
+      }
+    });
+  </script>
 </body>
 </html>
