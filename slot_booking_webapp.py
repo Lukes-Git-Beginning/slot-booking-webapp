@@ -387,9 +387,35 @@ def day_view(date_str):
         slot_suggestions=get_slot_suggestions(availability)
     )
 
+@app.route("/admin/stats")
+def admin_stats():
+    """Zeige Statistiken für Admins"""
+    if session.get("user") != "admin":
+        return redirect(url_for("login"))
+    
+    # Statistiken berechnen
+    stats = {
+        "total_bookings_today": count_todays_bookings(),
+        "weekly_usage": calculate_weekly_usage(),
+        "top_performers": get_top_performers(),
+        "peak_hours": analyze_peak_hours()
+    }
+    
+    return render_template("admin_stats.html", stats=stats)
+
 @app.route("/")
 def index():
     return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
+
+@app.route("/export/bookings/<month>")
+def export_bookings(month):
+    """Exportiere Buchungen als CSV"""
+    if session.get("user") != "admin":
+        return redirect(url_for("login"))
+    
+    # Hole alle Buchungen des Monats
+    # Erstelle CSV
+    # Return als Download
 
 @app.route("/book", methods=["POST"])
 def book():

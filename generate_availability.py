@@ -237,6 +237,24 @@ def main():
     print(f"   - Alte entfernt: {removed_count}")
     print(f"   - Gesamt gespeichert: {len(availability)}")
 
+# Nach dem Speichern der availability.json:
+def backup_availability():
+    """Erstelle tägliches Backup"""
+    import shutil
+    from datetime import datetime
+    
+    backup_dir = "backups"
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    if os.path.exists("static/availability.json"):
+        backup_name = f"backups/availability_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        shutil.copy2("static/availability.json", backup_name)
+        
+        # Behalte nur die letzten 7 Backups
+        backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("availability_")])
+        for old_backup in backups[:-7]:
+            os.remove(os.path.join(backup_dir, old_backup))
+
 if __name__ == "__main__":
     start_time = time.time()
     main()
