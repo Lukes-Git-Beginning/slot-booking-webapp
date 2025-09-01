@@ -258,5 +258,6 @@ def backup_availability():
 if __name__ == "__main__":
     start_time = time.time()
     main()
+    backup_availability()
     duration = time.time() - start_time
     print(f"⏱️ Laufzeit: {duration:.2f} Sekunden")
