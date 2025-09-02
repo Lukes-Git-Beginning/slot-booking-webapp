@@ -454,17 +454,17 @@ def book():
         calendarId=CENTRAL_CALENDAR_ID,
         body=event_body
     )
-     if result:
-        # NEU: Tracking hinzufügen
-        tracker.track_booking(
-            customer_name=f"{last}, {first}",
-            date=date,
-            time_slot=hour,
-            user=user or "unknown",
-            color_id=color_id,
-            description=description
-        )
-        
+    
+    if result:  # ZEILE 457 - KEINE EXTRA EINRÜCKUNG!
+        if user and points > 0:
+            add_points_to_user(user, points)
+            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
+        else:
+            flash("Slot erfolgreich gebucht!", "success")
+    else:
+        flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
+    
+    return redirect(url_for("day_view", date_str=date))       
         if user and points > 0:
             add_points_to_user(user, points)
             flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
