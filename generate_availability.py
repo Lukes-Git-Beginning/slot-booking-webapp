@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 import os
 import json
 import time
+import shutil
 from datetime import datetime, timedelta
 import pytz
 from googleapiclient.discovery import build
@@ -15,6 +17,10 @@ service = build("calendar", "v3", credentials=creds)
 # ----------------- Konfiguration -----------------
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
 TZ = pytz.timezone("Europe/Berlin")
+
+# Google Calendar Farben die NICHT blockieren sollen
+# 11 = Tomate (rot), 6 = Mandarine (orange)
+NON_BLOCKING_COLORS = ["11", "6"]
 
 weekday_map = {
     'Monday': 'Mo',
@@ -57,8 +63,7 @@ def safe_api_call(func, *args, **kwargs):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            req_or_result = func(*args, **kwargs)  # z.B. service.events().list(...)
-            # WICHTIG: Wenn es ein HttpRequest ist → execute()
+            req_or_result = func(*args, **kwargs)
             if hasattr(req_or_result, "execute") and callable(req_or_result.execute):
                 return req_or_result.execute()
             return req_or_result
@@ -124,6 +129,12 @@ def is_consultant_available(events, slot_start, slot_end):
             # Prüfe Überschneidung
             if event_start < slot_end and event_end > slot_start:
                 summary = event.get('summary', '').strip().lower()
+                color_id = event.get('colorId', '')
+                
+                # NEU: Termine mit Tomate(11) oder Mandarine(6) blockieren NICHT
+                if color_id in NON_BLOCKING_COLORS:
+                    print(f"  🟠 Ignoriere Event (Farbe {color_id}): '{event.get('summary', '')}'")
+                    continue  # Diesen Termin ignorieren, weiter zum nächsten
                 
                 # Berater ist verfügbar wenn "t1-bereit" im Titel
                 if 't1-bereit' in summary or 't1 bereit' in summary:
@@ -135,8 +146,24 @@ def is_consultant_available(events, slot_start, slot_end):
             print(f"⚠️ Fehler beim Parsen von Event: {e}")
             continue
     
-    # Keine Konflikte = nicht verfügbar (kein t1-bereit Event)
+    # Keine blockierenden Konflikte = nicht verfügbar (kein t1-bereit Event)
     return False
+
+def backup_availability():
+    """Erstelle tägliches Backup"""
+    backup_dir = "backups"
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    if os.path.exists("static/availability.json"):
+        backup_name = f"backups/availability_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        shutil.copy2("static/availability.json", backup_name)
+        print(f"💾 Backup erstellt: {backup_name}")
+        
+        # Behalte nur die letzten 7 Backups
+        backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("availability_")])
+        for old_backup in backups[:-7]:
+            os.remove(os.path.join(backup_dir, old_backup))
+            print(f"🗑️ Altes Backup gelöscht: {old_backup}")
 
 def main():
     availability = {}
@@ -163,6 +190,8 @@ def main():
     
     # Slots analysieren
     print(f"\n📊 Analysiere Slots...")
+    print(f"ℹ️ Termine mit Farbe Tomate(11) oder Mandarine(6) werden ignoriert\n")
+    
     slot_count = 0
     new_slots = 0
     
@@ -237,27 +266,9 @@ def main():
     print(f"   - Alte entfernt: {removed_count}")
     print(f"   - Gesamt gespeichert: {len(availability)}")
 
-# Nach dem Speichern der availability.json:
-def backup_availability():
-    """Erstelle tägliches Backup"""
-    import shutil
-    from datetime import datetime
-    
-    backup_dir = "backups"
-    os.makedirs(backup_dir, exist_ok=True)
-    
-    if os.path.exists("static/availability.json"):
-        backup_name = f"backups/availability_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        shutil.copy2("static/availability.json", backup_name)
-        
-        # Behalte nur die letzten 7 Backups
-        backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("availability_")])
-        for old_backup in backups[:-7]:
-            os.remove(os.path.join(backup_dir, old_backup))
-
 if __name__ == "__main__":
     start_time = time.time()
     main()
-    backup_availability()
+    backup_availability()  # Backup nach erfolgreicher Generierung
     duration = time.time() - start_time
     print(f"⏱️ Laufzeit: {duration:.2f} Sekunden")
