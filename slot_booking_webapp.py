@@ -455,21 +455,6 @@ def book():
         body=event_body
     )
     
-    if result:  # ZEILE 457 - KEINE EXTRA EINRÜCKUNG!
-        if user and points > 0:
-            add_points_to_user(user, points)
-            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
-        else:
-            flash("Slot erfolgreich gebucht!", "success")
-    else:
-        flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
-    
-    return redirect(url_for("day_view", date_str=date))       
-        if user and points > 0:
-            add_points_to_user(user, points)
-            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
-        else:
-            flash("Slot erfolgreich gebucht!", "success")
     if result:
         if user and points > 0:
             add_points_to_user(user, points)
@@ -480,6 +465,7 @@ def book():
         flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
     
     return redirect(url_for("day_view", date_str=date))
+
 @app.route("/tracking/customer/<customer_name>")
 def customer_tracking(customer_name):
     """Zeige Kundenhistorie"""
