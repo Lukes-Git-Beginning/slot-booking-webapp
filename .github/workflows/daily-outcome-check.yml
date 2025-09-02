@@ -1,0 +1,108 @@
+name: Daily Outcome Check (No-Show Detection)
+
+on:
+  schedule:
+    # Täglich um 21:00 Uhr Berlin Zeit (20:00 UTC im Sommer, 19:00 UTC im Winter)
+    - cron: '0 19 * * *'  # 19:00 UTC = 21:00 Berlin (Sommerzeit)
+    - cron: '0 20 * * *'  # 20:00 UTC = 21:00 Berlin (Winterzeit)
+  workflow_dispatch:  # Manuell auslösbar
+
+jobs:
+  check-outcomes:
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_CREDS_BASE64: ${{ secrets.GOOGLE_CREDS_BASE64 }}
+      CENTRAL_CALENDAR_ID: ${{ secrets.CENTRAL_CALENDAR_ID || 'zentralkalenderzfa@gmail.com' }}
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🔍 Run Daily Outcome Check
+        run: |
+          echo "🕐 Starting daily outcome check at $(date)"
+          python tracking_system.py
+          echo "✅ Outcome check completed"
+
+      - name: 📊 Generate Daily Report
+        run: |
+          python -c "
+          from tracking_system import BookingTracker
+          from datetime import datetime
+          import json
+          
+          tracker = BookingTracker()
+          
+          # Generiere Wochenbericht
+          report = tracker.get_weekly_report()
+          
+          # Speichere als JSON
+          with open('data/tracking/latest_weekly_report.json', 'w') as f:
+              json.dump(report, f, indent=2, ensure_ascii=False)
+          
+          print('📊 Weekly report generated')
+          "
+
+      - name: 💾 Commit Tracking Data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Füge alle Tracking-Dateien hinzu
+          git add data/tracking/*.json data/tracking/*.jsonl
+          
+          # Commit nur wenn es Änderungen gibt
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "📊 Auto: Daily outcome check & tracking update [skip ci]
+            
+            - No-Shows detected and tracked
+            - Daily metrics calculated
+            - Weekly report updated
+            - Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+            
+            git push
+          fi
+
+      - name: 🚨 Check for High No-Show Rate
+        run: |
+          python -c "
+          import json
+          import os
+          from datetime import datetime
+          
+          metrics_file = 'data/tracking/daily_metrics.json'
+          if os.path.exists(metrics_file):
+              with open(metrics_file, 'r') as f:
+                  metrics = json.load(f)
+              
+              today = datetime.now().strftime('%Y-%m-%d')
+              today_metrics = metrics.get(today, {})
+              
+              no_show_rate = today_metrics.get('no_show_rate', 0)
+              
+              if no_show_rate > 30:
+                  print(f'⚠️ WARNUNG: Hohe No-Show Rate heute: {no_show_rate}%')
+                  print(f'   - Total: {today_metrics.get(\"total_slots\", 0)} Termine')
+                  print(f'   - No-Shows: {today_metrics.get(\"no_shows\", 0)}')
+                  print(f'   - Abgeschlossen: {today_metrics.get(\"completed\", 0)}')
+                  
+                  # Hier könntest du eine Slack/Email Notification triggern
+                  exit(1)  # Workflow fails = Notification
+              else:
+                  print(f'✅ No-Show Rate normal: {no_show_rate}%')
+          "
+        continue-on-error: true  # Workflow soll weiterlaufen auch bei hoher No-Show Rate

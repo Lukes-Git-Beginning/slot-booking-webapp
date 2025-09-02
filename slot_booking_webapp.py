@@ -2,6 +2,7 @@ import os
 import json
 import pytz
 import time
+from tracking_system import BookingTracker
 from collections import defaultdict
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
@@ -453,7 +454,22 @@ def book():
         calendarId=CENTRAL_CALENDAR_ID,
         body=event_body
     )
-    
+     if result:
+        # NEU: Tracking hinzufügen
+        tracker.track_booking(
+            customer_name=f"{last}, {first}",
+            date=date,
+            time_slot=hour,
+            user=user or "unknown",
+            color_id=color_id,
+            description=description
+        )
+        
+        if user and points > 0:
+            add_points_to_user(user, points)
+            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
+        else:
+            flash("Slot erfolgreich gebucht!", "success")
     if result:
         if user and points > 0:
             add_points_to_user(user, points)
@@ -464,7 +480,24 @@ def book():
         flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
     
     return redirect(url_for("day_view", date_str=date))
+@app.route("/tracking/customer/<customer_name>")
+def customer_tracking(customer_name):
+    """Zeige Kundenhistorie"""
+    if session.get("user") != "admin":
+        return redirect(url_for("login"))
+    
+    history = tracker.get_customer_history(customer_name)
+    return jsonify(history)
 
+@app.route("/tracking/report/weekly")
+def weekly_tracking_report():
+    """Zeige Wochenbericht"""
+    if session.get("user") != "admin":
+        return redirect(url_for("login"))
+    
+    report = tracker.get_weekly_report()
+    return jsonify(report)
+    
 @app.route("/scoreboard")
 def scoreboard():
     user = session.get("user")
