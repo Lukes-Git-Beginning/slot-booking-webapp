@@ -20,14 +20,34 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 TZ = pytz.timezone("Europe/Berlin")
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
 
-# Farben-Mapping
-COLOR_OUTCOMES = {
-    "11": "no_show",      # Tomate/Rot = Nicht erschienen
-    "6": "cancelled",     # Mandarine/Orange = Abgesagt/Verschoben
-    "2": "completed",     # Grün = Normal abgeschlossen
-    "7": "completed",     # Blau = Top Potential abgeschlossen
-    "5": "needs_followup", # Gelb = Closer nötig
-    "3": "recall"         # Weintraube = Rückholung
+# ----------------- WICHTIGE ÄNDERUNG -----------------
+# NUR Tomate (11) = No-Show und Mandarine (6) = Abgesagt
+# ALLE anderen Farben = Erschienen/Completed
+def get_outcome_from_color(color_id):
+    """
+    Bestimmt das Outcome basierend auf der Farbe
+    - Tomate (11) = no_show
+    - Mandarine (6) = cancelled
+    - Alle anderen = completed
+    """
+    color_id = str(color_id)
+    if color_id == "11":
+        return "no_show"
+    elif color_id == "6":
+        return "cancelled"
+    else:
+        return "completed"  # Alle anderen Farben = erschienen
+
+# Potential-Typ Mapping (für Analyse-Zwecke)
+POTENTIAL_TYPES = {
+    "2": "normal",          # Grün = Normales Potential
+    "7": "top",            # Blau = Top Potential
+    "5": "closer_needed",  # Gelb = Closer nötig
+    "3": "recall",         # Weintraube = Rückholung
+    "9": "standard",       # Graphit = Standard
+    "10": "standard",      # Flamingo = Standard
+    "11": "no_show",       # Tomate = Nicht erschienen
+    "6": "cancelled"       # Mandarine = Abgesagt
 }
 
 class BookingTracker:
@@ -39,6 +59,7 @@ class BookingTracker:
         self.bookings_file = os.path.join(self.data_dir, "bookings.jsonl")
         self.outcomes_file = os.path.join(self.data_dir, "outcomes.jsonl")
         self.metrics_file = os.path.join(self.data_dir, "daily_metrics.json")
+        self.customer_file = os.path.join(self.data_dir, "customer_profiles.json")
         
         # Google Calendar Service
         creds = load_google_credentials(SCOPES)
@@ -102,20 +123,22 @@ class BookingTracker:
             outcomes_tracked = 0
             
             for event in events:
-                # Skip Platzhalter
+                # Skip Platzhalter (nur Zahlen)
                 if event.get("summary", "").isdigit():
                     continue
                 
                 # Extrahiere Daten
                 customer_name = event.get("summary", "Unknown")
-                color_id = event.get("colorId", "9")
+                color_id = event.get("colorId", "9")  # Default: Graphit
                 event_start = event.get("start", {}).get("dateTime")
                 
                 if not event_start:
                     continue
                 
                 event_time = datetime.fromisoformat(event_start).strftime("%H:%M")
-                outcome = COLOR_OUTCOMES.get(color_id, "unknown")
+                
+                # WICHTIG: Nutze die neue Funktion für Outcome-Bestimmung
+                outcome = get_outcome_from_color(color_id)
                 
                 # Track outcome
                 outcome_data = {
@@ -126,6 +149,7 @@ class BookingTracker:
                     "time": event_time,
                     "outcome": outcome,
                     "color_id": color_id,
+                    "potential_type": self._get_potential_type(color_id),
                     "checked_at": datetime.now(TZ).strftime("%H:%M"),
                     "description": event.get("description", "")
                 }
@@ -134,6 +158,10 @@ class BookingTracker:
                 if outcome == "no_show":
                     outcome_data["alert"] = "NO_SHOW_DETECTED"
                     print(f"⚠️ No-Show detected: {customer_name} at {event_time}")
+                elif outcome == "cancelled":
+                    print(f"🟠 Cancelled: {customer_name} at {event_time}")
+                elif outcome == "completed":
+                    print(f"✅ Completed: {customer_name} at {event_time} (Color: {color_id})")
                 
                 # Speichere Outcome
                 with open(self.outcomes_file, "a", encoding="utf-8") as f:
@@ -146,6 +174,9 @@ class BookingTracker:
             # Berechne Tagesmetriken
             self._calculate_daily_metrics(check_date, events)
             
+            # Update Kundenprofile
+            self._update_customer_profiles()
+            
             return outcomes_tracked
             
         except Exception as e:
@@ -156,26 +187,31 @@ class BookingTracker:
         """Berechne und speichere Tagesstatistiken"""
         metrics = {
             "date": str(date),
-            "total_slots": len(events),
+            "total_slots": 0,
             "no_shows": 0,
             "completed": 0,
             "cancelled": 0,
-            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0}),
-            "by_user": defaultdict(lambda: {"total": 0, "no_shows": 0}),
+            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0, "cancelled": 0}),
+            "by_user": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0}),
+            "by_potential": defaultdict(lambda: {"total": 0, "completed": 0}),
             "calculated_at": datetime.now(TZ).isoformat()
         }
         
         for event in events:
+            # Skip Platzhalter
             if event.get("summary", "").isdigit():
                 continue
             
+            metrics["total_slots"] += 1
+            
             color_id = event.get("colorId", "9")
-            outcome = COLOR_OUTCOMES.get(color_id, "unknown")
+            outcome = get_outcome_from_color(color_id)
+            potential_type = self._get_potential_type(color_id)
             
             # Zähle Outcomes
             if outcome == "no_show":
                 metrics["no_shows"] += 1
-            elif outcome in ["completed", "recall"]:
+            elif outcome == "completed":
                 metrics["completed"] += 1
             elif outcome == "cancelled":
                 metrics["cancelled"] += 1
@@ -187,14 +223,26 @@ class BookingTracker:
                 metrics["by_hour"][hour]["total"] += 1
                 if outcome == "no_show":
                     metrics["by_hour"][hour]["no_shows"] += 1
+                elif outcome == "completed":
+                    metrics["by_hour"][hour]["completed"] += 1
+                elif outcome == "cancelled":
+                    metrics["by_hour"][hour]["cancelled"] += 1
+            
+            # Nach Potential-Typ
+            if potential_type not in ["no_show", "cancelled"]:
+                metrics["by_potential"][potential_type]["total"] += 1
+                if outcome == "completed":
+                    metrics["by_potential"][potential_type]["completed"] += 1
         
         # Berechne Raten
         if metrics["total_slots"] > 0:
             metrics["no_show_rate"] = round(metrics["no_shows"] / metrics["total_slots"] * 100, 2)
             metrics["completion_rate"] = round(metrics["completed"] / metrics["total_slots"] * 100, 2)
+            metrics["cancellation_rate"] = round(metrics["cancelled"] / metrics["total_slots"] * 100, 2)
         else:
             metrics["no_show_rate"] = 0
             metrics["completion_rate"] = 0
+            metrics["cancellation_rate"] = 0
         
         # Speichere Metriken
         try:
@@ -209,10 +257,79 @@ class BookingTracker:
             with open(self.metrics_file, "w", encoding="utf-8") as f:
                 json.dump(all_metrics, f, ensure_ascii=False, indent=2)
             
-            print(f"📊 Daily metrics saved: {metrics['completed']} completed, {metrics['no_shows']} no-shows")
+            print(f"📊 Daily metrics saved:")
+            print(f"   - Completed: {metrics['completed']} ({metrics['completion_rate']}%)")
+            print(f"   - No-Shows: {metrics['no_shows']} ({metrics['no_show_rate']}%)")
+            print(f"   - Cancelled: {metrics['cancelled']} ({metrics['cancellation_rate']}%)")
             
         except Exception as e:
             print(f"❌ Error saving metrics: {e}")
+    
+    def _update_customer_profiles(self):
+        """Aktualisiere Kundenprofile mit aggregierten Daten"""
+        profiles = {}
+        
+        # Lade bestehende Profile
+        if os.path.exists(self.customer_file):
+            try:
+                with open(self.customer_file, "r", encoding="utf-8") as f:
+                    profiles = json.load(f)
+            except:
+                profiles = {}
+        
+        # Analysiere alle Outcomes
+        if os.path.exists(self.outcomes_file):
+            with open(self.outcomes_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        outcome = json.loads(line)
+                        customer = outcome["customer"]
+                        
+                        if customer not in profiles:
+                            profiles[customer] = {
+                                "first_seen": outcome["date"],
+                                "last_seen": outcome["date"],
+                                "total_appointments": 0,
+                                "completed": 0,
+                                "no_shows": 0,
+                                "cancelled": 0,
+                                "reliability_score": 100.0
+                            }
+                        
+                        profile = profiles[customer]
+                        profile["total_appointments"] += 1
+                        profile["last_seen"] = outcome["date"]
+                        
+                        if outcome["outcome"] == "completed":
+                            profile["completed"] += 1
+                        elif outcome["outcome"] == "no_show":
+                            profile["no_shows"] += 1
+                        elif outcome["outcome"] == "cancelled":
+                            profile["cancelled"] += 1
+                        
+                        # Berechne Zuverlässigkeits-Score
+                        if profile["total_appointments"] > 0:
+                            profile["reliability_score"] = round(
+                                (profile["completed"] / profile["total_appointments"]) * 100, 2
+                            )
+                        
+                        # Klassifiziere Kunde
+                        if profile["no_shows"] >= 3:
+                            profile["risk_level"] = "high"
+                        elif profile["no_shows"] >= 1:
+                            profile["risk_level"] = "medium"
+                        else:
+                            profile["risk_level"] = "low"
+                    
+                    except Exception as e:
+                        print(f"Error processing outcome: {e}")
+                        continue
+        
+        # Speichere aktualisierte Profile
+        with open(self.customer_file, "w", encoding="utf-8") as f:
+            json.dump(profiles, f, ensure_ascii=False, indent=2)
+        
+        print(f"📁 Updated {len(profiles)} customer profiles")
     
     def get_customer_history(self, customer_name):
         """Hole die komplette Historie eines Kunden"""
@@ -224,8 +341,11 @@ class BookingTracker:
                 "total_bookings": 0,
                 "no_shows": 0,
                 "completed": 0,
-                "no_show_rate": 0
-            }
+                "cancelled": 0,
+                "no_show_rate": 0,
+                "reliability_score": 0
+            },
+            "timeline": []
         }
         
         # Lade Buchungen
@@ -244,21 +364,48 @@ class BookingTracker:
                     outcome = json.loads(line)
                     if customer_name.lower() in outcome["customer"].lower():
                         history["outcomes"].append(outcome)
+                        
+                        # Erstelle Timeline-Eintrag
+                        timeline_entry = {
+                            "date": outcome["date"],
+                            "time": outcome["time"],
+                            "outcome": outcome["outcome"],
+                            "color_id": outcome.get("color_id", "9")
+                        }
+                        history["timeline"].append(timeline_entry)
+                        
+                        # Update Stats
                         if outcome["outcome"] == "no_show":
                             history["stats"]["no_shows"] += 1
-                        elif outcome["outcome"] in ["completed", "recall"]:
+                        elif outcome["outcome"] == "completed":
                             history["stats"]["completed"] += 1
+                        elif outcome["outcome"] == "cancelled":
+                            history["stats"]["cancelled"] += 1
         
-        # Berechne No-Show Rate
-        if history["stats"]["total_bookings"] > 0:
+        # Sortiere Timeline
+        history["timeline"].sort(key=lambda x: (x["date"], x["time"]))
+        
+        # Berechne Raten
+        total_outcomes = history["stats"]["completed"] + history["stats"]["no_shows"] + history["stats"]["cancelled"]
+        if total_outcomes > 0:
             history["stats"]["no_show_rate"] = round(
-                history["stats"]["no_shows"] / history["stats"]["total_bookings"] * 100, 2
+                history["stats"]["no_shows"] / total_outcomes * 100, 2
             )
+            history["stats"]["reliability_score"] = round(
+                history["stats"]["completed"] / total_outcomes * 100, 2
+            )
+        
+        # Lade Kundenprofil wenn vorhanden
+        if os.path.exists(self.customer_file):
+            with open(self.customer_file, "r", encoding="utf-8") as f:
+                profiles = json.load(f)
+                if customer_name in profiles:
+                    history["profile"] = profiles[customer_name]
         
         return history
     
     def get_weekly_report(self, week_number=None):
-        """Generiere Wochenbericht"""
+        """Generiere erweiterten Wochenbericht"""
         if week_number is None:
             week_number = datetime.now(TZ).isocalendar()[1]
         
@@ -270,10 +417,27 @@ class BookingTracker:
                 "total_outcomes": 0,
                 "no_shows": 0,
                 "completed": 0,
-                "by_day": defaultdict(lambda: {"bookings": 0, "no_shows": 0}),
-                "by_user": defaultdict(lambda: {"bookings": 0, "no_shows": 0}),
+                "cancelled": 0,
+                "by_day": defaultdict(lambda: {
+                    "bookings": 0, 
+                    "no_shows": 0, 
+                    "completed": 0,
+                    "cancelled": 0
+                }),
+                "by_user": defaultdict(lambda: {
+                    "bookings": 0, 
+                    "no_shows": 0,
+                    "completed": 0,
+                    "success_rate": 0
+                }),
+                "by_hour": defaultdict(lambda: {
+                    "total": 0,
+                    "no_shows": 0,
+                    "completed": 0
+                }),
                 "top_no_show_times": [],
-                "top_success_times": []
+                "top_success_times": [],
+                "high_risk_customers": []
             }
         }
         
@@ -294,28 +458,182 @@ class BookingTracker:
             with open(self.outcomes_file, "r", encoding="utf-8") as f:
                 for line in f:
                     outcome = json.loads(line)
-                    # Prüfe ob in der richtigen Woche
                     outcome_date = datetime.strptime(outcome["date"], "%Y-%m-%d")
+                    
                     if outcome_date.isocalendar()[1] == week_number:
                         report["metrics"]["total_outcomes"] += 1
+                        weekday = outcome_date.strftime("%A")
+                        hour = outcome["time"][:2] + ":00"
+                        
+                        # Nach Outcome-Typ
                         if outcome["outcome"] == "no_show":
                             report["metrics"]["no_shows"] += 1
-                        elif outcome["outcome"] in ["completed", "recall"]:
+                            report["metrics"]["by_day"][weekday]["no_shows"] += 1
+                            report["metrics"]["by_hour"][hour]["no_shows"] += 1
+                        elif outcome["outcome"] == "completed":
                             report["metrics"]["completed"] += 1
+                            report["metrics"]["by_day"][weekday]["completed"] += 1
+                            report["metrics"]["by_hour"][hour]["completed"] += 1
+                        elif outcome["outcome"] == "cancelled":
+                            report["metrics"]["cancelled"] += 1
+                            report["metrics"]["by_day"][weekday]["cancelled"] += 1
+                        
+                        report["metrics"]["by_hour"][hour]["total"] += 1
+        
+        # Berechne Success-Raten nach User
+        for user, data in report["metrics"]["by_user"].items():
+            if data["bookings"] > 0:
+                data["success_rate"] = round(
+                    (data.get("completed", 0) / data["bookings"]) * 100, 2
+                )
+        
+        # Finde beste/schlechteste Zeiten
+        hour_stats = []
+        for hour, data in report["metrics"]["by_hour"].items():
+            if data["total"] > 0:
+                no_show_rate = (data["no_shows"] / data["total"]) * 100
+                success_rate = (data["completed"] / data["total"]) * 100
+                hour_stats.append({
+                    "hour": hour,
+                    "no_show_rate": round(no_show_rate, 2),
+                    "success_rate": round(success_rate, 2),
+                    "total": data["total"]
+                })
+        
+        # Top No-Show Zeiten
+        hour_stats.sort(key=lambda x: x["no_show_rate"], reverse=True)
+        report["metrics"]["top_no_show_times"] = hour_stats[:3]
+        
+        # Top Success Zeiten
+        hour_stats.sort(key=lambda x: x["success_rate"], reverse=True)
+        report["metrics"]["top_success_times"] = hour_stats[:3]
+        
+        # Berechne Gesamt-Raten
+        if report["metrics"]["total_outcomes"] > 0:
+            report["metrics"]["overall_no_show_rate"] = round(
+                (report["metrics"]["no_shows"] / report["metrics"]["total_outcomes"]) * 100, 2
+            )
+            report["metrics"]["overall_completion_rate"] = round(
+                (report["metrics"]["completed"] / report["metrics"]["total_outcomes"]) * 100, 2
+            )
+            report["metrics"]["overall_cancellation_rate"] = round(
+                (report["metrics"]["cancelled"] / report["metrics"]["total_outcomes"]) * 100, 2
+            )
         
         return report
     
+    def get_performance_dashboard(self):
+        """Generiere Dashboard-Daten für Visualisierung"""
+        dashboard = {
+            "generated_at": datetime.now(TZ).isoformat(),
+            "current_week": {
+                "number": datetime.now(TZ).isocalendar()[1],
+                "year": datetime.now(TZ).year
+            },
+            "last_7_days": {},
+            "last_30_days": {},
+            "trends": {},
+            "alerts": []
+        }
+        
+        # Lade Metriken
+        if os.path.exists(self.metrics_file):
+            with open(self.metrics_file, "r", encoding="utf-8") as f:
+                all_metrics = json.load(f)
+                
+                # Berechne 7-Tage Statistik
+                today = datetime.now(TZ).date()
+                last_7_days = [str(today - timedelta(days=i)) for i in range(7)]
+                
+                total_slots = 0
+                total_no_shows = 0
+                total_completed = 0
+                total_cancelled = 0
+                
+                for date_str in last_7_days:
+                    if date_str in all_metrics:
+                        metrics = all_metrics[date_str]
+                        total_slots += metrics.get("total_slots", 0)
+                        total_no_shows += metrics.get("no_shows", 0)
+                        total_completed += metrics.get("completed", 0)
+                        total_cancelled += metrics.get("cancelled", 0)
+                
+                if total_slots > 0:
+                    dashboard["last_7_days"] = {
+                        "total_slots": total_slots,
+                        "no_shows": total_no_shows,
+                        "completed": total_completed,
+                        "cancelled": total_cancelled,
+                        "no_show_rate": round((total_no_shows / total_slots) * 100, 2),
+                        "completion_rate": round((total_completed / total_slots) * 100, 2),
+                        "cancellation_rate": round((total_cancelled / total_slots) * 100, 2)
+                    }
+                
+                # Trend-Analyse
+                if len(all_metrics) >= 14:
+                    # Vergleiche letzte 7 Tage mit vorherigen 7 Tagen
+                    prev_7_days = [str(today - timedelta(days=i)) for i in range(7, 14)]
+                    
+                    prev_no_show_rate = 0
+                    prev_count = 0
+                    
+                    for date_str in prev_7_days:
+                        if date_str in all_metrics:
+                            metrics = all_metrics[date_str]
+                            if metrics.get("total_slots", 0) > 0:
+                                prev_no_show_rate += metrics.get("no_show_rate", 0)
+                                prev_count += 1
+                    
+                    if prev_count > 0:
+                        prev_no_show_rate = prev_no_show_rate / prev_count
+                        current_no_show_rate = dashboard["last_7_days"].get("no_show_rate", 0)
+                        
+                        dashboard["trends"]["no_show_trend"] = {
+                            "current": current_no_show_rate,
+                            "previous": round(prev_no_show_rate, 2),
+                            "change": round(current_no_show_rate - prev_no_show_rate, 2),
+                            "direction": "up" if current_no_show_rate > prev_no_show_rate else "down"
+                        }
+                
+                # Alerts
+                if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
+                    dashboard["alerts"].append({
+                        "type": "warning",
+                        "message": f"Hohe No-Show Rate: {dashboard['last_7_days']['no_show_rate']}%",
+                        "severity": "high"
+                    })
+        
+        return dashboard
+    
     def _get_potential_type(self, color_id):
         """Mappe Color ID zu Potential Type"""
-        mapping = {
-            "2": "normal",
-            "7": "top",
-            "5": "closer_needed",
-            "3": "recall",
-            "11": "no_show",
-            "6": "cancelled"
-        }
-        return mapping.get(str(color_id), "unknown")
+        return POTENTIAL_TYPES.get(str(color_id), "unknown")
+
+# ----------------- Utility Funktionen -----------------
+def recalculate_all_outcomes():
+    """
+    Neuberechnung aller Outcomes mit korrigiertem Mapping
+    Nützlich nach Änderung der Farb-Logik
+    """
+    tracker = BookingTracker()
+    
+    # Lösche alte Outcomes
+    if os.path.exists(tracker.outcomes_file):
+        os.rename(tracker.outcomes_file, tracker.outcomes_file + ".backup")
+    
+    # Lösche alte Metriken
+    if os.path.exists(tracker.metrics_file):
+        os.rename(tracker.metrics_file, tracker.metrics_file + ".backup")
+    
+    print("🔄 Recalculating all outcomes with new color mapping...")
+    
+    # Berechne die letzten 30 Tage neu
+    today = datetime.now(TZ).date()
+    for i in range(30):
+        check_date = today - timedelta(days=i)
+        tracker.check_daily_outcomes(check_date)
+    
+    print("✅ Recalculation complete!")
 
 # ----------------- Cron Job Function -----------------
 def run_daily_outcome_check():
@@ -335,45 +653,39 @@ def run_daily_outcome_check():
     
     print(f"✅ Daily outcome check completed at {datetime.now(TZ).strftime('%H:%M')}")
     
-    # Sende Alert bei vielen No-Shows
-    if outcomes > 0:
-        metrics_file = os.path.join(tracker.data_dir, "daily_metrics.json")
-        if os.path.exists(metrics_file):
-            with open(metrics_file, "r", encoding="utf-8") as f:
-                metrics = json.load(f)
-                today_metrics = metrics.get(str(today), {})
-                
-                if today_metrics.get("no_show_rate", 0) > 20:  # Mehr als 20% No-Shows
-                    print(f"⚠️ ALERT: High no-show rate today: {today_metrics['no_show_rate']}%")
-                    # Hier könnte eine Email/Slack Notification gesendet werden
-
-# ----------------- Integration in slot_booking_webapp.py -----------------
-"""
-Füge diese Zeilen in slot_booking_webapp.py ein:
-
-from tracking_system import BookingTracker
-
-# In der book() Funktion nach erfolgreicher Buchung:
-if result:
-    # Tracking hinzufügen
-    tracker = BookingTracker()
-    tracker.track_booking(
-        customer_name=f"{last}, {first}",
-        date=date,
-        time_slot=hour,
-        user=user,
-        color_id=color_id,
-        description=description
-    )
+    # Generiere Dashboard
+    dashboard = tracker.get_performance_dashboard()
     
-    # Rest der Funktion...
-"""
+    # Sende Alert bei vielen No-Shows
+    if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
+        print(f"⚠️ ALERT: High no-show rate (7 days): {dashboard['last_7_days']['no_show_rate']}%")
+        # Hier könnte eine Email/Slack Notification gesendet werden
+    
+    # Generiere Wochenbericht am Montag
+    if datetime.now(TZ).weekday() == 0:  # Montag
+        last_week = datetime.now(TZ).isocalendar()[1] - 1
+        report = tracker.get_weekly_report(last_week)
+        
+        report_file = os.path.join(tracker.data_dir, f"weekly_report_{last_week}.json")
+        with open(report_file, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        
+        print(f"📊 Weekly report generated: {report_file}")
 
 if __name__ == "__main__":
-    # Test: Führe täglichen Check aus
-    run_daily_outcome_check()
+    import sys
     
-    # Test: Hole Kundenhistorie
-    tracker = BookingTracker()
-    history = tracker.get_customer_history("Müller")
-    print(json.dumps(history, indent=2, ensure_ascii=False))
+    if len(sys.argv) > 1 and sys.argv[1] == "--recalculate":
+        # Neuberechnung aller Outcomes
+        recalculate_all_outcomes()
+    else:
+        # Normaler täglicher Check
+        run_daily_outcome_check()
+        
+        # Test: Hole Kundenhistorie
+        tracker = BookingTracker()
+        
+        # Beispiel: Dashboard anzeigen
+        dashboard = tracker.get_performance_dashboard()
+        print("\n📊 Performance Dashboard:")
+        print(json.dumps(dashboard, indent=2, ensure_ascii=False))
