@@ -126,13 +126,151 @@
       from { transform: translateY(10px); opacity: 0; }
     }
     
-    /* Slot Hover Effect */
+    /* Kollabierbare Slot-Styles */
     .time-section {
       transition: all 0.3s ease;
+      margin-bottom: 12px;
+      overflow: hidden;
     }
-    .time-section:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    
+    .time-section.collapsible {
+      padding: 0;
+    }
+    
+    /* Farbcodierte Header basierend auf Verfügbarkeit */
+    .slot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    
+    /* Farbcodierung für Header */
+    .time-section.green .slot-header {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
+      border-color: rgba(16,185,129,0.25);
+    }
+    
+    .time-section.yellow .slot-header {
+      background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(234,179,8,0.03));
+      border-color: rgba(234,179,8,0.25);
+    }
+    
+    .time-section.orange .slot-header {
+      background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(249,115,22,0.03));
+      border-color: rgba(249,115,22,0.25);
+    }
+    
+    .time-section.red .slot-header {
+      background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.03));
+      border-color: rgba(239,68,68,0.25);
+    }
+    
+    .slot-header:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .slot-header-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .slot-time {
+      font-size: 16px;
+      min-width: 120px;
+      font-weight: 600;
+    }
+    
+    .slot-stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    
+    .stat-item {
+      white-space: nowrap;
+    }
+    
+    .stat-divider {
+      opacity: 0.3;
+    }
+    
+    /* Status-Badges */
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .status-badge.available {
+      background: rgba(16,185,129,0.15);
+      color: #10b981;
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    
+    .status-badge.limited {
+      background: rgba(234,179,8,0.15);
+      color: #eab308;
+      border: 1px solid rgba(234,179,8,0.3);
+    }
+    
+    .status-badge.full {
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    
+    .slot-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-icon {
+      font-size: 12px;
+      transition: transform 0.3s ease;
+      color: var(--muted);
+    }
+    
+    .time-section.expanded .toggle-icon {
+      transform: rotate(180deg);
+    }
+    
+    .slot-content {
+      padding: 16px;
+      border-top: 1px solid var(--box-border);
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
     /* Form Submit Animation */
@@ -273,6 +411,45 @@
       border-color: var(--accent);
       background: rgba(90,177,255,0.1);
     }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .slot-header-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      
+      .slot-stats {
+        font-size: 12px;
+      }
+    }
+    
+    /* Visueller Indikator für Abendtermine */
+    .time-section[data-hour="18:00"],
+    .time-section[data-hour="20:00"] {
+      position: relative;
+    }
+    
+    .time-section[data-hour="18:00"]::before {
+      content: "🌆 Abend";
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--box-bg);
+      padding: 2px 8px;
+      border-radius: 6px;
+      z-index: 1;
+    }
+    
+    /* Highlight Animation */
+    @keyframes highlight {
+      0% { box-shadow: 0 0 0 0 rgba(90,177,255,0.5); }
+      50% { box-shadow: 0 0 20px 10px rgba(90,177,255,0.3); }
+      100% { box-shadow: 0 0 0 0 rgba(90,177,255,0); }
+    }
   </style>
 </head>
 <body>
@@ -311,7 +488,7 @@
       <span class="shortcut"><kbd>P</kbd></span>
     </div>
     <div class="action-item" data-action="next-day">
-      <span➡️ Nächster Tag</span>
+      <span>➡️ Nächster Tag</span>
       <span class="shortcut"><kbd>→</kbd></span>
     </div>
     <div class="action-item" data-action="prev-day">
@@ -377,8 +554,8 @@
     <section class="glass panel">
       <h2>🔗 Quick Links</h2>
       <div class="external-links">
-        <a href="https://calendar.google.com" target="_blank">
-          📅 Google Kalender öffnen
+        <a href="https://calendar.google.com/calendar/u/0/r?cid=emVudHJhbGthbGVuZGVyemZhQGdtYWlsLmNvbQ" target="_blank">
+          📅 Zentralkalender öffnen
         </a>
         <a href="{{ url_for('my_calendar') }}">
           📋 Meine Buchungen
@@ -425,7 +602,7 @@
       {% endif %}
     </section>
 
-    <!-- Buchung -->
+    <!-- Buchung mit kollabierbaren Slots -->
     <section id="buchung" class="glass panel">
       <h2>📝 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
       <div class="nav">
@@ -434,6 +611,19 @@
             {{ d.strftime('%a, %d.%m') }}
           </a>
         {% endfor %}
+      </div>
+
+      <!-- Schnell-Actions -->
+      <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button onclick="expandAll()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
+          ➕ Alle aufklappen
+        </button>
+        <button onclick="collapseAll()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
+          ➖ Alle zuklappen
+        </button>
+        <button onclick="jumpToEvening()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
+          🌙 Zu Abendterminen
+        </button>
       </div>
 
       {% for hour, slot in slots.items() %}
@@ -451,50 +641,80 @@
           {% set color = 'yellow' %}
         {% endif %}
 
-        <div class="time-section {{ color }}">
-          <div class="info" style="width:100%;">
-            <div><strong>🕒 {{ hour }} Uhr</strong></div>
-            <div>
-              Berater verfügbar: <strong>{{ slot.available_beraters }}</strong> | 
-              Kapazität: <strong>{{ total }}</strong> Plätze | 
-              Gebucht: <strong>{{ booked }}</strong>
+        <div class="time-section {{ color }} collapsible" data-hour="{{ hour }}">
+          <!-- Kollabierbare Header-Zeile -->
+          <div class="slot-header" onclick="toggleSlot(this)">
+            <div class="slot-header-info">
+              <span class="slot-time">
+                <strong>🕒 {{ hour }} Uhr</strong>
+              </span>
+              <span class="slot-stats">
+                <span class="stat-item">👥 {{ slot.available_beraters }} Berater</span>
+                <span class="stat-divider">|</span>
+                <span class="stat-item">📊 {{ total }} Plätze</span>
+                <span class="stat-divider">|</span>
+                <span class="stat-item">
+                  {% if slot.free_count == 0 %}
+                    <span class="status-badge full">❌ Ausgebucht</span>
+                  {% elif slot.free_count <= 2 %}
+                    <span class="status-badge limited">⚠️ Nur {{ slot.free_count }} frei</span>
+                  {% else %}
+                    <span class="status-badge available">✅ {{ slot.free_count }} frei</span>
+                  {% endif %}
+                </span>
+              </span>
             </div>
+            <div class="slot-toggle">
+              <span class="toggle-icon">▼</span>
+            </div>
+          </div>
 
-            {% if slot.overbooked %}
-              <div style="color: var(--red); font-weight: bold; margin: 5px 0;">
-                ⚠️ ACHTUNG: Überbuchung! Es sind zu wenige Berater für {{ booked }} Termine!
+          <!-- Ausklappbarer Inhalt -->
+          <div class="slot-content" style="display: none;">
+            <div class="info" style="width:100%;">
+              <div style="margin-bottom: 10px;">
+                Detaillierte Übersicht: 
+                <strong>{{ slot.available_beraters }}</strong> Berater verfügbar | 
+                <strong>{{ total }}</strong> Kapazität | 
+                <strong>{{ booked }}</strong> bereits gebucht
               </div>
-            {% elif slot.free_count == 0 %}
-              <div style="color:#ccc; font-style: italic;">
-                ⚠️ Alle {{ total }} Slots um {{ hour }} Uhr sind bereits belegt.
-              </div>
-            {% else %}
-              <div style="color: var(--green); margin: 5px 0;">
-                ✅ Noch {{ slot.free_count }} von {{ total }} Slots verfügbar
-              </div>
-            {% endif %}
 
-            {% if not slot.overbooked and slot.free_count > 0 %}
-              {% for s in slot.events %}
-                <div class="slot">
-                  <form method="POST" action="{{ url_for('book') }}" onsubmit="showLoading()">
-                    <input type="hidden" name="slot_id" value="{{ s.id }}">
-                    <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                    <input type="hidden" name="hour" value="{{ hour }}">
-                    <input type="text" name="first_name" placeholder="Vorname" required maxlength="50">
-                    <input type="text" name="last_name" placeholder="Nachname" required maxlength="50">
-                    <textarea name="description" placeholder="Beschreibung (optional)" maxlength="500"></textarea>
-                    <select name="color" required style="margin-left:8px;">
-                      <option value="2">🟢 Normales Potential</option>
-                      <option value="7">🔵 Top Potential</option>
-                      <option value="5">🟡 Closer nötig</option>
-<option value="3">🟣 Rückholung</option>
-                    </select>
-                    <button type="submit">Slot buchen</button>
-                  </form>
+              {% if slot.overbooked %}
+                <div style="color: var(--red); font-weight: bold; margin: 10px 0;">
+                  ⚠️ ACHTUNG: Überbuchung! Es sind zu wenige Berater für {{ booked }} Termine!
                 </div>
-              {% endfor %}
-            {% endif %}
+              {% elif slot.free_count == 0 %}
+                <div style="color:#ccc; font-style: italic; margin: 10px 0;">
+                  ⚠️ Alle {{ total }} Slots um {{ hour }} Uhr sind bereits belegt.
+                </div>
+              {% else %}
+                <div style="color: var(--green); margin: 10px 0;">
+                  ✅ Noch {{ slot.free_count }} von {{ total }} Slots verfügbar
+                </div>
+              {% endif %}
+
+              {% if not slot.overbooked and slot.free_count > 0 %}
+                {% for s in slot.events %}
+                  <div class="slot" style="margin-top: 15px;">
+                    <form method="POST" action="{{ url_for('book') }}" onsubmit="showLoading()">
+                      <input type="hidden" name="slot_id" value="{{ s.id }}">
+                      <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                      <input type="hidden" name="hour" value="{{ hour }}">
+                      <input type="text" name="first_name" placeholder="Vorname" required maxlength="50">
+                      <input type="text" name="last_name" placeholder="Nachname" required maxlength="50">
+                      <textarea name="description" placeholder="Beschreibung (optional)" maxlength="500"></textarea>
+                      <select name="color" required style="margin-left:8px;">
+                        <option value="2">🟢 Normales Potential</option>
+                        <option value="7">🔵 Top Potential</option>
+                        <option value="5">🟡 Closer nötig</option>
+                        <option value="3">🟣 Rückholung</option>
+                      </select>
+                      <button type="submit">Slot buchen</button>
+                    </form>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
           </div>
         </div>
       {% endfor %}
@@ -519,10 +739,55 @@
       popup.querySelector('.text').textContent = message;
       popup.style.display = 'block';
       
-      // Entferne nach Animation
       setTimeout(() => {
         popup.style.display = 'none';
       }, 2000);
+    }
+    
+    // Toggle einzelnen Slot
+    function toggleSlot(header) {
+      const section = header.parentElement;
+      const content = section.querySelector('.slot-content');
+      const isExpanded = section.classList.contains('expanded');
+      
+      if (isExpanded) {
+        content.style.display = 'none';
+        section.classList.remove('expanded');
+      } else {
+        content.style.display = 'block';
+        section.classList.add('expanded');
+      }
+    }
+    
+    // Alle aufklappen
+    function expandAll() {
+      document.querySelectorAll('.time-section.collapsible').forEach(section => {
+        section.classList.add('expanded');
+        section.querySelector('.slot-content').style.display = 'block';
+      });
+    }
+    
+    // Alle zuklappen
+    function collapseAll() {
+      document.querySelectorAll('.time-section.collapsible').forEach(section => {
+        section.classList.remove('expanded');
+        section.querySelector('.slot-content').style.display = 'none';
+      });
+    }
+    
+    // Zu Abendterminen springen
+    function jumpToEvening() {
+      const eveningSlot = document.querySelector('[data-hour="18:00"]');
+      if (eveningSlot) {
+        eveningSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!eveningSlot.classList.contains('expanded')) {
+          toggleSlot(eveningSlot.querySelector('.slot-header'));
+        }
+        eveningSlot.style.animation = 'highlight 1s ease';
+        setTimeout(() => {
+          eveningSlot.style.animation = '';
+        }, 1000);
+      }
     }
     
     // Enhanced Form Submit with Loading States
@@ -534,7 +799,6 @@
         this.classList.add('submitting');
         showLoading('Buchung wird verarbeitet...');
         
-        // Success wird vom Server via Flash Message getriggert
         setTimeout(() => {
           if (document.querySelector('.flash-success')) {
             showSuccess();
@@ -569,6 +833,11 @@
           document.getElementById('kbdHint').classList.remove('show');
         }, 5000);
       }, 3000);
+      
+      // Auf Mobile standardmäßig zugeklappt
+      if (window.innerWidth < 768) {
+        collapseAll();
+      }
     });
     
     modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
@@ -702,6 +971,18 @@
           case 'p':
             e.preventDefault();
             window.location.href = "{{ url_for('scoreboard') }}";
+            break;
+          case 'e':
+            e.preventDefault();
+            jumpToEvening();
+            break;
+          case '+':
+            e.preventDefault();
+            expandAll();
+            break;
+          case '-':
+            e.preventDefault();
+            collapseAll();
             break;
           case 'arrowright':
             e.preventDefault();
