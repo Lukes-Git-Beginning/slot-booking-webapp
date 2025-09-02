@@ -3,9 +3,9 @@
   "year": 2025,
   "metrics": {
     "total_bookings": 0,
-    "total_outcomes": 77,
-    "no_shows": 44,
-    "completed": 17,
+    "total_outcomes": 114,
+    "no_shows": 69,
+    "completed": 27,
     "by_day": {},
     "by_user": {},
     "top_no_show_times": [],
