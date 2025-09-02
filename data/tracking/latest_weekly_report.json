@@ -1,0 +1,14 @@
+{
+  "week": 36,
+  "year": 2025,
+  "metrics": {
+    "total_bookings": 0,
+    "total_outcomes": 40,
+    "no_shows": 19,
+    "completed": 13,
+    "by_day": {},
+    "by_user": {},
+    "top_no_show_times": [],
+    "top_success_times": []
+  }
+}

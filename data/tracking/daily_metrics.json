@@ -8,5 +8,75 @@
     "completed": 0,
     "by_day": {},
     "by_user": {}
+  },
+  "2025-09-02": {
+    "date": "2025-09-02",
+    "total_slots": 23,
+    "no_shows": 16,
+    "completed": 2,
+    "cancelled": 0,
+    "by_hour": {
+      "11:00": {
+        "total": 6,
+        "no_shows": 3
+      },
+      "14:00": {
+        "total": 1,
+        "no_shows": 1
+      },
+      "15:00": {
+        "total": 1,
+        "no_shows": 0
+      },
+      "16:00": {
+        "total": 1,
+        "no_shows": 1
+      },
+      "18:00": {
+        "total": 3,
+        "no_shows": 3
+      },
+      "20:00": {
+        "total": 11,
+        "no_shows": 8
+      }
+    },
+    "by_user": {},
+    "calculated_at": "2025-09-02T21:09:57.163666+02:00",
+    "no_show_rate": 69.57,
+    "completion_rate": 8.7
+  },
+  "2025-09-01": {
+    "date": "2025-09-01",
+    "total_slots": 17,
+    "no_shows": 3,
+    "completed": 11,
+    "cancelled": 0,
+    "by_hour": {
+      "11:00": {
+        "total": 3,
+        "no_shows": 0
+      },
+      "14:00": {
+        "total": 2,
+        "no_shows": 0
+      },
+      "16:00": {
+        "total": 2,
+        "no_shows": 0
+      },
+      "18:00": {
+        "total": 3,
+        "no_shows": 0
+      },
+      "20:00": {
+        "total": 7,
+        "no_shows": 3
+      }
+    },
+    "by_user": {},
+    "calculated_at": "2025-09-02T21:09:57.393738+02:00",
+    "no_show_rate": 17.65,
+    "completion_rate": 64.71
   }
 }
