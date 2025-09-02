@@ -13,7 +13,7 @@
     "date": "2025-09-02",
     "total_slots": 23,
     "no_shows": 16,
-    "completed": 6,
+    "completed": 7,
     "cancelled": 0,
     "by_hour": {
       "11:00": {
@@ -42,15 +42,15 @@
       }
     },
     "by_user": {},
-    "calculated_at": "2025-09-02T21:17:37.257281+02:00",
+    "calculated_at": "2025-09-02T21:18:54.405633+02:00",
     "no_show_rate": 69.57,
-    "completion_rate": 26.09
+    "completion_rate": 30.43
   },
   "2025-09-01": {
     "date": "2025-09-01",
     "total_slots": 14,
     "no_shows": 9,
-    "completed": 4,
+    "completed": 5,
     "cancelled": 0,
     "by_hour": {
       "11:00": {
@@ -75,8 +75,8 @@
       }
     },
     "by_user": {},
-    "calculated_at": "2025-09-02T21:17:37.590657+02:00",
+    "calculated_at": "2025-09-02T21:18:54.689651+02:00",
     "no_show_rate": 64.29,
-    "completion_rate": 28.57
+    "completion_rate": 35.71
   }
 }
