@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>🔒 Dashboard Gesperrt - Datensammlung läuft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  
+  <style>
+    .locked-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    
+    .lock-animation {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(90,177,255,0.2), rgba(139,92,246,0.2));
+      border: 2px solid rgba(90,177,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      animation: pulse 2s ease infinite;
+      position: relative;
+    }
+    
+    .lock-animation::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(90,177,255,0.2);
+      animation: ripple 2s ease infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes ripple {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+    
+    .locked-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    
+    .locked-subtitle {
+      font-size: 18px;
+      color: var(--muted);
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+    
+    .progress-section {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .progress-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text-color);
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #3d8bfd);
+      border-radius: 6px;
+      transition: width 0.5s ease;
+      position: relative;
+    }
+    
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s ease infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .progress-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .progress-stat {
+      text-align: center;
+      padding: 15px;
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius-md);
+    }
+    
+    .progress-stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+    
+    .progress-stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    
+    .countdown {
+      background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05));
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: var(--radius-lg);
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+    
+    .countdown-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #10b981;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .countdown-timer {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 15px;
+    }
+    
+    .countdown-unit {
+      text-align: center;
+      padding: 15px;
+      background: rgba(16,185,129,0.1);
+      border-radius: var(--radius-md);
+      min-width: 80px;
+    }
+    
+    .countdown-number {
+      font-size: 24px;
+      font-weight: 700;
+      color: #10b981;
+      margin-bottom: 5px;
+    }
+    
+    .countdown-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    
+    .features-preview {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .features-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text-color);
+      text-align: center;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .feature-card {
+      padding: 20px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      text-align: left;
+    }
+    
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 15px;
+    }
+    
+    .feature-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-color);
+    }
+    
+    .feature-description {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .back-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(90,177,255,0.4);
+    }
+    
+    .data-collection-status {
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: var(--radius-md);
+      color: #f59e0b;
+    }
+    
+    .status-icon {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .countdown-timer {
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      
+      .countdown-unit {
+        min-width: 70px;
+        padding: 12px;
+      }
+      
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .progress-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="locked-container">
+    
+    <div class="lock-animation">
+      🔒
+    </div>
+    
+    <h1 class="locked-title">Dashboard wird vorbereitet...</h1>
+    <p class="locked-subtitle">
+      Das Admin Analytics Dashboard sammelt gerade Daten für aussagekräftige Machine Learning Insights.
+      <br>Nach 30 Tagen Laufzeit stehen umfassende Statistiken und Vorhersage-Modelle zur Verfügung.
+    </p>
+    
+    <!-- Progress Section -->
+    <div class="progress-section">
+      <h3 class="progress-title">📊 Datensammlung Fortschritt</h3>
+      
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ (days_running / 30 * 100)|round(1) }}%;"></div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <span style="color: var(--muted);">Tag {{ days_running }}</span>
+        <span style="color: var(--accent); font-weight: 600;">{{ (days_running / 30 * 100)|round(1) }}% Komplett</span>
+        <span style="color: var(--muted);">Tag 30</span>
+      </div>
+      
+      <div class="progress-stats">
+        <div class="progress-stat">
+          <div class="progress-stat-value">{{ days_running }}</div>
+          <div class="progress-stat-label">Tage Online</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-stat-value">{{ days_remaining }}</div>
+          <div class="progress-stat-label">Tage Verbleibend</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-stat-value">~{{ (days_running * 10)|round(0) }}</div>
+          <div class="progress-stat-label">Datenpunkte</div>
+        </div>
+        <div class="progress-stat">
+          <div class="progress-stat-value">ML</div>
+          <div class="progress-stat-label">Ready Soon</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Countdown -->
+    <div class="countdown">
+      <h3 class="countdown-title">
+        ⏰ Freischaltung in
+      </h3>
+      
+      <div class="countdown-timer" id="countdown">
+        <div class="countdown-unit">
+          <div class="countdown-number" id="days">{{ days_remaining }}</div>
+          <div class="countdown-label">Tage</div>
+        </div>
+        <div class="countdown-unit">
+          <div class="countdown-number" id="hours">0</div>
+          <div class="countdown-label">Stunden</div>
+        </div>
+        <div class="countdown-unit">
+          <div class="countdown-number" id="minutes">0</div>
+          <div class="countdown-label">Minuten</div>
+        </div>
+      </div>
+      
+      <p style="text-align: center; margin: 0; color: var(--muted);">
+        Freischaltung erfolgt automatisch nach 30 Tagen Betrieb
+      </p>
+    </div>
+    
+    <!-- Features Preview -->
+    <div class="features-preview">
+      <h3 class="features-title">🚀 Verfügbare Features nach Freischaltung</h3>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h4 class="feature-name">Performance Analytics</h4>
+          <p class="feature-description">
+            Detaillierte Statistiken zu No-Show Raten, Erfolgsquoten und Trends über Zeit.
+          </p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h4 class="feature-name">Machine Learning Insights</h4>
+          <p class="feature-description">
+            KI-gestützte Vorhersagen für No-Show Wahrscheinlichkeiten und optimale Terminzeiten.
+          </p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <h4 class="feature-name">Kunden-Risiko-Analyse</h4>
+          <p class="feature-description">
+            Automatische Klassifizierung von Kunden nach Zuverlässigkeit und Risiko-Level.
+          </p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h4 class="feature-name">Interaktive Charts</h4>
+          <p class="feature-description">
+            Grafische Darstellung aller Metriken mit Drill-Down Funktionalität.
+          </p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h4 class="feature-name">Pattern Recognition</h4>
+          <p class="feature-description">
+            Erkennung von Mustern in Buchungsverhalten und automatische Empfehlungen.
+          </p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📥</div>
+          <h4 class="feature-name">Daten Export</h4>
+          <p class="feature-description">
+            Vollständiger Export aller Daten für externe Analyse-Tools und ML-Frameworks.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Current Status -->
+    <div class="data-collection-status">
+      <div style="text-align: center;">
+        <span class="status-icon">🔄</span>
+        <strong>Datensammlung aktiv:</strong> Das System sammelt bereits wertvolle Daten für ML-Analysen.
+        Je mehr Daten gesammelt werden, desto genauer werden die späteren Vorhersagen.
+      </div>
+    </div>
+    
+    <!-- Back Button -->
+    <div style="margin-top: 40px;">
+      <a href="{{ url_for('index') }}" class="back-button">
+        <i class="ti ti-arrow-left"></i>
+        Zurück zur Hauptanwendung
+      </a>
+    </div>
+    
+  </div>
+  
+  <script>
+    // Countdown Timer
+    function updateCountdown() {
+      const now = new Date();
+      const startDate = new Date('2025-09-01'); // Startdatum anpassen
+      const targetDate = new Date(startDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // +30 Tage
+      
+      const difference = targetDate - now;
+      
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        
+        document.getElementById('days').textContent = days;
+        document.getElementById('hours').textContent = hours;
+        document.getElementById('minutes').textContent = minutes;
+      } else {
+        // Freigegeben - Seite neu laden
+        location.reload();
+      }
+    }
+    
+    // Update alle Minute
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+    
+    // Progress Bar Animation beim Laden
+    window.addEventListener('load', function() {
+      const progressFill = document.querySelector('.progress-fill');
+      const targetWidth = parseFloat(progressFill.style.width);
+      progressFill.style.width = '0%';
+      
+      setTimeout(() => {
+        progressFill.style.width = targetWidth + '%';
+      }, 500);
+    });
+  </script>
+</body>
+</html>
