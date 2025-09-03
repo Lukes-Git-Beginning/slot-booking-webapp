@@ -637,17 +637,7 @@ body.darkmode .achievement-notification {
       background: rgba(90,177,255,0.1);
     }
     
-    /* Admin Dashboard Link Styling */
-    .admin-dashboard-link {
-      background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
-      color: white !important;
-      border-color: #ff6b6b !important;
-    }
-    
-    .admin-dashboard-link:hover {
-      background: linear-gradient(135deg, #ee5a24, #ff6b6b) !important;
-      transform: translateY(-2px);
-    }
+
     
     /* Mobile Responsive */
     @media (max-width: 768px) {
@@ -724,12 +714,7 @@ body.darkmode .achievement-notification {
       <span>🏆 Scoreboard</span>
       <span class="shortcut"><kbd>P</kbd></span>
     </div>
-    {% if session.get('user') in ['admin', 'administrator', 'Jose', 'Simon'] %}
-    <div class="action-item" data-action="admin-dashboard">
-      <span>🤖 Admin Dashboard</span>
-      <span class="shortcut"><kbd>A</kbd></span>
-    </div>
-    {% endif %}
+
     <div class="action-item" data-action="next-day">
       <span>➡️ Nächster Tag</span>
       <span class="shortcut"><kbd>→</kbd></span>
@@ -809,14 +794,7 @@ body.darkmode .achievement-notification {
         <a href="{{ url_for('badges') }}">
           🎖️ Badges
         </a>
-        {% if session.get('user') in ['admin', 'administrator', 'Jose', 'Simon'] %}
-        <a href="/admin/simple" class="admin-dashboard-link">
-          🤖 Admin Dashboard
-        </a>
-        <a href="/admin/fix-points" class="admin-dashboard-link" style="background: linear-gradient(135deg, #10b981, #059669) !important; border-color: #10b981 !important;">
-          🔧 Punkte Fix
-        </a>
-        {% endif %}
+
       </div>
     </section>
 
@@ -1396,11 +1374,7 @@ document.addEventListener('keydown', function(e) {
           case 'scoreboard':
             window.location.href = "{{ url_for('scoreboard') }}";
             break;
-          case 'admin-dashboard':
-            {% if session.get('user') in ['admin', 'administrator', 'Jose', 'Simon'] %}
-            window.location.href = "{{ url_for('admin_dashboard') }}";
-            {% endif %}
-            break;
+
           case 'next-day':
             navigateDay(1);
             break;
@@ -1476,12 +1450,7 @@ document.addEventListener('keydown', function(e) {
             e.preventDefault();
             window.location.href = "{{ url_for('scoreboard') }}";
             break;
-          case 'a':
-            e.preventDefault();
-            {% if session.get('user') in ['admin', 'administrator', 'Jose', 'Simon'] %}
-            window.location.href = "{{ url_for('admin_dashboard') }}";
-            {% endif %}
-            break;
+
           case 'e':
             e.preventDefault();
             jumpToEvening();
