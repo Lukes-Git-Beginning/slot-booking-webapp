@@ -461,6 +461,10 @@
       <div class="running-time">
         ✨ System läuft seit {{ days_running }} Tagen
       </div>
+      <div class="color-status-info" style="margin-top: 15px; font-size: 0.9em; color: var(--muted);">
+        🎨 Color-Mapping: {{ color_status.total_colors }} Farben konfiguriert 
+        ({{ color_status.blocking|length }} blockierend, {{ color_status.non_blocking|length }} nicht-blockierend)
+      </div>
     </div>
     
     <!-- Quick Actions -->
@@ -544,6 +548,39 @@
       <h3 class="chart-title">🎯 Kunden-Risiko Verteilung</h3>
       <div class="chart-canvas">
         <canvas id="riskChart"></canvas>
+      </div>
+    </div>
+    
+    <!-- Color-Mapping Status -->
+    <div class="color-mapping-section" style="margin-bottom: 30px;">
+      <h3 class="chart-title">🎨 Color-Mapping Status</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <!-- Blockierende Farben -->
+        <div class="color-group">
+          <h4 style="color: var(--red); margin-bottom: 15px;">🚫 Blockierende Farben ({{ color_status.blocking|length }})</h4>
+          <div style="display: grid; gap: 8px;">
+            {% for color in color_status.blocking %}
+            <div style="background: var(--box-bg); padding: 10px; border-radius: 8px; border-left: 4px solid var(--red);">
+              <strong>{{ color.name }}</strong> (ID: {{ color.id }})<br>
+              <small style="color: var(--muted);">{{ color.description }}</small>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <!-- Nicht-blockierende Farben -->
+        <div class="color-group">
+          <h4 style="color: var(--green); margin-bottom: 15px;">✅ Nicht-blockierende Farben ({{ color_status.non_blocking|length }})</h4>
+          <div style="display: grid; gap: 8px;">
+            {% for color in color_status.non_blocking %}
+            <div style="background: var(--box-bg); padding: 10px; border-radius: 8px; border-left: 4px solid var(--green);">
+              <strong>{{ color.name }}</strong> (ID: {{ color.id }})<br>
+              <small style="color: var(--muted);">{{ color.description }}</small>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
     
