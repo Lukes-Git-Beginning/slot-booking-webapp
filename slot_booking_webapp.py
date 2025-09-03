@@ -116,6 +116,33 @@ def get_app_runtime_days():
     days_running = (datetime.now(TZ) - app_start_localized).days
     return max(0, days_running)  # Keine negativen Tage
 
+def get_color_mapping_status():
+    """Gebe Color-Mapping Status für Admin Dashboard zurück"""
+    from color_mapping import CALENDAR_COLORS, NON_BLOCKING_COLORS, BLOCKING_COLORS
+    
+    blocking_colors = []
+    non_blocking_colors = []
+    
+    for color_id, info in CALENDAR_COLORS.items():
+        if info.get("blocks_availability", True):
+            blocking_colors.append({
+                "id": color_id,
+                "name": info["name"],
+                "description": info["description"]
+            })
+        else:
+            non_blocking_colors.append({
+                "id": color_id,
+                "name": info["name"],
+                "description": info["description"]
+            })
+    
+    return {
+        "blocking": blocking_colors,
+        "non_blocking": non_blocking_colors,
+        "total_colors": len(CALENDAR_COLORS)
+    }
+
 def get_userlist():
     userlist_raw = os.environ.get("USERLIST", "")
     userdict = {}
@@ -215,8 +242,11 @@ def extract_weekly_summary(availability, current_date=None):
                         dt = datetime.fromisoformat(event["start"]["dateTime"])
                         # Nur zukünftige Events zählen
                         if dt.date() >= today:
-                            key = week_key_from_date(dt)
-                            week_booked[key] += 1
+                            # WICHTIG: Prüfe ob Event die Verfügbarkeit blockiert
+                            color_id = event.get("colorId", "2")  # Default: Grün
+                            if blocks_availability(color_id):  # Nur blockierende Events zählen
+                                key = week_key_from_date(dt)
+                                week_booked[key] += 1
                     except Exception as e:
                         print(f"Fehler beim Parsen von Event-Zeit: {e}")
                         continue
@@ -332,6 +362,7 @@ def get_slot_suggestions(availability, n=5):
 
 # ----------------- Punkte & Champion -----------------
 from achievement_system import achievement_system
+from color_mapping import blocks_availability
 
 def add_points_to_user(user, points):
     """
@@ -1406,6 +1437,9 @@ def admin_dashboard():
         
         # ML Insights (Vorbereitung)
         ml_insights = prepare_ml_insights(tracker)
+        
+        # Color-Mapping Status für Berater
+        color_status = get_color_mapping_status()
         
         return render_template("admin_dashboard.html",
                              dashboard=dashboard_data,

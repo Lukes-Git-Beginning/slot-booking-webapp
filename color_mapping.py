@@ -64,11 +64,34 @@ CALENDAR_COLORS = {
         "potential_type": "cancelled",
         "blocks_availability": False,  # WICHTIG: Blockiert NICHT die Verfügbarkeit
         "description": "Abgesagt - Termin storniert"
+    },
+    
+    # Häufige Berater-Änderungen (NICHT blockierend)
+    "4": {
+        "name": "Lavendel",
+        "outcome": "no_show",
+        "potential_type": "no_t1",
+        "blocks_availability": False,
+        "description": "Kein T1 bekommen - Berater-Änderung"
+    },
+    "8": {
+        "name": "Pekoe",
+        "outcome": "completed",
+        "potential_type": "customer_name",
+        "blocks_availability": False,
+        "description": "Kundennamen eingetragen - Berater-Änderung"
+    },
+    "1": {
+        "name": "Lavendel",
+        "outcome": "completed", 
+        "potential_type": "custom",
+        "blocks_availability": False,
+        "description": "Berater-Notiz - Blockiert nicht"
     }
 }
 
 # Farben die NICHT blockieren (für Availability Check)
-NON_BLOCKING_COLORS = ["11", "6"]
+NON_BLOCKING_COLORS = ["11", "6", "4", "8", "1"]
 
 # Farben die blockieren (für Availability Check)  
 BLOCKING_COLORS = ["2", "7", "5", "3", "9", "10"]
