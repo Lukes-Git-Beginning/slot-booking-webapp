@@ -16,7 +16,7 @@ TZ = pytz.timezone("Europe/Berlin")
 ACHIEVEMENT_DEFINITIONS = {
     # Tägliche Punkte Badges
     "daily_10": {
-        "name": "Starter 🌱",
+        "name": "Anfänger 🌱",
         "description": "10 Punkte an einem Tag erreicht",
         "category": "daily",
         "threshold": 10,
@@ -40,7 +40,7 @@ ACHIEVEMENT_DEFINITIONS = {
         "rarity": "rare"
     },
     "daily_60": {
-        "name": "Legend 👑",
+        "name": "Legende 👑",
         "description": "60 Punkte an einem Tag erreicht",
         "category": "daily",
         "threshold": 60,
@@ -92,17 +92,83 @@ ACHIEVEMENT_DEFINITIONS = {
     # Streak Badges
     "streak_2": {
         "name": "Konstant 🔥",
-        "description": "2 Tage in Folge aktiv",
+        "description": "2 Arbeitstage in Folge aktiv",
         "category": "streak",
         "threshold": 2,
         "emoji": "🔥",
         "rarity": "common"
     },
     "streak_5": {
-        "name": "Unaufhaltbar 🚀",
-        "description": "5 Tage in Folge aktiv", 
+        "name": "Durchhalter 💪",
+        "description": "5 Arbeitstage in Folge aktiv",
         "category": "streak",
         "threshold": 5,
+        "emoji": "💪",
+        "rarity": "uncommon"
+    },
+    "streak_10": {
+        "name": "Eiserner Wille ⚡",
+        "description": "10 Arbeitstage in Folge aktiv",
+        "category": "streak",
+        "threshold": 10,
+        "emoji": "⚡",
+        "rarity": "rare"
+    },
+    
+    # All-Time Total Badges
+    "total_50": {
+        "name": "Anfänger 📈",
+        "description": "Insgesamt 50 Kunden gelegt",
+        "category": "total",
+        "threshold": 50,
+        "emoji": "📈",
+        "rarity": "common"
+    },
+    "total_100": {
+        "name": "Erfahren 🎯",
+        "description": "Insgesamt 100 Kunden gelegt",
+        "category": "total",
+        "threshold": 100,
+        "emoji": "🎯",
+        "rarity": "uncommon"
+    },
+    "total_150": {
+        "name": "Profi 🏆",
+        "description": "Insgesamt 150 Kunden gelegt",
+        "category": "total",
+        "threshold": 150,
+        "emoji": "🏆",
+        "rarity": "rare"
+    },
+    "total_250": {
+        "name": "Erfahrener ⚔️",
+        "description": "Insgesamt 250 Kunden gelegt",
+        "category": "total",
+        "threshold": 250,
+        "emoji": "⚔️",
+        "rarity": "epic"
+    },
+    "total_500": {
+        "name": "Meister 👑",
+        "description": "Insgesamt 500 Kunden gelegt",
+        "category": "total",
+        "threshold": 500,
+        "emoji": "👑",
+        "rarity": "legendary"
+    },
+    "total_1000": {
+        "name": "Legende 💎",
+        "description": "Insgesamt 1000 Kunden gelegt",
+        "category": "total",
+        "threshold": 1000,
+        "emoji": "💎",
+        "rarity": "mythic"
+    },
+    "streak_7": {
+        "name": "Unaufhaltbar 🚀",
+        "description": "7 Arbeitstage in Folge aktiv", 
+        "category": "streak",
+        "threshold": 7,
         "emoji": "🚀",
         "rarity": "rare"
     },
@@ -257,7 +323,16 @@ class AchievementSystem:
                     if new_badge:
                         new_badges.append(new_badge)
         
-        # 4. Spezielle Badges prüfen
+        # 4. All-Time Total Badges prüfen
+        total_bookings = sum(stats.get("bookings", 0) for stats in user_stats.values())
+        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+            if definition["category"] == "total" and badge_id not in user_badges:
+                if total_bookings >= definition["threshold"]:
+                    new_badge = self.award_badge(user, badge_id, definition, badges_data)
+                    if new_badge:
+                        new_badges.append(new_badge)
+        
+        # 5. Spezielle Badges prüfen
         self.check_special_badges(user, user_stats, badges_data, new_badges)
         
         # 5. MVP Badges werden separat vergeben (siehe check_and_award_mvp_badges)
@@ -332,17 +407,22 @@ class AchievementSystem:
         return week_points
     
     def calculate_streak(self, user_stats):
-        """Berechne aktuelle Streak (aufeinanderfolgende Tage mit Aktivität)"""
+        """Berechne aktuelle Streak (aufeinanderfolgende Arbeitstage mit Aktivität)"""
         today = datetime.now(TZ).date()
         streak = 0
         
         # Gehe rückwärts durch die Tage
-        for i in range(30):  # Max 30 Tage zurück prüfen
-            check_date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-            if check_date in user_stats and user_stats[check_date].get("points", 0) > 0:
-                streak += 1
-            else:
-                break
+        for i in range(60):  # Max 60 Tage zurück prüfen (für längere Streaks)
+            check_date = (today - timedelta(days=i))
+            
+            # Nur Arbeitstage berücksichtigen (Montag-Freitag)
+            if check_date.weekday() < 5:  # 0=Montag, 4=Freitag
+                check_date_str = check_date.strftime("%Y-%m-%d")
+                if check_date_str in user_stats and user_stats[check_date_str].get("points", 0) > 0:
+                    streak += 1
+                else:
+                    break  # Streak unterbrochen
+            # Wochenenden überspringen - Streak bleibt bestehen
         
         return streak
     

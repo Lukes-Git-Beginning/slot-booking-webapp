@@ -1631,9 +1631,17 @@ def admin_fix_points():
         
         # Prüfe welche Buchungen noch keine Punkte haben
         fixed_count = 0
+        already_processed = set()  # Verhindere Doppelvergabe
+        
         for booking in all_bookings:
             user_name = booking.get("user")
             if user_name and user_name != "unknown":
+                # Erstelle eindeutige ID für diese Buchung
+                booking_id = f"{booking.get('date')}_{booking.get('time')}_{user_name}"
+                
+                if booking_id in already_processed:
+                    continue  # Bereits verarbeitet
+                
                 # Berechne Punkte für diese Buchung
                 time_slot = booking.get("time")
                 date = booking.get("date")
@@ -1646,17 +1654,22 @@ def admin_fix_points():
                             # Vergebe Punkte
                             new_badges = add_points_to_user(user_name, points)
                             fixed_count += 1
+                            already_processed.add(booking_id)
                             print(f"✅ Punkte vergeben: {user_name} +{points} für {date} {time_slot}")
                             
                     except Exception as e:
                         print(f"❌ Fehler bei Buchung {booking.get('id', 'unknown')}: {e}")
         
-        flash(f"✅ {fixed_count} Buchungen mit Punkten versehen!", "success")
+        if fixed_count > 0:
+            flash(f"✅ {fixed_count} Buchungen mit Punkten versehen!", "success")
+        else:
+            flash("ℹ️ Keine neuen Buchungen für Punkte-Vergabe gefunden.", "info")
         
     except Exception as e:
         flash(f"❌ Fehler beim Punkte-Fix: {e}", "danger")
     
-    return redirect(url_for("admin_dashboard"))
+    # Zurück zur Hauptseite statt zum gesperrten Dashboard
+    return redirect(url_for("index"))
 
 # API Endpoints für Badge System
 @app.route("/api/user/badges")
