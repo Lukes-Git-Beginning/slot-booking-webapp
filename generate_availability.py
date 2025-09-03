@@ -20,8 +20,7 @@ CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
 TZ = pytz.timezone("Europe/Berlin")
 
 # Google Calendar Farben die NICHT blockieren sollen
-# 11 = Tomate (rot), 6 = Mandarine (orange)
-NON_BLOCKING_COLORS = ["11", "6"]
+from color_mapping import NON_BLOCKING_COLORS
 
 weekday_map = {
     'Monday': 'Mo',
