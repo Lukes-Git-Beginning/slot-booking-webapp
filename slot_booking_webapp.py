@@ -9,9 +9,16 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from creds_loader import load_google_credentials
-
-# NEW: Achievement System Import
-from achievement_system import achievement_system, ACHIEVEMENT_DEFINITIONS
+import matplotlib
+matplotlib.use('Agg')  # Für Server ohne Display
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import io
+import base64
+from matplotlib.dates import DateFormatter
+from collections import defaultdict
+import numpy as np
 
 # ----------------- Flask Setup -----------------
 app = Flask(__name__)
@@ -66,6 +73,28 @@ def safe_calendar_call(func, *args, **kwargs):
                 return None
             time.sleep(2 ** attempt)
     return None
+# 2. ADMIN-CHECK FUNKTIONEN
+
+def is_admin(user):
+    """Prüft ob User Admin-Rechte hat"""
+    admin_users = ["admin", "administrator", "Jose", "Simon"]  # <-- HIER DEINEN USERNAME HINZUFÜGEN!
+    return user and user.lower() in admin_users
+
+def check_admin_access():
+    """Decorator-ähnliche Funktion für Admin-Check"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return False
+    return True
+
+def get_app_runtime_days():
+    """Berechnet wie lange die App schon läuft"""
+    app_start_date = datetime(2025, 10, 1)
+    app_start_localized = TZ.localize(app_start_date)
+    
+    days_running = (datetime.now(TZ) - app_start_localized).days
+    return max(0, days_running)  # Keine negativen Tage
 
 def get_userlist():
     userlist_raw = os.environ.get("USERLIST", "")
@@ -268,8 +297,7 @@ def get_slot_suggestions(availability, n=5):
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
 # ----------------- Punkte & Champion -----------------
-def add_points_to_user(user, points, slot_time="", context=""):
-    """Erweiterte Punkte-Vergabe mit Achievement-System"""
+def add_points_to_user(user, points):
     try:
         with open("static/scores.json", "r", encoding="utf-8") as f:
             scores = json.load(f)
@@ -285,21 +313,8 @@ def add_points_to_user(user, points, slot_time="", context=""):
             json.dump(scores, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Fehler beim Speichern der Punkte: {e}")
-    
-    # NEU: Prüfe Achievements
-    new_badges = achievement_system.add_points_and_check_achievements(
-        user, points, slot_time, context
-    )
-    
-    # Speichere neue Badges in Session für Popup-Anzeige
-    if new_badges:
-        session.setdefault('new_badges', []).extend(new_badges)
-        print(f"🎉 {len(new_badges)} neue Badges für {user}: {[b['name'] for b in new_badges]}")
-    
-    return new_badges
 
 def check_and_set_champion():
-    """Prüfe und setze Champion für den letzten Monat"""
     now = datetime.now(TZ)
     last_month = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
     
@@ -318,8 +333,7 @@ def check_and_set_champion():
     except (FileNotFoundError, json.JSONDecodeError):
         scores = {}
     
-    month_scores = [(u, v.get(last_month, 0)) for u, v in scores.items() 
-                   if u.lower() not in [x.lower() for x in EXCLUDE_CHAMPION_USERS]]
+    month_scores = [(u, v.get(last_month, 0)) for u, v in scores.items() if u.lower() not in EXCLUDE_CHAMPION_USERS]
     month_scores = [x for x in month_scores if x[1] > 0]
     month_scores.sort(key=lambda x: x[1], reverse=True)
     
@@ -335,14 +349,400 @@ def check_and_set_champion():
     return None
 
 def get_champion_for_month(month):
-    """Hole Champion für einen bestimmten Monat"""
     try:
         with open("static/champions.json", "r", encoding="utf-8") as f:
-            champions = json.load(f)
-        return champions.get(month)
+            return json.load(f).get(month)
     except (FileNotFoundError, json.JSONDecodeError):
         return None
+def load_detailed_metrics():
+    """Lade und berechne detaillierte Metriken"""
+    try:
+        metrics_file = "data/tracking/daily_metrics.json"
+        if not os.path.exists(metrics_file):
+            return {"no_show_trend": [], "completion_trend": [], "dates": []}
+            
+        with open(metrics_file, "r", encoding="utf-8") as f:
+            all_metrics = json.load(f)
+        
+        # Berechne Trends der letzten 14 Tage
+        dates = sorted(all_metrics.keys())[-14:]
+        
+        trends = {
+            "no_show_trend": [],
+            "completion_trend": [],
+            "dates": dates
+        }
+        
+        for date in dates:
+            if date in all_metrics:
+                trends["no_show_trend"].append(all_metrics[date].get("no_show_rate", 0))
+                trends["completion_trend"].append(all_metrics[date].get("completion_rate", 0))
+            else:
+                trends["no_show_trend"].append(0)
+                trends["completion_trend"].append(0)
+        
+        return trends
+        
+    except Exception as e:
+        print(f"❌ Error loading detailed metrics: {e}")
+        return {"no_show_trend": [], "completion_trend": [], "dates": []}
 
+def generate_dashboard_charts(tracker):
+    """Generiere Chart-Daten für Frontend"""
+    charts = {
+        "time_series": {"dates": [], "no_show_rates": [], "completion_rates": []},
+        "hourly_performance": {"hours": [], "no_show_rates": []},
+        "risk_distribution": {"low": 0, "medium": 0, "high": 0}
+    }
+    
+    try:
+        # 1. Time Series Chart
+        metrics_file = tracker.metrics_file
+        if os.path.exists(metrics_file):
+            with open(metrics_file, "r", encoding="utf-8") as f:
+                metrics = json.load(f)
+            
+            dates = sorted(metrics.keys())[-30:]  # Letzte 30 Tage
+            for date in dates:
+                if date in metrics:
+                    charts["time_series"]["dates"].append(
+                        datetime.strptime(date, "%Y-%m-%d").strftime("%d.%m")
+                    )
+                    charts["time_series"]["no_show_rates"].append(
+                        metrics[date].get("no_show_rate", 0)
+                    )
+                    charts["time_series"]["completion_rates"].append(
+                        metrics[date].get("completion_rate", 0)
+                    )
+        
+        # 2. Hourly Performance
+        if os.path.exists(tracker.outcomes_file):
+            hour_performance = defaultdict(lambda: {"total": 0, "no_shows": 0})
+            
+            with open(tracker.outcomes_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        outcome = json.loads(line)
+                        hour = outcome["time"][:2]
+                        hour_performance[hour]["total"] += 1
+                        if outcome["outcome"] == "no_show":
+                            hour_performance[hour]["no_shows"] += 1
+                    except:
+                        continue
+            
+            hours = sorted(hour_performance.keys())
+            for hour in hours:
+                data = hour_performance[hour]
+                if data["total"] > 0:  # Nur Stunden mit Daten
+                    rate = (data["no_shows"] / data["total"] * 100)
+                    charts["hourly_performance"]["hours"].append(f"{hour}:00")
+                    charts["hourly_performance"]["no_show_rates"].append(round(rate, 1))
+        
+        # 3. Risk Distribution
+        if os.path.exists(tracker.customer_file):
+            with open(tracker.customer_file, "r", encoding="utf-8") as f:
+                profiles = json.load(f)
+            
+            for profile in profiles.values():
+                risk_level = profile.get("risk_level", "low")
+                if risk_level in charts["risk_distribution"]:
+                    charts["risk_distribution"][risk_level] += 1
+        
+    except Exception as e:
+        print(f"❌ Error generating charts: {e}")
+    
+    return charts
+
+def get_customer_risk_analysis(tracker):
+    """Analysiere Kunden-Risiko Patterns"""
+    risk_analysis = {
+        "high_risk_customers": [],
+        "improvement_candidates": [],
+        "loyal_customers": [],
+        "new_customers": []
+    }
+    
+    try:
+        if not os.path.exists(tracker.customer_file):
+            return risk_analysis
+            
+        with open(tracker.customer_file, "r", encoding="utf-8") as f:
+            profiles = json.load(f)
+        
+        for customer, profile in profiles.items():
+            total_appointments = profile.get("total_appointments", 0)
+            reliability_score = profile.get("reliability_score", 0)
+            no_shows = profile.get("no_shows", 0)
+            
+            customer_data = {
+                "name": customer[:50],  # Begrenzte Länge für UI
+                "no_shows": no_shows,
+                "total_appointments": total_appointments,
+                "reliability_score": reliability_score
+            }
+            
+            if no_shows >= 3:
+                risk_analysis["high_risk_customers"].append(customer_data)
+            elif total_appointments <= 2:
+                risk_analysis["new_customers"].append(customer_data)
+            elif reliability_score >= 80:
+                risk_analysis["loyal_customers"].append(customer_data)
+            elif 40 <= reliability_score < 80:
+                risk_analysis["improvement_candidates"].append(customer_data)
+        
+        # Sortiere Listen
+        risk_analysis["high_risk_customers"].sort(key=lambda x: x["no_shows"], reverse=True)
+        risk_analysis["loyal_customers"].sort(key=lambda x: x["reliability_score"], reverse=True)
+        
+        # Limitiere für UI Performance
+        for key in risk_analysis:
+            risk_analysis[key] = risk_analysis[key][:20]  # Max 20 pro Kategorie
+        
+    except Exception as e:
+        print(f"❌ Error in risk analysis: {e}")
+    
+    return risk_analysis
+
+def prepare_ml_insights(tracker):
+    """Vorbereitung für Machine Learning Insights"""
+    ml_insights = {
+        "data_readiness": check_data_readiness(tracker),
+        "pattern_detection": detect_basic_patterns(tracker),
+        "prediction_readiness": assess_prediction_readiness(tracker),
+        "recommended_models": get_recommended_models()
+    }
+    
+    return ml_insights
+
+def check_data_readiness(tracker):
+    """Prüfe ob genug Daten für ML vorhanden sind"""
+    try:
+        bookings_count = 0
+        outcomes_count = 0
+        
+        if os.path.exists(tracker.bookings_file):
+            bookings_count = sum(1 for _ in open(tracker.bookings_file, 'r', encoding='utf-8'))
+        
+        if os.path.exists(tracker.outcomes_file):
+            outcomes_count = sum(1 for _ in open(tracker.outcomes_file, 'r', encoding='utf-8'))
+        
+        customers = 0
+        if os.path.exists(tracker.customer_file):
+            with open(tracker.customer_file, 'r', encoding='utf-8') as f:
+                customers = len(json.load(f))
+        
+        days_with_data = 0
+        if os.path.exists(tracker.metrics_file):
+            with open(tracker.metrics_file, 'r', encoding='utf-8') as f:
+                days_with_data = len(json.load(f))
+        
+        # Scoring basierend auf Datenmenge
+        readiness_score = min(100, (
+            min(bookings_count / 1000, 1) * 25 +  # Min 1000 Bookings für 25%
+            min(outcomes_count / 800, 1) * 25 +    # Min 800 Outcomes für 25%
+            min(customers / 200, 1) * 25 +         # Min 200 Customers für 25%
+            min(days_with_data / 30, 1) * 25       # Min 30 Days für 25%
+        ))
+        
+        return {
+            "score": round(readiness_score, 1),
+            "bookings": bookings_count,
+            "outcomes": outcomes_count,
+            "customers": customers,
+            "days": days_with_data,
+            "ready_for_ml": readiness_score >= 75
+        }
+        
+    except Exception as e:
+        print(f"❌ Error checking data readiness: {e}")
+        return {"score": 0, "ready_for_ml": False, "bookings": 0, "outcomes": 0, "customers": 0, "days": 0}
+
+def detect_basic_patterns(tracker):
+    """Erkenne grundlegende Patterns in den Daten"""
+    patterns = {
+        "time_patterns": {},
+        "day_patterns": {},
+        "seasonal_patterns": {},
+        "customer_patterns": {}
+    }
+    
+    try:
+        if not os.path.exists(tracker.outcomes_file):
+            return patterns
+            
+        # Analysiere Outcomes nach Stunden
+        hour_stats = defaultdict(lambda: {"total": 0, "no_shows": 0})
+        day_stats = defaultdict(lambda: {"total": 0, "no_shows": 0})
+        
+        with open(tracker.outcomes_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    outcome = json.loads(line)
+                    hour = int(outcome["time"][:2])
+                    date_obj = datetime.strptime(outcome["date"], "%Y-%m-%d")
+                    day_name = date_obj.strftime("%A")
+                    
+                    hour_stats[hour]["total"] += 1
+                    day_stats[day_name]["total"] += 1
+                    
+                    if outcome["outcome"] == "no_show":
+                        hour_stats[hour]["no_shows"] += 1
+                        day_stats[day_name]["no_shows"] += 1
+                except:
+                    continue
+        
+        # Beste und schlechteste Stunden
+        hour_rates = {}
+        for hour, stats in hour_stats.items():
+            if stats["total"] >= 5:  # Nur bei genug Daten
+                rate = (stats["no_shows"] / stats["total"]) * 100
+                hour_rates[hour] = round(rate, 1)
+        
+        if hour_rates:
+            patterns["time_patterns"] = {
+                "best_hour": min(hour_rates, key=hour_rates.get),
+                "worst_hour": max(hour_rates, key=hour_rates.get),
+                "hour_rates": hour_rates
+            }
+        
+        # Tag-Pattern
+        day_rates = {}
+        for day, stats in day_stats.items():
+            if stats["total"] >= 3:
+                rate = (stats["no_shows"] / stats["total"]) * 100
+                day_rates[day] = round(rate, 1)
+        
+        if day_rates:
+            patterns["day_patterns"] = {
+                "best_day": min(day_rates, key=day_rates.get),
+                "worst_day": max(day_rates, key=day_rates.get),
+                "day_rates": day_rates
+            }
+        
+    except Exception as e:
+        print(f"❌ Error detecting patterns: {e}")
+    
+    return patterns
+
+def assess_prediction_readiness(tracker):
+    """Bewerte wie bereit das System für Predictions ist"""
+    try:
+        if not os.path.exists(tracker.outcomes_file):
+            return {
+                "ready": False,
+                "reason": "Keine Outcome-Daten verfügbar",
+                "confidence": "low"
+            }
+        
+        # Prüfe Datenqualität und -menge
+        with open(tracker.outcomes_file, 'r', encoding='utf-8') as f:
+            outcomes = []
+            for line in f:
+                try:
+                    outcomes.append(json.loads(line))
+                except:
+                    continue
+        
+        if len(outcomes) < 100:
+            return {
+                "ready": False,
+                "reason": f"Nicht genug Daten ({len(outcomes)} von mind. 100 Outcomes)",
+                "confidence": "low"
+            }
+        
+        # Prüfe Datenverteilung
+        outcome_distribution = defaultdict(int)
+        for outcome in outcomes:
+            outcome_distribution[outcome["outcome"]] += 1
+        
+        total_outcomes = len(outcomes)
+        no_show_rate = outcome_distribution["no_show"] / total_outcomes if total_outcomes > 0 else 0
+        
+        if no_show_rate < 0.05 or no_show_rate > 0.8:
+            return {
+                "ready": False,
+                "reason": f"Unbalanced data (No-Show Rate: {no_show_rate*100:.1f}%)",
+                "confidence": "medium",
+                "data_points": total_outcomes,
+                "no_show_rate": round(no_show_rate * 100, 1)
+            }
+        
+        return {
+            "ready": True,
+            "confidence": "high" if len(outcomes) >= 500 else "medium",
+            "data_points": len(outcomes),
+            "no_show_rate": round(no_show_rate * 100, 1)
+        }
+        
+    except Exception as e:
+        return {"ready": False, "reason": f"Error: {str(e)}", "confidence": "low"}
+
+def get_recommended_models():
+    """Empfehle ML-Modelle basierend auf dem Use Case"""
+    return [
+        {
+            "name": "Logistic Regression",
+            "use_case": "No-Show Prediction",
+            "complexity": "Low",
+            "accuracy_expectation": "70-80%",
+            "implementation_effort": "Easy"
+        },
+        {
+            "name": "Random Forest",
+            "use_case": "Customer Risk Classification",
+            "complexity": "Medium",
+            "accuracy_expectation": "75-85%",
+            "implementation_effort": "Medium"
+        },
+        {
+            "name": "XGBoost",
+            "use_case": "Advanced Pattern Recognition",
+            "complexity": "High",
+            "accuracy_expectation": "80-90%",
+            "implementation_effort": "High"
+        }
+    ]
+
+# Placeholder Funktionen (für spätere Implementierung)
+def analyze_time_patterns(tracker):
+    return {"status": "In development"}
+
+def analyze_customer_behavior(tracker):
+    return {"champions_count": 12, "loyals_count": 28, "potential_count": 15, "risk_count": 8}
+
+def analyze_success_factors(tracker):
+    return {"status": "In development"}
+
+def generate_predictions(tracker):
+    return {"status": "In development"}
+
+def generate_recommendations(tracker):
+    return {"status": "In development"}
+
+def load_jsonl_data(file_path):
+    """Lade JSONL Daten sicher"""
+    try:
+        data = []
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    try:
+                        data.append(json.loads(line))
+                    except:
+                        continue
+        return data
+    except:
+        return []
+
+def load_json_data(file_path):
+    """Lade JSON Daten sicher"""
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {}
+    except:
+        return {}
 # ----------------- Routes -----------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -412,83 +812,15 @@ def day_view(date_str):
 def index():
     return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
-# ----------------- NEW: Achievement API Routes -----------------
-@app.route("/api/user/badges")
-def api_user_badges():
-    """API: Hole User-Badges für Frontend"""
-    user = session.get("user")
-    if not user:
-        return jsonify({"error": "Not authenticated"}), 401
-    
-    user_badges = achievement_system.get_user_badges(user)
-    
-    # Neue Badges aus Session holen (für Popups)
-    new_badges = session.pop('new_badges', [])
-    
-    return jsonify({
-        "user": user,
-        "badges": user_badges["badges"],
-        "total_badges": user_badges["total_badges"],
-        "new_badges": new_badges,  # Für Popups
-        "achievement_definitions": ACHIEVEMENT_DEFINITIONS
-    })
-
-@app.route("/api/user/badges/mark-seen", methods=["POST"])
-def api_mark_badges_seen():
-    """API: Markiere neue Badges als gesehen (schließt Popups)"""
-    session.pop('new_badges', [])
-    return jsonify({"status": "success"})
-
-@app.route("/badges")
-def badges():
-    """Zeige alle verfügbaren Badges und User-Progress"""
-    user = session.get("user")
-    if not user:
+@app.route("/export/bookings/<month>")
+def export_bookings(month):
+    """Exportiere Buchungen als CSV"""
+    if session.get("user") != "admin":
         return redirect(url_for("login"))
     
-    user_badges_data = achievement_system.get_user_badges(user)
-    user_badges_ids = [badge["id"] for badge in user_badges_data["badges"]]
-    
-    # Erstelle Progress-Übersicht
-    badge_progress = {}
-    daily_stats = achievement_system.load_daily_stats()
-    user_stats = daily_stats.get(user, {})
-    
-    for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
-        progress = {"earned": badge_id in user_badges_ids}
-        
-        if not progress["earned"] and "threshold" in definition:
-            if definition["category"] == "daily":
-                today = datetime.now(TZ).strftime("%Y-%m-%d")
-                current = user_stats.get(today, {}).get("points", 0)
-                progress.update({
-                    "current": current,
-                    "target": definition["threshold"],
-                    "progress_percent": min(100, (current / definition["threshold"]) * 100)
-                })
-            elif definition["category"] == "weekly":
-                current = achievement_system.calculate_week_points(user_stats)
-                progress.update({
-                    "current": current,
-                    "target": definition["threshold"],
-                    "progress_percent": min(100, (current / definition["threshold"]) * 100)
-                })
-            elif definition["category"] == "streak":
-                current = achievement_system.calculate_streak(user_stats)
-                progress.update({
-                    "current": current,
-                    "target": definition["threshold"],
-                    "progress_percent": min(100, (current / definition["threshold"]) * 100)
-                })
-        
-        badge_progress[badge_id] = progress
-    
-    return render_template("badges.html",
-                         user_badges=user_badges_data["badges"],
-                         total_badges=user_badges_data["total_badges"],
-                         available_badges=ACHIEVEMENT_DEFINITIONS,
-                         badge_progress=badge_progress,
-                         current_user=user)
+    # Hole alle Buchungen des Monats
+    # Erstelle CSV
+    # Return als Download
 
 @app.route("/book", methods=["POST"])
 def book():
@@ -544,41 +876,36 @@ def book():
     )
     
     if result:
+        # Tracking hinzufügen
+        try:
+            tracker = BookingTracker()
+            tracker.track_booking(
+                customer_name=f"{last}, {first}",
+                date=date,
+                time_slot=hour,
+                user=user or "unknown",
+                color_id=color_id,
+                description=description
+            )
+        except Exception as e:
+            print(f"❌ Tracking error: {e}")
+        
         if user and points > 0:
-            # ERWEITERT: Nutze neue Badge-erweiterte Funktion
-            new_badges = add_points_to_user(user, points, hour, f"booking_{date}_{hour}")
-            
-            # Flash-Message mit Badge-Info
-            badge_info = ""
-            if new_badges:
-                badge_names = [badge["name"] for badge in new_badges]
-                badge_info = f" 🎉 Neue Badge(s): {', '.join(badge_names)}!"
-            
-            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.{badge_info}", "success")
+            add_points_to_user(user, points)
+            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
         else:
             flash("Slot erfolgreich gebucht!", "success")
     else:
         flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
     
     return redirect(url_for("day_view", date_str=date))
-
-@app.route("/tracking/customer/<customer_name>")
-def customer_tracking(customer_name):
-    """Zeige Kundenhistorie"""
-    if session.get("user") != "admin":
-        return redirect(url_for("login"))
     
-    tracker = BookingTracker()
-    history = tracker.get_customer_history(customer_name)
-    return jsonify(history)
-
 @app.route("/tracking/report/weekly")
 def weekly_tracking_report():
     """Zeige Wochenbericht"""
     if session.get("user") != "admin":
         return redirect(url_for("login"))
     
-    tracker = BookingTracker()
     report = tracker.get_weekly_report()
     return jsonify(report)
     
@@ -596,34 +923,12 @@ def scoreboard():
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
     
-    # NEU: Badge-Daten hinzufügen
-    badges_data = achievement_system.load_badges()
-    badge_leaderboard = achievement_system.get_badge_leaderboard()
-    
-    # Erweitere Ranking um Badge-Informationen
-    enhanced_ranking = []
-    for name, points in ranking:
-        user_badges = badges_data.get(name, {"badges": []})["badges"]
-        # Hole nur die besten 3 Badges (höchste Seltenheit)
-        top_badges = sorted(user_badges, key=lambda x: {
-            "common": 1, "uncommon": 2, "rare": 3, 
-            "epic": 4, "legendary": 5, "mythic": 6
-        }.get(x["rarity"], 0), reverse=True)[:3]
-        
-        enhanced_ranking.append({
-            "name": name,
-            "points": points,
-            "badges": top_badges,
-            "total_badges": len(user_badges)
-        })
-    
     return render_template("scoreboard.html", 
-                         ranking=enhanced_ranking,  # Jetzt mit Badges
+                         ranking=ranking, 
                          user_score=user_score, 
                          month=month, 
                          current_user=user, 
-                         champion=champion,
-                         badge_leaderboard=badge_leaderboard)
+                         champion=champion)
 
 @app.route("/my-calendar")
 def my_calendar():
@@ -667,6 +972,142 @@ def my_calendar():
     
     my_events.sort(key=lambda e: (e["date"], e["hour"]))
     return render_template("my_calendar.html", my_events=my_events, user=user)
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    """Admin-only Dashboard mit Statistiken und ML-Vorbereitung"""
+    user = session.get("user")
+    
+    # Admin-Check
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    # Zeit-Check: Erst ab Tag 30 verfügbar
+    days_running = get_app_runtime_days()
+    
+    if days_running < 30:
+        days_remaining = 30 - days_running
+        flash(f"🕐 Dashboard verfügbar in {days_remaining} Tagen (ab 1 Monat Laufzeit)", "info")
+        return render_template("admin_locked.html", 
+                             days_remaining=days_remaining, 
+                             days_running=days_running)
+    
+    try:
+        # Initialisiere Tracking System
+        tracker = BookingTracker()
+        
+        # Hole Dashboard Daten
+        dashboard_data = tracker.get_performance_dashboard()
+        weekly_report = tracker.get_weekly_report()
+        
+        # Lade detaillierte Metriken
+        detailed_metrics = load_detailed_metrics()
+        
+        # Generiere Charts
+        charts = generate_dashboard_charts(tracker)
+        
+        # Hole Customer Risk Analysis
+        risk_analysis = get_customer_risk_analysis(tracker)
+        
+        # ML Insights (Vorbereitung)
+        ml_insights = prepare_ml_insights(tracker)
+        
+        return render_template("admin_dashboard.html",
+                             dashboard=dashboard_data,
+                             weekly_report=weekly_report,
+                             detailed_metrics=detailed_metrics,
+                             charts=charts,
+                             risk_analysis=risk_analysis,
+                             ml_insights=ml_insights,
+                             days_running=days_running)
+        
+    except Exception as e:
+        print(f"❌ Error in admin dashboard: {e}")
+        flash(f"Fehler beim Laden des Dashboards: {str(e)}", "danger")
+        return redirect(url_for("index"))
+
+@app.route("/admin/analytics/export")
+def export_analytics():
+    """Export aller Daten für ML-Analyse"""
+    user = session.get("user")
+    if not is_admin(user):
+        return jsonify({"error": "Access denied"}), 403
+    
+    try:
+        tracker = BookingTracker()
+        
+        # Sammle alle Daten
+        export_data = {
+            "bookings": load_jsonl_data(tracker.bookings_file),
+            "outcomes": load_jsonl_data(tracker.outcomes_file),
+            "customer_profiles": load_json_data(tracker.customer_file),
+            "daily_metrics": load_json_data(tracker.metrics_file),
+            "export_timestamp": datetime.now(TZ).isoformat(),
+            "total_records": 0,
+            "export_info": {
+                "app_runtime_days": get_app_runtime_days(),
+                "export_user": user,
+                "system_version": "1.0"
+            }
+        }
+        
+        # Zähle Records
+        export_data["total_records"] = (
+            len(export_data["bookings"]) + 
+            len(export_data["outcomes"]) + 
+            len(export_data["customer_profiles"])
+        )
+        
+        # Als JSON Download anbieten
+        from flask import Response
+        
+        response = Response(
+            json.dumps(export_data, ensure_ascii=False, indent=2),
+            mimetype='application/json',
+            headers={
+                'Content-Disposition': f'attachment; filename=ml_dataset_{datetime.now(TZ).strftime("%Y%m%d_%H%M%S")}.json'
+            }
+        )
+        
+        print(f"📁 Admin {user} exported {export_data['total_records']} records")
+        return response
+        
+    except Exception as e:
+        print(f"❌ Export error: {e}")
+        return jsonify({"error": f"Export failed: {str(e)}"}), 500
+
+@app.route("/admin/insights")
+def admin_insights():
+    """Detaillierte Insights und Predictions"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    # Zeit-Check
+    days_running = get_app_runtime_days()
+    if days_running < 30:
+        return redirect(url_for("admin_dashboard"))
+    
+    try:
+        tracker = BookingTracker()
+        
+        # Erweiterte Analysen
+        insights = {
+            "time_patterns": analyze_time_patterns(tracker),
+            "customer_behavior": analyze_customer_behavior(tracker),
+            "success_factors": analyze_success_factors(tracker),
+            "predictions": generate_predictions(tracker),
+            "recommendations": generate_recommendations(tracker)
+        }
+        
+        return render_template("admin_insights.html", insights=insights)
+        
+    except Exception as e:
+        print(f"❌ Error in insights: {e}")
+        flash(f"Fehler beim Laden der Insights: {str(e)}", "danger")
+        return redirect(url_for("admin_dashboard"))
 
 if __name__ == '__main__':
     app.run(debug=False)  # Debug auf False für Produktion!
