@@ -809,9 +809,14 @@ body.darkmode .achievement-notification {
         <a href="{{ url_for('badges') }}">
           🎖️ Badges
         </a>
-        <a href="{{ url_for('admin_dashboard') }}" class="admin-dashboard-link" style="display: {% if session.get('user') in ['admin', 'administrator', 'Jose', 'Simon'] %}inline-flex{% else %}none{% endif %};">
+        {% if session.get('user') in ['admin', 'administrator', 'Jose', 'Simon'] %}
+        <a href="/admin/simple" class="admin-dashboard-link">
           🤖 Admin Dashboard
         </a>
+        <a href="/admin/fix-points" class="admin-dashboard-link" style="background: linear-gradient(135deg, #10b981, #059669) !important; border-color: #10b981 !important;">
+          🔧 Punkte Fix
+        </a>
+        {% endif %}
       </div>
     </section>
 
