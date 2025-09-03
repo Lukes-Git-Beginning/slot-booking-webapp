@@ -417,6 +417,10 @@ def load_detailed_metrics():
         with open(metrics_file, "r", encoding="utf-8") as f:
             all_metrics = json.load(f)
         
+        # Prüfe ob all_metrics ein Dictionary ist
+        if not isinstance(all_metrics, dict):
+            return {"no_show_trend": [], "completion_trend": [], "dates": []}
+        
         # Berechne Trends der letzten 14 Tage
         dates = sorted(all_metrics.keys())[-14:]
         
@@ -427,7 +431,7 @@ def load_detailed_metrics():
         }
         
         for date in dates:
-            if date in all_metrics:
+            if date in all_metrics and isinstance(all_metrics[date], dict):
                 trends["no_show_trend"].append(all_metrics[date].get("no_show_rate", 0))
                 trends["completion_trend"].append(all_metrics[date].get("completion_rate", 0))
             else:
@@ -455,18 +459,26 @@ def generate_dashboard_charts(tracker):
             with open(metrics_file, "r", encoding="utf-8") as f:
                 metrics = json.load(f)
             
+            # Prüfe ob metrics ein Dictionary ist
+            if not isinstance(metrics, dict):
+                return charts
+            
             dates = sorted(metrics.keys())[-30:]  # Letzte 30 Tage
             for date in dates:
-                if date in metrics:
-                    charts["time_series"]["dates"].append(
-                        datetime.strptime(date, "%Y-%m-%d").strftime("%d.%m")
-                    )
-                    charts["time_series"]["no_show_rates"].append(
-                        metrics[date].get("no_show_rate", 0)
-                    )
-                    charts["time_series"]["completion_rates"].append(
-                        metrics[date].get("completion_rate", 0)
-                    )
+                if date in metrics and isinstance(metrics[date], dict):
+                    try:
+                        charts["time_series"]["dates"].append(
+                            datetime.strptime(date, "%Y-%m-%d").strftime("%d.%m")
+                        )
+                        charts["time_series"]["no_show_rates"].append(
+                            metrics[date].get("no_show_rate", 0)
+                        )
+                        charts["time_series"]["completion_rates"].append(
+                            metrics[date].get("completion_rate", 0)
+                        )
+                    except ValueError as e:
+                        print(f"❌ Error parsing date '{date}': {e}")
+                        continue
         
         # 2. Hourly Performance
         if os.path.exists(tracker.outcomes_file):
@@ -1378,8 +1390,8 @@ def admin_simple():
         # ML Insights (Vorbereitung)
         ml_insights = prepare_ml_insights(tracker)
         
-        return render_template("admin_dashboard.html",
-                             dashboard=dashboard_data,
+        return render_template("admin_dashboard_html.html",
+                             dashboard_data=dashboard_data,
                              weekly_report=weekly_report,
                              detailed_metrics=detailed_metrics,
                              charts=charts,
@@ -1389,7 +1401,7 @@ def admin_simple():
         
     except Exception as e:
         print(f"❌ Error in admin simple: {e}")
-        flash(f"Fehler beim Laden des Dashboards: {str(e)}", "danger")
+        flash(f"❌ Fehler beim Laden des Dashboards: {e}", "danger")
         return redirect(url_for("index"))
 
 @app.route("/admin/dashboard")
@@ -1402,10 +1414,10 @@ def admin_dashboard():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
-    # Zeit-Check: Erst ab Tag 30 verfügbar
+    # Zeit-Check: Erst ab Tag 30 verfügbar (temporär deaktiviert)
     days_running = get_app_runtime_days()
     
-    if days_running < 30:
+    if days_running < 30 and False:  # Temporär deaktiviert für Entwicklung
         days_remaining = 30 - days_running
         flash(f"🕐 Dashboard verfügbar in {days_remaining} Tagen (ab 1 Monat Laufzeit)", "info")
         return render_template("admin_locked.html", 
