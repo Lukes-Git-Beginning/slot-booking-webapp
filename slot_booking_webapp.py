@@ -126,8 +126,13 @@ def get_userlist():
     return userdict
 
 def get_week_days(anchor_date):
-    start = anchor_date - timedelta(days=anchor_date.weekday())
-    return [start + timedelta(days=i) for i in range(10) if (start + timedelta(days=i)).weekday() < 5]
+    """Zeige 3 Tage vor und nach dem aktuellen Tag (nur Werktage)"""
+    days = []
+    for i in range(-3, 4):  # -3 bis +3 Tage
+        check_date = anchor_date + timedelta(days=i)
+        if check_date.weekday() < 5:  # Nur Werktage (Montag-Freitag)
+            days.append(check_date)
+    return days
 
 def get_week_start(d):
     return d - timedelta(days=d.weekday())
@@ -1360,49 +1365,7 @@ def my_calendar():
     
     return render_template("my_calendar.html", my_events=my_events, user=user)
 
-@app.route("/admin/simple")
-def admin_simple():
-    """Einfache Admin-Seite ohne Zeit-Check"""
-    user = session.get("user")
-    
-    # Admin-Check
-    if not is_admin(user):
-        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
-        return redirect(url_for("login"))
-    
-    try:
-        # Initialisiere Tracking System
-        tracker = BookingTracker()
-        
-        # Hole Dashboard Daten
-        dashboard_data = tracker.get_performance_dashboard()
-        weekly_report = tracker.get_weekly_report()
-        
-        # Lade detaillierte Metriken
-        detailed_metrics = load_detailed_metrics()
-        
-        # Generiere Charts
-        charts = generate_dashboard_charts(tracker)
-        
-        # Hole Customer Risk Analysis
-        risk_analysis = get_customer_risk_analysis(tracker)
-        
-        # ML Insights (Vorbereitung)
-        ml_insights = prepare_ml_insights(tracker)
-        
-        return render_template("admin_dashboard_html.html",
-                             dashboard_data=dashboard_data,
-                             weekly_report=weekly_report,
-                             detailed_metrics=detailed_metrics,
-                             charts=charts,
-                             risk_analysis=risk_analysis,
-                             ml_insights=ml_insights,
-                             days_running=get_app_runtime_days())
-        
-    except Exception as e:
-        print(f"❌ Error in admin simple: {e}")
-        flash(f"❌ Fehler beim Laden des Dashboards: {e}", "danger")
-        return redirect(url_for("index"))
+
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
@@ -1414,10 +1377,10 @@ def admin_dashboard():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
-    # Zeit-Check: Erst ab Tag 30 verfügbar (temporär deaktiviert)
+    # Zeit-Check: Erst ab Tag 30 verfügbar
     days_running = get_app_runtime_days()
     
-    if days_running < 30 and False:  # Temporär deaktiviert für Entwicklung
+    if days_running < 30:
         days_remaining = 30 - days_running
         flash(f"🕐 Dashboard verfügbar in {days_remaining} Tagen (ab 1 Monat Laufzeit)", "info")
         return render_template("admin_locked.html", 
