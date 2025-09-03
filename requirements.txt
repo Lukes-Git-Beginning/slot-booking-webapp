@@ -40,6 +40,9 @@ numpy==2.3.0
 matplotlib==3.10.3
 seaborn==0.13.2
 
+# Export & Reporting
+reportlab==4.1.0
+
 # Utilities
 pytz==2025.2
 python-dotenv==1.1.0

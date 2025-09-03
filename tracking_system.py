@@ -52,30 +52,38 @@ class BookingTracker:
     
     def track_booking(self, customer_name, date, time_slot, user, color_id, description=""):
         """Tracke eine neue Buchung"""
-        booking_data = {
-            "id": f"{date}_{time_slot}_{customer_name}".replace(" ", "_"),
-            "timestamp": datetime.now(TZ).isoformat(),
-            "customer": customer_name,
-            "date": date,
-            "time": time_slot,
-            "weekday": datetime.strptime(date, "%Y-%m-%d").strftime("%A"),
-            "week_number": datetime.strptime(date, "%Y-%m-%d").isocalendar()[1],
-            "user": user,
-            "potential_type": self._get_potential_type(color_id),
-            "color_id": color_id,
-            "description_length": len(description) if description else 0,
-            "has_description": bool(description),
-            "booking_lead_time": (datetime.strptime(date, "%Y-%m-%d") - datetime.now(TZ).date()).days,
-            "booked_at_hour": datetime.now(TZ).hour,
-            "booked_on_weekday": datetime.now(TZ).strftime("%A")
-        }
-        
-        # Append to JSONL file
-        with open(self.bookings_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
-        
-        print(f"✅ Booking tracked: {customer_name} on {date} at {time_slot}")
-        return booking_data
+        try:
+            booking_data = {
+                "id": f"{date}_{time_slot}_{customer_name}".replace(" ", "_"),
+                "timestamp": datetime.now(TZ).isoformat(),
+                "customer": customer_name,
+                "date": date,
+                "time": time_slot,
+                "weekday": datetime.strptime(date, "%Y-%m-%d").strftime("%A"),
+                "week_number": datetime.strptime(date, "%Y-%m-%d").isocalendar()[1],
+                "user": user,
+                "potential_type": self._get_potential_type(color_id),
+                "color_id": color_id,
+                "description_length": len(description) if description else 0,
+                "has_description": bool(description),
+                "booking_lead_time": (datetime.strptime(date, "%Y-%m-%d") - datetime.now(TZ).date()).days,
+                "booked_at_hour": datetime.now(TZ).hour,
+                "booked_on_weekday": datetime.now(TZ).strftime("%A")
+            }
+            
+            # Stelle sicher, dass das Verzeichnis existiert
+            os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
+            
+            # Append to JSONL file mit Error Handling
+            with open(self.bookings_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
+            
+            print(f"✅ Booking tracked: {customer_name} on {date} at {time_slot}")
+            return booking_data
+            
+        except Exception as e:
+            print(f"❌ Error tracking booking: {e}")
+            return None
     
     def check_daily_outcomes(self, check_date=None):
         """
@@ -593,6 +601,41 @@ class BookingTracker:
     def _get_potential_type(self, color_id):
         """Mappe Color ID zu Potential Type"""
         return POTENTIAL_TYPES.get(str(color_id), "unknown")
+    
+    def get_user_bookings(self, user, start_date, end_date):
+        """
+        Hole alle Buchungen eines Users für einen bestimmten Zeitraum
+        """
+        try:
+            bookings = []
+            
+            if not os.path.exists(self.bookings_file):
+                return bookings
+            
+            with open(self.bookings_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            booking = json.loads(line)
+                            if booking.get("user") == user:
+                                booking_date = booking.get("date")
+                                if start_date <= booking_date <= end_date:
+                                    bookings.append({
+                                        "date": booking["date"],
+                                        "time_slot": booking["time"],
+                                        "customer_name": booking["customer"],
+                                        "color_id": booking["color_id"],
+                                        "description": booking.get("description", ""),
+                                        "potential_type": booking.get("potential_type", "unknown")
+                                    })
+                        except json.JSONDecodeError:
+                            continue
+            
+            return bookings
+            
+        except Exception as e:
+            print(f"❌ Fehler beim Laden der User-Buchungen: {e}")
+            return []
 
 # ----------------- Utility Funktionen -----------------
 def recalculate_all_outcomes():

@@ -421,6 +421,9 @@
       <a href="#export" class="action-btn">
         <i class="ti ti-download"></i> Daten Export
       </a>
+      <a href="#admin-tools" class="action-btn">
+        <i class="ti ti-tools"></i> Admin Tools
+      </a>
       <button class="action-btn" onclick="refreshDashboard()">
         <i class="ti ti-refresh"></i> Aktualisieren
       </button>
@@ -683,6 +686,26 @@
       <a href="{{ url_for('export_analytics') }}" class="export-btn">
         <i class="ti ti-download"></i>
         Vollständigen Datensatz exportieren (JSON)
+      </a>
+    </div>
+    
+    <!-- Admin Tools Section -->
+    <div class="export-section" id="admin-tools">
+      <h3>🔧 Admin Tools</h3>
+      <p style="color: var(--muted); margin-bottom: 20px;">
+        Spezielle Admin-Funktionen für Systemwartung und Datenkorrektur.
+      </p>
+      <a href="{{ url_for('admin_fix_points') }}" class="export-btn" style="background: #f59e0b;">
+        <i class="ti ti-trophy"></i>
+        Punkte für getrackte Buchungen vergeben
+      </a>
+      <a href="{{ url_for('admin_export_csv') }}" class="export-btn" style="background: #10b981;">
+        <i class="ti ti-file-spreadsheet"></i>
+        CSV Export (ZIP)
+      </a>
+      <a href="{{ url_for('admin_export_pdf') }}" class="export-btn" style="background: #ef4444;">
+        <i class="ti ti-file-text"></i>
+        PDF Report
       </a>
     </div>
     
