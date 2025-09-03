@@ -473,6 +473,71 @@ class AchievementSystem:
         leaderboard.sort(key=lambda x: (x["rarity_points"], x["total_badges"]), reverse=True)
         
         return leaderboard
+    
+    def get_all_badge_definitions(self):
+        """Gebe alle Badge-Definitionen zurück"""
+        return ACHIEVEMENT_DEFINITIONS
+    
+    def get_user_badge_progress(self, user):
+        """Berechne den Fortschritt eines Users für alle Badges"""
+        progress = {}
+        daily_stats = self.load_daily_stats()
+        user_stats = daily_stats.get(user, {})
+        
+        today = datetime.now(TZ).strftime("%Y-%m-%d")
+        today_points = user_stats.get(today, {}).get("points", 0)
+        
+        # Berechne Wochenpunkte
+        week_start = datetime.now(TZ) - timedelta(days=datetime.now(TZ).weekday())
+        week_points = 0
+        for date_str, stats in user_stats.items():
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if date_obj >= week_start.date():
+                    week_points += stats.get("points", 0)
+            except:
+                continue
+        
+        # Berechne Streak
+        current_streak = self.calculate_streak(user_stats)
+        
+        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+            earned = False
+            current = 0
+            target = definition.get("threshold", 0)
+            
+            if definition["category"] == "daily":
+                current = today_points
+                earned = current >= target
+            elif definition["category"] == "weekly":
+                current = week_points
+                earned = current >= target
+            elif definition["category"] == "streak":
+                current = current_streak
+                earned = current >= target
+            elif definition["category"] == "mvp":
+                # MVP Badges werden separat vergeben
+                earned = False
+                current = 0
+                target = 1
+            elif definition["category"] == "special":
+                # Spezielle Badges haben eigene Logik
+                if badge_id == "first_booking":
+                    earned = any(stats.get("first_booking", False) for stats in user_stats.values())
+                elif badge_id == "night_owl":
+                    total_evening = sum(stats.get("evening_bookings", 0) for stats in user_stats.values())
+                    current = total_evening
+                    target = 10
+                    earned = current >= target
+            
+            progress[badge_id] = {
+                "earned": earned,
+                "current": current,
+                "target": target,
+                "progress_percent": min(100, (current / target * 100) if target > 0 else 0)
+            }
+        
+        return progress
 
 # Globale Instanz für Import in anderen Modulen
 achievement_system = AchievementSystem()
