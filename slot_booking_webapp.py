@@ -153,12 +153,11 @@ def get_userlist():
     return userdict
 
 def get_week_days(anchor_date):
-    """Zeige 3 Tage vor und nach dem aktuellen Tag (nur Werktage)"""
+    """Zeige 7 Tage (3 Tage vor und nach dem aktuellen Tag)"""
     days = []
     for i in range(-3, 4):  # -3 bis +3 Tage
         check_date = anchor_date + timedelta(days=i)
-        if check_date.weekday() < 5:  # Nur Werktage (Montag-Freitag)
-            days.append(check_date)
+        days.append(check_date)
     return days
 
 def get_week_start(d):
