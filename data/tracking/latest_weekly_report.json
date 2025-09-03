@@ -3,15 +3,15 @@
   "year": 2025,
   "metrics": {
     "total_bookings": 0,
-    "total_outcomes": 192,
-    "no_shows": 111,
-    "completed": 63,
-    "cancelled": 0,
+    "total_outcomes": 233,
+    "no_shows": 135,
+    "completed": 73,
+    "cancelled": 7,
     "by_day": {
       "Tuesday": {
         "bookings": 0,
-        "no_shows": 80,
-        "completed": 22,
+        "no_shows": 96,
+        "completed": 29,
         "cancelled": 0
       },
       "Monday": {
@@ -22,87 +22,87 @@
       },
       "Wednesday": {
         "bookings": 0,
-        "no_shows": 1,
-        "completed": 17,
-        "cancelled": 0
+        "no_shows": 9,
+        "completed": 20,
+        "cancelled": 7
       }
     },
     "by_user": {},
     "by_hour": {
       "11:00": {
-        "total": 45,
-        "no_shows": 24,
-        "completed": 15
+        "total": 54,
+        "no_shows": 29,
+        "completed": 19
       },
       "14:00": {
-        "total": 13,
-        "no_shows": 5,
+        "total": 14,
+        "no_shows": 6,
         "completed": 8
       },
       "15:00": {
-        "total": 5,
+        "total": 6,
         "no_shows": 0,
-        "completed": 3
+        "completed": 4
       },
       "16:00": {
-        "total": 18,
-        "no_shows": 9,
-        "completed": 9
+        "total": 24,
+        "no_shows": 12,
+        "completed": 10
       },
       "18:00": {
-        "total": 32,
-        "no_shows": 21,
-        "completed": 11
+        "total": 40,
+        "no_shows": 26,
+        "completed": 12
       },
       "20:00": {
-        "total": 79,
-        "no_shows": 52,
-        "completed": 17
+        "total": 95,
+        "no_shows": 62,
+        "completed": 20
       }
     },
     "top_no_show_times": [
       {
         "hour": "20:00",
-        "no_show_rate": 65.82,
-        "success_rate": 21.52,
-        "total": 79
+        "no_show_rate": 65.26,
+        "success_rate": 21.05,
+        "total": 95
       },
       {
         "hour": "18:00",
-        "no_show_rate": 65.62,
-        "success_rate": 34.38,
-        "total": 32
+        "no_show_rate": 65.0,
+        "success_rate": 30.0,
+        "total": 40
       },
       {
         "hour": "11:00",
-        "no_show_rate": 53.33,
-        "success_rate": 33.33,
-        "total": 45
+        "no_show_rate": 53.7,
+        "success_rate": 35.19,
+        "total": 54
       }
     ],
     "top_success_times": [
       {
-        "hour": "14:00",
-        "no_show_rate": 38.46,
-        "success_rate": 61.54,
-        "total": 13
-      },
-      {
         "hour": "15:00",
         "no_show_rate": 0.0,
-        "success_rate": 60.0,
-        "total": 5
+        "success_rate": 66.67,
+        "total": 6
+      },
+      {
+        "hour": "14:00",
+        "no_show_rate": 42.86,
+        "success_rate": 57.14,
+        "total": 14
       },
       {
         "hour": "16:00",
         "no_show_rate": 50.0,
-        "success_rate": 50.0,
-        "total": 18
+        "success_rate": 41.67,
+        "total": 24
       }
     ],
     "high_risk_customers": [],
-    "overall_no_show_rate": 57.81,
-    "overall_completion_rate": 32.81,
-    "overall_cancellation_rate": 0.0
+    "overall_no_show_rate": 57.94,
+    "overall_completion_rate": 31.33,
+    "overall_cancellation_rate": 3.0
   }
 }
