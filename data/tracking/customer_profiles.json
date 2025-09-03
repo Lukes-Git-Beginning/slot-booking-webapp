@@ -2,8 +2,8 @@
   "T1 Schuchart, Dieter ( erschienen )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -12,7 +12,7 @@
   "T1 Lovrekovic, Josip ( erschienen )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 4,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
     "cancelled": 0,
@@ -22,9 +22,9 @@
   "T1 Christina Buff ( nicht erschienen )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -32,9 +32,9 @@
   "T1 Kellner, Christiane ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -42,9 +42,9 @@
   "T1 Sabrina Genschow-Mastrantuono ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -52,7 +52,7 @@
   "T1 Isabela Mohrbacher ( erschienen )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 4,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
     "cancelled": 0,
@@ -62,9 +62,9 @@
   "T1 Mario Heidner": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -72,7 +72,7 @@
   "T1 Bazolo, Mfoundou ( erschienen )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 4,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
     "cancelled": 0,
@@ -82,9 +82,9 @@
   "T1 Goldbach, Tobias ( Ghost )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -92,9 +92,9 @@
   "T1 Anna Cristina Meda ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -102,9 +102,9 @@
   "T1 Sascha Hubka ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -112,9 +112,9 @@
   "T1 Lommes, Maurice ( Ghost )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -122,19 +122,19 @@
   "T1 Höhnke, Timo": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
-    "completed": 12,
+    "total_appointments": 33,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 60.0,
+    "reliability_score": 63.64,
     "risk_level": "low"
   },
   "T1 Angelina Ivkovic ( Ghost )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 40,
+    "total_appointments": 66,
     "completed": 0,
-    "no_shows": 40,
+    "no_shows": 66,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -142,9 +142,9 @@
   "T1 Kühn, Hakan ( abgesagt )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -152,9 +152,9 @@
   "T1 Katja Wolgschaft-Huber ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -162,9 +162,9 @@
   "T1 Hebisch, Julia ( Ghost )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 40,
+    "total_appointments": 66,
     "completed": 0,
-    "no_shows": 40,
+    "no_shows": 66,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -172,9 +172,9 @@
   "T1 Smiatek, Maik ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -182,19 +182,19 @@
   "T1 Hilz, Valentin": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
-    "completed": 12,
+    "total_appointments": 33,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 60.0,
+    "reliability_score": 63.64,
     "risk_level": "low"
   },
   "T1 Jasarevic, Bajram ( Verschoben )": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
+    "total_appointments": 33,
     "completed": 0,
-    "no_shows": 20,
+    "no_shows": 33,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -202,19 +202,19 @@
   "T1 Schütte, Maria-Magdalena": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 20,
-    "completed": 12,
+    "total_appointments": 33,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 60.0,
+    "reliability_score": 63.64,
     "risk_level": "low"
   },
   "T1, Schäfer Sara kommt allein (lässt sich super schwer mit Ihrem Mann vereinbaren (ich kann den auch selbst machen Patrick)": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 4,
-    "no_shows": 12,
+    "total_appointments": 24,
+    "completed": 6,
+    "no_shows": 18,
     "cancelled": 0,
     "reliability_score": 25.0,
     "risk_level": "high"
@@ -222,9 +222,9 @@
   "T1 Phaedra Richter (15k netto)": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
+    "total_appointments": 24,
     "completed": 0,
-    "no_shows": 12,
+    "no_shows": 18,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -232,9 +232,9 @@
   "T1 Schanze, Manuel": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 4,
-    "no_shows": 12,
+    "total_appointments": 24,
+    "completed": 6,
+    "no_shows": 18,
     "cancelled": 0,
     "reliability_score": 25.0,
     "risk_level": "high"
@@ -242,8 +242,8 @@
   "T1 Sartory, Yulia": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 16,
+    "total_appointments": 24,
+    "completed": 24,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -252,8 +252,8 @@
   "T 1 Siebert, Felicitas": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 16,
+    "total_appointments": 24,
+    "completed": 24,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -262,9 +262,9 @@
   "Steiger, Anastasia (Möchte ich haben Patrick)": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 4,
-    "no_shows": 12,
+    "total_appointments": 24,
+    "completed": 6,
+    "no_shows": 18,
     "cancelled": 0,
     "reliability_score": 25.0,
     "risk_level": "high"
@@ -272,8 +272,8 @@
   "T1 Drantmann, Jan": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 16,
+    "total_appointments": 24,
+    "completed": 24,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -282,9 +282,9 @@
   "T1 Heinen, Lukas": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 4,
-    "no_shows": 12,
+    "total_appointments": 24,
+    "completed": 6,
+    "no_shows": 18,
     "cancelled": 0,
     "reliability_score": 25.0,
     "risk_level": "high"
@@ -292,8 +292,8 @@
   "T1 Kasia Gashi (30 pro Kind und Salus interessant)": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 16,
+    "total_appointments": 24,
+    "completed": 24,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -302,9 +302,9 @@
   "T1 Saskia Hubert": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 4,
-    "no_shows": 12,
+    "total_appointments": 24,
+    "completed": 6,
+    "no_shows": 18,
     "cancelled": 0,
     "reliability_score": 25.0,
     "risk_level": "high"
@@ -312,9 +312,9 @@
   "T1 Maria Krasnytska ( Verschoben )": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
+    "total_appointments": 24,
     "completed": 0,
-    "no_shows": 16,
+    "no_shows": 24,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -322,9 +322,9 @@
   "T1 Hänschel, Silvia ( Ghost )": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
+    "total_appointments": 24,
     "completed": 0,
-    "no_shows": 16,
+    "no_shows": 24,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -332,7 +332,7 @@
   "T1 Benno Behrndt ( erschienen )": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 4,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
     "cancelled": 0,
@@ -342,8 +342,8 @@
   "T1 Maria Krasnytska": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -352,8 +352,8 @@
   "T1 Benno Behrndt": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
-    "completed": 4,
+    "total_appointments": 24,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 25.0,
@@ -362,8 +362,8 @@
   "T1 Loos, Elvira": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -372,9 +372,9 @@
   "T1 Loos, Elvira ( abgesagt )": {
     "first_seen": "2025-09-01",
     "last_seen": "2025-09-01",
-    "total_appointments": 16,
+    "total_appointments": 24,
     "completed": 0,
-    "no_shows": 16,
+    "no_shows": 24,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "high"
@@ -382,104 +382,44 @@
   "T1 Schuchart, Dieter": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 16,
-    "completed": 12,
+    "total_appointments": 27,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 75.0,
+    "reliability_score": 77.78,
     "risk_level": "low"
   },
   "T1 Lovrekovic, Josip": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 16,
-    "completed": 12,
+    "total_appointments": 27,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 75.0,
+    "reliability_score": 77.78,
     "risk_level": "low"
   },
   "T1 Isabela Mohrbacher": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 16,
-    "completed": 12,
+    "total_appointments": 27,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 75.0,
+    "reliability_score": 77.78,
     "risk_level": "low"
   },
   "T1 Bazolo, Mfoundou": {
     "first_seen": "2025-09-02",
     "last_seen": "2025-09-02",
-    "total_appointments": 16,
-    "completed": 12,
+    "total_appointments": 27,
+    "completed": 21,
     "no_shows": 0,
     "cancelled": 0,
-    "reliability_score": 75.0,
+    "reliability_score": 77.78,
     "risk_level": "low"
   },
   "T1 Sainio, Petteri": {
-    "first_seen": "2025-09-03",
-    "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
-    "no_shows": 0,
-    "cancelled": 0,
-    "reliability_score": 100.0,
-    "risk_level": "low"
-  },
-  "T1 Chanice Cornils": {
-    "first_seen": "2025-09-03",
-    "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
-    "no_shows": 0,
-    "cancelled": 0,
-    "reliability_score": 100.0,
-    "risk_level": "low"
-  },
-  "T1 Anne Schreiber": {
-    "first_seen": "2025-09-03",
-    "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
-    "no_shows": 0,
-    "cancelled": 0,
-    "reliability_score": 100.0,
-    "risk_level": "low"
-  },
-  "T1 Schliemann, Melissa": {
-    "first_seen": "2025-09-03",
-    "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
-    "no_shows": 0,
-    "cancelled": 0,
-    "reliability_score": 100.0,
-    "risk_level": "low"
-  },
-  "T1 Schliemann, Melissa ( Verschoben )": {
-    "first_seen": "2025-09-03",
-    "last_seen": "2025-09-03",
-    "total_appointments": 6,
-    "completed": 0,
-    "no_shows": 4,
-    "cancelled": 2,
-    "reliability_score": 0.0,
-    "risk_level": "high"
-  },
-  "T1 Daniela Schad": {
-    "first_seen": "2025-09-03",
-    "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
-    "no_shows": 0,
-    "cancelled": 0,
-    "reliability_score": 100.0,
-    "risk_level": "low"
-  },
-  "T1 Alahrachi, Talha": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
     "total_appointments": 6,
@@ -489,11 +429,71 @@
     "reliability_score": 100.0,
     "risk_level": "low"
   },
+  "T1 Chanice Cornils": {
+    "first_seen": "2025-09-03",
+    "last_seen": "2025-09-03",
+    "total_appointments": 6,
+    "completed": 6,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "T1 Anne Schreiber": {
+    "first_seen": "2025-09-03",
+    "last_seen": "2025-09-03",
+    "total_appointments": 6,
+    "completed": 6,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "T1 Schliemann, Melissa": {
+    "first_seen": "2025-09-03",
+    "last_seen": "2025-09-03",
+    "total_appointments": 6,
+    "completed": 6,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "T1 Schliemann, Melissa ( Verschoben )": {
+    "first_seen": "2025-09-03",
+    "last_seen": "2025-09-03",
+    "total_appointments": 12,
+    "completed": 0,
+    "no_shows": 6,
+    "cancelled": 6,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "T1 Daniela Schad": {
+    "first_seen": "2025-09-03",
+    "last_seen": "2025-09-03",
+    "total_appointments": 6,
+    "completed": 6,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "T1 Alahrachi, Talha": {
+    "first_seen": "2025-09-03",
+    "last_seen": "2025-09-03",
+    "total_appointments": 12,
+    "completed": 12,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
   "T1 Hörning, Maik": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -502,8 +502,8 @@
   "T1 Tawfig, Zhee": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -512,8 +512,8 @@
   "T1 Dimitri Schaible 220k Bruto!! (Müssen wir schauen wer den macht info im Feld)": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -522,8 +522,8 @@
   "Mihai, Sorocean": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -532,8 +532,8 @@
   "T1 Krumwiede, Yannick": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -542,8 +542,8 @@
   "T1 Junghans, Sven": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -552,8 +552,8 @@
   "T1 Kjell Tietböhl (war bisschen muffelig, dass wir dauern anrufen, aber dann doch beruhigt, freut sich)": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -562,8 +562,8 @@
   "T1 Wißmann, Maik": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -572,8 +572,8 @@
   "T1 Strykov, Roman": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -582,8 +582,8 @@
   "T1 Jelena Gruschinski": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -592,8 +592,8 @@
   "T1 Mandy Kracht": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 4,
-    "completed": 4,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -602,28 +602,28 @@
   "T1 Sainio, Petteri ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "T1 Chanice Cornils ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "T1 Anne Schreiber ( erschienen )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -632,38 +632,38 @@
   "T1 Schliemann, Melissa ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "T1 Daniela Schad ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "T1 Hörning, Maik ( Verschoben )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
-    "cancelled": 2,
+    "cancelled": 6,
     "reliability_score": 0.0,
     "risk_level": "low"
   },
   "T1 Tawfig, Zhee ( erschienen )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -672,91 +672,91 @@
   "T1 Dimitri Schaible ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Mihai, Sorocean ( Verschoben )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
-    "cancelled": 2,
+    "cancelled": 6,
     "reliability_score": 0.0,
     "risk_level": "low"
   },
   "T1 Krumwiede, Yannick ( Verschoben )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
-    "cancelled": 2,
+    "cancelled": 6,
     "reliability_score": 0.0,
     "risk_level": "low"
   },
   "T1 Junghans, Sven ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "T1 Kjell Tietböhl ( Verschoben )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
-    "cancelled": 2,
+    "cancelled": 6,
     "reliability_score": 0.0,
     "risk_level": "low"
   },
   "T1 Wißmann, Maik ( Verschoben )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
-    "cancelled": 2,
+    "cancelled": 6,
     "reliability_score": 0.0,
     "risk_level": "low"
   },
   "T1 Strykov, Roman ( Verschoben )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
     "no_shows": 0,
-    "cancelled": 2,
+    "cancelled": 6,
     "reliability_score": 0.0,
     "risk_level": "low"
   },
   "T1 Jelena Gruschinski ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "T1 Mandy Kracht ( Ghost )": {
     "first_seen": "2025-09-03",
     "last_seen": "2025-09-03",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   }
 }
