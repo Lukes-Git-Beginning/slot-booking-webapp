@@ -297,8 +297,14 @@ def get_slot_suggestions(availability, n=5):
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
 # ----------------- Punkte & Champion -----------------
+from achievement_system import achievement_system
+
 def add_points_to_user(user, points):
+    """
+    Erweiterte Punkte-Funktion mit Achievement System Integration
+    """
     try:
+        # Legacy: Speichere in scores.json für Champion-System
         with open("static/scores.json", "r", encoding="utf-8") as f:
             scores = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
@@ -313,6 +319,17 @@ def add_points_to_user(user, points):
             json.dump(scores, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Fehler beim Speichern der Punkte: {e}")
+    
+    # NEU: Achievement System Integration
+    try:
+        new_badges = achievement_system.add_points_and_check_achievements(user, points)
+        if new_badges:
+            print(f"🎖️ {user} hat {len(new_badges)} neue Badge(s) erhalten!")
+            return new_badges
+    except Exception as e:
+        print(f"⚠️ Achievement System Fehler: {e}")
+    
+    return []
 
 def check_and_set_champion():
     now = datetime.now(TZ)
@@ -890,11 +907,18 @@ def book():
         except Exception as e:
             print(f"❌ Tracking error: {e}")
         
+        # NEU: Achievement System Integration
+        new_badges = []
         if user and points > 0:
-            add_points_to_user(user, points)
+            new_badges = add_points_to_user(user, points)
             flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
         else:
             flash("Slot erfolgreich gebucht!", "success")
+        
+        # Zeige neue Badges an
+        if new_badges:
+            badge_names = [badge["name"] for badge in new_badges]
+            flash(f"🏆 Neue Badges erhalten: {', '.join(badge_names)}", "success")
     else:
         flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
     
@@ -929,6 +953,27 @@ def scoreboard():
                          month=month, 
                          current_user=user, 
                          champion=champion)
+
+@app.route("/badges")
+def badges():
+    """Badge-Übersicht für alle User"""
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    
+    # Hole Badge-Daten
+    try:
+        user_badges = achievement_system.get_user_badges(user)
+        leaderboard = achievement_system.get_badge_leaderboard()
+    except Exception as e:
+        print(f"❌ Badge System Fehler: {e}")
+        user_badges = {"badges": [], "total_badges": 0}
+        leaderboard = []
+    
+    return render_template("badges.html", 
+                         user_badges=user_badges,
+                         leaderboard=leaderboard,
+                         current_user=user)
 
 @app.route("/my-calendar")
 def my_calendar():
@@ -1108,6 +1153,17 @@ def admin_insights():
         print(f"❌ Error in insights: {e}")
         flash(f"Fehler beim Laden der Insights: {str(e)}", "danger")
         return redirect(url_for("admin_dashboard"))
+
+def run_achievement_check():
+    """
+    Prüfe und vergebe Achievement Badges
+    Sollte täglich laufen
+    """
+    try:
+        achievement_system.check_and_award_mvp_badges()
+        print("✅ Achievement check completed")
+    except Exception as e:
+        print(f"❌ Achievement check error: {e}")
 
 if __name__ == '__main__':
     app.run(debug=False)  # Debug auf False für Produktion!

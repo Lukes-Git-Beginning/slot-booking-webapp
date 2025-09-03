@@ -20,25 +20,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 TZ = pytz.timezone("Europe/Berlin")
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
 
-# ----------------- WICHTIGE ÄNDERUNG -----------------
-# NUR Tomate (11) = No-Show und Mandarine (6) = Abgesagt
-# ALLE anderen Farben = Erschienen/Completed
-def get_outcome_from_color(color_id):
-    """
-    Bestimmt das Outcome basierend auf der Farbe
-    - Tomate (11) = no_show
-    - Mandarine (6) = cancelled
-    - Alle anderen = completed
-    """
-    color_id = str(color_id)
-    if color_id == "11":
-        return "no_show"
-    elif color_id == "6":
-        return "cancelled"
-    else:
-        return "completed"  # Alle anderen Farben = erschienen
+# ----------------- ZENTRALE COLOR-DEFINITION -----------------
+from color_mapping import get_outcome_from_color, get_potential_type
 
-# Potential-Typ Mapping (für Analyse-Zwecke)
+# Potential-Typ Mapping (für Analyse-Zwecke) - jetzt über color_mapping.py
 POTENTIAL_TYPES = {
     "2": "normal",          # Grün = Normales Potential
     "7": "top",            # Blau = Top Potential
