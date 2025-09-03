@@ -9,6 +9,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from creds_loader import load_google_credentials
+from cache_manager import cache_manager
 import matplotlib
 matplotlib.use('Agg')  # Für Server ohne Display
 import matplotlib.pyplot as plt
@@ -59,13 +60,32 @@ def safe_calendar_call(func, *args, **kwargs):
                 print(f"[Calendar] Rate limit, retry in {wait_time}s …")
                 time.sleep(wait_time)
                 continue
-            if status and status >= 500:  # Server error
+            elif status == 403:  # Permission denied
+                print(f"[Calendar] Permission denied: {e}")
+                return None
+            elif status == 404:  # Not found
+                print(f"[Calendar] Resource not found: {e}")
+                return None
+            elif status and status >= 500:  # Server error
                 wait_time = 2 ** attempt
                 print(f"[Calendar] Server-Fehler {status}, retry in {wait_time}s …")
                 time.sleep(wait_time)
                 continue
-            # andere Fehler nicht retryn
-            print(f"[Calendar] API-Fehler: {e}")
+            else:  # andere HTTP Fehler
+                print(f"[Calendar] HTTP-Fehler {status}: {e}")
+                return None
+        except ConnectionError as e:
+            print(f"[Calendar] Verbindungsfehler: {e}")
+            if attempt == max_retries - 1:
+                return None
+            time.sleep(2 ** attempt)
+        except TimeoutError as e:
+            print(f"[Calendar] Timeout: {e}")
+            if attempt == max_retries - 1:
+                return None
+            time.sleep(2 ** attempt)
+        except ValueError as e:
+            print(f"[Calendar] Wertfehler: {e}")
             return None
         except Exception as e:
             print(f"[Calendar] Unerwarteter Fehler: {e}")
@@ -116,10 +136,18 @@ def get_current_kw(d):
     return d.isocalendar()[1]
 
 def load_availability():
-    """Lade availability.json mit robustem Error Handling"""
+    """Lade availability.json mit Cache und robustem Error Handling"""
+    # Prüfe Cache zuerst
+    cached_data = cache_manager.get("availability")
+    if cached_data:
+        return cached_data
+    
     try:
         with open("static/availability.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            # Cache die Daten
+            cache_manager.set("availability", "", data)
+            return data
     except FileNotFoundError:
         print("⚠️ Warnung: availability.json nicht gefunden.")
         return {}
@@ -305,20 +333,27 @@ def add_points_to_user(user, points):
     """
     try:
         # Legacy: Speichere in scores.json für Champion-System
-        with open("static/scores.json", "r", encoding="utf-8") as f:
-            scores = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        scores = {}
-    
-    month = datetime.now(TZ).strftime("%Y-%m")
-    scores.setdefault(user, {}).setdefault(month, 0)
-    scores[user][month] += points
-    
-    try:
+        try:
+            with open("static/scores.json", "r", encoding="utf-8") as f:
+                scores = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            scores = {}
+        
+        month = datetime.now(TZ).strftime("%Y-%m")
+        if user not in scores:
+            scores[user] = {}
+        if month not in scores[user]:
+            scores[user][month] = 0
+        scores[user][month] += points
+        
+        # Speichere sofort
         with open("static/scores.json", "w", encoding="utf-8") as f:
             json.dump(scores, f, ensure_ascii=False, indent=2)
+        
+        print(f"✅ Punkte gespeichert: {user} +{points} Punkte (Monat: {month})")
+        
     except Exception as e:
-        print(f"Fehler beim Speichern der Punkte: {e}")
+        print(f"❌ Fehler beim Speichern der Punkte in scores.json: {e}")
     
     # NEU: Achievement System Integration
     try:
@@ -720,21 +755,216 @@ def get_recommended_models():
         }
     ]
 
-# Placeholder Funktionen (für spätere Implementierung)
+# ----------------- Analytics & Prediction Functions -----------------
 def analyze_time_patterns(tracker):
-    return {"status": "In development"}
+    """Analysiert Zeitmuster in Buchungen und Outcomes"""
+    try:
+        bookings = load_jsonl_data(tracker.bookings_file)
+        outcomes = load_jsonl_data(tracker.outcomes_file)
+        
+        if not bookings and not outcomes:
+            return {"status": "No data available", "patterns": {}}
+        
+        # Zeitmuster-Analyse
+        hour_distribution = defaultdict(int)
+        weekday_distribution = defaultdict(int)
+        lead_time_distribution = defaultdict(int)
+        
+        for booking in bookings:
+            hour = booking.get("booked_at_hour", 0)
+            weekday = booking.get("booked_on_weekday", "Unknown")
+            lead_time = booking.get("booking_lead_time", 0)
+            
+            hour_distribution[hour] += 1
+            weekday_distribution[weekday] += 1
+            lead_time_distribution[lead_time] += 1
+        
+        # Outcome-Zeitmuster
+        outcome_by_hour = defaultdict(lambda: defaultdict(int))
+        for outcome in outcomes:
+            hour = int(outcome.get("time", "00:00").split(":")[0])
+            outcome_type = outcome.get("outcome", "unknown")
+            outcome_by_hour[hour][outcome_type] += 1
+        
+        return {
+            "status": "success",
+            "patterns": {
+                "peak_hours": sorted(hour_distribution.items(), key=lambda x: x[1], reverse=True)[:3],
+                "peak_weekdays": sorted(weekday_distribution.items(), key=lambda x: x[1], reverse=True),
+                "avg_lead_time": sum(lead_time_distribution.keys()) / len(lead_time_distribution) if lead_time_distribution else 0,
+                "outcome_patterns": dict(outcome_by_hour)
+            }
+        }
+    except Exception as e:
+        return {"status": f"Error: {str(e)}", "patterns": {}}
 
 def analyze_customer_behavior(tracker):
-    return {"champions_count": 12, "loyals_count": 28, "potential_count": 15, "risk_count": 8}
+    """Analysiert Kundenverhalten und Kategorisierung"""
+    try:
+        customer_profiles = load_json_data(tracker.customer_file)
+        
+        if not customer_profiles:
+            return {"champions_count": 0, "loyals_count": 0, "potential_count": 0, "risk_count": 0}
+        
+        champions = 0
+        loyals = 0
+        potential = 0
+        risk = 0
+        
+        for customer, profile in customer_profiles.items():
+            reliability = profile.get("reliability_score", 0)
+            appointments = profile.get("total_appointments", 0)
+            
+            if reliability >= 90 and appointments >= 3:
+                champions += 1
+            elif reliability >= 80 and appointments >= 2:
+                loyals += 1
+            elif appointments >= 1:
+                potential += 1
+            else:
+                risk += 1
+        
+        return {
+            "champions_count": champions,
+            "loyals_count": loyals, 
+            "potential_count": potential,
+            "risk_count": risk,
+            "total_customers": len(customer_profiles)
+        }
+    except Exception as e:
+        return {"status": f"Error: {str(e)}", "champions_count": 0, "loyals_count": 0, "potential_count": 0, "risk_count": 0}
 
 def analyze_success_factors(tracker):
-    return {"status": "In development"}
+    """Analysiert Erfolgsfaktoren für Termine"""
+    try:
+        outcomes = load_jsonl_data(tracker.outcomes_file)
+        
+        if not outcomes:
+            return {"status": "No data available", "factors": {}}
+        
+        # Erfolgsfaktoren-Analyse
+        success_by_time = defaultdict(lambda: {"completed": 0, "total": 0})
+        success_by_weekday = defaultdict(lambda: {"completed": 0, "total": 0})
+        success_by_lead_time = defaultdict(lambda: {"completed": 0, "total": 0})
+        
+        for outcome in outcomes:
+            time_slot = outcome.get("time", "00:00")
+            weekday = datetime.strptime(outcome.get("date", "2025-01-01"), "%Y-%m-%d").strftime("%A")
+            outcome_type = outcome.get("outcome", "unknown")
+            
+            # Gruppiere nach Zeit-Slots
+            hour = int(time_slot.split(":")[0])
+            time_group = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
+            
+            success_by_time[time_group]["total"] += 1
+            if outcome_type == "completed":
+                success_by_time[time_group]["completed"] += 1
+            
+            success_by_weekday[weekday]["total"] += 1
+            if outcome_type == "completed":
+                success_by_weekday[weekday]["completed"] += 1
+        
+        # Berechne Erfolgsraten
+        time_success_rates = {}
+        for time_group, data in success_by_time.items():
+            if data["total"] > 0:
+                time_success_rates[time_group] = round((data["completed"] / data["total"]) * 100, 1)
+        
+        weekday_success_rates = {}
+        for weekday, data in success_by_weekday.items():
+            if data["total"] > 0:
+                weekday_success_rates[weekday] = round((data["completed"] / data["total"]) * 100, 1)
+        
+        return {
+            "status": "success",
+            "factors": {
+                "time_success_rates": time_success_rates,
+                "weekday_success_rates": weekday_success_rates,
+                "best_time": max(time_success_rates.items(), key=lambda x: x[1]) if time_success_rates else None,
+                "best_weekday": max(weekday_success_rates.items(), key=lambda x: x[1]) if weekday_success_rates else None
+            }
+        }
+    except Exception as e:
+        return {"status": f"Error: {str(e)}", "factors": {}}
 
 def generate_predictions(tracker):
-    return {"status": "In development"}
+    """Generiert Vorhersagen basierend auf historischen Daten"""
+    try:
+        outcomes = load_jsonl_data(tracker.outcomes_file)
+        customer_profiles = load_json_data(tracker.customer_file)
+        
+        if not outcomes:
+            return {"status": "No data available", "predictions": {}}
+        
+        # Einfache Vorhersagen basierend auf historischen Daten
+        total_outcomes = len(outcomes)
+        completed = sum(1 for o in outcomes if o.get("outcome") == "completed")
+        no_shows = sum(1 for o in outcomes if o.get("outcome") == "no_show")
+        
+        if total_outcomes == 0:
+            return {"status": "No data available", "predictions": {}}
+        
+        # Berechne Raten
+        completion_rate = (completed / total_outcomes) * 100
+        no_show_rate = (no_shows / total_outcomes) * 100
+        
+        # Vorhersage für nächste Woche (basierend auf aktueller Rate)
+        avg_daily_outcomes = total_outcomes / 30 if total_outcomes > 0 else 0  # Annahme: 30 Tage Daten
+        
+        return {
+            "status": "success",
+            "predictions": {
+                "completion_rate": round(completion_rate, 1),
+                "no_show_rate": round(no_show_rate, 1),
+                "predicted_weekly_completions": round(avg_daily_outcomes * 7 * (completion_rate / 100), 1),
+                "predicted_weekly_no_shows": round(avg_daily_outcomes * 7 * (no_show_rate / 100), 1),
+                "confidence_level": "medium" if total_outcomes > 50 else "low"
+            }
+        }
+    except Exception as e:
+        return {"status": f"Error: {str(e)}", "predictions": {}}
 
 def generate_recommendations(tracker):
-    return {"status": "In development"}
+    """Generiert Empfehlungen für Optimierung"""
+    try:
+        success_factors = analyze_success_factors(tracker)
+        customer_behavior = analyze_customer_behavior(tracker)
+        
+        recommendations = []
+        
+        # Empfehlungen basierend auf Erfolgsfaktoren
+        if success_factors.get("status") == "success":
+            factors = success_factors.get("factors", {})
+            
+            best_time = factors.get("best_time")
+            if best_time:
+                recommendations.append(f"📅 Fokussiere auf {best_time[0]}-Termine (Erfolgsrate: {best_time[1]}%)")
+            
+            best_weekday = factors.get("best_weekday")
+            if best_weekday:
+                recommendations.append(f"📆 {best_weekday[0]} ist der erfolgreichste Wochentag ({best_weekday[1]}%)")
+        
+        # Empfehlungen basierend auf Kundenverhalten
+        if customer_behavior:
+            risk_count = customer_behavior.get("risk_count", 0)
+            if risk_count > 0:
+                recommendations.append(f"⚠️ {risk_count} Kunden mit hohem No-Show Risiko identifiziert")
+            
+            champions_count = customer_behavior.get("champions_count", 0)
+            if champions_count > 0:
+                recommendations.append(f"🏆 {champions_count} treue Kunden - Priorisiere diese für Premium-Slots")
+        
+        # Allgemeine Empfehlungen
+        if len(recommendations) == 0:
+            recommendations.append("📊 Sammle mehr Daten für präzisere Empfehlungen")
+        
+        return {
+            "status": "success",
+            "recommendations": recommendations,
+            "priority": "high" if len(recommendations) > 2 else "medium"
+        }
+    except Exception as e:
+        return {"status": f"Error: {str(e)}", "recommendations": ["❌ Fehler bei der Analyse"]}
 
 def load_jsonl_data(file_path):
     """Lade JSONL Daten sicher"""
@@ -975,6 +1205,62 @@ def badges():
                          leaderboard=leaderboard,
                          current_user=user)
 
+@app.route("/stream/updates")
+def stream_updates():
+    """Server-Sent Events für Real-time Updates"""
+    def generate():
+        """Generiert Event-Stream"""
+        while True:
+            try:
+                # Prüfe auf neue Updates (alle 5 Sekunden)
+                updates = check_for_updates()
+                if updates:
+                    yield f"data: {json.dumps(updates)}\n\n"
+                
+                time.sleep(5)
+            except Exception as e:
+                print(f"❌ Stream error: {e}")
+                break
+    
+    return app.response_class(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        }
+    )
+
+def check_for_updates():
+    """Prüft auf neue Updates für Real-time Stream"""
+    try:
+        # Prüfe auf neue Buchungen
+        bookings = load_jsonl_data("data/tracking/bookings.jsonl")
+        recent_bookings = [
+            b for b in bookings 
+            if (datetime.now(TZ) - datetime.fromisoformat(b.get("timestamp", ""))).seconds < 30
+        ]
+        
+        # Prüfe auf neue Outcomes
+        outcomes = load_jsonl_data("data/tracking/outcomes.jsonl")
+        recent_outcomes = [
+            o for o in outcomes
+            if (datetime.now(TZ) - datetime.fromisoformat(o.get("timestamp", ""))).seconds < 30
+        ]
+        
+        updates = {}
+        if recent_bookings:
+            updates["new_bookings"] = len(recent_bookings)
+        if recent_outcomes:
+            updates["new_outcomes"] = len(recent_outcomes)
+        
+        return updates if updates else None
+        
+    except Exception as e:
+        print(f"❌ Update check error: {e}")
+        return None
+
 @app.route("/my-calendar")
 def my_calendar():
     user = session.get("user")
@@ -985,6 +1271,9 @@ def my_calendar():
     start = today - timedelta(days=today.weekday())
     end = start + timedelta(days=6)
     
+    my_events = []
+    
+    # 1. Google Calendar Events
     events_result = safe_calendar_call(
         service.events().list,
         calendarId=CENTRAL_CALENDAR_ID,
@@ -994,7 +1283,6 @@ def my_calendar():
         orderBy='startTime'
     )
     
-    my_events = []
     if events_result:
         events = events_result.get('items', [])
         for event in events:
@@ -1009,13 +1297,42 @@ def my_calendar():
                         "summary": event["summary"],
                         "color_id": event.get("colorId", "9"),
                         "points": points,
-                        "desc": event.get("description", "")
+                        "desc": event.get("description", ""),
+                        "source": "calendar"
                     })
                 except Exception as e:
                     print(f"Fehler beim Parsen von Event: {e}")
                     continue
     
+    # 2. Getrackte Buchungen aus dem Tracking System
+    try:
+        tracker = BookingTracker()
+        tracked_bookings = tracker.get_user_bookings(user, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+        
+        for booking in tracked_bookings:
+            try:
+                booking_date = datetime.strptime(booking["date"], "%Y-%m-%d")
+                if start <= booking_date.date() <= end:
+                    points = get_slot_points(booking["time_slot"], booking_date.date())
+                    my_events.append({
+                        "date": booking_date.strftime("%A, %d.%m.%Y"),
+                        "hour": booking["time_slot"],
+                        "summary": f"📞 {booking['customer_name']}",
+                        "color_id": booking["color_id"],
+                        "points": points,
+                        "desc": booking.get("description", ""),
+                        "source": "tracking"
+                    })
+            except Exception as e:
+                print(f"Fehler beim Parsen von getrackter Buchung: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"❌ Fehler beim Laden getrackter Buchungen: {e}")
+    
+    # Sortiere alle Events nach Datum und Uhrzeit
     my_events.sort(key=lambda e: (e["date"], e["hour"]))
+    
     return render_template("my_calendar.html", my_events=my_events, user=user)
 
 @app.route("/admin/dashboard")
@@ -1121,6 +1438,193 @@ def export_analytics():
     except Exception as e:
         print(f"❌ Export error: {e}")
         return jsonify({"error": f"Export failed: {str(e)}"}), 500
+
+@app.route("/admin/export/csv")
+def export_csv():
+    """Export als CSV für Excel"""
+    user = session.get("user")
+    if not is_admin(user):
+        return jsonify({"error": "Access denied"}), 403
+    
+    try:
+        import csv
+        from io import StringIO
+        
+        tracker = BookingTracker()
+        
+        # Lade Daten
+        bookings = load_jsonl_data(tracker.bookings_file)
+        outcomes = load_jsonl_data(tracker.outcomes_file)
+        
+        # Erstelle CSV für Buchungen
+        bookings_csv = StringIO()
+        if bookings:
+            writer = csv.DictWriter(bookings_csv, fieldnames=bookings[0].keys())
+            writer.writeheader()
+            writer.writerows(bookings)
+        
+        # Erstelle CSV für Outcomes
+        outcomes_csv = StringIO()
+        if outcomes:
+            writer = csv.DictWriter(outcomes_csv, fieldnames=outcomes[0].keys())
+            writer.writeheader()
+            writer.writerows(outcomes)
+        
+        # Kombiniere zu ZIP
+        import zipfile
+        from io import BytesIO
+        
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.writestr('bookings.csv', bookings_csv.getvalue())
+            zip_file.writestr('outcomes.csv', outcomes_csv.getvalue())
+        
+        zip_buffer.seek(0)
+        
+        return app.response_class(
+            zip_buffer.getvalue(),
+            mimetype='application/zip',
+            headers={'Content-Disposition': f'attachment; filename=slot_booking_export_{datetime.now(TZ).strftime("%Y%m%d")}.zip'}
+        )
+        
+    except Exception as e:
+        print(f"❌ CSV Export error: {e}")
+        return jsonify({"error": f"CSV Export failed: {str(e)}"}), 500
+
+@app.route("/admin/export/pdf")
+def admin_export_pdf():
+    """Export als PDF Report"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        
+        # Erstelle PDF
+        response = make_response()
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=slot_booking_report.pdf'
+        
+        # PDF Buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=30
+        )
+        
+        # Titel
+        elements.append(Paragraph("Slot Booking System - Report", title_style))
+        elements.append(Spacer(1, 20))
+        
+        # Hole Daten
+        tracker = BookingTracker()
+        dashboard = tracker.get_performance_dashboard()
+        
+        # Dashboard Tabelle
+        dashboard_data = [
+            ['Metrik', 'Wert'],
+            ['Gesamt Buchungen (7 Tage)', dashboard.get('last_7_days', {}).get('total_bookings', 0)],
+            ['No-Show Rate (7 Tage)', f"{dashboard.get('last_7_days', {}).get('no_show_rate', 0)}%"],
+            ['Erfolgsrate (7 Tage)', f"{dashboard.get('last_7_days', {}).get('success_rate', 0)}%"],
+        ]
+        
+        dashboard_table = Table(dashboard_data)
+        dashboard_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        elements.append(dashboard_table)
+        elements.append(Spacer(1, 20))
+        
+        # Build PDF
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+        
+        response.data = pdf
+        return response
+        
+    except Exception as e:
+        flash(f"❌ PDF Export Fehler: {e}", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+@app.route("/admin/fix-points")
+def admin_fix_points():
+    """Admin Route um Punkte für bereits getrackte Buchungen zu vergeben"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        tracker = BookingTracker()
+        
+        # Lade alle Buchungen der letzten 30 Tage
+        today = datetime.now(TZ).date()
+        start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+        
+        # Lade alle Buchungen
+        all_bookings = []
+        if os.path.exists(tracker.bookings_file):
+            with open(tracker.bookings_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            booking = json.loads(line)
+                            if start_date <= booking.get("date", "") <= end_date:
+                                all_bookings.append(booking)
+                        except json.JSONDecodeError:
+                            continue
+        
+        # Prüfe welche Buchungen noch keine Punkte haben
+        fixed_count = 0
+        for booking in all_bookings:
+            user_name = booking.get("user")
+            if user_name and user_name != "unknown":
+                # Berechne Punkte für diese Buchung
+                time_slot = booking.get("time")
+                date = booking.get("date")
+                if time_slot and date:
+                    try:
+                        booking_date = datetime.strptime(date, "%Y-%m-%d").date()
+                        points = get_slot_points(time_slot, booking_date)
+                        
+                        if points > 0:
+                            # Vergebe Punkte
+                            new_badges = add_points_to_user(user_name, points)
+                            fixed_count += 1
+                            print(f"✅ Punkte vergeben: {user_name} +{points} für {date} {time_slot}")
+                            
+                    except Exception as e:
+                        print(f"❌ Fehler bei Buchung {booking.get('id', 'unknown')}: {e}")
+        
+        flash(f"✅ {fixed_count} Buchungen mit Punkten versehen!", "success")
+        
+    except Exception as e:
+        flash(f"❌ Fehler beim Punkte-Fix: {e}", "danger")
+    
+    return redirect(url_for("admin_dashboard"))
 
 @app.route("/admin/insights")
 def admin_insights():
