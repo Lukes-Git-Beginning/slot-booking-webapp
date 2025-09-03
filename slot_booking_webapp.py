@@ -1348,6 +1348,50 @@ def my_calendar():
     
     return render_template("my_calendar.html", my_events=my_events, user=user)
 
+@app.route("/admin/simple")
+def admin_simple():
+    """Einfache Admin-Seite ohne Zeit-Check"""
+    user = session.get("user")
+    
+    # Admin-Check
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        # Initialisiere Tracking System
+        tracker = BookingTracker()
+        
+        # Hole Dashboard Daten
+        dashboard_data = tracker.get_performance_dashboard()
+        weekly_report = tracker.get_weekly_report()
+        
+        # Lade detaillierte Metriken
+        detailed_metrics = load_detailed_metrics()
+        
+        # Generiere Charts
+        charts = generate_dashboard_charts(tracker)
+        
+        # Hole Customer Risk Analysis
+        risk_analysis = get_customer_risk_analysis(tracker)
+        
+        # ML Insights (Vorbereitung)
+        ml_insights = prepare_ml_insights(tracker)
+        
+        return render_template("admin_dashboard.html",
+                             dashboard=dashboard_data,
+                             weekly_report=weekly_report,
+                             detailed_metrics=detailed_metrics,
+                             charts=charts,
+                             risk_analysis=risk_analysis,
+                             ml_insights=ml_insights,
+                             days_running=get_app_runtime_days())
+        
+    except Exception as e:
+        print(f"❌ Error in admin simple: {e}")
+        flash(f"Fehler beim Laden des Dashboards: {str(e)}", "danger")
+        return redirect(url_for("index"))
+
 @app.route("/admin/dashboard")
 def admin_dashboard():
     """Admin-only Dashboard mit Statistiken und ML-Vorbereitung"""
