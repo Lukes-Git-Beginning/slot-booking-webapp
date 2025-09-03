@@ -300,6 +300,7 @@ def get_slot_points(hour, slot_date):
 def get_slot_suggestions(availability, n=5):
     now = datetime.now(TZ).date()
     slot_list = []
+
     for slot_time, beraterlist in availability.items():
         try:
             dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
@@ -1195,15 +1196,27 @@ def badges():
     try:
         user_badges = achievement_system.get_user_badges(user)
         leaderboard = achievement_system.get_badge_leaderboard()
+        
+        # Bereite Template-Variablen vor
+        total_badges = user_badges.get("total_badges", 0)
+        available_badges = achievement_system.get_all_badge_definitions()
+        badge_progress = achievement_system.get_user_badge_progress(user)
+        
     except Exception as e:
         print(f"❌ Badge System Fehler: {e}")
         user_badges = {"badges": [], "total_badges": 0}
         leaderboard = []
+        total_badges = 0
+        available_badges = {}
+        badge_progress = {}
     
     return render_template("badges.html", 
                          user_badges=user_badges,
                          leaderboard=leaderboard,
-                         current_user=user)
+                         current_user=user,
+                         total_badges=total_badges,
+                         available_badges=available_badges,
+                         badge_progress=badge_progress)
 
 @app.route("/stream/updates")
 def stream_updates():
