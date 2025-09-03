@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import os
 import json
 import time
@@ -168,7 +169,7 @@ def backup_availability():
 def main():
     availability = {}
     availability_file = "static/availability.json"
-    today = datetime.now(TZ)
+    now = datetime.now(TZ)  # WICHTIG: Mit Timezone für Uhrzeitvergleich
     
     # Vorhandene Verfügbarkeiten laden
     if os.path.exists(availability_file):
@@ -180,23 +181,26 @@ def main():
             print(f"⚠️ Fehler beim Laden der alten availability.json: {e}")
             availability = {}
     
-    # Zeitraum für Batch-Fetch (30 Tage)
-    start_date = TZ.localize(datetime.combine(today.date(), datetime.min.time()))
+    # Zeitraum für Batch-Fetch (30 Tage) - aber ab jetzt
+    start_date = TZ.localize(datetime.combine(now.date(), datetime.min.time()))
     end_date = start_date + timedelta(days=30)
     
     # PERFORMANCE-OPTIMIERUNG: Alle Events einmal holen
-    print(f"\n🚀 Hole alle Events für {len(consultants)} Berater (30 Tage)...")
+    print(f"\n🚀 Hole alle Events für {len(consultants)} Berater (30 Tage ab jetzt)...")
     all_consultant_events = batch_fetch_events(consultants, start_date, end_date)
     
     # Slots analysieren
     print(f"\n📊 Analysiere Slots...")
-    print(f"ℹ️ Termine mit Farbe Tomate(11) oder Mandarine(6) werden ignoriert\n")
+    print(f"ℹ️ Termine mit Farbe Tomate(11) oder Mandarine(6) werden ignoriert")
+    print(f"🕒 Aktuelle Zeit: {now.strftime('%Y-%m-%d %H:%M')}")
+    print(f"ℹ️ Nur zukünftige Slots werden berücksichtigt\n")
     
     slot_count = 0
     new_slots = 0
+    skipped_past = 0
     
     for day_offset in range(30):
-        day = today + timedelta(days=day_offset)
+        day = now + timedelta(days=day_offset)
         weekday_en = day.strftime('%A')
         weekday = weekday_map.get(weekday_en, None)
         
@@ -209,8 +213,16 @@ def main():
             slot_end = slot_start + timedelta(hours=2)
             slot_key = f"{day.strftime('%Y-%m-%d')} {time}"
             
-            # Skip wenn schon verarbeitet und noch aktuell
-            if slot_key in availability and day.date() >= today.date():
+            # KRITISCHER FIX: Skip vergangene Slots (auch heute!)
+            if slot_start <= now:
+                if slot_key in availability:
+                    del availability[slot_key]  # Entferne vergangene Slots
+                skipped_past += 1
+                print(f"⏭️ Vergangener Slot übersprungen: {slot_key}")
+                continue
+            
+            # Skip wenn schon verarbeitet und noch zukünftig
+            if slot_key in availability:
                 slot_count += 1
                 continue
             
@@ -243,13 +255,13 @@ def main():
             else:
                 print(f"✅ {slot_key}: {len(available)} Berater verfügbar ({', '.join(available)})")
     
-    # Alte Einträge entfernen (älter als 7 Tage)
-    cutoff_date = today - timedelta(days=7)
+    # Alte Einträge entfernen (älter als heute)
     old_count = len(availability)
+    today_start = TZ.localize(datetime.combine(now.date(), datetime.min.time()))
     
     availability = {
         k: v for k, v in availability.items()
-        if TZ.localize(datetime.strptime(k.split(" ")[0], "%Y-%m-%d")) >= cutoff_date
+        if TZ.localize(datetime.strptime(k.split(" ")[0] + " " + k.split(" ")[1], "%Y-%m-%d %H:%M")) > now
     }
     
     removed_count = old_count - len(availability)
@@ -263,8 +275,10 @@ def main():
     print(f"📊 Statistik:")
     print(f"   - Slots analysiert: {slot_count}")
     print(f"   - Neue Slots: {new_slots}")
+    print(f"   - Vergangene übersprungen: {skipped_past}")
     print(f"   - Alte entfernt: {removed_count}")
     print(f"   - Gesamt gespeichert: {len(availability)}")
+    print(f"🕒 Nur Slots ab {now.strftime('%Y-%m-%d %H:%M')} berücksichtigt")
 
 if __name__ == "__main__":
     start_time = time.time()

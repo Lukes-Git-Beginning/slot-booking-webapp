@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Achievements & Badges</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  
+  <style>
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    
+    .badges-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .badge-card {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: 25px;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .badge-card.earned {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(90,177,255,0.2);
+    }
+    
+    .badge-card.locked {
+      opacity: 0.6;
+      filter: grayscale(50%);
+    }
+    
+    .badge-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .badge-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      font-size: 40px;
+      position: relative;
+    }
+    
+    .badge-icon.earned {
+      animation: badgeShine 2s ease infinite;
+    }
+    
+    .badge-icon.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+    .badge-icon.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .badge-icon.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .badge-icon.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .badge-icon.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+    .badge-icon.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+    
+    @keyframes badgeShine {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+    }
+    
+    .badge-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-color);
+    }
+    
+    .badge-description {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+    
+    .achievement-rarity {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .achievement-rarity.rarity-common { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .achievement-rarity.rarity-uncommon { background: rgba(59,130,246,0.2); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+    .achievement-rarity.rarity-rare { background: rgba(139,92,246,0.2); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3); }
+    .achievement-rarity.rarity-epic { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .achievement-rarity.rarity-legendary { background: rgba(234,179,8,0.2); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+    .achievement-rarity.rarity-mythic { background: rgba(236,72,153,0.2); color: #ec4899; border: 1px solid rgba(236,72,153,0.3); }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #3d8bfd);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    
+    .progress-text {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+    
+    .earned-date {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--green);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    
+    .categories {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .category-filter {
+      padding: 8px 16px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: 20px;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .category-filter.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    
+    .user-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .user-stat {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .user-stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+    
+    .user-stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    
+    <!-- Header -->
+    <div class="glass panel">
+      <h1><i class="ti ti-award"></i> Achievement Center</h1>
+      <p>Sammle Badges durch aktive Teilnahme und erreiche neue Meilensteine!</p>
+      
+      <a href="{{ url_for('scoreboard') }}" style="color: var(--accent); text-decoration: none;">
+        ← Zurück zum Scoreboard
+      </a>
+    </div>
+    
+    <!-- User Stats -->
+    <div class="user-stats">
+      <div class="user-stat">
+        <div class="user-stat-value">{{ total_badges }}</div>
+        <div class="user-stat-label">Earned Badges</div>
+      </div>
+      <div class="user-stat">
+        <div class="user-stat-value">{{ (total_badges / available_badges|length * 100)|round(1) }}%</div>
+        <div class="user-stat-label">Completion</div>
+      </div>
+      <div class="user-stat">
+        <div class="user-stat-value">{{ user_badges|selectattr('rarity', 'equalto', 'legendary')|list|length + user_badges|selectattr('rarity', 'equalto', 'mythic')|list|length }}</div>
+        <div class="user-stat-label">Rare Badges</div>
+      </div>
+      <div class="user-stat">
+        <div class="user-stat-value">{{ available_badges|length - total_badges }}</div>
+        <div class="user-stat-label">Remaining</div>
+      </div>
+    </div>
+    
+    <!-- Category Filter -->
+    <div class="categories">
+      <button class="category-filter active" onclick="filterCategory('all')">
+        🏆 Alle ({{ available_badges|length }})
+      </button>
+      <button class="category-filter" onclick="filterCategory('daily')">
+        🌟 Täglich ({{ available_badges|selectattr('category', 'equalto', 'daily')|list|length }})
+      </button>
+      <button class="category-filter" onclick="filterCategory('weekly')">
+        📅 Wöchentlich ({{ available_badges|selectattr('category', 'equalto', 'weekly')|list|length }})
+      </button>
+      <button class="category-filter" onclick="filterCategory('mvp')">
+        👑 MVP ({{ available_badges|selectattr('category', 'equalto', 'mvp')|list|length }})
+      </button>
+      <button class="category-filter" onclick="filterCategory('special')">
+        ⭐ Spezial ({{ available_badges|selectattr('category', 'equalto', 'special')|list|length }})
+      </button>
+    </div>
+    
+    <!-- Badges Grid -->
+    <div class="badges-grid">
+      {% for badge_id, badge_def in available_badges.items() %}
+      {% set progress = badge_progress[badge_id] %}
+      {% set is_earned = progress.earned %}
+      
+      <div class="badge-card {{ 'earned' if is_earned else 'locked' }}" 
+           data-category="{{ badge_def.category }}"
+           data-rarity="{{ badge_def.rarity }}">
+        
+        {% if is_earned %}
+        <div class="earned-date">✓ Earned</div>
+        {% endif %}
+        
+        <div class="badge-icon rarity-{{ badge_def.rarity }} {{ 'earned' if is_earned else '' }}">
+          {{ badge_def.emoji }}
+        </div>
+        
+        <h3 class="badge-name">{{ badge_def.name }}</h3>
+        <p class="badge-description">{{ badge_def.description }}</p>
+        
+        <div class="achievement-rarity rarity-{{ badge_def.rarity }}">
+          ✨ {{ badge_def.rarity.title() }}
+        </div>
+        
+        {% if not is_earned and 'current' in progress %}
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {{ progress.progress_percent }}%"></div>
+        </div>
+        <div class="progress-text">
+          {{ progress.current }} / {{ progress.target }}
+          {% if badge_def.category == 'daily' %}Punkte heute{% endif %}
+          {% if badge_def.category == 'weekly' %}Punkte diese Woche{% endif %}
+          {% if badge_def.category == 'streak' %}Tage Streak{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    
+  </div>
+  
+  <script>
+    function filterCategory(category) {
+      // Update active button
+      document.querySelectorAll('.category-filter').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // Filter badges
+      document.querySelectorAll('.badge-card').forEach(card => {
+        if (category === 'all' || card.dataset.category === category) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import pytz
 import time
 from tracking_system import BookingTracker
 from collections import defaultdict
+from achievement_system import achievement_system, ACHIEVEMENT_DEFINITIONS
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from googleapiclient.discovery import build
@@ -107,15 +108,16 @@ def extract_weekly_summary(availability, current_date=None):
     week_booked = defaultdict(int)
     week_dates = {}
     
-    # WICHTIGER FIX: Nur Slots ab heute zählen
-    today = datetime.now(TZ).date()
+    # WICHTIGER FIX: Nur Slots ab JETZT zählen (nicht nur ab heute)
+    now = datetime.now(TZ)
     
     for slot_time, beraterlist in availability.items():
         try:
             dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
+            slot_datetime = TZ.localize(dt)
             
             # Skip vergangene Slots für korrekte Prozentberechnung
-            if dt.date() < today:
+            if slot_datetime <= now:
                 continue
                 
             key = week_key_from_date(dt)
@@ -135,7 +137,7 @@ def extract_weekly_summary(availability, current_date=None):
         events_result = safe_calendar_call(
             service.events().list,
             calendarId=CENTRAL_CALENDAR_ID,
-            timeMin=TZ.localize(datetime.combine(min_start.date(), datetime.min.time())).isoformat(),
+            timeMin=now.isoformat(),  # Ab JETZT, nicht ab heute
             timeMax=TZ.localize(datetime.combine(max_end.date(), datetime.max.time())).isoformat(),
             singleEvents=True,
             orderBy='startTime',
@@ -149,7 +151,7 @@ def extract_weekly_summary(availability, current_date=None):
                     try:
                         dt = datetime.fromisoformat(event["start"]["dateTime"])
                         # Nur zukünftige Events zählen
-                        if dt.date() >= today:
+                        if dt > now:
                             key = week_key_from_date(dt)
                             week_booked[key] += 1
                     except Exception as e:
@@ -264,8 +266,8 @@ def get_slot_suggestions(availability, n=5):
     slot_list.sort(key=lambda s: (-s["punkte"], s["date_raw"], -s["freie"], s["hour"]))
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
-# ----------------- Punkte & Champion -----------------
-def add_points_to_user(user, points):
+def add_points_to_user(user, points, slot_time="", context=""):
+    """Erweiterte Punkte-Vergabe mit Achievement-System"""
     try:
         with open("static/scores.json", "r", encoding="utf-8") as f:
             scores = json.load(f)
@@ -281,48 +283,18 @@ def add_points_to_user(user, points):
             json.dump(scores, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Fehler beim Speichern der Punkte: {e}")
-
-def check_and_set_champion():
-    now = datetime.now(TZ)
-    last_month = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
     
-    try:
-        with open("static/champions.json", "r", encoding="utf-8") as f:
-            champions = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        champions = {}
+    # NEU: Prüfe Achievements
+    new_badges = achievement_system.add_points_and_check_achievements(
+        user, points, slot_time, context
+    )
     
-    if last_month in champions:
-        return champions[last_month]
+    # Speichere neue Badges in Session für Popup-Anzeige
+    if new_badges:
+        session.setdefault('new_badges', []).extend(new_badges)
+        print(f"🎉 {len(new_badges)} neue Badges für {user}: {[b['name'] for b in new_badges]}")
     
-    try:
-        with open("static/scores.json", "r", encoding="utf-8") as f:
-            scores = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        scores = {}
-    
-    month_scores = [(u, v.get(last_month, 0)) for u, v in scores.items() if u.lower() not in EXCLUDE_CHAMPION_USERS]
-    month_scores = [x for x in month_scores if x[1] > 0]
-    month_scores.sort(key=lambda x: x[1], reverse=True)
-    
-    if month_scores:
-        champion_user = month_scores[0][0]
-        champions[last_month] = champion_user
-        try:
-            with open("static/champions.json", "w", encoding="utf-8") as f:
-                json.dump(champions, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"Fehler beim Speichern des Champions: {e}")
-        return champion_user
-    return None
-
-def get_champion_for_month(month):
-    try:
-        with open("static/champions.json", "r", encoding="utf-8") as f:
-            return json.load(f).get(month)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
-
+    return new_badges
 # ----------------- Routes -----------------
 @app.route("/login", methods=["GET", "POST"])
 def login():

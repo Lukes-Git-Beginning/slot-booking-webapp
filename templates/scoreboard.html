@@ -2,46 +2,537 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Punkte & Ranking</title>
+  <title>Scoreboard & Achievements</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  
   <style>
-    .wrap { max-width:960px; margin: 20px auto; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding:10px; border-bottom:1px solid rgba(255,255,255,.1); text-align:left; }
-    tr.highlight { background: rgba(59,130,246,.15); }
+    /* Badge Integration */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    
+    .scoreboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--box-bg);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    
+    .scoreboard-table th,
+    .scoreboard-table td {
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      text-align: left;
+    }
+    
+    .scoreboard-table thead th {
+      background: rgba(255,255,255,.05);
+      font-weight: 600;
+      color: var(--accent);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .player-row {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .player-row:hover {
+      background: rgba(90,177,255,.08);
+      transform: translateX(2px);
+    }
+    
+    .player-row.current-user {
+      background: rgba(90,177,255,.12);
+      border-left: 4px solid var(--accent);
+    }
+    
+    .rank-cell {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--accent);
+      min-width: 60px;
+    }
+    
+    .rank-cell.rank-1 { color: #eab308; }
+    .rank-cell.rank-2 { color: #9ca3af; }
+    .rank-cell.rank-3 { color: #cd7c2f; }
+    
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .player-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .player-name {
+      font-weight: 600;
+      color: var(--text-color);
+      font-size: 16px;
+    }
+    
+    .player-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+    
+    .badge-mini {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    
+    .badge-mini:hover {
+      transform: scale(1.3);
+      z-index: 10;
+    }
+    
+    .badge-mini.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+    .badge-mini.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .badge-mini.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .badge-mini.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .badge-mini.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+    .badge-mini.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+    
+    .badge-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 1000;
+      margin-bottom: 5px;
+    }
+    
+    .badge-mini:hover .badge-tooltip {
+      opacity: 1;
+    }
+    
+    .badge-counter {
+      background: rgba(90,177,255,0.2);
+      color: var(--accent);
+      border: 1px solid rgba(90,177,255,0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+    
+    .points-cell {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green);
+    }
+    
+    .badges-cell {
+      text-align: center;
+      min-width: 120px;
+    }
+    
+    /* Tab Navigation */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: var(--box-bg);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      margin-bottom: 20px;
+      border: 1px solid var(--box-border);
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 12px 20px;
+      background: none;
+      border: none;
+      border-radius: var(--radius-md);
+      color: var(--muted);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .tab-button.active {
+      background: var(--accent);
+      color: white;
+      transform: translateY(-1px);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Badge Leaderboard */
+    .badge-leaderboard-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+    
+    .badge-leaderboard-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0,0,0,.1);
+    }
+    
+    .badge-stats {
+      margin-left: auto;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .badge-stat {
+      text-align: center;
+    }
+    
+    .badge-stat-value {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .badge-stat-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    
+    /* Champion Section */
+    .champion-section {
+      background: linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.05));
+      border: 1px solid rgba(234,179,8,0.3);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .champion-crown {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    
+    .champion-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #eab308;
+      margin-bottom: 5px;
+    }
+    
+    .champion-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+    
+    /* Quick Actions */
+    .quick-actions-scoreboard {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      color: var(--text-color);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      background: rgba(90,177,255,.1);
+    }
+    
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .stat-icon {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .scoreboard-table th,
+      .scoreboard-table td {
+        padding: 10px 15px;
+      }
+      
+      .player-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      
+      .player-badges {
+        margin-left: 0;
+      }
+      
+      .quick-actions-scoreboard {
+        flex-direction: column;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="glass panel">
-      <h2><i class="ti ti-trophy"></i> Scoreboard – {{ month }}</h2>
-      {% if champion %}
-        <div class="glass-soft" style="padding:10px; border-radius:10px; margin-bottom:10px;">
-          🏆 <strong>Monats‑Champion:</strong> {{ champion }}
-        </div>
-      {% endif %}
-
-      <table>
-        <thead>
-          <tr><th>Platz</th><th>User</th><th>Punkte</th></tr>
-        </thead>
-        <tbody>
-          {% for name, points in ranking %}
-            <tr class="{% if current_user and name == current_user %}highlight{% endif %}">
-              <td>{{ loop.index }}</td>
-              <td>{{ name }}</td>
-              <td>{{ points }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-      <div style="margin-top:10px;">
-        <a class="stat" href="{{ url_for('index') }}">← Zurück</a>
+    
+    <!-- Champion Section -->
+    {% if champion %}
+    <div class="champion-section">
+      <div class="champion-crown">👑</div>
+      <div class="champion-title">Aktueller Champion</div>
+      <div class="champion-name">{{ champion }}</div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Actions -->
+    <div class="quick-actions-scoreboard">
+      <a href="{{ url_for('index') }}" class="action-btn">
+        <i class="ti ti-arrow-left"></i> Zurück zur Buchung
+      </a>
+      <a href="{{ url_for('badges') }}" class="action-btn">
+        <i class="ti ti-award"></i> Alle Badges ansehen
+      </a>
+      <a href="{{ url_for('my_calendar') }}" class="action-btn">
+        <i class="ti ti-calendar"></i> Meine Termine
+      </a>
+    </div>
+    
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-value">{{ ranking|length }}</div>
+        <div class="stat-label">Aktive Spieler</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">{{ user_score if current_user else 0 }}</div>
+        <div class="stat-label">Deine Punkte</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value">{{ month }}</div>
+        <div class="stat-label">Aktueller Monat</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">🥇</div>
+        <div class="stat-value">{{ ranking[0].points if ranking else 0 }}</div>
+        <div class="stat-label">Höchste Punktzahl</div>
       </div>
     </div>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-button active" onclick="switchTab('points')">
+        📊 Punkte-Ranking
+      </button>
+      <button class="tab-button" onclick="switchTab('badges')">
+        🎖️ Badge-Ranking
+      </button>
+    </div>
+    
+    <!-- Punkte-Ranking Tab -->
+    <div id="points-tab" class="tab-content active">
+      <div class="glass panel">
+        <h2><i class="ti ti-trophy"></i> Punkte-Ranking – {{ month }}</h2>
+        
+        <table class="scoreboard-table">
+          <thead>
+            <tr>
+              <th>Rang</th>
+              <th>Spieler</th>
+              <th>Badges</th>
+              <th>Punkte</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for player in ranking %}
+            <tr class="player-row {% if current_user and player.name == current_user %}current-user{% endif %}">
+              <td class="rank-cell rank-{{ loop.index if loop.index <= 3 else 'other' }}">
+                {% if loop.index == 1 %}🥇
+                {% elif loop.index == 2 %}🥈  
+                {% elif loop.index == 3 %}🥉
+                {% else %}{{ loop.index }}{% endif %}
+              </td>
+              
+              <td>
+                <div class="player-info">
+                  <div class="player-avatar">
+                    {{ player.name[0].upper() }}
+                  </div>
+                  <div>
+                    <div class="player-name">{{ player.name }}</div>
+                  </div>
+                </div>
+              </td>
+              
+              <td class="badges-cell">
+                <div class="player-badges" data-user="{{ player.name }}">
+                  {% for badge in player.badges %}
+                    <span class="badge-mini rarity-{{ badge.rarity }}">
+                      {{ badge.emoji }}
+                      <div class="badge-tooltip">{{ badge.name }}<br>{{ badge.description }}</div>
+                    </span>
+                  {% endfor %}
+                  
+                  {% if player.total_badges > 3 %}
+                    <span class="badge-counter">+{{ player.total_badges - 3 }}</span>
+                  {% endif %}
+                </div>
+              </td>
+              
+              <td class="points-cell">{{ player.points }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Badge-Ranking Tab -->
+    <div id="badges-tab" class="tab-content">
+      <div class="glass panel">
+        <h2><i class="ti ti-award"></i> Badge-Ranking</h2>
+        
+        {% for player in badge_leaderboard %}
+        <div class="badge-leaderboard-item">
+          <div class="player-info">
+            <div class="player-avatar">
+              {{ player.user[0].upper() }}
+            </div>
+            <div>
+              <div class="player-name">{{ player.user }}</div>
+              <div class="player-badges">
+                {% for badge in player.badges[:5] %}
+                  <span class="badge-mini rarity-{{ badge.rarity }}">
+                    {{ badge.emoji }}
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="badge-stats">
+            <div class="badge-stat">
+              <span class="badge-stat-value">{{ player.total_badges }}</span>
+              <span class="badge-stat-label">Total</span>
+            </div>
+            <div class="badge-stat">
+              <span class="badge-stat-value">{{ player.rarity_points }}</span>
+              <span class="badge-stat-label">Score</span>
+            </div>
+            <div class="badge-stat">
+              <span class="badge-stat-value">{{ player.rarity_breakdown.get('legendary', 0) + player.rarity_breakdown.get('mythic', 0) }}</span>
+              <span class="badge-stat-label">Rare</span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
   </div>
+  
+  <script>
+    function switchTab(tabName) {
+      // Alle Tabs deaktivieren
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      // Aktiven Tab aktivieren
+      document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+  </script>
 </body>
 </html>
