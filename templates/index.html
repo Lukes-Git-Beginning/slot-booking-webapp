@@ -22,7 +22,232 @@
     body.sidebar-open #sidebar-tab {
       left: 306px;
     }
-    
+    /* Achievement Popup System */
+.achievement-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  max-width: 400px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 0;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transform: translateX(450px);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.achievement-notification.show {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Dark Mode Anpassungen */
+body.darkmode .achievement-notification {
+  background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(30,41,59,0.85));
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Rarity Glow Effects */
+.achievement-notification.rarity-common { box-shadow: 0 20px 60px rgba(16,185,129,0.2), 0 0 40px rgba(16,185,129,0.1); }
+.achievement-notification.rarity-uncommon { box-shadow: 0 20px 60px rgba(59,130,246,0.2), 0 0 40px rgba(59,130,246,0.1); }
+.achievement-notification.rarity-rare { box-shadow: 0 20px 60px rgba(139,92,246,0.2), 0 0 40px rgba(139,92,246,0.1); }
+.achievement-notification.rarity-epic { box-shadow: 0 20px 60px rgba(245,158,11,0.2), 0 0 40px rgba(245,158,11,0.1); }
+.achievement-notification.rarity-legendary { box-shadow: 0 20px 60px rgba(234,179,8,0.3), 0 0 40px rgba(234,179,8,0.2); }
+.achievement-notification.rarity-mythic { box-shadow: 0 20px 60px rgba(236,72,153,0.3), 0 0 40px rgba(236,72,153,0.2); }
+
+.achievement-header {
+  background: linear-gradient(135deg, rgba(90,177,255,0.1), rgba(90,177,255,0.05));
+  padding: 15px 20px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.achievement-title {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.achievement-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.achievement-close:hover {
+  background: rgba(255,255,255,0.1);
+  transform: scale(1.1);
+}
+
+.achievement-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.achievement-badge {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  position: relative;
+  font-size: 40px;
+  transition: all 0.3s ease;
+  animation: badgePulse 2s ease infinite;
+}
+
+/* Rarity Badge Backgrounds */
+.achievement-badge.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+.achievement-badge.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.achievement-badge.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.achievement-badge.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.achievement-badge.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+.achievement-badge.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+.achievement-badge::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.3;
+  animation: ripple 1.5s ease infinite;
+}
+
+.achievement-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.achievement-description {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 15px;
+  line-height: 1.4;
+}
+
+.achievement-rarity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.achievement-rarity.rarity-common { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.achievement-rarity.rarity-uncommon { background: rgba(59,130,246,0.2); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+.achievement-rarity.rarity-rare { background: rgba(139,92,246,0.2); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3); }
+.achievement-rarity.rarity-epic { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.achievement-rarity.rarity-legendary { background: rgba(234,179,8,0.2); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+.achievement-rarity.rarity-mythic { background: rgba(236,72,153,0.2); color: #ec4899; border: 1px solid rgba(236,72,153,0.3); }
+
+/* Animations */
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes celebrate {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-5deg); }
+  75% { transform: scale(1.1) rotate(5deg); }
+}
+
+/* Confetti Animation */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  animation: confettiFall 3s linear infinite;
+}
+
+@keyframes confettiFall {
+  to {
+    transform: translateY(100vh) rotate(360deg);
+  }
+}
+
+/* Mobile Anpassungen */
+@media (max-width: 768px) {
+  .achievement-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    transform: translateY(-100px);
+  }
+  
+  .achievement-notification.show {
+    transform: translateY(0);
+  }
+  
+  .achievement-content {
+    padding: 15px;
+  }
+  
+  .achievement-badge {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+  }
+}
+
+/* Sound Wave Effect für besonders seltene Badges */
+.achievement-notification.rarity-legendary .achievement-badge,
+.achievement-notification.rarity-mythic .achievement-badge {
+  animation: badgePulse 2s ease infinite, celebrate 0.6s ease;
+}
+
+.achievement-notification.rarity-mythic {
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
     /* Enhanced Loading States */
     .loading-indicator {
       position: fixed;
@@ -743,7 +968,252 @@
         popup.style.display = 'none';
       }, 2000);
     }
+    // Achievement System Class
+class AchievementSystem {
+  constructor() {
+    this.notificationQueue = [];
+    this.isShowingNotification = false;
+    this.soundEnabled = true;
+    this.init();
+  }
+  
+  init() {
+    // Event Listener für Badge-API Updates
+    this.checkForNewBadges();
     
+    // Alle 30 Sekunden auf neue Badges prüfen
+    setInterval(() => this.checkForNewBadges(), 30000);
+  }
+  
+  async checkForNewBadges() {
+    try {
+      const response = await fetch('/api/user/badges');
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.new_badges && data.new_badges.length > 0) {
+          // Zeige neue Badges
+          for (const badge of data.new_badges) {
+            this.showAchievementNotification(badge);
+          }
+          
+          // Markiere Badges als gesehen
+          await fetch('/api/user/badges/mark-seen', { method: 'POST' });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for new badges:', error);
+    }
+  }
+  
+  showAchievementNotification(badge) {
+    // Füge zur Queue hinzu
+    this.notificationQueue.push(badge);
+    
+    // Starte Anzeige wenn nicht bereits aktiv
+    if (!this.isShowingNotification) {
+      this.processNotificationQueue();
+    }
+  }
+  
+  async processNotificationQueue() {
+    if (this.notificationQueue.length === 0) {
+      this.isShowingNotification = false;
+      return;
+    }
+    
+    this.isShowingNotification = true;
+    const badge = this.notificationQueue.shift();
+    
+    // Erstelle Notification Element
+    const notification = this.createNotificationElement(badge);
+    document.body.appendChild(notification);
+    
+    // Spezial-Effekte für seltene Badges
+    if (badge.rarity === 'legendary' || badge.rarity === 'mythic') {
+      this.createConfetti();
+      this.flashScreen(badge.color);
+    }
+    
+    // Animiere rein
+    requestAnimationFrame(() => {
+      notification.classList.add('show');
+    });
+    
+    // Sound abspielen
+    this.playSoundForRarity(badge.rarity);
+    
+    // Nach 5 Sekunden entfernen (oder bei Click)
+    const hideTimeout = setTimeout(() => {
+      this.hideNotification(notification);
+    }, 5000);
+    
+    // Click Handler für vorzeitiges Schließen
+    const closeBtn = notification.querySelector('.achievement-close');
+    closeBtn.addEventListener('click', () => {
+      clearTimeout(hideTimeout);
+      this.hideNotification(notification);
+    });
+    
+    // Warte 6 Sekunden bevor nächste Notification
+    setTimeout(() => {
+      this.processNotificationQueue();
+    }, 6000);
+  }
+  
+  createNotificationElement(badge) {
+    const notification = document.createElement('div');
+    notification.className = `achievement-notification rarity-${badge.rarity}`;
+    
+    notification.innerHTML = `
+      <div class="achievement-header">
+        <h4 class="achievement-title">Achievement Unlocked!</h4>
+        <button class="achievement-close">&times;</button>
+      </div>
+      <div class="achievement-content">
+        <div class="achievement-badge rarity-${badge.rarity}">
+          ${badge.emoji}
+        </div>
+        <h3 class="achievement-name">${badge.name}</h3>
+        <p class="achievement-description">${badge.description}</p>
+        <span class="achievement-rarity rarity-${badge.rarity}">
+          ✨ ${badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
+        </span>
+      </div>
+    `;
+    
+    return notification;
+  }
+  
+  hideNotification(notification) {
+    notification.classList.remove('show');
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 500);
+  }
+  
+  createConfetti() {
+    // Erstelle Konfetti-Effekt für seltene Badges
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
+    
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.animationDelay = Math.random() * 3 + 's';
+      confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+      
+      document.body.appendChild(confetti);
+      
+      // Entferne nach Animation
+      setTimeout(() => {
+        if (confetti.parentNode) {
+          confetti.parentNode.removeChild(confetti);
+        }
+      }, 5000);
+    }
+  }
+  
+  flashScreen(color) {
+    // Screen-Flash für mythische Badges
+    const flash = document.createElement('div');
+    flash.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: ${color || '#ec4899'};
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10000;
+      transition: opacity 0.1s ease;
+    `;
+    
+    document.body.appendChild(flash);
+    
+    requestAnimationFrame(() => {
+      flash.style.opacity = '0.3';
+      
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => {
+          if (flash.parentNode) {
+            flash.parentNode.removeChild(flash);
+          }
+        }, 100);
+      }, 100);
+    });
+  }
+  
+  playSoundForRarity(rarity) {
+    if (!this.soundEnabled) return;
+    
+    // Einfacher Beep-Sound für verschiedene Seltenheiten
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    
+    const frequencies = {
+      common: 440,
+      uncommon: 523,
+      rare: 659,
+      epic: 784,
+      legendary: 880,
+      mythic: 1047
+    };
+    
+    const frequency = frequencies[rarity] || 440;
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.1, context.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.5);
+    
+    oscillator.start(context.currentTime);
+    oscillator.stop(context.currentTime + 0.5);
+  }
+}
+
+// Achievement-System initialisieren
+let achievementSystem;
+
+// DAS HIER ZUR BESTEHENDEN DOMContentLoaded EVENT HINZUFÜGEN:
+window.addEventListener('DOMContentLoaded', () => {
+  // ... bestehender Code ...
+  
+  // NEU: Achievement System initialisieren
+  achievementSystem = new AchievementSystem();
+});
+
+// Test-Funktion für Development (optional)
+function testAchievementPopup() {
+  const testBadge = {
+    id: 'test_badge',
+    name: 'Test Champion 🏆',
+    description: 'Dies ist ein Test-Badge',
+    emoji: '🏆',
+    rarity: 'legendary',
+    color: '#eab308'
+  };
+  
+  achievementSystem.showAchievementNotification(testBadge);
+}
+
+// Keyboard Shortcut für Test (nur im Development)
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+    testAchievementPopup();
+  }
+});
     // Toggle einzelnen Slot
     function toggleSlot(header) {
       const section = header.parentElement;
