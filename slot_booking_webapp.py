@@ -1683,6 +1683,58 @@ def admin_fix_points():
     
     return redirect(url_for("admin_dashboard"))
 
+# API Endpoints für Badge System
+@app.route("/api/user/badges")
+def api_user_badges():
+    """API Endpoint für User Badges"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Nicht eingeloggt"}), 401
+    
+    try:
+        user_badges = achievement_system.get_user_badges(user)
+        return jsonify(user_badges)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/user/badges/mark-seen", methods=["POST"])
+def api_mark_badges_seen():
+    """Markiere neue Badges als gesehen"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Nicht eingeloggt"}), 401
+    
+    try:
+        # Markiere alle neuen Badges als gesehen
+        badges_data = achievement_system.load_badges()
+        if user in badges_data:
+            for badge in badges_data[user]["badges"]:
+                badge["new"] = False
+            
+            achievement_system.save_badges(badges_data)
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/user/badges/check-new")
+def api_check_new_badges():
+    """Prüfe auf neue Badges für User"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Nicht eingeloggt"}), 401
+    
+    try:
+        user_badges = achievement_system.get_user_badges(user)
+        new_badges = [badge for badge in user_badges.get("badges", []) if badge.get("new", False)]
+        
+        return jsonify({
+            "new_badges": new_badges,
+            "total_new": len(new_badges)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/admin/insights")
 def admin_insights():
     """Detaillierte Insights und Predictions"""
