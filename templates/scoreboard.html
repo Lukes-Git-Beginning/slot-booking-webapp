@@ -437,7 +437,7 @@
           </thead>
           <tbody>
             {% for player in ranking %}
-            <tr class="player-row {% if current_user and player.name == current_user %}current-user{% endif %}">
+            <tr class="player-row {% if current_user and player[0] == current_user %}current-user{% endif %}">
               <td class="rank-cell rank-{{ loop.index if loop.index <= 3 else 'other' }}">
                 {% if loop.index == 1 %}🥇
                 {% elif loop.index == 2 %}🥈  
@@ -448,30 +448,21 @@
               <td>
                 <div class="player-info">
                   <div class="player-avatar">
-                    {{ player.name[0].upper() }}
+                    {{ player[0][0].upper() }}
                   </div>
                   <div>
-                    <div class="player-name">{{ player.name }}</div>
+                    <div class="player-name">{{ player[0] }}</div>
                   </div>
                 </div>
               </td>
               
               <td class="badges-cell">
-                <div class="player-badges" data-user="{{ player.name }}">
-                  {% for badge in player.badges %}
-                    <span class="badge-mini rarity-{{ badge.rarity }}">
-                      {{ badge.emoji }}
-                      <div class="badge-tooltip">{{ badge.name }}<br>{{ badge.description }}</div>
-                    </span>
-                  {% endfor %}
-                  
-                  {% if player.total_badges > 3 %}
-                    <span class="badge-counter">+{{ player.total_badges - 3 }}</span>
-                  {% endif %}
+                <div class="player-badges" data-user="{{ player[0] }}">
+                  <!-- Badges werden dynamisch geladen -->
                 </div>
               </td>
               
-              <td class="points-cell">{{ player.points }}</td>
+              <td class="points-cell">{{ player[1] }}</td>
             </tr>
             {% endfor %}
           </tbody>

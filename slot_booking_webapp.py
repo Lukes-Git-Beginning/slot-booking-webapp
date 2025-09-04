@@ -1225,12 +1225,20 @@ def scoreboard():
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
     
+    # Hole Badge-Daten für das Leaderboard
+    try:
+        badge_leaderboard = achievement_system.get_badge_leaderboard()
+    except Exception as e:
+        print(f"❌ Badge Leaderboard Fehler: {e}")
+        badge_leaderboard = []
+    
     return render_template("scoreboard.html", 
                          ranking=ranking, 
                          user_score=user_score, 
                          month=month, 
                          current_user=user, 
-                         champion=champion)
+                         champion=champion,
+                         badge_leaderboard=badge_leaderboard)
 
 @app.route("/badges")
 def badges():
