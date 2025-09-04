@@ -1630,6 +1630,53 @@ def admin_export_pdf():
 @app.route("/admin/fix-points")
 def admin_fix_points():
     """Admin Route um Punkte für bereits getrackte Buchungen zu vergeben"""
+    try:
+        from tracking_system import BookingTracker
+        tracker = BookingTracker()
+        
+        # Lade alle Buchungen
+        all_bookings = tracker.load_all_bookings()
+        
+        fixed_count = 0
+        already_processed = set()  # Verhindere Doppelvergabe
+        
+        for booking in all_bookings:
+            user_name = booking.get("user")
+            if user_name and user_name != "unknown":
+                # Erstelle eindeutige ID für diese Buchung
+                booking_id = f"{booking.get('date')}_{booking.get('time')}_{user_name}"
+                
+                if booking_id in already_processed:
+                    continue  # Bereits verarbeitet
+                
+                # Berechne Punkte für diese Buchung
+                time_slot = booking.get("time")
+                date = booking.get("date")
+                if time_slot and date:
+                    try:
+                        booking_date = datetime.strptime(date, "%Y-%m-%d").date()
+                        points = get_slot_points(time_slot, booking_date)
+                        
+                        if points > 0:
+                            # Vergebe Punkte
+                            new_badges = add_points_to_user(user_name, points)
+                            fixed_count += 1
+                            already_processed.add(booking_id)
+                            print(f"✅ Punkte vergeben: {user_name} +{points} für {date} {time_slot}")
+                            
+                    except Exception as e:
+                        print(f"❌ Fehler bei Buchung {booking.get('id', 'unknown')}: {e}")
+        
+        if fixed_count > 0:
+            flash(f"✅ {fixed_count} Buchungen mit Punkten versehen!", "success")
+        else:
+            flash("ℹ️ Keine neuen Buchungen für Punkte-Vergabe gefunden.", "info")
+        
+    except Exception as e:
+        flash(f"❌ Fehler beim Punkte-Fix: {e}", "danger")
+    
+    # Zurück zur Hauptseite statt zum gesperrten Dashboard
+    return redirect(url_for("index"))
     user = session.get("user")
     if not is_admin(user):
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
