@@ -1810,7 +1810,6 @@ def gamification_dashboard():
         
         # Badge-Statistiken
         user_badges = achievement_system.get_user_badges(user)
-        badge_stats = achievement_system.get_badge_statistics(user)
         
         # Streak-Informationen
         from data_persistence import data_persistence
@@ -1819,6 +1818,25 @@ def gamification_dashboard():
         
         # Nächste Ziele
         next_goals = achievement_system.get_next_achievements(user)
+        
+        # Badge-Statistiken berechnen
+        badge_stats = {
+            "by_rarity": {
+                "common": 0,
+                "uncommon": 0,
+                "rare": 0,
+                "epic": 0,
+                "legendary": 0,
+                "mythic": 0
+            },
+            "total": len(user_badges.get("badges", []))
+        }
+        
+        # Zähle Badges nach Rarität
+        for badge in user_badges.get("badges", []):
+            rarity = badge.get("rarity", "common")
+            if rarity in badge_stats["by_rarity"]:
+                badge_stats["by_rarity"][rarity] += 1
         
         # Raritäts-Farben für Template
         rarity_colors = {
@@ -1830,6 +1848,15 @@ def gamification_dashboard():
             "mythic": "#ec4899"
         }
         
+        # Aktuelle Monatspunkte
+        scores = data_persistence.load_scores()
+        month = datetime.now(TZ).strftime("%Y-%m")
+        current_month_points = scores.get(user, {}).get(month, 0)
+        
+        # Ranking-Position
+        month_ranking = sorted([(u, v.get(month, 0)) for u, v in scores.items()], key=lambda x: x[1], reverse=True)
+        user_rank = next((i+1 for i, (u, _) in enumerate(month_ranking) if u == user), 0)
+        
         return render_template("gamification.html",
                              user_level=user_level,
                              user_badges=user_badges,
@@ -1837,10 +1864,60 @@ def gamification_dashboard():
                              streak_info=streak_info,
                              next_goals=next_goals,
                              rarity_colors=rarity_colors,
-                             current_user=user)
+                             current_user=user,
+                             current_month_points=current_month_points,
+                             user_rank=user_rank,
+                             total_players=len(month_ranking))
     except Exception as e:
         print(f"❌ Gamification Dashboard Fehler: {e}")
-        return redirect(url_for("index"))
+        # Fallback-Daten bei Fehlern
+        fallback_data = {
+            "user_level": {
+                "level": 1,
+                "level_title": "Anfänger",
+                "xp": 0,
+                "next_level_xp": 100,
+                "progress_to_next": 0,
+                "progress_color": "#10b981",
+                "total_badges": 0,
+                "level_up": None
+            },
+            "user_badges": {"badges": [], "total_badges": 0},
+            "badge_stats": {
+                "by_rarity": {"common": 0, "uncommon": 0, "rare": 0, "epic": 0, "legendary": 0, "mythic": 0},
+                "total": 0
+            },
+            "streak_info": {
+                "work_streak": 0,
+                "booking_streak": 0,
+                "points_streak": 0,
+                "best_streak": 0
+            },
+            "next_goals": [],
+            "rarity_colors": {
+                "common": "#10b981",
+                "uncommon": "#3b82f6",
+                "rare": "#8b5cf6",
+                "epic": "#f59e0b",
+                "legendary": "#eab308",
+                "mythic": "#ec4899"
+            },
+            "current_month_points": 0,
+            "user_rank": 0,
+            "total_players": 0
+        }
+        
+        return render_template("gamification.html",
+                             user_level=fallback_data["user_level"],
+                             user_badges=fallback_data["user_badges"],
+                             badge_stats=fallback_data["badge_stats"],
+                             streak_info=fallback_data["streak_info"],
+                             next_goals=fallback_data["next_goals"],
+                             rarity_colors=fallback_data["rarity_colors"],
+                             current_user=user,
+                             current_month_points=fallback_data["current_month_points"],
+                             user_rank=fallback_data["user_rank"],
+                             total_players=fallback_data["total_players"])
 
 @app.route("/api/badges/check-new")
 def check_new_badges():

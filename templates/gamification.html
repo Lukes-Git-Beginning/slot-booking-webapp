@@ -7,51 +7,169 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
     <style>
         .gamification-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
         
+        .hero-section {
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-title {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
             margin-bottom: 30px;
         }
         
         .stat-card {
             background: var(--box-bg);
             border: 1px solid var(--box-border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
         }
         
         .stat-card h3 {
-            margin: 0 0 15px 0;
+            margin: 0 0 20px 0;
             color: var(--accent);
-            font-size: 18px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .level-display {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .level-number {
+            font-size: 4em;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .level-title {
+            font-size: 1.3em;
+            color: var(--muted);
+            font-weight: 500;
+        }
+        
+        .progress-section {
+            margin: 25px 0;
+        }
+        
+        .progress-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            flex: 1;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            margin: 0 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
         
         .badge-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
-            margin-top: 15px;
+            margin-top: 20px;
         }
         
         .badge-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--box-border);
+            gap: 12px;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid var(--box-border);
             background: rgba(255,255,255,0.05);
+            transition: all 0.2s ease;
+        }
+        
+        .badge-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
         
         .badge-emoji {
-            font-size: 24px;
+            font-size: 28px;
         }
         
         .badge-info {
@@ -61,63 +179,73 @@
         .badge-name {
             font-weight: 600;
             font-size: 14px;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
         
         .badge-rarity {
             font-size: 12px;
-            opacity: 0.7;
-        }
-        
-        .progress-section {
-            margin: 20px 0;
-        }
-        
-        .progress-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .progress-bar {
-            flex: 1;
-            height: 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-            margin: 0 15px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s ease;
+            opacity: 0.8;
+            font-weight: 500;
         }
         
         .streak-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 15px;
-            margin-top: 15px;
+            margin-top: 20px;
         }
         
         .streak-card {
             text-align: center;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 20px;
+            border-radius: 12px;
             background: rgba(255,255,255,0.05);
+            border: 1px solid var(--box-border);
+            transition: transform 0.2s ease;
+        }
+        
+        .streak-card:hover {
+            transform: scale(1.05);
         }
         
         .streak-value {
-            font-size: 24px;
+            font-size: 2em;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: var(--accent);
         }
         
         .streak-label {
-            font-size: 12px;
-            opacity: 0.7;
+            font-size: 13px;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+        
+        .ranking-card {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .ranking-position {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .ranking-text {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .points-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 10px;
         }
         
         .level-up-notification {
@@ -127,11 +255,11 @@
             transform: translate(-50%, -50%);
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
-            padding: 30px;
-            border-radius: 20px;
+            padding: 40px;
+            border-radius: 25px;
             text-align: center;
             z-index: 2000;
-            box-shadow: 0 20px 60px rgba(16,185,129,0.4);
+            box-shadow: 0 25px 80px rgba(16,185,129,0.4);
             animation: levelUpPop 0.6s ease forwards;
         }
         
@@ -142,25 +270,25 @@
         }
         
         .level-up-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+            font-size: 60px;
+            margin-bottom: 20px;
         }
         
         .level-up-title {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         
         .level-up-details {
-            font-size: 16px;
+            font-size: 18px;
             opacity: 0.9;
         }
         
         .confetti {
             position: fixed;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background: #fbbf24;
             animation: confettiFall 3s linear infinite;
             z-index: 1999;
@@ -169,12 +297,74 @@
         @keyframes confettiFall {
             to { transform: translateY(100vh) rotate(360deg); }
         }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .nav-btn:hover {
+            background: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .achievement-progress {
+            margin-top: 15px;
+        }
+        
+        .achievement-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .achievement-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .achievement-progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .achievement-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
     <div class="gamification-container">
-        <h1>🎮 Gamification Dashboard</h1>
-        <p>Willkommen, {{ current_user }}! Hier findest du alle deine Statistiken und Achievements.</p>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="hero-title">🎮 Gamification Dashboard</div>
+                <div class="hero-subtitle">Willkommen, {{ current_user }}! Hier findest du alle deine Statistiken und Achievements.</div>
+            </div>
+        </div>
         
         <!-- Level-Up Notification -->
         {% if user_level.level_up %}
@@ -210,18 +400,14 @@
             <!-- Level & XP -->
             <div class="stat-card">
                 <h3>📊 Level & XP</h3>
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 48px; font-weight: bold; color: var(--accent);">
-                        {{ user_level.level }}
-                    </div>
-                    <div style="font-size: 18px; color: var(--muted);">
-                        {{ user_level.level_title }}
-                    </div>
+                <div class="level-display">
+                    <div class="level-number">{{ user_level.level }}</div>
+                    <div class="level-title">{{ user_level.level_title }}</div>
                 </div>
                 
                 <div class="progress-section">
                     <div class="progress-item">
-                        <span>XP</span>
+                        <span>XP Fortschritt</span>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: {{ user_level.progress_to_next }}%; background: {{ user_level.progress_color }};"></div>
                         </div>
@@ -229,16 +415,43 @@
                     </div>
                 </div>
                 
-                <div style="text-align: center; margin-top: 15px;">
+                <div style="text-align: center; margin-top: 20px;">
                     <small style="color: var(--muted);">
                         {{ user_level.progress_to_next }}% zum nächsten Level
                     </small>
                 </div>
             </div>
             
+            <!-- Ranking & Punkte -->
+            <div class="stat-card">
+                <h3>🏆 Ranking & Punkte</h3>
+                
+                {% if user_rank > 0 %}
+                <div class="ranking-card">
+                    <div class="ranking-position">#{{ user_rank }}</div>
+                    <div class="ranking-text">von {{ total_players }} Spielern</div>
+                </div>
+                {% endif %}
+                
+                <div class="points-display">{{ current_month_points }}</div>
+                <div style="text-align: center; color: var(--muted); margin-bottom: 20px;">
+                    Punkte diesen Monat
+                </div>
+                
+                {% if user_rank == 1 %}
+                <div style="text-align: center; color: #fbbf24; font-weight: bold; font-size: 1.1em;">
+                    🥇 Du bist der Champion!
+                </div>
+                {% elif user_rank <= 3 %}
+                <div style="text-align: center; color: #9ca3af; font-weight: bold; font-size: 1.1em;">
+                    🏆 Top 3 Position!
+                </div>
+                {% endif %}
+            </div>
+            
             <!-- Badges -->
             <div class="stat-card">
-                <h3>🎖️ Badges ({{ user_level.total_badges }})</h3>
+                <h3>🎖️ Badges ({{ user_badges.total_badges }})</h3>
                 {% if user_badges.badges %}
                 <div class="badge-grid">
                     {% for badge in user_badges.badges[:6] %}
@@ -259,7 +472,10 @@
                 </div>
                 {% endif %}
                 {% else %}
-                <p style="text-align: center; color: var(--muted);">Noch keine Badges erworben</p>
+                <p style="text-align: center; color: var(--muted); padding: 40px;">
+                    🎯 Noch keine Badges erworben<br>
+                    <small>Buche Termine um Badges zu sammeln!</small>
+                </p>
                 {% endif %}
             </div>
             
@@ -280,7 +496,7 @@
                         <div class="streak-label">Punkte-Streak</div>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 15px;">
+                <div style="text-align: center; margin-top: 20px;">
                     <small style="color: var(--muted);">
                         Beste Streak: {{ streak_info.best_streak }} Tage
                     </small>
@@ -292,26 +508,26 @@
         <div class="stat-card">
             <h3>🎯 Nächste Achievements</h3>
             {% if next_goals %}
-            <div class="badge-grid">
-                {% for goal in next_goals %}
-                <div class="badge-item">
-                    <div class="badge-emoji">{{ goal.emoji }}</div>
-                    <div class="badge-info">
-                        <div class="badge-name">{{ goal.name }}</div>
-                        <div class="badge-rarity">{{ goal.description }}</div>
-                        <div class="progress-item" style="margin-top: 8px;">
-                            <span style="font-size: 12px;">{{ goal.progress }}/{{ goal.target }}</span>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ goal.progress_percent }}%; background: var(--accent);"></div>
-                            </div>
-                            <span style="font-size: 12px;">{{ goal.progress_percent|round(1) }}%</span>
-                        </div>
+            <div class="achievement-progress">
+                {% for goal in next_goals[:5] %}
+                <div class="achievement-item">
+                    <div class="achievement-name">{{ goal.emoji }} {{ goal.name }}</div>
+                    <div style="font-size: 0.9em; color: var(--muted); margin-bottom: 8px;">{{ goal.description }}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9em;">
+                        <span>{{ goal.progress }}/{{ goal.target }}</span>
+                        <span>{{ goal.progress_percent|round(1) }}%</span>
+                    </div>
+                    <div class="achievement-progress-bar">
+                        <div class="achievement-progress-fill" style="width: {{ goal.progress_percent }}%;"></div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p style="text-align: center; color: var(--muted);">Alle verfügbaren Achievements erreicht! 🎉</p>
+            <p style="text-align: center; color: var(--muted); padding: 40px;">
+                🎉 Alle verfügbaren Achievements erreicht!<br>
+                <small>Du bist ein wahrer Champion!</small>
+            </p>
             {% endif %}
         </div>
         
@@ -320,19 +536,27 @@
             <h3>📈 Badge-Statistiken</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                 {% for rarity, count in badge_stats.by_rarity.items() %}
+                {% if count > 0 %}
                 <div class="streak-card">
                     <div class="streak-value" style="color: {{ rarity_colors[rarity] }};">{{ count }}</div>
                     <div class="streak-label">{{ rarity.title() }}</div>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
+            {% if badge_stats.total == 0 %}
+            <p style="text-align: center; color: var(--muted); padding: 20px;">
+                Noch keine Badges gesammelt
+            </p>
+            {% endif %}
         </div>
         
         <!-- Navigation -->
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="{{ url_for('index') }}" class="btn">🏠 Zurück zur Hauptseite</a>
-            <a href="{{ url_for('scoreboard') }}" class="btn">🏆 Scoreboard</a>
-            <a href="{{ url_for('badges') }}" class="btn">🎖️ Alle Badges</a>
+        <div class="navigation-buttons">
+            <a href="{{ url_for('index') }}" class="nav-btn">🏠 Zurück zur Hauptseite</a>
+            <a href="{{ url_for('scoreboard') }}" class="nav-btn">🏆 Scoreboard</a>
+            <a href="{{ url_for('badges') }}" class="nav-btn">🎖️ Alle Badges</a>
+            <a href="{{ url_for('my_calendar') }}" class="nav-btn">📅 Meine Termine</a>
         </div>
     </div>
 </body>
