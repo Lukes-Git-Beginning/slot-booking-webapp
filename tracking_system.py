@@ -559,7 +559,36 @@ class BookingTracker:
                         "cancelled": total_cancelled,
                         "no_show_rate": round((total_no_shows / total_slots) * 100, 2),
                         "completion_rate": round((total_completed / total_slots) * 100, 2),
-                        "cancellation_rate": round((total_cancelled / total_slots) * 100, 2)
+                        "cancellation_rate": round((total_cancelled / total_slots) * 100, 2),
+                        "appearance_rate": round(((total_completed + total_cancelled) / total_slots) * 100, 2)
+                    }
+                
+                # Berechne 30-Tage Statistik
+                last_30_days = [str(today - timedelta(days=i)) for i in range(30)]
+                
+                total_slots_30 = 0
+                total_no_shows_30 = 0
+                total_completed_30 = 0
+                total_cancelled_30 = 0
+                
+                for date_str in last_30_days:
+                    if date_str in all_metrics:
+                        metrics = all_metrics[date_str]
+                        total_slots_30 += metrics.get("total_slots", 0)
+                        total_no_shows_30 += metrics.get("no_shows", 0)
+                        total_completed_30 += metrics.get("completed", 0)
+                        total_cancelled_30 += metrics.get("cancelled", 0)
+                
+                if total_slots_30 > 0:
+                    dashboard["last_30_days"] = {
+                        "total_slots": total_slots_30,
+                        "no_shows": total_no_shows_30,
+                        "completed": total_completed_30,
+                        "cancelled": total_cancelled_30,
+                        "no_show_rate": round((total_no_shows_30 / total_slots_30) * 100, 2),
+                        "completion_rate": round((total_completed_30 / total_slots_30) * 100, 2),
+                        "cancellation_rate": round((total_cancelled_30 / total_slots_30) * 100, 2),
+                        "appearance_rate": round(((total_completed_30 + total_cancelled_30) / total_slots_30) * 100, 2)
                     }
                 
                 # Trend-Analyse
@@ -719,7 +748,7 @@ class BookingTracker:
                 hist_stats = historical_data["stats"]
                 
                 # Auftauchquote Vergleich (neue Klassifizierung)
-                current_appearance = current_dashboard.get("last_30_days", {}).get("appearance_rate", 0)
+                current_appearance = current_dashboard.get("last_30_days", {}).get("appearance_rate", 0) / 100.0  # Konvertiere von Prozent zu Dezimal
                 hist_appearance = hist_stats.get("appearance_rate", 0)
                 
                 insights["comparisons"]["appearance_rate"] = {
