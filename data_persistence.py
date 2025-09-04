@@ -213,47 +213,146 @@ class DataPersistence:
         except Exception as e:
             print(f"⚠️ Backup-Fehler für {filename}: {e}")
     
-    def _cleanup_old_backups(self, filename):
-        """Lösche alte Backups (behalte nur die letzten 5)"""
+    def auto_cleanup_backups(self):
+        """Automatische Bereinigung alter Backups"""
         try:
-            pattern = f"{filename}.*.backup"
-            backups = list(self.backup_dir.glob(pattern))
-            backups.sort(reverse=True)
-            
-            # Lösche alte Backups (behalte nur die letzten 5)
-            for backup in backups[5:]:
-                backup.unlink()
+            for filename in ["scores", "champions", "user_badges", "daily_user_stats"]:
+                self._cleanup_old_backups(filename)
+            print("✅ Backup-Cleanup abgeschlossen")
         except Exception as e:
-            print(f"⚠️ Backup-Cleanup-Fehler: {e}")
+            print(f"❌ Backup-Cleanup Fehler: {e}")
     
-    def restore_from_backup(self, filename):
-        """Stelle Daten aus dem neuesten Backup wieder her"""
+    def _cleanup_old_backups(self, filename):
+        """Bereinige alte Backups für eine bestimmte Datei"""
         try:
-            pattern = f"{filename}.*.backup"
-            backups = list(self.backup_dir.glob(pattern))
-            if not backups:
-                print(f"❌ Keine Backups für {filename} gefunden")
-                return False
+            backup_files = list(self.backup_dir.glob(f"{filename}_*.backup"))
             
-            # Nehme das neueste Backup
-            latest_backup = max(backups, key=lambda x: x.stat().st_mtime)
+            # Behalte nur die letzten 10 Backups
+            if len(backup_files) > 10:
+                # Sortiere nach Erstellungsdatum (älteste zuerst)
+                backup_files.sort(key=lambda x: x.stat().st_mtime)
+                
+                # Lösche die ältesten Backups
+                files_to_delete = backup_files[:-10]
+                for backup_file in files_to_delete:
+                    backup_file.unlink()
+                    print(f"🗑️ Altes Backup gelöscht: {backup_file.name}")
+        except Exception as e:
+            print(f"❌ Fehler beim Bereinigen von {filename} Backups: {e}")
+    
+    def get_backup_statistics(self):
+        """Bekomme Backup-Statistiken"""
+        try:
+            stats = {}
+            for filename in ["scores", "champions", "user_badges", "daily_user_stats"]:
+                backup_files = list(self.backup_dir.glob(f"{filename}_*.backup"))
+                stats[filename] = {
+                    "count": len(backup_files),
+                    "latest": None,
+                    "oldest": None
+                }
+                
+                if backup_files:
+                    # Sortiere nach Erstellungsdatum
+                    backup_files.sort(key=lambda x: x.stat().st_mtime)
+                    stats[filename]["oldest"] = backup_files[0].name
+                    stats[filename]["latest"] = backup_files[-1].name
             
+            return stats
+        except Exception as e:
+            print(f"❌ Fehler beim Abrufen der Backup-Statistiken: {e}")
+            return {}
+    
+    def restore_from_latest_backup(self, filename):
+        """Stelle aus dem neuesten Backup wieder her"""
+        try:
+            backup_files = list(self.backup_dir.glob(f"{filename}_*.backup"))
+            if not backup_files:
+                return False, "Keine Backups verfügbar"
+            
+            # Neuestes Backup finden
+            latest_backup = max(backup_files, key=lambda x: x.stat().st_mtime)
+            
+            # Backup laden
             with open(latest_backup, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
-            # Stelle wieder her
-            if filename == "scores.json":
-                self.save_scores(data)
-            elif filename == "user_badges.json":
-                self.save_badges(data)
-            elif filename == "champions.json":
-                self.save_champions(data)
+            # Daten wiederherstellen
+            target_file = self.data_dir / f"{filename}.json"
+            with open(target_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
             
             print(f"✅ {filename} aus Backup wiederhergestellt: {latest_backup.name}")
-            return True
+            return True, f"Wiederhergestellt aus {latest_backup.name}"
+            
         except Exception as e:
             print(f"❌ Fehler beim Wiederherstellen von {filename}: {e}")
-            return False
+            return False, str(e)
+    
+    def validate_data_integrity(self):
+        """Validiere die Integrität aller Daten"""
+        try:
+            issues = []
+            
+            # Prüfe alle Daten-Dateien
+            for filename in ["scores", "champions", "user_badges", "daily_user_stats"]:
+                file_path = self.data_dir / f"{filename}.json"
+                
+                if not file_path.exists():
+                    issues.append(f"Datei fehlt: {filename}.json")
+                    continue
+                
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    
+                    # Basis-Validierung
+                    if not isinstance(data, dict):
+                        issues.append(f"Ungültiges Format: {filename}.json")
+                    
+                except json.JSONDecodeError:
+                    issues.append(f"Ungültiges JSON: {filename}.json")
+                except Exception as e:
+                    issues.append(f"Fehler beim Lesen von {filename}.json: {e}")
+            
+            if issues:
+                print(f"⚠️ Datenintegritäts-Probleme gefunden: {len(issues)}")
+                for issue in issues:
+                    print(f"  - {issue}")
+                return False, issues
+            else:
+                print("✅ Alle Daten validiert - keine Probleme gefunden")
+                return True, []
+                
+        except Exception as e:
+            print(f"❌ Fehler bei der Datenvalidierung: {e}")
+            return False, [str(e)]
+    
+    def auto_backup_all(self):
+        """Automatisches Backup aller Daten"""
+        try:
+            files_to_backup = ["scores", "champions", "user_badges", "daily_user_stats"]
+            backed_up = []
+            
+            for filename in files_to_backup:
+                try:
+                    source_file = self.data_dir / f"{filename}.json"
+                    if source_file.exists():
+                        self._create_backup(filename, None)  # None = lade automatisch
+                        backed_up.append(filename)
+                except Exception as e:
+                    print(f"❌ Backup-Fehler für {filename}: {e}")
+            
+            if backed_up:
+                print(f"✅ Automatisches Backup erstellt für: {', '.join(backed_up)}")
+                # Bereinige alte Backups
+                self.auto_cleanup_backups()
+            
+            return backed_up
+            
+        except Exception as e:
+            print(f"❌ Fehler beim automatischen Backup: {e}")
+            return []
 
 # Globale Instanz
 data_persistence = DataPersistence()

@@ -1750,6 +1750,92 @@ def api_check_new_badges():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/gamification")
+def gamification_dashboard():
+    """Gamification-Dashboard mit allen Statistiken"""
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    
+    try:
+        # Level-Informationen
+        user_level = level_system.calculate_user_level(user)
+        
+        # Badge-Statistiken
+        user_badges = achievement_system.get_user_badges(user)
+        badge_stats = achievement_system.get_badge_statistics(user)
+        
+        # Streak-Informationen
+        from data_persistence import data_persistence
+        daily_stats = data_persistence.load_daily_user_stats()
+        streak_info = achievement_system.calculate_advanced_streak(daily_stats.get(user, {}))
+        
+        # Nächste Ziele
+        next_goals = achievement_system.get_next_achievements(user)
+        
+        # Raritäts-Farben für Template
+        rarity_colors = {
+            "common": "#10b981",
+            "uncommon": "#3b82f6",
+            "rare": "#8b5cf6",
+            "epic": "#f59e0b",
+            "legendary": "#eab308",
+            "mythic": "#ec4899"
+        }
+        
+        return render_template("gamification.html",
+                             user_level=user_level,
+                             user_badges=user_badges,
+                             badge_stats=badge_stats,
+                             streak_info=streak_info,
+                             next_goals=next_goals,
+                             rarity_colors=rarity_colors,
+                             current_user=user)
+    except Exception as e:
+        print(f"❌ Gamification Dashboard Fehler: {e}")
+        return redirect(url_for("index"))
+
+@app.route("/api/badges/check-new")
+def check_new_badges():
+    """API-Endpoint für Badge-Updates"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Nicht eingeloggt"})
+    
+    try:
+        # Prüfe auf neue Badges seit letztem Check
+        last_check = session.get("last_badge_check", "1970-01-01")
+        new_badges = achievement_system.get_new_badges_since(user, last_check)
+        
+        # Update Session
+        session["last_badge_check"] = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+        
+        return jsonify({
+            "new_badges": new_badges,
+            "total_badges": len(achievement_system.get_user_badges(user)["badges"])
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route("/api/level/check-up")
+def check_level_up():
+    """API-Endpoint für Level-Up-Checks"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Nicht eingeloggt"})
+    
+    try:
+        # Berechne aktuelles Level
+        user_level = level_system.calculate_user_level(user)
+        
+        return jsonify({
+            "level_up": user_level.get("level_up"),
+            "current_level": user_level["level"],
+            "current_xp": user_level["xp"]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 @app.route("/admin/insights")
 def admin_insights():
     """Detaillierte Insights und Predictions"""
