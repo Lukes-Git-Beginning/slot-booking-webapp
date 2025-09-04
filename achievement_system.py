@@ -466,11 +466,13 @@ class AchievementSystem:
         """Berechne Punkte der aktuellen Woche"""
         today = datetime.now(TZ).date()
         week_start = today - timedelta(days=today.weekday())
-        
         week_points = 0
+        
         for i in range(7):
-            check_date = (week_start + timedelta(days=i)).strftime("%Y-%m-%d")
-            week_points += user_stats.get(check_date, {}).get("points", 0)
+            check_date = week_start + timedelta(days=i)
+            check_date_str = check_date.strftime("%Y-%m-%d")
+            if check_date_str in user_stats:
+                week_points += user_stats[check_date_str].get("points", 0)
         
         return week_points
     
@@ -833,6 +835,74 @@ class AchievementSystem:
                 "current": current,
                 "target": target,
                 "progress_percent": min(100, (current / target * 100) if target > 0 else 0)
+            }
+        
+        return progress
+
+    def calculate_streak(self, user_stats):
+        """Berechne aktuelle Streak (aufeinanderfolgende Arbeitstage mit Aktivität)"""
+        today = datetime.now(TZ).date()
+        streak = 0
+        
+        # Gehe rückwärts durch die Tage
+        for i in range(60):  # Max 60 Tage zurück prüfen (für längere Streaks)
+            check_date = (today - timedelta(days=i))
+            
+            # Nur Arbeitstage berücksichtigen (Montag-Freitag)
+            if check_date.weekday() < 5:  # 0=Montag, 4=Freitag
+                check_date_str = check_date.strftime("%Y-%m-%d")
+                if check_date_str in user_stats and user_stats[check_date_str].get("points", 0) > 0:
+                    streak += 1
+                else:
+                    break  # Streak unterbrochen
+            # Wochenenden überspringen - Streak bleibt bestehen
+        
+        return streak
+    
+    def get_badge_progress(self, user):
+        """Bekomme Fortschritt für alle verfügbaren Badges"""
+        try:
+            from data_persistence import data_persistence
+            scores = data_persistence.load_scores()
+            daily_stats = data_persistence.load_daily_user_stats()
+        except:
+            try:
+                with open("static/scores.json", "r", encoding="utf-8") as f:
+                    scores = json.load(f)
+                with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
+                    daily_stats = json.load(f)
+            except:
+                scores = {}
+                daily_stats = {}
+        
+        user_scores = scores.get(user, {})
+        user_daily_stats = daily_stats.get(user, {})
+        
+        progress = {}
+        
+        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+            if "threshold" not in definition:
+                continue
+                
+            current = 0
+            target = definition["threshold"]
+            
+            if definition["category"] == "daily":
+                today = datetime.now(TZ).strftime("%Y-%m-%d")
+                current = user_daily_stats.get(today, {}).get("points", 0)
+            elif definition["category"] == "weekly":
+                current = self.calculate_week_points(user_daily_stats)
+            elif definition["category"] == "monthly":
+                current = sum(user_scores.values())
+            elif definition["category"] == "total":
+                current = sum(sum(month_scores.values()) for month_scores in scores.values())
+            elif definition["category"] == "streak":
+                current = self.calculate_streak(user_daily_stats)
+            
+            progress[badge_id] = {
+                "current": current,
+                "target": target,
+                "percentage": min((current / target) * 100, 100) if target > 0 else 0
             }
         
         return progress

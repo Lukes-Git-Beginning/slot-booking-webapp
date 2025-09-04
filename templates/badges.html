@@ -210,7 +210,7 @@
         <div class="user-stat-label">Earned Badges</div>
       </div>
       <div class="user-stat">
-        <div class="user-stat-value">{{ (total_badges / available_badges|length * 100)|round(1) }}%</div>
+        <div class="user-stat-value">{{ (total_badges / available_badges|length * 100)|round(1) if available_badges|length > 0 else 0 }}%</div>
         <div class="user-stat-label">Completion</div>
       </div>
       <div class="user-stat">

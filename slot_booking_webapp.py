@@ -1247,8 +1247,8 @@ def badges():
         
         # Bereite Template-Variablen vor
         total_badges = user_badges.get("total_badges", 0)
-        available_badges = achievement_system.get_all_badge_definitions()
-        badge_progress = achievement_system.get_user_badge_progress(user)
+        available_badges = list(ACHIEVEMENT_DEFINITIONS.keys())
+        badge_progress = achievement_system.get_badge_progress(user)
         
     except Exception as e:
         print(f"❌ Badge System Fehler: {e}")
