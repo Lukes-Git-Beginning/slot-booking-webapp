@@ -214,7 +214,7 @@
         <div class="user-stat-label">Completion</div>
       </div>
       <div class="user-stat">
-        <div class="user-stat-value">{{ user_badges.badges|selectattr('rarity', 'equalto', 'legendary')|list|length + user_badges.badges|selectattr('rarity', 'equalto', 'mythic')|list|length }}</div>
+        <div class="user-stat-value">{{ user_badges['badges']|selectattr('rarity', 'equalto', 'legendary')|list|length + user_badges['badges']|selectattr('rarity', 'equalto', 'mythic')|list|length }}</div>
         <div class="user-stat-label">Rare Badges</div>
       </div>
       <div class="user-stat">
@@ -229,16 +229,16 @@
         🏆 Alle ({{ available_badges|length }})
       </button>
       <button class="category-filter" onclick="filterCategory('daily')">
-        🌟 Täglich ({{ available_badges|selectattr('category', 'equalto', 'daily')|list|length }})
+        🌟 Täglich ({{ available_badges.values()|selectattr('category', 'equalto', 'daily')|list|length }})
       </button>
       <button class="category-filter" onclick="filterCategory('weekly')">
-        📅 Wöchentlich ({{ available_badges|selectattr('category', 'equalto', 'weekly')|list|length }})
+        📅 Wöchentlich ({{ available_badges.values()|selectattr('category', 'equalto', 'weekly')|list|length }})
       </button>
       <button class="category-filter" onclick="filterCategory('mvp')">
-        👑 MVP ({{ available_badges|selectattr('category', 'equalto', 'mvp')|list|length }})
+        👑 MVP ({{ available_badges.values()|selectattr('category', 'equalto', 'mvp')|list|length }})
       </button>
       <button class="category-filter" onclick="filterCategory('special')">
-        ⭐ Spezial ({{ available_badges|selectattr('category', 'equalto', 'special')|list|length }})
+        ⭐ Spezial ({{ available_badges.values()|selectattr('category', 'equalto', 'special')|list|length }})
       </button>
     </div>
     
@@ -246,36 +246,36 @@
     <div class="badges-grid">
       {% for badge_id, badge_def in available_badges.items() %}
       {% set progress = badge_progress[badge_id] %}
-      {% set is_earned = progress.earned %}
+      {% set is_earned = progress['earned'] %}
       
       <div class="badge-card {{ 'earned' if is_earned else 'locked' }}" 
-           data-category="{{ badge_def.category }}"
-           data-rarity="{{ badge_def.rarity }}">
+           data-category="{{ badge_def['category'] }}"
+           data-rarity="{{ badge_def['rarity'] }}">
         
         {% if is_earned %}
         <div class="earned-date">✓ Earned</div>
         {% endif %}
         
-        <div class="badge-icon rarity-{{ badge_def.rarity }} {{ 'earned' if is_earned else '' }}">
-          {{ badge_def.emoji }}
+        <div class="badge-icon rarity-{{ badge_def['rarity'] }} {{ 'earned' if is_earned else '' }}">
+          {{ badge_def['emoji'] }}
         </div>
         
-        <h3 class="badge-name">{{ badge_def.name }}</h3>
-        <p class="badge-description">{{ badge_def.description }}</p>
+        <h3 class="badge-name">{{ badge_def['name'] }}</h3>
+        <p class="badge-description">{{ badge_def['description'] }}</p>
         
-        <div class="achievement-rarity rarity-{{ badge_def.rarity }}">
-          ✨ {{ badge_def.rarity.title() }}
+        <div class="achievement-rarity rarity-{{ badge_def['rarity'] }}">
+          ✨ {{ badge_def['rarity'].title() }}
         </div>
         
         {% if not is_earned and 'current' in progress %}
         <div class="progress-bar">
-          <div class="progress-fill" style="width: {{ progress.progress_percent }}%"></div>
+          <div class="progress-fill" style="width: {{ progress['progress_percent'] }}%"></div>
         </div>
         <div class="progress-text">
-          {{ progress.current }} / {{ progress.target }}
-          {% if badge_def.category == 'daily' %}Punkte heute{% endif %}
-          {% if badge_def.category == 'weekly' %}Punkte diese Woche{% endif %}
-          {% if badge_def.category == 'streak' %}Tage Streak{% endif %}
+          {{ progress['current'] }} / {{ progress['target'] }}
+          {% if badge_def['category'] == 'daily' %}Punkte heute{% endif %}
+          {% if badge_def['category'] == 'weekly' %}Punkte diese Woche{% endif %}
+          {% if badge_def['category'] == 'streak' %}Tage Streak{% endif %}
         </div>
         {% endif %}
       </div>
