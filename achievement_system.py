@@ -878,6 +878,11 @@ class AchievementSystem:
         user_scores = scores.get(user, {})
         user_daily_stats = daily_stats.get(user, {})
         
+        # Berechne aktuelle Werte
+        today = datetime.now(TZ).strftime("%Y-%m-%d")
+        week_points = self.calculate_week_points(user_daily_stats)
+        current_streak = self.calculate_streak(user_daily_stats)
+        
         progress = {}
         
         for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
@@ -886,23 +891,45 @@ class AchievementSystem:
                 
             current = 0
             target = definition["threshold"]
+            earned = False
             
             if definition["category"] == "daily":
-                today = datetime.now(TZ).strftime("%Y-%m-%d")
                 current = user_daily_stats.get(today, {}).get("points", 0)
+                earned = current >= target
             elif definition["category"] == "weekly":
-                current = self.calculate_week_points(user_daily_stats)
+                current = week_points
+                earned = current >= target
             elif definition["category"] == "monthly":
                 current = sum(user_scores.values())
+                earned = current >= target
             elif definition["category"] == "total":
                 current = sum(sum(month_scores.values()) for month_scores in scores.values())
+                earned = current >= target
             elif definition["category"] == "streak":
-                current = self.calculate_streak(user_daily_stats)
+                current = current_streak
+                earned = current >= target
+            elif definition["category"] == "mvp":
+                # MVP Badges werden separat vergeben
+                earned = False
+                current = 0
+                target = 1
+            elif definition["category"] == "special":
+                # Spezielle Badges haben eigene Logik
+                if badge_id == "first_booking":
+                    earned = any(stats.get("first_booking", False) for stats in user_daily_stats.values())
+                    current = 1 if earned else 0
+                    target = 1
+                elif badge_id == "night_owl":
+                    total_evening = sum(stats.get("evening_bookings", 0) for stats in user_daily_stats.values())
+                    current = total_evening
+                    target = 10
+                    earned = current >= target
             
             progress[badge_id] = {
+                "earned": earned,
                 "current": current,
                 "target": target,
-                "percentage": min((current / target) * 100, 100) if target > 0 else 0
+                "progress_percent": min(100, (current / target * 100) if target > 0 else 0)
             }
         
         return progress

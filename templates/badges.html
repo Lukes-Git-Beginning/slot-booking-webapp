@@ -214,7 +214,7 @@
         <div class="user-stat-label">Completion</div>
       </div>
       <div class="user-stat">
-        <div class="user-stat-value">{{ user_badges|selectattr('rarity', 'equalto', 'legendary')|list|length + user_badges|selectattr('rarity', 'equalto', 'mythic')|list|length }}</div>
+        <div class="user-stat-value">{{ user_badges.badges|selectattr('rarity', 'equalto', 'legendary')|list|length + user_badges.badges|selectattr('rarity', 'equalto', 'mythic')|list|length }}</div>
         <div class="user-stat-label">Rare Badges</div>
       </div>
       <div class="user-stat">

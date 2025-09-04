@@ -362,7 +362,7 @@ def get_slot_suggestions(availability, n=5):
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
 # ----------------- Punkte & Champion -----------------
-from achievement_system import achievement_system
+from achievement_system import achievement_system, ACHIEVEMENT_DEFINITIONS
 from color_mapping import blocks_availability
 
 def add_points_to_user(user, points):
@@ -1247,7 +1247,7 @@ def badges():
         
         # Bereite Template-Variablen vor
         total_badges = user_badges.get("total_badges", 0)
-        available_badges = list(ACHIEVEMENT_DEFINITIONS.keys())
+        available_badges = ACHIEVEMENT_DEFINITIONS
         badge_progress = achievement_system.get_badge_progress(user)
         
     except Exception as e:
@@ -1255,7 +1255,7 @@ def badges():
         user_badges = {"badges": [], "total_badges": 0}
         leaderboard = []
         total_badges = 0
-        available_badges = {}
+        available_badges = ACHIEVEMENT_DEFINITIONS
         badge_progress = {}
     
     return render_template("badges.html", 
