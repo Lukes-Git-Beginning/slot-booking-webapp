@@ -182,103 +182,73 @@ ACHIEVEMENT_DEFINITIONS = {
         "emoji": "⚡",
         "rarity": "rare"
     },
-    
-    # All-Time Total Badges
-    "total_50": {
-        "name": "Anfänger 📈",
-        "description": "Insgesamt 50 Kunden gelegt",
-        "category": "total",
-        "threshold": 50,
-        "emoji": "📈",
-        "rarity": "common"
-    },
-    "total_100": {
-        "name": "Erfahren 🎯",
-        "description": "Insgesamt 100 Kunden gelegt",
-        "category": "total",
-        "threshold": 100,
-        "emoji": "🎯",
-        "rarity": "uncommon"
-    },
-    "total_150": {
-        "name": "Profi 🏆",
-        "description": "Insgesamt 150 Kunden gelegt",
-        "category": "total",
-        "threshold": 150,
-        "emoji": "🏆",
-        "rarity": "rare"
-    },
-    "total_250": {
-        "name": "Erfahrener ⚔️",
-        "description": "Insgesamt 250 Kunden gelegt",
-        "category": "total",
-        "threshold": 250,
-        "emoji": "⚔️",
+    "streak_20": {
+        "name": "Unaufhaltsam 🚀",
+        "description": "20 Arbeitstage in Folge aktiv",
+        "category": "streak",
+        "threshold": 20,
+        "emoji": "🚀",
         "rarity": "epic"
     },
-    "total_500": {
-        "name": "Meister 👑",
-        "description": "Insgesamt 500 Kunden gelegt",
-        "category": "total",
-        "threshold": 500,
-        "emoji": "👑",
-        "rarity": "legendary"
-    },
-    "total_1000": {
-        "name": "Legende 💎",
-        "description": "Insgesamt 1000 Kunden gelegt",
-        "category": "total",
-        "threshold": 1000,
-        "emoji": "💎",
-        "rarity": "mythic"
-    },
-    "streak_7": {
-        "name": "Unaufhaltbar 🚀",
-        "description": "7 Arbeitstage in Folge aktiv", 
-        "category": "streak",
-        "threshold": 7,
-        "emoji": "🚀",
-        "rarity": "rare"
-    },
     
-    # Spezial Badges
+    # Spezielle Badges
     "first_booking": {
-        "name": "Neuling 🎯",
-        "description": "Erste Buchung gemacht",
+        "name": "Erste Schritte 👣",
+        "description": "Erste Buchung getätigt",
         "category": "special",
-        "emoji": "🎯",
+        "emoji": "👣",
         "rarity": "common"
     },
     "night_owl": {
-        "name": "Nachteule 🦉",
-        "description": "10 Abendtermine (20:00) gebucht",
-        "category": "special", 
+        "name": "Nachteule 🌙",
+        "description": "10 Abendtermine gebucht (18:00+ Uhr)",
+        "category": "special",
         "threshold": 10,
-        "emoji": "🦉",
+        "emoji": "🌙",
         "rarity": "uncommon"
+    },
+    "early_bird": {
+        "name": "Früher Vogel 🌅",
+        "description": "10 Vormittagstermine gebucht (9:00-12:00 Uhr)",
+        "category": "special",
+        "threshold": 10,
+        "emoji": "🌅",
+        "rarity": "uncommon"
+    },
+    "weekend_warrior": {
+        "name": "Wochenend-Krieger ⚔️",
+        "description": "5 Termine am Freitag gebucht",
+        "category": "special",
+        "threshold": 5,
+        "emoji": "⚔️",
+        "rarity": "rare"
     }
 }
 
+# Raritäts-Farben für Badges
 RARITY_COLORS = {
-    "common": "#10b981",      # Grün
-    "uncommon": "#3b82f6",    # Blau  
-    "rare": "#8b5cf6",        # Lila
-    "epic": "#f59e0b",        # Orange
-    "legendary": "#eab308",   # Gold
-    "mythic": "#ec4899"       # Pink
+    "common": "#10b981",
+    "uncommon": "#3b82f6", 
+    "rare": "#8b5cf6",
+    "epic": "#f59e0b",
+    "legendary": "#eab308",
+    "mythic": "#ec4899"
 }
 
 class AchievementSystem:
     def __init__(self):
         self.badges_file = "static/user_badges.json"
-        self.daily_stats_file = "static/daily_user_stats.json"
+        self.mvp_file = "static/mvp_badges.json"
         os.makedirs("static", exist_ok=True)
         
         # Initialisiere Files wenn nicht vorhanden
-        for file_path in [self.badges_file, self.daily_stats_file]:
-            if not os.path.exists(file_path):
-                with open(file_path, "w", encoding="utf-8") as f:
-                    json.dump({}, f)
+        if not os.path.exists(self.badges_file):
+            with open(self.badges_file, "w", encoding="utf-8") as f:
+                json.dump({}, f)
+        
+        if not os.path.exists(self.mvp_file):
+            with open(self.mvp_file, "w", encoding="utf-8") as f:
+                json.dump({}, f)
     
     def load_badges(self):
         """Lade alle User-Badges"""
@@ -296,10 +266,26 @@ class AchievementSystem:
         except Exception as e:
             print(f"Fehler beim Speichern der Badges: {e}")
     
+    def load_mvp_badges(self):
+        """Lade MVP-Badges"""
+        try:
+            with open(self.mvp_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    
+    def save_mvp_badges(self, mvp_data):
+        """Speichere MVP-Badges"""
+        try:
+            with open(self.mvp_file, "w", encoding="utf-8") as f:
+                json.dump(mvp_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Fehler beim Speichern der MVP-Badges: {e}")
+    
     def load_daily_stats(self):
         """Lade tägliche User-Statistiken"""
         try:
-            with open(self.daily_stats_file, "r", encoding="utf-8") as f:
+            with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except:
             return {}
@@ -307,110 +293,124 @@ class AchievementSystem:
     def save_daily_stats(self, stats_data):
         """Speichere tägliche User-Statistiken"""
         try:
-            with open(self.daily_stats_file, "w", encoding="utf-8") as f:
+            with open("static/daily_user_stats.json", "w", encoding="utf-8") as f:
                 json.dump(stats_data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Fehler beim Speichern der Stats: {e}")
     
-    def add_points_and_check_achievements(self, user, points, slot_time="", context=""):
+    def add_points_and_check_achievements(self, user, points):
         """
-        Füge Punkte hinzu und prüfe auf neue Achievements
         Erweitert die bestehende add_points_to_user Funktion
+        Prüft automatisch auf neue Achievements
         """
-        today = datetime.now(TZ).strftime("%Y-%m-%d")
-        month = datetime.now(TZ).strftime("%Y-%m")
-        
-        # Aktualisiere tägliche Stats
-        daily_stats = self.load_daily_stats()
-        if user not in daily_stats:
-            daily_stats[user] = {}
-        if today not in daily_stats[user]:
-            daily_stats[user][today] = {
-                "points": 0,
-                "bookings": 0,
-                "evening_bookings": 0,
-                "first_booking": False
-            }
-        
-        # Update Stats
-        daily_stats[user][today]["points"] += points
-        daily_stats[user][today]["bookings"] += 1
-        
-        # Spezielle Tracking
-        if slot_time.startswith("20:"):
-            daily_stats[user][today]["evening_bookings"] += 1
-        
-        if daily_stats[user][today]["bookings"] == 1 and len(daily_stats[user]) == 1:
-            daily_stats[user][today]["first_booking"] = True
-        
-        self.save_daily_stats(daily_stats)
-        
-        # Prüfe Achievements
-        new_badges = self.check_achievements(user, daily_stats[user])
-        
-        return new_badges
+        try:
+            from data_persistence import data_persistence
+            
+            # Lade aktuelle Daten
+            scores = data_persistence.load_scores()
+            daily_stats = data_persistence.load_daily_user_stats()
+            badges_data = self.load_badges()
+            
+            # Update Scores
+            month = datetime.now(TZ).strftime("%Y-%m")
+            today = datetime.now(TZ).strftime("%Y-%m-%d")
+            
+            if user not in scores:
+                scores[user] = {}
+            if month not in scores[user]:
+                scores[user][month] = 0
+            scores[user][month] += points
+            
+            # Update Daily Stats
+            if user not in daily_stats:
+                daily_stats[user] = {}
+            if today not in daily_stats[user]:
+                daily_stats[user][today] = {"points": 0, "bookings": 0, "first_booking": False}
+            
+            daily_stats[user][today]["points"] += points
+            daily_stats[user][today]["bookings"] += 1
+            
+            # Markiere erste Buchung
+            if not daily_stats[user][today].get("first_booking", False):
+                daily_stats[user][today]["first_booking"] = True
+            
+            # Speichere Updates
+            data_persistence.save_scores(scores)
+            data_persistence.save_daily_user_stats(daily_stats)
+            
+            # Prüfe auf neue Badges
+            new_badges = self.check_achievements(user, scores, daily_stats, badges_data)
+            
+            # Automatische MVP-Prüfung
+            self.auto_check_mvp_badges()
+            
+            return new_badges
+            
+        except Exception as e:
+            print(f"❌ Achievement System Fehler: {e}")
+            return []
     
-    def check_achievements(self, user, user_stats):
-        """Prüfe alle möglichen Achievements für einen User"""
-        badges_data = self.load_badges()
-        if user not in badges_data:
-            badges_data[user] = {
-                "badges": [],
-                "earned_dates": {},
-                "total_badges": 0
-            }
-        
+    def check_achievements(self, user, scores, daily_stats, badges_data):
+        """Prüfe alle Achievement-Bedingungen für einen User"""
         new_badges = []
+        
+        # 1. Tägliche Punkte Badges
         today = datetime.now(TZ).strftime("%Y-%m-%d")
-        user_badges = [badge["id"] for badge in badges_data[user]["badges"]]
+        if today in daily_stats.get(user, {}):
+            daily_points = daily_stats[user][today]["points"]
+            for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+                if definition["category"] == "daily" and "threshold" in definition:
+                    if daily_points >= definition["threshold"]:
+                        new_badge = self.award_badge(user, badge_id, definition, badges_data)
+                        if new_badge:
+                            new_badges.append(new_badge)
         
-        # 1. Tägliche Punkte Badges prüfen
-        today_points = user_stats.get(today, {}).get("points", 0)
+        # 2. Wöchentliche Punkte Badges
+        week_points = self.calculate_week_points(daily_stats.get(user, {}))
         for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
-            if definition["category"] == "daily" and badge_id not in user_badges:
-                if today_points >= definition["threshold"]:
-                    new_badge = self.award_badge(user, badge_id, definition, badges_data)
-                    if new_badge:
-                        new_badges.append(new_badge)
-        
-        # 2. Wöchentliche Punkte prüfen
-        week_points = self.calculate_week_points(user_stats)
-        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
-            if definition["category"] == "weekly" and badge_id not in user_badges:
+            if definition["category"] == "weekly" and "threshold" in definition:
                 if week_points >= definition["threshold"]:
                     new_badge = self.award_badge(user, badge_id, definition, badges_data)
                     if new_badge:
                         new_badges.append(new_badge)
         
-        # 3. Streak Badges prüfen
-        current_streak = self.calculate_streak(user_stats)
+        # 3. Monatliche Punkte Badges
+        user_scores = scores.get(user, {})
+        month_points = sum(user_scores.values())
         for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
-            if definition["category"] == "streak" and badge_id not in user_badges:
-                if current_streak >= definition["threshold"]:
+            if definition["category"] == "monthly" and "threshold" in definition:
+                if month_points >= definition["threshold"]:
                     new_badge = self.award_badge(user, badge_id, definition, badges_data)
                     if new_badge:
                         new_badges.append(new_badge)
         
-        # 4. All-Time Total Badges prüfen
-        total_bookings = sum(stats.get("bookings", 0) for stats in user_stats.values())
+        # 4. Gesamtpunkte Badges
+        total_points = sum(sum(month_scores.values()) for month_scores in scores.values())
         for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
-            if definition["category"] == "total" and badge_id not in user_badges:
-                if total_bookings >= definition["threshold"]:
+            if definition["category"] == "total" and "threshold" in definition:
+                if total_points >= definition["threshold"]:
                     new_badge = self.award_badge(user, badge_id, definition, badges_data)
                     if new_badge:
                         new_badges.append(new_badge)
         
-        # 5. Spezielle Badges prüfen
-        self.check_special_badges(user, user_stats, badges_data, new_badges)
+        # 5. Streak Badges
+        streak_info = self.calculate_advanced_streak(daily_stats.get(user, {}))
+        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+            if definition["category"] == "streak" and "threshold" in definition:
+                if streak_info["best_streak"] >= definition["threshold"]:
+                    new_badge = self.award_badge(user, badge_id, definition, badges_data)
+                    if new_badge:
+                        new_badges.append(new_badge)
         
-        # 5. MVP Badges werden separat vergeben (siehe check_and_award_mvp_badges)
+        # 6. Spezielle Badges
+        self.check_special_badges(user, daily_stats.get(user, {}), badges_data, new_badges)
         
         self.save_badges(badges_data)
         return new_badges
     
     def check_special_badges(self, user, user_stats, badges_data, new_badges):
         """Prüfe spezielle Achievement-Bedingungen"""
-        user_badges = [badge["id"] for badge in badges_data[user]["badges"]]
+        user_badges = [badge["id"] for badge in badges_data.get(user, {}).get("badges", [])]
         
         # First Booking Badge
         if "first_booking" not in user_badges:
@@ -474,110 +474,134 @@ class AchievementSystem:
         
         return week_points
     
-    def calculate_streak(self, user_stats):
-        """Berechne aktuelle Streak (aufeinanderfolgende Arbeitstage mit Aktivität)"""
+    def calculate_advanced_streak(self, user_stats):
+        """Erweiterte Streak-Berechnung mit verschiedenen Kategorien"""
+        today = datetime.now(TZ).date()
+        
+        # Arbeits-Streak (nur Arbeitstage)
+        work_streak = self.calculate_work_streak(user_stats)
+        
+        # Buchungs-Streak (jeder Tag mit Buchung)
+        booking_streak = self.calculate_booking_streak(user_stats)
+        
+        # Punkte-Streak (jeder Tag mit Punkten)
+        points_streak = self.calculate_points_streak(user_stats)
+        
+        return {
+            "work_streak": work_streak,
+            "booking_streak": booking_streak, 
+            "points_streak": points_streak,
+            "best_streak": max(work_streak, booking_streak, points_streak)
+        }
+    
+    def calculate_work_streak(self, user_stats):
+        """Berechne Arbeits-Streak (nur Montag-Freitag)"""
         today = datetime.now(TZ).date()
         streak = 0
         
-        # Gehe rückwärts durch die Tage
-        for i in range(60):  # Max 60 Tage zurück prüfen (für längere Streaks)
-            check_date = (today - timedelta(days=i))
-            
-            # Nur Arbeitstage berücksichtigen (Montag-Freitag)
-            if check_date.weekday() < 5:  # 0=Montag, 4=Freitag
+        for i in range(60):
+            check_date = today - timedelta(days=i)
+            if check_date.weekday() < 5:  # Nur Arbeitstage
                 check_date_str = check_date.strftime("%Y-%m-%d")
                 if check_date_str in user_stats and user_stats[check_date_str].get("points", 0) > 0:
                     streak += 1
                 else:
-                    break  # Streak unterbrochen
-            # Wochenenden überspringen - Streak bleibt bestehen
+                    break
         
         return streak
     
-    def check_and_award_mvp_badges(self):
-        """
-        Prüfe und vergebe MVP Badges
-        Sollte wöchentlich/monatlich als Cron Job laufen
-        """
-        badges_data = self.load_badges()
+    def calculate_booking_streak(self, user_stats):
+        """Berechne Buchungs-Streak (jeder Tag mit Buchung)"""
+        today = datetime.now(TZ).date()
+        streak = 0
         
-        # Lade Scores für MVP-Bestimmung
+        for i in range(60):
+            check_date = today - timedelta(days=i)
+            check_date_str = check_date.strftime("%Y-%m-%d")
+            if check_date_str in user_stats and user_stats[check_date_str].get("bookings", 0) > 0:
+                streak += 1
+            else:
+                break
+        
+        return streak
+    
+    def calculate_points_streak(self, user_stats):
+        """Berechne Punkte-Streak (jeder Tag mit Punkten)"""
+        today = datetime.now(TZ).date()
+        streak = 0
+        
+        for i in range(60):
+            check_date = today - timedelta(days=i)
+            check_date_str = check_date.strftime("%Y-%m-%d")
+            if check_date_str in user_stats and user_stats[check_date_str].get("points", 0) > 0:
+                streak += 1
+            else:
+                break
+        
+        return streak
+    
+    def auto_check_mvp_badges(self):
+        """Automatische MVP-Badge-Vergabe - sollte täglich laufen"""
         try:
             from data_persistence import data_persistence
             scores = data_persistence.load_scores()
-        except:
-            return
-        
-        current_date = datetime.now(TZ)
-        
-        # 1. Wochen-MVP (jeden Montag prüfen)
-        if current_date.weekday() == 0:  # Montag
-            self.award_weekly_mvp(scores, badges_data, current_date)
-        
-        # 2. Monats-MVP (jeden 1. des Monats prüfen)
-        if current_date.day == 1:
-            self.award_monthly_mvp(scores, badges_data, current_date)
-        
-        # 3. Jahres-MVP (jeden 1. Januar prüfen)
-        if current_date.month == 1 and current_date.day == 1:
-            self.award_yearly_mvp(scores, badges_data, current_date)
-        
-        self.save_badges(badges_data)
+            mvp_data = self.load_mvp_badges()
+            
+            # Monats-MVP
+            current_month = datetime.now(TZ).strftime("%Y-%m")
+            month_scores = [(u, v.get(current_month, 0)) for u, v in scores.items()]
+            if month_scores:
+                best_user = max(month_scores, key=lambda x: x[1])[0]
+                if best_user and month_scores[0][1] > 0:  # Nur wenn Punkte vorhanden
+                    self.award_mvp_badge(best_user, "mvp_month", current_month, mvp_data)
+            
+            # Jahres-MVP (alle Monate des Jahres)
+            current_year = datetime.now(TZ).year
+            year_scores = defaultdict(int)
+            for user, user_scores in scores.items():
+                for month, points in user_scores.items():
+                    if month.startswith(str(current_year)):
+                        year_scores[user] += points
+            
+            if year_scores:
+                best_user = max(year_scores.items(), key=lambda x: x[1])[0]
+                if best_user and year_scores[best_user] > 0:  # Nur wenn Punkte vorhanden
+                    self.award_mvp_badge(best_user, "mvp_year", str(current_year), mvp_data)
+            
+            self.save_mvp_badges(mvp_data)
+            
+        except Exception as e:
+            print(f"❌ MVP-Badge Fehler: {e}")
     
-    def award_weekly_mvp(self, scores, badges_data, current_date):
-        """Vergebe Wochen-MVP Badge"""
-        # Berechne Punkte der letzten Woche
-        last_week = current_date - timedelta(weeks=1)
-        week_scores = defaultdict(int)
+    def award_mvp_badge(self, user, badge_type, period, mvp_data):
+        """Vergebe MVP-Badge an User"""
+        if user not in mvp_data:
+            mvp_data[user] = {"badges": [], "periods": {}}
         
-        daily_stats = self.load_daily_stats()
+        # Prüfe ob Badge bereits für diese Periode vergeben
+        if period in mvp_data[user]["periods"]:
+            return None
         
-        for user, user_daily_stats in daily_stats.items():
-            for date_str, stats in user_daily_stats.items():
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-                week_start = last_week.date() - timedelta(days=last_week.weekday())
-                week_end = week_start + timedelta(days=6)
-                
-                if week_start <= date_obj <= week_end:
-                    week_scores[user] += stats.get("points", 0)
+        definition = ACHIEVEMENT_DEFINITIONS[badge_type]
         
-        if week_scores:
-            mvp_user = max(week_scores.keys(), key=lambda x: week_scores[x])
-            if week_scores[mvp_user] > 0:
-                definition = ACHIEVEMENT_DEFINITIONS["mvp_week"]
-                self.award_badge(mvp_user, f"mvp_week_{last_week.strftime('%Y_W%V')}", definition, badges_data)
-    
-    def award_monthly_mvp(self, scores, badges_data, current_date):
-        """Vergebe Monats-MVP Badge"""
-        last_month = (current_date.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+        badge = {
+            "id": badge_type,
+            "name": definition["name"],
+            "description": f"{definition['description']} ({period})",
+            "emoji": definition["emoji"],
+            "rarity": definition["rarity"],
+            "category": definition["category"],
+            "earned_date": datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S"),
+            "period": period,
+            "color": RARITY_COLORS[definition["rarity"]]
+        }
         
-        # Finde User mit höchsten Punkten im letzten Monat
-        month_scores = {}
-        for user, user_scores in scores.items():
-            month_scores[user] = user_scores.get(last_month, 0)
+        mvp_data[user]["badges"].append(badge)
+        mvp_data[user]["periods"][period] = badge["earned_date"]
         
-        if month_scores:
-            mvp_user = max(month_scores.keys(), key=lambda x: month_scores[x])
-            if month_scores[mvp_user] > 0:
-                definition = ACHIEVEMENT_DEFINITIONS["mvp_month"]
-                self.award_badge(mvp_user, f"mvp_month_{last_month}", definition, badges_data)
-    
-    def award_yearly_mvp(self, scores, badges_data, current_date):
-        """Vergebe Jahres-MVP Badge"""
-        last_year = current_date.year - 1
+        print(f"🏆 MVP-Badge verliehen: {user} erhält '{definition['name']}' für {period}")
         
-        # Berechne Jahres-Punkte
-        year_scores = defaultdict(int)
-        for user, user_scores in scores.items():
-            for month, points in user_scores.items():
-                if month.startswith(str(last_year)):
-                    year_scores[user] += points
-        
-        if year_scores:
-            mvp_user = max(year_scores.keys(), key=lambda x: year_scores[x])
-            if year_scores[mvp_user] > 0:
-                definition = ACHIEVEMENT_DEFINITIONS["mvp_year"]
-                self.award_badge(mvp_user, f"mvp_year_{last_year}", definition, badges_data)
+        return badge
     
     def get_user_badges(self, user):
         """Hole alle Badges eines Users - berechnet automatisch basierend auf aktuellen Punkten"""
@@ -659,6 +683,9 @@ class AchievementSystem:
                     earned_date = current_month
             elif definition["category"] == "mvp":
                 # MVP Badges werden separat vergeben
+                earned = False
+                current = 0
+                target = 1
                 if badge_id == "mvp_month":
                     # Prüfe ob User Champion des aktuellen Monats ist
                     try:
@@ -667,6 +694,16 @@ class AchievementSystem:
                         if month_champion == user:
                             earned = True
                             earned_date = current_month
+                    except:
+                        pass
+                elif badge_id == "mvp_year":
+                    # Prüfe ob User Champion des aktuellen Jahres ist
+                    try:
+                        champions = data_persistence.load_champions()
+                        year_champion = champions.get(str(current_year), {}).get("user")
+                        if year_champion == user:
+                            earned = True
+                            earned_date = str(current_year)
                     except:
                         pass
             
