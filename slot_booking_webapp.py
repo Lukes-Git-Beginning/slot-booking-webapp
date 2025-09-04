@@ -99,7 +99,7 @@ def safe_calendar_call(func, *args, **kwargs):
 
 def is_admin(user):
     """Prüft ob User Admin-Rechte hat"""
-    admin_users = ["admin", "administrator", "Jose", "Simon"]  # <-- HIER DEINEN USERNAME HINZUFÜGEN!
+    admin_users = ["Admin", "administrator", "Jose", "Simon"]  # <-- HIER DEINEN USERNAME HINZUFÜGEN!
     return user and user.lower() in admin_users
 
 def check_admin_access():
@@ -1438,8 +1438,8 @@ def admin_dashboard():
             print(f"⚠️ Dashboard data error: {e}")
             dashboard_data = {
                 "current": {
-                    "last_7_days": {"total_bookings": 0, "appearance_rate": 0},
-                    "last_30_days": {"success_rate": 0}
+                    "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0},
+                    "last_30_days": {"success_rate": 0, "appearance_rate": 0}
                 },
                 "historical": {"by_weekday": {}},
                 "combined_insights": {"recommendations": []}
