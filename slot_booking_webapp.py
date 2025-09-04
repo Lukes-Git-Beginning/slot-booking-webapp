@@ -1415,15 +1415,8 @@ def admin_dashboard():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
-    # Zeit-Check: Erst ab Tag 30 verfügbar
+    # Zeit-Check entfernt - Dashboard ist jetzt verfügbar dank historischer Daten
     days_running = get_app_runtime_days()
-    
-    if days_running < 30:
-        days_remaining = 30 - days_running
-        flash(f"🕐 Dashboard verfügbar in {days_remaining} Tagen (ab 1 Monat Laufzeit)", "info")
-        return render_template("admin_locked.html", 
-                             days_remaining=days_remaining, 
-                             days_running=days_running)
     
     try:
         # Initialisiere Tracking System
@@ -1772,10 +1765,8 @@ def admin_insights():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
-    # Zeit-Check
+    # Zeit-Check entfernt - Insights sind jetzt verfügbar dank historischer Daten
     days_running = get_app_runtime_days()
-    if days_running < 30:
-        return redirect(url_for("admin_dashboard"))
     
     try:
         tracker = BookingTracker()
