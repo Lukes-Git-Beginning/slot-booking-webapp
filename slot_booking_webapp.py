@@ -488,7 +488,11 @@ def generate_dashboard_charts(tracker):
             if not isinstance(metrics, dict):
                 return charts
             
-            dates = sorted(metrics.keys())[-30:]  # Letzte 30 Tage
+            # Filtere nur Datums-Schlüssel (YYYY-MM-DD Format)
+            date_keys = [key for key in metrics.keys() 
+                        if isinstance(key, str) and len(key) == 10 and key.count('-') == 2]
+            dates = sorted(date_keys)[-30:]  # Letzte 30 Tage
+            
             for date in dates:
                 if date in metrics and isinstance(metrics[date], dict):
                     try:
@@ -1423,9 +1427,25 @@ def admin_dashboard():
         # Initialisiere Tracking System
         tracker = BookingTracker()
         
-        # Hole Dashboard Daten
-        dashboard_data = tracker.get_enhanced_dashboard()
-        weekly_report = tracker.get_weekly_report()
+        # Hole Dashboard Daten mit Fallback
+        try:
+            dashboard_data = tracker.get_enhanced_dashboard()
+        except Exception as e:
+            print(f"⚠️ Dashboard data error: {e}")
+            dashboard_data = {
+                "current": {
+                    "last_7_days": {"total_bookings": 0, "appearance_rate": 0},
+                    "last_30_days": {"success_rate": 0}
+                },
+                "historical": {"by_weekday": {}},
+                "combined_insights": {"recommendations": []}
+            }
+        
+        try:
+            weekly_report = tracker.get_weekly_report()
+        except Exception as e:
+            print(f"⚠️ Weekly report error: {e}")
+            weekly_report = {}
         
         # Lade detaillierte Metriken
         detailed_metrics = load_detailed_metrics()
