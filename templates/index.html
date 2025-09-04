@@ -680,6 +680,11 @@ body.darkmode .achievement-notification {
   </style>
 </head>
 <body>
+  <!-- Level Display -->
+  {% if user_level %}
+  {% include 'level_display.html' %}
+  {% endif %}
+  
   <!-- Loading Indicator (Enhanced) -->
   <div class="loading-indicator" id="loadingIndicator">Lädt...</div>
   
