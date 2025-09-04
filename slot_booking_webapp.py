@@ -2001,5 +2001,70 @@ def run_achievement_check():
     except Exception as e:
         print(f"❌ Achievement check error: {e}")
 
+@app.route("/admin/users")
+def admin_users():
+    """Admin Route um alle aktiven User anzuzeigen"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        # Hole alle aktiven User
+        active_users = get_all_active_users()
+        base_users = get_userlist()
+        
+        # Erstelle User-Liste mit Details
+        users_info = []
+        for username in active_users:
+            user_info = {
+                "username": username,
+                "in_userlist": username in base_users,
+                "password": base_users.get(username, "Auto-generiert"),
+                "has_bookings": False,
+                "total_bookings": 0,
+                "current_month_points": 0
+            }
+            
+            # Prüfe Buchungen und Punkte
+            try:
+                from tracking_system import BookingTracker
+                tracker = BookingTracker()
+                
+                # Zähle Buchungen
+                if os.path.exists(tracker.bookings_file):
+                    with open(tracker.bookings_file, "r", encoding="utf-8") as f:
+                        for line in f:
+                            if line.strip():
+                                try:
+                                    booking = json.loads(line)
+                                    if booking.get("user") == username:
+                                        user_info["has_bookings"] = True
+                                        user_info["total_bookings"] += 1
+                                except json.JSONDecodeError:
+                                    continue
+                
+                # Hole aktuelle Monatspunkte
+                scores = data_persistence.load_scores()
+                month = datetime.now(TZ).strftime("%Y-%m")
+                user_info["current_month_points"] = scores.get(username, {}).get(month, 0)
+                
+            except Exception as e:
+                print(f"❌ Fehler beim Laden der User-Daten für {username}: {e}")
+            
+            users_info.append(user_info)
+        
+        # Sortiere nach Punkten (absteigend)
+        users_info.sort(key=lambda x: x["current_month_points"], reverse=True)
+        
+        return render_template("admin_users.html", 
+                             users=users_info,
+                             total_users=len(users_info),
+                             base_users_count=len(base_users))
+        
+    except Exception as e:
+        flash(f"❌ Fehler beim Laden der User-Liste: {e}", "danger")
+        return redirect(url_for("index"))
+
 if __name__ == '__main__':
     app.run(debug=False)  # Debug auf False für Produktion!

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>User Management - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+    <style>
+        .users-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .users-header {
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .users-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .users-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .user-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f3f4;
+            align-items: center;
+        }
+        
+        .user-row:hover {
+            background: #f8f9fa;
+        }
+        
+        .user-row:last-child {
+            border-bottom: none;
+        }
+        
+        .username {
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-auto {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .points {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .bookings {
+            color: #6c757d;
+        }
+        
+        .password {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        
+        .back-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('index') }}" class="back-btn">← Zurück</a>
+    
+    <div class="users-container">
+        <div class="users-header">
+            <h1>👥 User Management</h1>
+            <p>Übersicht aller aktiven Telefonisten und ihrer Statistiken</p>
+        </div>
+        
+        <div class="users-stats">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Aktive User</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ base_users_count }}</div>
+                <div class="stat-label">In USERLIST</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_users - base_users_count }}</div>
+                <div class="stat-label">Auto-erstellt</div>
+            </div>
+        </div>
+        
+        <div class="users-table">
+            <div class="table-header user-row">
+                <div>Username</div>
+                <div>Status</div>
+                <div>Passwort</div>
+                <div>Buchungen</div>
+                <div>Punkte ({{ "2025-09" }})</div>
+                <div>Aktionen</div>
+            </div>
+            
+            {% for user in users %}
+            <div class="user-row">
+                <div class="username">{{ user.username }}</div>
+                <div>
+                    {% if user.in_userlist %}
+                        <span class="status-badge status-active">Aktiv</span>
+                    {% else %}
+                        <span class="status-badge status-auto">Auto</span>
+                    {% endif %}
+                </div>
+                <div class="password">{{ user.password }}</div>
+                <div class="bookings">
+                    {% if user.has_bookings %}
+                        {{ user.total_bookings }} Buchungen
+                    {% else %}
+                        Keine Buchungen
+                    {% endif %}
+                </div>
+                <div class="points">{{ user.current_month_points }} Punkte</div>
+                <div class="actions">
+                    <a href="{{ url_for('admin_fix_points') }}" class="btn-small btn-primary">Punkte Fix</a>
+                    {% if not user.in_userlist %}
+                        <span class="btn-small btn-warning">Auto-Konto</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{{ url_for('admin_fix_points') }}" class="btn-primary" style="padding: 15px 30px; font-size: 1.1em;">
+                🔧 Alle Punkte nachträglich vergeben
+            </a>
+        </div>
+    </div>
+</body>
+</html>
