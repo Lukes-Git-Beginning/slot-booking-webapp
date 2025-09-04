@@ -99,8 +99,8 @@ def safe_calendar_call(func, *args, **kwargs):
 
 def is_admin(user):
     """Prüft ob User Admin-Rechte hat"""
-    admin_users = ["Admin", "administrator", "Jose", "Simon"]  # <-- HIER DEINEN USERNAME HINZUFÜGEN!
-    return user and user.lower() in admin_users
+    admin_users = ["admin", "Admin", "administrator", "Jose", "Simon"]  # <-- HIER DEINEN USERNAME HINZUFÜGEN!
+    return user and user.lower() in [u.lower() for u in admin_users]
 
 def check_admin_access():
     """Decorator-ähnliche Funktion für Admin-Check"""
