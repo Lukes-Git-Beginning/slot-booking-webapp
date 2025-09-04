@@ -4,6 +4,7 @@ import pytz
 import time
 from tracking_system import BookingTracker
 from data_persistence import data_persistence
+from level_system import level_system
 from collections import defaultdict
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
@@ -1074,6 +1075,16 @@ def day_view(date_str):
             "overbooked": overbooked,
         }
     
+    # Berechne Level-Daten für User
+    user = session.get("user")
+    user_level = None
+    if user:
+        user_level = level_system.calculate_user_level(user)
+        # Füge Farben hinzu
+        user_level["progress_color"] = level_system.get_level_progress_color(user_level["progress_to_next"])
+        if user_level["best_badge"]:
+            user_level["best_badge_color"] = level_system.get_rarity_color(user_level["best_badge"]["rarity"])
+    
     return render_template(
         "index.html",
         slots=slots,
@@ -1085,7 +1096,8 @@ def day_view(date_str):
         weekly_detailed=extract_detailed_summary(availability),
         timedelta=timedelta,
         get_week_start=get_week_start,
-        slot_suggestions=get_slot_suggestions(availability)
+        slot_suggestions=get_slot_suggestions(availability),
+        user_level=user_level
     )
 
 @app.route("/")
