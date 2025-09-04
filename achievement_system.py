@@ -435,8 +435,8 @@ class AchievementSystem:
         
         # Lade Scores für MVP-Bestimmung
         try:
-            with open("static/scores.json", "r", encoding="utf-8") as f:
-                scores = json.load(f)
+            from data_persistence import data_persistence
+            scores = data_persistence.load_scores()
         except:
             return
         
