@@ -1,50 +1,50 @@
-<!-- Level Display für Hauptseite -->
-<div class="level-display">
-    <div class="level-card">
-        <div class="level-header">
-            <div class="user-info">
-                <div class="user-avatar">
+<!-- Level Display für Sidebar -->
+<div class="level-display-sidebar">
+    <div class="level-card-sidebar">
+        <div class="level-header-sidebar">
+            <div class="user-info-sidebar">
+                <div class="user-avatar-sidebar">
                     {{ user_level.user[0].upper() }}
                 </div>
-                <div class="user-details">
-                    <div class="user-name">{{ user_level.user }}</div>
-                    <div class="level-title">{{ user_level.level_title }}</div>
+                <div class="user-details-sidebar">
+                    <div class="user-name-sidebar">{{ user_level.user }}</div>
+                    <div class="level-title-sidebar">{{ user_level.level_title }}</div>
                 </div>
             </div>
-            <div class="level-badge">
-                <div class="level-number">{{ user_level.level }}</div>
+            <div class="level-badge-sidebar">
+                <div class="level-number-sidebar">{{ user_level.level }}</div>
             </div>
         </div>
         
-        <div class="level-progress-section">
-            <div class="xp-info">
-                <span class="xp-current">{{ user_level.xp }}</span>
-                <span class="xp-separator">/</span>
-                <span class="xp-next">{{ user_level.next_level_xp }}</span>
-                <span class="xp-label">XP</span>
+        <div class="level-progress-section-sidebar">
+            <div class="xp-info-sidebar">
+                <span class="xp-current-sidebar">{{ user_level.xp }}</span>
+                <span class="xp-separator-sidebar">/</span>
+                <span class="xp-next-sidebar">{{ user_level.next_level_xp }}</span>
+                <span class="xp-label-sidebar">XP</span>
             </div>
             
-            <div class="progress-bar-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" 
+            <div class="progress-bar-container-sidebar">
+                <div class="progress-bar-sidebar">
+                    <div class="progress-fill-sidebar" 
                          style="width: {{ user_level.progress_to_next }}%; 
                                 background: linear-gradient(90deg, 
                                     {{ user_level.progress_color }}, 
                                     {{ user_level.progress_color }}dd);">
                     </div>
                 </div>
-                <div class="progress-text">{{ user_level.progress_to_next }}%</div>
+                <div class="progress-text-sidebar">{{ user_level.progress_to_next }}%</div>
             </div>
         </div>
         
         {% if user_level.best_badge %}
-        <div class="best-badge-section">
-            <div class="best-badge-label">Beste Badge:</div>
-            <div class="best-badge" style="border-color: {{ user_level.best_badge_color }};">
-                <span class="badge-emoji">{{ user_level.best_badge.emoji }}</span>
-                <div class="badge-info">
-                    <div class="badge-name">{{ user_level.best_badge.name }}</div>
-                    <div class="badge-rarity" style="color: {{ user_level.best_badge_color }};">
+        <div class="best-badge-section-sidebar">
+            <div class="best-badge-label-sidebar">Beste Badge:</div>
+            <div class="best-badge-sidebar" style="border-color: {{ user_level.best_badge_color }};">
+                <span class="badge-emoji-sidebar">{{ user_level.best_badge.emoji }}</span>
+                <div class="badge-info-sidebar">
+                    <div class="badge-name-sidebar">{{ user_level.best_badge.name }}</div>
+                    <div class="badge-rarity-sidebar" style="color: {{ user_level.best_badge_color }};">
                         {{ user_level.best_badge.rarity.title() }}
                     </div>
                 </div>
@@ -52,291 +52,273 @@
         </div>
         {% endif %}
         
-        <div class="stats-summary">
-            <div class="stat-item">
-                <div class="stat-value">{{ user_level.total_badges }}</div>
-                <div class="stat-label">Badges</div>
+        <div class="stats-summary-sidebar">
+            <div class="stat-item-sidebar">
+                <div class="stat-value-sidebar">{{ user_level.total_badges }}</div>
+                <div class="stat-label-sidebar">Badges</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value">{{ user_level.level }}</div>
-                <div class="stat-label">Level</div>
+            <div class="stat-item-sidebar">
+                <div class="stat-value-sidebar">{{ user_level.level }}</div>
+                <div class="stat-label-sidebar">Level</div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-.level-display {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    max-width: 320px;
+.level-display-sidebar {
+    margin: 16px 0;
+    width: 100%;
 }
 
-.level-card {
+.level-card-sidebar {
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     border: 2px solid #475569;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(10px);
     color: white;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.level-header {
+.level-header-sidebar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
-.user-info {
+.user-info-sidebar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
-.user-avatar {
-    width: 48px;
-    height: 48px;
+.user-avatar-sidebar {
+    width: 40px;
+    height: 40px;
     background: linear-gradient(135deg, #3b82f6, #8b5cf6);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: bold;
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
-.user-details {
+.user-details-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 
-.user-name {
-    font-size: 16px;
+.user-name-sidebar {
+    font-size: 14px;
     font-weight: 600;
     color: #f8fafc;
 }
 
-.level-title {
-    font-size: 12px;
+.level-title-sidebar {
+    font-size: 10px;
     color: #94a3b8;
     font-weight: 500;
 }
 
-.level-badge {
+.level-badge-sidebar {
     background: linear-gradient(135deg, #f59e0b, #eab308);
     border-radius: 50%;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
-.level-number {
-    font-size: 18px;
+.level-number-sidebar {
+    font-size: 16px;
     font-weight: bold;
     color: white;
 }
 
-.level-progress-section {
-    margin-bottom: 16px;
+.level-progress-section-sidebar {
+    margin-bottom: 12px;
 }
 
-.xp-info {
+.xp-info-sidebar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 8px;
-    font-size: 14px;
+    gap: 3px;
+    margin-bottom: 6px;
+    font-size: 12px;
 }
 
-.xp-current {
+.xp-current-sidebar {
     color: #10b981;
     font-weight: 600;
 }
 
-.xp-separator {
+.xp-separator-sidebar {
     color: #64748b;
 }
 
-.xp-next {
+.xp-next-sidebar {
     color: #94a3b8;
 }
 
-.xp-label {
+.xp-label-sidebar {
     color: #64748b;
-    font-size: 12px;
-    margin-left: 4px;
+    font-size: 10px;
+    margin-left: 3px;
 }
 
-.progress-bar-container {
+.progress-bar-container-sidebar {
     position: relative;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
-.progress-bar {
+.progress-bar-sidebar {
     width: 100%;
-    height: 8px;
+    height: 6px;
     background: #374151;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
 }
 
-.progress-fill {
+.progress-fill-sidebar {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: width 0.3s ease;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
 }
 
-.progress-text {
+.progress-text-sidebar {
     position: absolute;
     right: 0;
-    top: -20px;
-    font-size: 12px;
+    top: -16px;
+    font-size: 10px;
     color: #94a3b8;
     font-weight: 500;
 }
 
-.best-badge-section {
-    margin-bottom: 16px;
-    padding: 12px;
+.best-badge-section-sidebar {
+    margin-bottom: 12px;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.best-badge-label {
-    font-size: 12px;
+.best-badge-label-sidebar {
+    font-size: 10px;
     color: #94a3b8;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 500;
 }
 
-.best-badge {
+.best-badge-sidebar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 6px;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 4px;
     border: 1px solid;
     background: rgba(255, 255, 255, 0.05);
 }
 
-.badge-emoji {
-    font-size: 20px;
+.badge-emoji-sidebar {
+    font-size: 16px;
 }
 
-.badge-info {
+.badge-info-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 
-.badge-name {
-    font-size: 12px;
+.badge-name-sidebar {
+    font-size: 10px;
     font-weight: 600;
     color: #f8fafc;
 }
 
-.badge-rarity {
-    font-size: 10px;
+.badge-rarity-sidebar {
+    font-size: 8px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.stats-summary {
+.stats-summary-sidebar {
     display: flex;
     justify-content: space-around;
-    gap: 16px;
+    gap: 12px;
 }
 
-.stat-item {
+.stat-item-sidebar {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
 }
 
-.stat-value {
-    font-size: 18px;
+.stat-value-sidebar {
+    font-size: 14px;
     font-weight: bold;
     color: #f8fafc;
 }
 
-.stat-label {
-    font-size: 10px;
+.stat-label-sidebar {
+    font-size: 8px;
     color: #94a3b8;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-/* Animationen */
-.level-card {
-    animation: slideInRight 0.5s ease-out;
+/* Animationen für Sidebar */
+.level-card-sidebar {
+    animation: slideInSidebar 0.4s ease-out;
 }
 
-@keyframes slideInRight {
+@keyframes slideInSidebar {
     from {
-        transform: translateX(100%);
+        transform: translateY(-10px);
         opacity: 0;
     }
     to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
     }
 }
 
-.progress-fill {
-    animation: progressFill 1s ease-out;
+.progress-fill-sidebar {
+    animation: progressFillSidebar 0.8s ease-out;
 }
 
-@keyframes progressFill {
+@keyframes progressFillSidebar {
     from {
         width: 0%;
     }
 }
 
-/* Hover-Effekte */
-.level-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease;
+/* Hover-Effekte für Sidebar */
+.level-card-sidebar:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
 }
 
-.user-avatar:hover {
-    transform: scale(1.05);
+.user-avatar-sidebar:hover {
+    transform: scale(1.03);
     transition: transform 0.2s ease;
 }
 
-.level-badge:hover {
-    transform: scale(1.05);
+.level-badge-sidebar:hover {
+    transform: scale(1.03);
     transition: transform 0.2s ease;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .level-display {
-        position: relative;
-        top: auto;
-        right: auto;
-        margin: 20px auto;
-        max-width: 100%;
-    }
-    
-    .level-card {
-        margin: 0 20px;
-    }
 }
 </style>
