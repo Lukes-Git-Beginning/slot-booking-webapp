@@ -636,6 +636,129 @@ class BookingTracker:
         except Exception as e:
             print(f"❌ Fehler beim Laden der User-Buchungen: {e}")
             return []
+    
+    def load_historical_data(self):
+        """Lädt historische Daten für erweiterte Analysen"""
+        try:
+            historical_stats_file = "data/historical/historical_stats.json"
+            historical_bookings_file = "data/historical/historical_bookings.jsonl"
+            historical_outcomes_file = "data/historical/historical_outcomes.jsonl"
+            
+            historical_data = {
+                "stats": {},
+                "bookings": [],
+                "outcomes": []
+            }
+            
+            # Lade Statistiken
+            if os.path.exists(historical_stats_file):
+                with open(historical_stats_file, "r", encoding="utf-8") as f:
+                    historical_data["stats"] = json.load(f)
+            
+            # Lade historische Buchungen
+            if os.path.exists(historical_bookings_file):
+                with open(historical_bookings_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip():
+                            try:
+                                booking = json.loads(line)
+                                historical_data["bookings"].append(booking)
+                            except json.JSONDecodeError:
+                                continue
+            
+            # Lade historische Outcomes
+            if os.path.exists(historical_outcomes_file):
+                with open(historical_outcomes_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip():
+                            try:
+                                outcome = json.loads(line)
+                                historical_data["outcomes"].append(outcome)
+                            except json.JSONDecodeError:
+                                continue
+            
+            return historical_data
+            
+        except Exception as e:
+            print(f"❌ Fehler beim Laden der historischen Daten: {e}")
+            return {"stats": {}, "bookings": [], "outcomes": []}
+    
+    def get_enhanced_dashboard(self):
+        """Erweiterte Dashboard-Daten mit historischen Daten"""
+        try:
+            # Hole aktuelle Dashboard-Daten
+            current_dashboard = self.get_performance_dashboard()
+            
+            # Lade historische Daten
+            historical_data = self.load_historical_data()
+            
+            # Kombiniere die Daten
+            enhanced_dashboard = {
+                "current": current_dashboard,
+                "historical": historical_data["stats"],
+                "combined_insights": self._generate_combined_insights(current_dashboard, historical_data)
+            }
+            
+            return enhanced_dashboard
+            
+        except Exception as e:
+            print(f"❌ Fehler beim Erstellen des erweiterten Dashboards: {e}")
+            return self.get_performance_dashboard()
+    
+    def _generate_combined_insights(self, current_dashboard, historical_data):
+        """Generiert kombinierte Erkenntnisse aus aktuellen und historischen Daten"""
+        try:
+            insights = {
+                "trends": {},
+                "comparisons": {},
+                "recommendations": []
+            }
+            
+            # Vergleiche aktuelle vs. historische Quoten
+            if historical_data["stats"]:
+                hist_stats = historical_data["stats"]
+                
+                # Auftauchquote Vergleich (neue Klassifizierung)
+                current_appearance = current_dashboard.get("last_30_days", {}).get("appearance_rate", 0)
+                hist_appearance = hist_stats.get("appearance_rate", 0)
+                
+                insights["comparisons"]["appearance_rate"] = {
+                    "current": current_appearance,
+                    "historical": hist_appearance,
+                    "difference": current_appearance - hist_appearance,
+                    "trend": "improving" if current_appearance > hist_appearance else "declining"
+                }
+                
+                # Beste Zeiten basierend auf historischen Daten
+                best_times = []
+                if "by_time" in hist_stats:
+                    time_stats = hist_stats["by_time"]
+                    sorted_times = sorted(time_stats.items(), 
+                                        key=lambda x: x[1]["appearance_rate"], 
+                                        reverse=True)
+                    best_times = [time for time, _ in sorted_times[:3]]
+                
+                # Beste Wochentage basierend auf historischen Daten
+                best_weekdays = []
+                if "by_weekday" in hist_stats:
+                    weekday_stats = hist_stats["by_weekday"]
+                    sorted_weekdays = sorted(weekday_stats.items(), 
+                                           key=lambda x: x[1]["appearance_rate"], 
+                                           reverse=True)
+                    best_weekdays = [day for day, _ in sorted_weekdays[:3]]
+                
+                insights["recommendations"] = [
+                    f"Beste historische Auftauchquoten nach Uhrzeit: {', '.join(best_times)}",
+                    f"Beste historische Auftauchquoten nach Wochentag: {', '.join(best_weekdays)}",
+                    f"Historische Auftauchquote: {hist_appearance:.1%}",
+                    f"Aktuelle Auftauchquote: {current_appearance:.1%}"
+                ]
+            
+            return insights
+            
+        except Exception as e:
+            print(f"❌ Fehler bei der Generierung von Erkenntnissen: {e}")
+            return {"trends": {}, "comparisons": {}, "recommendations": []}
 
 # ----------------- Utility Funktionen -----------------
 def recalculate_all_outcomes():

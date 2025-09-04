@@ -1,0 +1,70 @@
+{
+  "total_days": 269,
+  "date_range": {
+    "start": "2025-01-13",
+    "end": "2026-01-22"
+  },
+  "total_slots": 4660,
+  "total_appeared": 1141,
+  "total_not_appeared": 3316,
+  "appearance_rate": 0.2448497854077253,
+  "by_weekday": {
+    "Monday": {
+      "total_slots": 1100,
+      "total_appeared": 241,
+      "appearance_rate": 0.2190909090909091
+    },
+    "Tuesday": {
+      "total_slots": 1164,
+      "total_appeared": 280,
+      "appearance_rate": 0.24054982817869416
+    },
+    "Wednesday": {
+      "total_slots": 978,
+      "total_appeared": 247,
+      "appearance_rate": 0.25255623721881393
+    },
+    "Thursday": {
+      "total_slots": 927,
+      "total_appeared": 228,
+      "appearance_rate": 0.2459546925566343
+    },
+    "Friday": {
+      "total_slots": 491,
+      "total_appeared": 145,
+      "appearance_rate": 0.2953156822810591
+    }
+  },
+  "by_time": {
+    "09:00": {
+      "total_slots": 201,
+      "total_appeared": 72,
+      "appearance_rate": 0.3582089552238806
+    },
+    "11:00": {
+      "total_slots": 932,
+      "total_appeared": 243,
+      "appearance_rate": 0.2607296137339056
+    },
+    "14:00": {
+      "total_slots": 397,
+      "total_appeared": 104,
+      "appearance_rate": 0.2619647355163728
+    },
+    "16:00": {
+      "total_slots": 717,
+      "total_appeared": 184,
+      "appearance_rate": 0.25662482566248257
+    },
+    "18:00": {
+      "total_slots": 1110,
+      "total_appeared": 228,
+      "appearance_rate": 0.20540540540540542
+    },
+    "20:00": {
+      "total_slots": 1303,
+      "total_appeared": 310,
+      "appearance_rate": 0.23791250959324636
+    }
+  }
+}
