@@ -1422,7 +1422,7 @@ def admin_dashboard():
         tracker = BookingTracker()
         
         # Hole Dashboard Daten
-        dashboard_data = tracker.get_performance_dashboard()
+        dashboard_data = tracker.get_enhanced_dashboard()
         weekly_report = tracker.get_weekly_report()
         
         # Lade detaillierte Metriken
@@ -1440,7 +1440,7 @@ def admin_dashboard():
         # Color-Mapping Status für Berater
         color_status = get_color_mapping_status()
         
-        return render_template("admin_dashboard.html",
+        return render_template("admin_dashboard_enhanced.html",
                              dashboard=dashboard_data,
                              weekly_report=weekly_report,
                              detailed_metrics=detailed_metrics,
