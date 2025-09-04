@@ -680,10 +680,7 @@ body.darkmode .achievement-notification {
   </style>
 </head>
 <body>
-  <!-- Level Display -->
-  {% if user_level %}
-  {% include 'level_display.html' %}
-  {% endif %}
+
   
   <!-- Loading Indicator (Enhanced) -->
   <div class="loading-indicator" id="loadingIndicator">Lädt...</div>
@@ -758,21 +755,10 @@ body.darkmode .achievement-notification {
       <div class="text-sm text-muted">{{ week.booked }}/{{ week.possible }} gebucht</div>
     {% endfor %}
 
-    <div class="slot-suggest-box">
-      <div class="slot-suggest-title">💡 Slot-Vorschläge</div>
-      {% if slot_suggestions %}
-        <table class="slot-suggest-table">
-          <thead><tr><th>Datum</th><th>Uhrzeit</th><th>Punkte</th><th>Frei</th></tr></thead>
-          <tbody>
-            {% for s in slot_suggestions %}
-              <tr><td>{{ s.date }}</td><td>{{ s.hour }}</td><td class="slot-suggest-pts">{{ s.punkte }}</td><td>{{ s.freie }}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div style="font-size:0.96em; color:var(--yellow);">Aktuell keine Vorschläge.</div>
-      {% endif %}
-    </div>
+    <!-- Level Display in Sidebar -->
+    {% if user_level %}
+    {% include 'level_display.html' %}
+    {% endif %}
   </div>
 
   <!-- Main -->
