@@ -154,6 +154,30 @@ class DataPersistence:
             print(f"❌ Fehler beim Speichern der User Badges: {e}")
             return False
     
+    def load_daily_user_stats(self):
+        """Lade Daily User Stats mit Fallback"""
+        try:
+            # Versuche persistentes Verzeichnis
+            stats_file = self.data_dir / "daily_user_stats.json"
+            if stats_file.exists():
+                with open(stats_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            
+            # Fallback: static/ Verzeichnis
+            static_stats = self.static_dir / "daily_user_stats.json"
+            if static_stats.exists():
+                with open(static_stats, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Speichere in persistentes Verzeichnis
+                    self.save_daily_user_stats(data)
+                    return data
+            
+            # Fallback: Leere Daten
+            return {}
+        except Exception as e:
+            print(f"❌ Fehler beim Laden der Daily User Stats: {e}")
+            return {}
+    
     def save_daily_user_stats(self, stats_data):
         """Speichere Daily User Stats mit Backup"""
         try:
