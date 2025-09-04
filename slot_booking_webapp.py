@@ -1115,7 +1115,9 @@ def index():
 @app.route("/export/bookings/<month>")
 def export_bookings(month):
     """Exportiere Buchungen als CSV"""
-    if session.get("user") != "admin":
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
     # Hole alle Buchungen des Monats
@@ -1214,7 +1216,9 @@ def book():
 @app.route("/tracking/report/weekly")
 def weekly_tracking_report():
     """Zeige Wochenbericht"""
-    if session.get("user") != "admin":
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
     report = tracker.get_weekly_report()
