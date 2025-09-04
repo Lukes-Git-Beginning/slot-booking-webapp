@@ -89,6 +89,74 @@ ACHIEVEMENT_DEFINITIONS = {
         "rarity": "mythic"
     },
     
+    # Monatliche Punkte Badges
+    "monthly_10": {
+        "name": "Monatsanfänger 📅",
+        "description": "10 Punkte in einem Monat erreicht",
+        "category": "monthly",
+        "threshold": 10,
+        "emoji": "📅",
+        "rarity": "common"
+    },
+    "monthly_25": {
+        "name": "Monatsprofi 📊",
+        "description": "25 Punkte in einem Monat erreicht",
+        "category": "monthly",
+        "threshold": 25,
+        "emoji": "📊",
+        "rarity": "uncommon"
+    },
+    "monthly_50": {
+        "name": "Monatschampion 🏅",
+        "description": "50 Punkte in einem Monat erreicht",
+        "category": "monthly",
+        "threshold": 50,
+        "emoji": "🏅",
+        "rarity": "rare"
+    },
+    "monthly_100": {
+        "name": "Monatslegende 🌟",
+        "description": "100 Punkte in einem Monat erreicht",
+        "category": "monthly",
+        "threshold": 100,
+        "emoji": "🌟",
+        "rarity": "epic"
+    },
+    
+    # Gesamtpunkte Badges
+    "total_50": {
+        "name": "Erfahrener Spieler 🎮",
+        "description": "50 Gesamtpunkte erreicht",
+        "category": "total",
+        "threshold": 50,
+        "emoji": "🎮",
+        "rarity": "common"
+    },
+    "total_100": {
+        "name": "Veteran 🛡️",
+        "description": "100 Gesamtpunkte erreicht",
+        "category": "total",
+        "threshold": 100,
+        "emoji": "🛡️",
+        "rarity": "uncommon"
+    },
+    "total_250": {
+        "name": "Elite-Spieler ⚡",
+        "description": "250 Gesamtpunkte erreicht",
+        "category": "total",
+        "threshold": 250,
+        "emoji": "⚡",
+        "rarity": "rare"
+    },
+    "total_500": {
+        "name": "Ultimate Champion 🏆",
+        "description": "500 Gesamtpunkte erreicht",
+        "category": "total",
+        "threshold": 500,
+        "emoji": "🏆",
+        "rarity": "legendary"
+    },
+    
     # Streak Badges
     "streak_2": {
         "name": "Konstant 🔥",
@@ -512,21 +580,134 @@ class AchievementSystem:
                 self.award_badge(mvp_user, f"mvp_year_{last_year}", definition, badges_data)
     
     def get_user_badges(self, user):
-        """Hole alle Badges eines Users"""
-        badges_data = self.load_badges()
-        return badges_data.get(user, {"badges": [], "total_badges": 0})
+        """Hole alle Badges eines Users - berechnet automatisch basierend auf aktuellen Punkten"""
+        # Lade aktuelle Scores
+        try:
+            from data_persistence import data_persistence
+            scores = data_persistence.load_scores()
+        except:
+            try:
+                with open("static/scores.json", "r", encoding="utf-8") as f:
+                    scores = json.load(f)
+            except:
+                scores = {}
+        
+        # Berechne Badges basierend auf aktuellen Punkten
+        user_badges = self.calculate_badges_from_points(user, scores)
+        
+        return {
+            "badges": user_badges,
+            "total_badges": len(user_badges)
+        }
+    
+    def calculate_badges_from_points(self, user, scores):
+        """Berechne Badges automatisch basierend auf aktuellen Punktzahlen"""
+        badges = []
+        user_scores = scores.get(user, {})
+        
+        # Aktueller Monat
+        current_month = datetime.now(TZ).strftime("%Y-%m")
+        current_month_points = user_scores.get(current_month, 0)
+        
+        # Gesamtpunkte (alle Monate)
+        total_points = sum(user_scores.values())
+        
+        # Tägliche Punkte (heute)
+        daily_stats = self.load_daily_stats()
+        user_stats = daily_stats.get(user, {})
+        today = datetime.now(TZ).strftime("%Y-%m-%d")
+        today_points = user_stats.get(today, {}).get("points", 0)
+        
+        # Wöchentliche Punkte
+        week_start = datetime.now(TZ) - timedelta(days=datetime.now(TZ).weekday())
+        week_points = 0
+        for date_str, stats in user_stats.items():
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if date_obj >= week_start.date():
+                    week_points += stats.get("points", 0)
+            except:
+                continue
+        
+        # Streak berechnen
+        current_streak = self.calculate_streak(user_stats)
+        
+        # Badges basierend auf Punkten vergeben
+        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+            earned = False
+            earned_date = None
+            
+            if definition["category"] == "daily":
+                if today_points >= definition.get("threshold", 0):
+                    earned = True
+                    earned_date = today
+            elif definition["category"] == "weekly":
+                if week_points >= definition.get("threshold", 0):
+                    earned = True
+                    earned_date = today
+            elif definition["category"] == "streak":
+                if current_streak >= definition.get("threshold", 0):
+                    earned = True
+                    earned_date = today
+            elif definition["category"] == "monthly":
+                if current_month_points >= definition.get("threshold", 0):
+                    earned = True
+                    earned_date = current_month
+            elif definition["category"] == "total":
+                if total_points >= definition.get("threshold", 0):
+                    earned = True
+                    earned_date = current_month
+            elif definition["category"] == "mvp":
+                # MVP Badges werden separat vergeben
+                if badge_id == "mvp_month":
+                    # Prüfe ob User Champion des aktuellen Monats ist
+                    try:
+                        champions = data_persistence.load_champions()
+                        month_champion = champions.get(current_month, {}).get("user")
+                        if month_champion == user:
+                            earned = True
+                            earned_date = current_month
+                    except:
+                        pass
+            
+            if earned:
+                badges.append({
+                    "id": badge_id,
+                    "name": definition["name"],
+                    "description": definition["description"],
+                    "category": definition["category"],
+                    "emoji": definition["emoji"],
+                    "rarity": definition["rarity"],
+                    "earned_date": earned_date,
+                    "threshold": definition.get("threshold", 0)
+                })
+        
+        return badges
     
     def get_badge_leaderboard(self):
-        """Erstelle Rangliste nach Badge-Anzahl"""
-        badges_data = self.load_badges()
+        """Erstelle Rangliste nach Badge-Anzahl - berechnet automatisch basierend auf aktuellen Punkten"""
+        # Lade aktuelle Scores
+        try:
+            from data_persistence import data_persistence
+            scores = data_persistence.load_scores()
+        except:
+            try:
+                with open("static/scores.json", "r", encoding="utf-8") as f:
+                    scores = json.load(f)
+            except:
+                scores = {}
+        
         leaderboard = []
         
-        for user, data in badges_data.items():
+        for user in scores.keys():
+            # Berechne Badges für jeden User
+            user_badges = self.calculate_badges_from_points(user, scores)
+            
             # Zähle Badges nach Seltenheit für Gewichtung
             rarity_points = 0
             rarity_counts = defaultdict(int)
             
-            for badge in data["badges"]:
+            for badge in user_badges:
                 rarity = badge["rarity"]
                 rarity_counts[rarity] += 1
                 
@@ -543,10 +724,10 @@ class AchievementSystem:
             
             leaderboard.append({
                 "user": user,
-                "total_badges": data["total_badges"],
+                "total_badges": len(user_badges),
                 "rarity_points": rarity_points,
                 "rarity_breakdown": dict(rarity_counts),
-                "badges": data["badges"]
+                "badges": user_badges
             })
         
         # Sortiere nach Rarity Points, dann nach Total Badges
