@@ -523,107 +523,124 @@ class BookingTracker:
                 "number": datetime.now(TZ).isocalendar()[1],
                 "year": datetime.now(TZ).year
             },
-            "last_7_days": {},
-            "last_30_days": {},
+            "last_7_days": {
+                "total_bookings": 0,
+                "appearance_rate": 0,
+                "success_rate": 0,
+                "no_show_rate": 0
+            },
+            "last_30_days": {
+                "total_bookings": 0,
+                "appearance_rate": 0,
+                "success_rate": 0,
+                "no_show_rate": 0
+            },
             "trends": {},
             "alerts": []
         }
         
-        # Lade Metriken
-        if os.path.exists(self.metrics_file):
-            with open(self.metrics_file, "r", encoding="utf-8") as f:
-                all_metrics = json.load(f)
-                
-                # Berechne 7-Tage Statistik
-                today = datetime.now(TZ).date()
-                last_7_days = [str(today - timedelta(days=i)) for i in range(7)]
-                
-                total_slots = 0
-                total_no_shows = 0
-                total_completed = 0
-                total_cancelled = 0
-                
-                for date_str in last_7_days:
-                    if date_str in all_metrics:
-                        metrics = all_metrics[date_str]
-                        total_slots += metrics.get("total_slots", 0)
-                        total_no_shows += metrics.get("no_shows", 0)
-                        total_completed += metrics.get("completed", 0)
-                        total_cancelled += metrics.get("cancelled", 0)
-                
-                if total_slots > 0:
-                    dashboard["last_7_days"] = {
-                        "total_slots": total_slots,
-                        "no_shows": total_no_shows,
-                        "completed": total_completed,
-                        "cancelled": total_cancelled,
-                        "no_show_rate": round((total_no_shows / total_slots) * 100, 2),
-                        "completion_rate": round((total_completed / total_slots) * 100, 2),
-                        "cancellation_rate": round((total_cancelled / total_slots) * 100, 2),
-                        "appearance_rate": round(((total_completed + total_cancelled) / total_slots) * 100, 2)
-                    }
-                
-                # Berechne 30-Tage Statistik
-                last_30_days = [str(today - timedelta(days=i)) for i in range(30)]
-                
-                total_slots_30 = 0
-                total_no_shows_30 = 0
-                total_completed_30 = 0
-                total_cancelled_30 = 0
-                
-                for date_str in last_30_days:
-                    if date_str in all_metrics:
-                        metrics = all_metrics[date_str]
-                        total_slots_30 += metrics.get("total_slots", 0)
-                        total_no_shows_30 += metrics.get("no_shows", 0)
-                        total_completed_30 += metrics.get("completed", 0)
-                        total_cancelled_30 += metrics.get("cancelled", 0)
-                
-                if total_slots_30 > 0:
-                    dashboard["last_30_days"] = {
-                        "total_slots": total_slots_30,
-                        "no_shows": total_no_shows_30,
-                        "completed": total_completed_30,
-                        "cancelled": total_cancelled_30,
-                        "no_show_rate": round((total_no_shows_30 / total_slots_30) * 100, 2),
-                        "completion_rate": round((total_completed_30 / total_slots_30) * 100, 2),
-                        "cancellation_rate": round((total_cancelled_30 / total_slots_30) * 100, 2),
-                        "appearance_rate": round(((total_completed_30 + total_cancelled_30) / total_slots_30) * 100, 2)
-                    }
-                
-                # Trend-Analyse
-                if len(all_metrics) >= 14:
-                    # Vergleiche letzte 7 Tage mit vorherigen 7 Tagen
-                    prev_7_days = [str(today - timedelta(days=i)) for i in range(7, 14)]
+        try:
+            # Lade Metriken
+            if os.path.exists(self.metrics_file):
+                with open(self.metrics_file, "r", encoding="utf-8") as f:
+                    all_metrics = json.load(f)
                     
-                    prev_no_show_rate = 0
-                    prev_count = 0
+                    # Berechne 7-Tage Statistik
+                    today = datetime.now(TZ).date()
+                    last_7_days = [str(today - timedelta(days=i)) for i in range(7)]
                     
-                    for date_str in prev_7_days:
-                        if date_str in all_metrics:
+                    total_slots = 0
+                    total_no_shows = 0
+                    total_completed = 0
+                    total_cancelled = 0
+                    
+                    for date_str in last_7_days:
+                        if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
                             metrics = all_metrics[date_str]
-                            if metrics.get("total_slots", 0) > 0:
-                                prev_no_show_rate += metrics.get("no_show_rate", 0)
-                                prev_count += 1
+                            total_slots += metrics.get("total_slots", 0)
+                            total_no_shows += metrics.get("no_shows", 0)
+                            total_completed += metrics.get("completed", 0)
+                            total_cancelled += metrics.get("cancelled", 0)
                     
-                    if prev_count > 0:
-                        prev_no_show_rate = prev_no_show_rate / prev_count
-                        current_no_show_rate = dashboard["last_7_days"].get("no_show_rate", 0)
+                    if total_slots > 0:
+                        # Verhindere unmögliche Werte (über 100%)
+                        appearance_rate = min(100, round(((total_completed + total_cancelled) / total_slots) * 100, 2))
+                        success_rate = min(100, round((total_completed / total_slots) * 100, 2))
+                        no_show_rate = min(100, round((total_no_shows / total_slots) * 100, 2))
                         
-                        dashboard["trends"]["no_show_trend"] = {
-                            "current": current_no_show_rate,
-                            "previous": round(prev_no_show_rate, 2),
-                            "change": round(current_no_show_rate - prev_no_show_rate, 2),
-                            "direction": "up" if current_no_show_rate > prev_no_show_rate else "down"
+                        dashboard["last_7_days"] = {
+                            "total_bookings": total_slots,
+                            "appearance_rate": appearance_rate,
+                            "success_rate": success_rate,
+                            "no_show_rate": no_show_rate
                         }
-                
-                # Alerts
-                if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
-                    dashboard["alerts"].append({
-                        "type": "warning",
-                        "message": f"Hohe No-Show Rate: {dashboard['last_7_days']['no_show_rate']}%",
-                        "severity": "high"
-                    })
+                    
+                    # Berechne 30-Tage Statistik
+                    last_30_days = [str(today - timedelta(days=i)) for i in range(30)]
+                    
+                    total_slots_30 = 0
+                    total_no_shows_30 = 0
+                    total_completed_30 = 0
+                    total_cancelled_30 = 0
+                    
+                    for date_str in last_30_days:
+                        if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
+                            metrics = all_metrics[date_str]
+                            total_slots_30 += metrics.get("total_slots", 0)
+                            total_no_shows_30 += metrics.get("no_shows", 0)
+                            total_completed_30 += metrics.get("completed", 0)
+                            total_cancelled_30 += metrics.get("cancelled", 0)
+                    
+                    if total_slots_30 > 0:
+                        # Verhindere unmögliche Werte (über 100%)
+                        appearance_rate_30 = min(100, round(((total_completed_30 + total_cancelled_30) / total_slots_30) * 100, 2))
+                        success_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
+                        no_show_rate_30 = min(100, round((total_no_shows_30 / total_slots_30) * 100, 2))
+                        
+                        dashboard["last_30_days"] = {
+                            "total_bookings": total_slots_30,
+                            "appearance_rate": appearance_rate_30,
+                            "success_rate": success_rate_30,
+                            "no_show_rate": no_show_rate_30
+                        }
+                    
+                    # Trend-Analyse
+                    if len(all_metrics) >= 14:
+                        # Vergleiche letzte 7 Tage mit vorherigen 7 Tagen
+                        prev_7_days = [str(today - timedelta(days=i)) for i in range(7, 14)]
+                        
+                        prev_no_show_rate = 0
+                        prev_count = 0
+                        
+                        for date_str in prev_7_days:
+                            if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
+                                metrics = all_metrics[date_str]
+                                if metrics.get("total_slots", 0) > 0:
+                                    prev_no_show_rate += metrics.get("no_show_rate", 0)
+                                    prev_count += 1
+                        
+                        if prev_count > 0:
+                            prev_no_show_rate = prev_no_show_rate / prev_count
+                            current_no_show_rate = dashboard["last_7_days"].get("no_show_rate", 0)
+                            
+                            dashboard["trends"]["no_show_trend"] = {
+                                "current": current_no_show_rate,
+                                "previous": round(prev_no_show_rate, 2),
+                                "change": round(current_no_show_rate - prev_no_show_rate, 2),
+                                "direction": "up" if current_no_show_rate > prev_no_show_rate else "down"
+                            }
+                    
+                    # Alerts
+                    if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
+                        dashboard["alerts"].append({
+                            "type": "warning",
+                            "message": f"Hohe No-Show Rate: {dashboard['last_7_days']['no_show_rate']}%",
+                            "severity": "high"
+                        })
+                        
+        except Exception as e:
+            print(f"❌ Fehler beim Laden der Dashboard-Daten: {e}")
+            # Fallback-Werte beibehalten
         
         return dashboard
     
@@ -664,6 +681,31 @@ class BookingTracker:
             
         except Exception as e:
             print(f"❌ Fehler beim Laden der User-Buchungen: {e}")
+            return []
+    
+    def load_all_bookings(self):
+        """
+        Lade alle Buchungen aus der JSONL-Datei
+        """
+        try:
+            bookings = []
+            
+            if not os.path.exists(self.bookings_file):
+                return bookings
+            
+            with open(self.bookings_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            booking = json.loads(line)
+                            bookings.append(booking)
+                        except json.JSONDecodeError:
+                            continue
+            
+            return bookings
+            
+        except Exception as e:
+            print(f"❌ Fehler beim Laden aller Buchungen: {e}")
             return []
     
     def load_historical_data(self):
