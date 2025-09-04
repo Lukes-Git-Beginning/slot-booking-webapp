@@ -3,6 +3,7 @@ import json
 import pytz
 import time
 from tracking_system import BookingTracker
+from data_persistence import data_persistence
 from collections import defaultdict
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
@@ -368,12 +369,8 @@ def add_points_to_user(user, points):
     Erweiterte Punkte-Funktion mit Achievement System Integration
     """
     try:
-        # Legacy: Speichere in scores.json für Champion-System
-        try:
-            with open("static/scores.json", "r", encoding="utf-8") as f:
-                scores = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            scores = {}
+        # Speichere Scores mit robustem Persistenz-System
+        scores = data_persistence.load_scores()
         
         month = datetime.now(TZ).strftime("%Y-%m")
         if user not in scores:
@@ -382,14 +379,13 @@ def add_points_to_user(user, points):
             scores[user][month] = 0
         scores[user][month] += points
         
-        # Speichere sofort
-        with open("static/scores.json", "w", encoding="utf-8") as f:
-            json.dump(scores, f, ensure_ascii=False, indent=2)
+        # Speichere aktualisierte Scores mit Backup
+        data_persistence.save_scores(scores)
         
         print(f"✅ Punkte gespeichert: {user} +{points} Punkte (Monat: {month})")
         
     except Exception as e:
-        print(f"❌ Fehler beim Speichern der Punkte in scores.json: {e}")
+        print(f"❌ Fehler beim Speichern der Punkte: {e}")
     
     # NEU: Achievement System Integration
     try:
@@ -406,20 +402,12 @@ def check_and_set_champion():
     now = datetime.now(TZ)
     last_month = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
     
-    try:
-        with open("static/champions.json", "r", encoding="utf-8") as f:
-            champions = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        champions = {}
+    champions = data_persistence.load_champions()
     
     if last_month in champions:
         return champions[last_month]
     
-    try:
-        with open("static/scores.json", "r", encoding="utf-8") as f:
-            scores = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        scores = {}
+    scores = data_persistence.load_scores()
     
     month_scores = [(u, v.get(last_month, 0)) for u, v in scores.items() if u.lower() not in EXCLUDE_CHAMPION_USERS]
     month_scores = [x for x in month_scores if x[1] > 0]
@@ -428,20 +416,13 @@ def check_and_set_champion():
     if month_scores:
         champion_user = month_scores[0][0]
         champions[last_month] = champion_user
-        try:
-            with open("static/champions.json", "w", encoding="utf-8") as f:
-                json.dump(champions, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"Fehler beim Speichern des Champions: {e}")
+        data_persistence.save_champions(champions)
         return champion_user
     return None
 
 def get_champion_for_month(month):
-    try:
-        with open("static/champions.json", "r", encoding="utf-8") as f:
-            return json.load(f).get(month)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
+    champions = data_persistence.load_champions()
+    return champions.get(month)
 def load_detailed_metrics():
     """Lade und berechne detaillierte Metriken"""
     try:
@@ -1218,11 +1199,7 @@ def weekly_tracking_report():
 @app.route("/scoreboard")
 def scoreboard():
     user = session.get("user")
-    try:
-        with open("static/scores.json", "r", encoding="utf-8") as f:
-            scores = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        scores = {}
+    scores = data_persistence.load_scores()
     
     month = datetime.now(TZ).strftime("%Y-%m")
     ranking = sorted([(u, v.get(month, 0)) for u, v in scores.items()], key=lambda x: x[1], reverse=True)
