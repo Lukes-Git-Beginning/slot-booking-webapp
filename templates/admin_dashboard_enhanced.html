@@ -434,15 +434,15 @@
     {% if dashboard.current %}
     <div class="stats-overview">
       <div class="stat-card">
-        <div class="stat-value">{{ dashboard.current.last_7_days.total_bookings if dashboard.current.last_7_days else 0 }}</div>
+        <div class="stat-value">{{ dashboard.current.last_7_days.total_bookings if dashboard.current.last_7_days and dashboard.current.last_7_days.total_bookings else 0 }}</div>
         <div class="stat-label">Buchungen (7 Tage)</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.current.last_7_days.appearance_rate * 100) if dashboard.current.last_7_days else 0 }}%</div>
+        <div class="stat-value">{{ "%.1f"|format(dashboard.current.last_7_days.appearance_rate * 100) if dashboard.current.last_7_days and dashboard.current.last_7_days.appearance_rate else 0 }}%</div>
         <div class="stat-label">Auftauchquote (7 Tage)</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.current.last_30_days.success_rate * 100) if dashboard.current.last_30_days else 0 }}%</div>
+        <div class="stat-value">{{ "%.1f"|format(dashboard.current.last_30_days.success_rate * 100) if dashboard.current.last_30_days and dashboard.current.last_30_days.success_rate else 0 }}%</div>
         <div class="stat-label">Erfolgsquote (30 Tage)</div>
       </div>
     </div>
