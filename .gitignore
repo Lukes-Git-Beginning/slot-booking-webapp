@@ -42,14 +42,16 @@ Thumbs.db
 *.tmp
 *.temp
 
-# DO NOT IGNORE - Important data files
-!static/scores.json
-!static/user_badges.json
-!static/champions.json
-!static/daily_user_stats.json
-!data/tracking/*.jsonl
-!data/tracking/*.json
+# IMPORTANT: Protect local data files from being overwritten
+data/tracking/*.jsonl
+data/tracking/*.json
+data/persistent/*.json
+data/backups/*.backup
+static/scores.json
+static/user_badges.json
+static/champions.json
+static/daily_user_stats.json
+
+# Keep historical data for analysis
 !data/historical/*.json
 !data/historical/*.jsonl
-!data/persistent/*.json
-!data/backups/*.backup
