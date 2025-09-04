@@ -456,8 +456,12 @@ def load_detailed_metrics():
         if not isinstance(all_metrics, dict):
             return {"no_show_trend": [], "completion_trend": [], "dates": []}
         
+        # Filtere nur Datums-Schlüssel (YYYY-MM-DD Format)
+        date_keys = [key for key in all_metrics.keys() 
+                    if isinstance(key, str) and len(key) == 10 and key.count('-') == 2]
+        
         # Berechne Trends der letzten 14 Tage
-        dates = sorted(all_metrics.keys())[-14:]
+        dates = sorted(date_keys)[-14:]
         
         trends = {
             "no_show_trend": [],
