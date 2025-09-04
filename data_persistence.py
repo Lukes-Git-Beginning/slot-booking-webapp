@@ -132,6 +132,50 @@ class DataPersistence:
             print(f"❌ Fehler beim Speichern der Champions: {e}")
             return False
     
+    def save_user_badges(self, badges_data):
+        """Speichere User Badges mit Backup"""
+        try:
+            # Speichere in persistentem Verzeichnis
+            badges_file = self.data_dir / "user_badges.json"
+            with open(badges_file, "w", encoding="utf-8") as f:
+                json.dump(badges_data, f, indent=2, ensure_ascii=False)
+            
+            # Backup erstellen
+            self._create_backup("user_badges.json", badges_data)
+            
+            # Auch in static/ für Kompatibilität
+            static_badges = self.static_dir / "user_badges.json"
+            with open(static_badges, "w", encoding="utf-8") as f:
+                json.dump(badges_data, f, indent=2, ensure_ascii=False)
+                
+            print(f"✅ User Badges gespeichert: {len(badges_data)} Benutzer")
+            return True
+        except Exception as e:
+            print(f"❌ Fehler beim Speichern der User Badges: {e}")
+            return False
+    
+    def save_daily_user_stats(self, stats_data):
+        """Speichere Daily User Stats mit Backup"""
+        try:
+            # Speichere in persistentem Verzeichnis
+            stats_file = self.data_dir / "daily_user_stats.json"
+            with open(stats_file, "w", encoding="utf-8") as f:
+                json.dump(stats_data, f, indent=2, ensure_ascii=False)
+            
+            # Backup erstellen
+            self._create_backup("daily_user_stats.json", stats_data)
+            
+            # Auch in static/ für Kompatibilität
+            static_stats = self.static_dir / "daily_user_stats.json"
+            with open(static_stats, "w", encoding="utf-8") as f:
+                json.dump(stats_data, f, indent=2, ensure_ascii=False)
+                
+            print(f"✅ Daily User Stats gespeichert: {len(stats_data)} Tage")
+            return True
+        except Exception as e:
+            print(f"❌ Fehler beim Speichern der Daily User Stats: {e}")
+            return False
+    
     def load_champions(self):
         """Lade Champions mit Fallback"""
         try:
