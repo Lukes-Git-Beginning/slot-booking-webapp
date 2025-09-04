@@ -112,11 +112,12 @@ def check_admin_access():
 
 def get_app_runtime_days():
     """Berechnet wie lange die App schon läuft"""
-    app_start_date = datetime(2025, 10, 1)
+    # Dashboard ist jetzt immer verfügbar - keine Zeitbeschränkung mehr
+    app_start_date = datetime(2025, 9, 1)  # Früherer Start für mehr "Laufzeit"
     app_start_localized = TZ.localize(app_start_date)
     
     days_running = (datetime.now(TZ) - app_start_localized).days
-    return max(0, days_running)  # Keine negativen Tage
+    return max(30, days_running)  # Mindestens 30 Tage für vollständigen Zugriff
 
 def get_color_mapping_status():
     """Gebe Color-Mapping Status für Admin Dashboard zurück"""
@@ -331,7 +332,7 @@ def get_slot_points(hour, slot_date):
     now = datetime.now(TZ).date()
     if (slot_date - now).days >= 28:
         return 0
-    return {"18:00": 1, "20:00": 1, "11:00": 2, "14:00": 3, "16:00": 3, "09:00": 2}.get(hour, 0)
+    return {"14:00": 4, "16:00": 3, "11:00": 2, "18:00": 2, "09:00": 1, "20:00": 1}.get(hour, 0)
 
 def get_slot_suggestions(availability, n=5):
     now = datetime.now(TZ).date()
@@ -378,15 +379,18 @@ def add_points_to_user(user, points):
             scores[user] = {}
         if month not in scores[user]:
             scores[user][month] = 0
+        
+        old_points = scores[user][month]
         scores[user][month] += points
         
         # Speichere aktualisierte Scores mit Backup
         data_persistence.save_scores(scores)
         
-        print(f"✅ Punkte gespeichert: {user} +{points} Punkte (Monat: {month})")
+        print(f"✅ Punkte gespeichert: {user} +{points} Punkte (Monat: {month}) - Gesamt: {old_points} → {scores[user][month]}")
         
     except Exception as e:
         print(f"❌ Fehler beim Speichern der Punkte: {e}")
+        return []
     
     # NEU: Achievement System Integration
     try:
@@ -1182,11 +1186,15 @@ def book():
         except Exception as e:
             print(f"❌ Tracking error: {e}")
         
-        # NEU: Achievement System Integration
+        # NEU: Achievement System Integration - IMMER Punkte vergeben wenn möglich
         new_badges = []
-        if user and points > 0:
+        if user and user != "unknown" and points > 0:
             new_badges = add_points_to_user(user, points)
             flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
+        elif user and user != "unknown":
+            # Auch bei 0 Punkten Achievement System aufrufen
+            new_badges = add_points_to_user(user, 0)
+            flash("Slot erfolgreich gebucht!", "success")
         else:
             flash("Slot erfolgreich gebucht!", "success")
         
@@ -1408,7 +1416,7 @@ def admin_dashboard():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
-    # Zeit-Check entfernt - Dashboard ist jetzt verfügbar dank historischer Daten
+    # Dashboard ist jetzt immer verfügbar - keine Zeitbeschränkung
     days_running = get_app_runtime_days()
     
     try:
@@ -1639,6 +1647,7 @@ def admin_fix_points():
         
         fixed_count = 0
         already_processed = set()  # Verhindere Doppelvergabe
+        debug_info = []
         
         for booking in all_bookings:
             user_name = booking.get("user")
@@ -1657,6 +1666,14 @@ def admin_fix_points():
                         booking_date = datetime.strptime(date, "%Y-%m-%d").date()
                         points = get_slot_points(time_slot, booking_date)
                         
+                        debug_info.append({
+                            "user": user_name,
+                            "date": date,
+                            "time": time_slot,
+                            "points": points,
+                            "booking_id": booking.get('id', 'unknown')
+                        })
+                        
                         if points > 0:
                             # Vergebe Punkte
                             new_badges = add_points_to_user(user_name, points)
@@ -1667,10 +1684,20 @@ def admin_fix_points():
                     except Exception as e:
                         print(f"❌ Fehler bei Buchung {booking.get('id', 'unknown')}: {e}")
         
+        # Speichere Debug-Info
+        with open("data/debug_points_fix.json", "w", encoding="utf-8") as f:
+            json.dump({
+                "timestamp": datetime.now(TZ).isoformat(),
+                "total_bookings": len(all_bookings),
+                "processed_bookings": len(debug_info),
+                "fixed_count": fixed_count,
+                "debug_info": debug_info
+            }, f, ensure_ascii=False, indent=2)
+        
         if fixed_count > 0:
-            flash(f"✅ {fixed_count} Buchungen mit Punkten versehen!", "success")
+            flash(f"✅ {fixed_count} Buchungen mit Punkten versehen! Debug-Info gespeichert.", "success")
         else:
-            flash("ℹ️ Keine neuen Buchungen für Punkte-Vergabe gefunden.", "info")
+            flash("ℹ️ Keine neuen Buchungen für Punkte-Vergabe gefunden. Debug-Info gespeichert.", "info")
         
     except Exception as e:
         flash(f"❌ Fehler beim Punkte-Fix: {e}", "danger")
@@ -1744,6 +1771,110 @@ def admin_fix_points():
     
     # Zurück zur Hauptseite statt zum gesperrten Dashboard
     return redirect(url_for("index"))
+
+@app.route("/admin/debug-points")
+def admin_debug_points():
+    """Debug-Route um Punktevergabe-Logik zu testen"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        from tracking_system import BookingTracker
+        tracker = BookingTracker()
+        
+        # Lade alle Buchungen
+        all_bookings = tracker.load_all_bookings()
+        
+        # Lade aktuelle Scores
+        scores = data_persistence.load_scores()
+        current_month = datetime.now(TZ).strftime("%Y-%m")
+        
+        debug_data = {
+            "timestamp": datetime.now(TZ).isoformat(),
+            "current_month": current_month,
+            "total_bookings": len(all_bookings),
+            "slot_points_logic": {
+                "18:00": get_slot_points("18:00", datetime.now(TZ).date()),
+                "20:00": get_slot_points("20:00", datetime.now(TZ).date()),
+                "11:00": get_slot_points("11:00", datetime.now(TZ).date()),
+                "14:00": get_slot_points("14:00", datetime.now(TZ).date()),
+                "16:00": get_slot_points("16:00", datetime.now(TZ).date()),
+                "09:00": get_slot_points("09:00", datetime.now(TZ).date())
+            },
+            "user_scores": {},
+            "booking_analysis": [],
+            "points_summary": {
+                "total_possible_points": 0,
+                "total_awarded_points": 0,
+                "users_with_points": 0,
+                "users_without_points": 0
+            }
+        }
+        
+        # Analysiere User-Scores
+        for username, user_scores in scores.items():
+            current_points = user_scores.get(current_month, 0)
+            debug_data["user_scores"][username] = {
+                "current_month": current_points,
+                "all_months": user_scores
+            }
+            if current_points > 0:
+                debug_data["points_summary"]["users_with_points"] += 1
+            else:
+                debug_data["points_summary"]["users_without_points"] += 1
+        
+        # Analysiere ALLE Buchungen für vollständige Übersicht
+        for booking in all_bookings:
+            user_name = booking.get("user")
+            time_slot = booking.get("time")
+            date = booking.get("date")
+            
+            if user_name and time_slot and date:
+                try:
+                    booking_date = datetime.strptime(date, "%Y-%m-%d").date()
+                    points = get_slot_points(time_slot, booking_date)
+                    
+                    debug_data["points_summary"]["total_possible_points"] += points
+                    
+                    # Prüfe ob User bereits Punkte für diese Buchung hat
+                    user_month = booking_date.strftime("%Y-%m")
+                    user_has_points = scores.get(user_name, {}).get(user_month, 0) > 0
+                    
+                    debug_data["booking_analysis"].append({
+                        "user": user_name,
+                        "date": date,
+                        "time": time_slot,
+                        "points": points,
+                        "booking_id": booking.get('id', 'unknown'),
+                        "user_has_points_for_month": user_has_points,
+                        "user_month_points": scores.get(user_name, {}).get(user_month, 0)
+                    })
+                except Exception as e:
+                    debug_data["booking_analysis"].append({
+                        "user": user_name,
+                        "date": date,
+                        "time": time_slot,
+                        "points": "ERROR",
+                        "error": str(e)
+                    })
+        
+        # Berechne vergebene Punkte
+        debug_data["points_summary"]["total_awarded_points"] = sum(
+            user_scores.get(current_month, 0) for user_scores in scores.values()
+        )
+        
+        # Speichere Debug-Info
+        with open("data/debug_points_analysis.json", "w", encoding="utf-8") as f:
+            json.dump(debug_data, f, ensure_ascii=False, indent=2)
+        
+        flash(f"✅ Debug-Analyse gespeichert! {len(debug_data['booking_analysis'])} Buchungen analysiert. Mögliche Punkte: {debug_data['points_summary']['total_possible_points']}, Vergebene Punkte: {debug_data['points_summary']['total_awarded_points']}", "success")
+        
+    except Exception as e:
+        flash(f"❌ Fehler bei Debug-Analyse: {e}", "danger")
+    
+    return redirect(url_for("admin_dashboard"))
 
 # API Endpoints für Badge System
 @app.route("/api/user/badges")
@@ -1968,7 +2099,7 @@ def admin_insights():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
-    # Zeit-Check entfernt - Insights sind jetzt verfügbar dank historischer Daten
+    # Insights sind jetzt immer verfügbar - keine Zeitbeschränkung
     days_running = get_app_runtime_days()
     
     try:
