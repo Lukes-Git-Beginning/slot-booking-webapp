@@ -124,6 +124,64 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Action Buttons für Admin Dashboard */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--box-border);
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  color: var(--text-color);
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--accent), #3d8bfd);
+  color: white;
+  border-color: var(--accent);
+}
+
+.action-btn.secondary {
+  background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+  color: var(--text-color);
+}
+
+.action-btn.success {
+  background: linear-gradient(135deg, var(--green), #059669);
+  color: white;
+  border-color: var(--green);
+}
+
+.action-btn.warning {
+  background: linear-gradient(135deg, var(--yellow), #ca8a04);
+  color: #1f2937;
+  border-color: var(--yellow);
+}
+
+.action-btn.danger {
+  background: linear-gradient(135deg, var(--red), #dc2626);
+  color: white;
+  border-color: var(--red);
+}
+
+.quick-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 30px 0;
+}
+
 input, select, textarea {
   width: 100%;
   color: var(--text-color);
