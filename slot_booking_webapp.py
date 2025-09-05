@@ -2278,6 +2278,14 @@ def admin_telefonie():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
 
+    # Basic origin/referrer check for POSTs (CSRF-lite)
+    if request.method == "POST":
+        allowed_origin = os.getenv("ALLOWED_ORIGIN")  # e.g. https://yourapp.onrender.com
+        ref = request.referrer or ""
+        if allowed_origin and not ref.startswith(allowed_origin):
+            flash("Ungültige Herkunft der Anfrage.", "danger")
+            return redirect(url_for("admin_telefonie"))
+
     # Woche auswählen
     selected_week = request.args.get("week") or get_week_key()
     recent_weeks = list_recent_weeks(12)
