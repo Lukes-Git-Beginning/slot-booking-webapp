@@ -358,6 +358,10 @@
 </head>
 <body>
     <div class="gamification-container">
+        {% set new_badges = [] %}
+        <div id="newBadgeBanner" class="chip" style="display:none; justify-content:center; margin-bottom:12px;">
+            <span>Neue Badges: <strong id="newBadgeCount">0</strong></span>
+        </div>
         <!-- Hero Section -->
         <div class="hero-section">
             <div class="hero-content">
@@ -559,5 +563,23 @@
             <a href="{{ url_for('my_calendar') }}" class="nav-btn">📅 Meine Termine</a>
         </div>
     </div>
+    <script>
+      // Neue Badges Banner
+      (async function(){
+        try {
+          const res = await fetch("{{ url_for('api_check_new_badges') }}");
+          const data = await res.json();
+          if (data && data.total_new > 0){
+            document.getElementById('newBadgeCount').textContent = data.total_new;
+            const banner = document.getElementById('newBadgeBanner');
+            banner.style.display = 'inline-flex';
+            banner.addEventListener('click', async () => {
+              await fetch("{{ url_for('api_mark_badges_seen') }}", { method: 'POST' });
+              banner.style.display = 'none';
+            });
+          }
+        } catch(e) {}
+      })();
+    </script>
 </body>
 </html>

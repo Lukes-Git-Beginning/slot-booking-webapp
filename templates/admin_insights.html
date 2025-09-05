@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>🧠 Deep Insights - ML Vorbereitung</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  <style>
+    /* Theme Toggle */
+    #theme-toggle { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: var(--box-bg); border: 1px solid var(--box-border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; transition: all 0.3s ease; z-index: 1000; }
+    #theme-toggle:hover { transform: scale(1.06); }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" aria-label="Theme Toggle">🌙</button>
+  <!-- Inhalt aus admin_insights_template.html übernommen -->
+  {% include 'admin_insights_template.html' %}
+
+  <script>
+    (function() {
+      const body = document.body;
+      const themeToggle = document.getElementById('theme-toggle');
+      function setTheme(dark) {
+        body.classList.toggle('lightmode', !dark);
+        body.classList.toggle('darkmode', dark);
+        if (themeToggle) themeToggle.innerHTML = dark ? '🌙' : '☀️';
+        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+      }
+      window.addEventListener('DOMContentLoaded', function() {
+        let saved = null; try { saved = localStorage.getItem('theme'); } catch (e) {}
+        setTheme(saved !== 'light');
+      });
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function() { setTheme(!document.body.classList.contains('darkmode')); });
+      }
+    })();
+  </script>
+</body>
+</html>
+
+

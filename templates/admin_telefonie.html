@@ -8,6 +8,25 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
+    /* Theme Toggle */
+    #theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    #theme-toggle:hover { transform: scale(1.06); }
     .page { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .box { background: var(--box-bg); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: 20px; }
@@ -25,6 +44,8 @@
   </style>
   </head>
 <body>
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" aria-label="Theme Toggle">🌙</button>
   <div class="page">
     <h1>📞 Telefonie Punkte – Admin</h1>
 
@@ -128,14 +149,14 @@
 
     <div class="box" style="margin-top:20px;">
       <h3>Wochenübersicht – {{ week }}</h3>
-      <table class="table">
+      <table class="table" id="weekTable">
         <thead>
           <tr>
-            <th>Person</th>
-            <th>Ziel</th>
-            <th>Erreicht</th>
-            <th>Offen</th>
-            <th>Bilanz</th>
+            <th data-sort="string">Person</th>
+            <th data-sort="num">Ziel</th>
+            <th data-sort="num">Erreicht</th>
+            <th data-sort="num">Offen</th>
+            <th data-sort="num">Bilanz</th>
             <th>Urlaub</th>
           </tr>
         </thead>
@@ -153,6 +174,20 @@
         </tbody>
       </table>
       <p class="small">Gesamt: Ziel {{ stats.summary.total_goal }} | Erreicht {{ stats.summary.total_achieved }} | Offen {{ stats.summary.total_remaining }} | Bilanz {{ stats.summary.total_balance }}</p>
+      <div class="small" style="margin-top:10px;">
+        Fortschritt je Person:
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; margin-top:8px;">
+          {% for u in stats.users %}
+          {% set pct = (u.achieved / (u.goal if u.goal>0 else 1) * 100) | round(0) %}
+          <div style="background: rgba(255,255,255,0.05); border:1px solid var(--box-border); border-radius:10px; padding:8px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>{{ u.user }}</span><span>{{ pct }}%</span></div>
+            <div style="height:8px; background: rgba(255,255,255,0.08); border-radius:6px; overflow:hidden;">
+              <div style="height:100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--green), #34d399);"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
 
     <div class="box" style="margin-top:20px;">
@@ -234,6 +269,75 @@
         }
       }
     });
+
+    // Kopfzeilen-Sortierung
+    (function() {
+      const table = document.getElementById('weekTable');
+      if (!table) return;
+      const getCellValue = (tr, idx) => tr.children[idx].innerText.replace(/[^0-9.-]/g,'');
+      const comparer = (idx, type, asc) => (a, b) => {
+        const v1 = type==='num' ? parseFloat(getCellValue(a, idx)) : a.children[idx].innerText.toLowerCase();
+        const v2 = type==='num' ? parseFloat(getCellValue(b, idx)) : b.children[idx].innerText.toLowerCase();
+        if (v1==v2 || (isNaN(v1)&&isNaN(v2))) return 0;
+        if (isNaN(v1)) return 1;
+        if (isNaN(v2)) return -1;
+        return (v1>v2?1:-1) * (asc?1:-1);
+      };
+      table.querySelectorAll('th[data-sort]')?.forEach((th, idx) => {
+        let asc = true;
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+          const tbody = table.tBodies[0];
+          Array.from(tbody.querySelectorAll('tr'))
+            .sort(comparer(idx, th.dataset.sort, asc = !asc))
+            .forEach(tr => tbody.appendChild(tr));
+        });
+      });
+    })();
+
+    // Enter-Submit und Ladezustände
+    (function(){
+      document.querySelectorAll('form').forEach(f => {
+        f.addEventListener('submit', function(){
+          const btn = this.querySelector('button[type="submit"]');
+          if (btn){ btn.disabled = true; btn.classList.add('loading-indicator'); }
+        });
+      });
+      document.querySelectorAll('input, select').forEach(inp => {
+        inp.addEventListener('keypress', function(e){
+          if (e.key === 'Enter'){
+            const form = this.form; if (form) form.requestSubmit();
+          }
+        });
+      });
+    })();
+
+    // Theme Toggle mit LocalStorage
+    (function() {
+      const body = document.body;
+      const themeToggle = document.getElementById('theme-toggle');
+      function setTheme(dark) {
+        body.classList.toggle('lightmode', !dark);
+        body.classList.toggle('darkmode', dark);
+        if (themeToggle) themeToggle.innerHTML = dark ? '🌙' : '☀️';
+        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+      }
+      window.addEventListener('DOMContentLoaded', function() {
+        let saved = null;
+        try { saved = localStorage.getItem('theme'); } catch (e) {}
+        if (saved === 'light' || saved === 'dark') {
+          setTheme(saved === 'dark');
+        } else {
+          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          setTheme(prefersDark);
+        }
+      });
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+          setTheme(!document.body.classList.contains('darkmode'));
+        });
+      }
+    })();
   </script>
 </body>
 </html>

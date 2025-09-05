@@ -51,6 +51,7 @@ static/scores.json
 static/user_badges.json
 static/champions.json
 static/daily_user_stats.json
+static/level_history.json
 
 # Keep historical data for analysis
 !data/historical/*.json

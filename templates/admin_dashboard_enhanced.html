@@ -11,6 +11,31 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   
   <style>
+    /* Theme Toggle */
+    #theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    #theme-toggle:hover { transform: scale(1.06); }
+    /* Toasts */
+    .toast-container { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 2000; }
+    .toast { box-shadow: 0 10px 30px rgba(0,0,0,.35); backdrop-filter: blur(8px) saturate(120%); -webkit-backdrop-filter: blur(8px) saturate(120%); }
+    .toast .close { margin-left: 10px; cursor: pointer; opacity: .8; }
+    /* Sticky Quick Actions */
+    .quick-actions { position: sticky; top: 10px; z-index: 30; padding: 10px; border-radius: var(--radius-md); background: var(--box-bg); border: 1px solid var(--box-border); }
     .admin-dashboard {
       max-width: 1600px;
       margin: 0 auto;
@@ -285,6 +310,20 @@
   </style>
 </head>
 <body>
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" aria-label="Theme Toggle">🌙</button>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="toast-container" id="toastContainer">
+    {% for category, message in messages %}
+      <div class="toast flash-{{ category }}" role="status">
+        <span>{{ message }}</span>
+        <span class="close" onclick="this.parentElement.remove()">✕</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
   <div class="admin-dashboard">
     <!-- Header -->
     <div class="dashboard-header">
@@ -488,6 +527,46 @@
     
     window.addEventListener('resize', updateLayout);
     updateLayout();
+
+    // Theme Toggle mit LocalStorage
+    (function() {
+      const body = document.body;
+      const themeToggle = document.getElementById('theme-toggle');
+      function setTheme(dark) {
+        body.classList.toggle('lightmode', !dark);
+        body.classList.toggle('darkmode', dark);
+        if (themeToggle) themeToggle.innerHTML = dark ? '🌙' : '☀️';
+        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+      }
+      window.addEventListener('DOMContentLoaded', function() {
+        let saved = null;
+        try { saved = localStorage.getItem('theme'); } catch (e) {}
+        if (saved === 'light' || saved === 'dark') {
+          setTheme(saved === 'dark');
+        } else {
+          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          setTheme(prefersDark);
+        }
+      });
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+          setTheme(!document.body.classList.contains('darkmode'));
+        });
+      }
+    })();
+
+    // Chart.js Theme aus CSS Variablen
+    (function() {
+      if (!window.Chart) return;
+      const styles = getComputedStyle(document.body);
+      const muted = styles.getPropertyValue('--muted').trim() || '#9ca3af';
+      const border = 'rgba(255,255,255,0.12)';
+      Chart.defaults.color = muted;
+      Chart.defaults.borderColor = border;
+      if (Chart.defaults.scales && Chart.defaults.scales.grid) {
+        Chart.defaults.scales.grid.color = border;
+      }
+    })();
   </script>
 </body>
 </html>
