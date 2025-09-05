@@ -2158,10 +2158,13 @@ def admin_badges_backfill():
         return redirect(url_for("login"))
 
     try:
+        # Badges backfill
         result = achievement_system.backfill_persistent_badges()
+        # MVP Badges automatisch prüfen/speichern
+        achievement_system.auto_check_mvp_badges()
         cnt = result.get("badges_awarded", 0)
         users = result.get("users_processed", 0)
-        flash(f"✅ Backfill abgeschlossen: {cnt} Badges neu vergeben (über {users} Nutzer).", "success")
+        flash(f"✅ Backfill abgeschlossen: {cnt} Badges neu vergeben (über {users} Nutzer). MVP aktualisiert.", "success")
     except Exception as e:
         flash(f"❌ Backfill-Fehler: {e}", "danger")
     return redirect(url_for("scoreboard"))

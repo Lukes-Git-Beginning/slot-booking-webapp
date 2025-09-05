@@ -827,6 +827,55 @@ class AchievementSystem:
         
         return progress
 
+    def get_next_achievements(self, user, limit=5):
+        """Liefert die nächsten erreichbaren Badges mit Restbedarf.
+        Sortierung: geringster Restbedarf zuerst, dann höhere Rarität.
+        """
+        try:
+            progress = self.get_user_badge_progress(user)
+            next_list = []
+
+            # Raritätswert für Sortierung
+            rarity_weight = {
+                "common": 1,
+                "uncommon": 2,
+                "rare": 3,
+                "epic": 4,
+                "legendary": 5,
+                "mythic": 6,
+            }
+
+            for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+                prog = progress.get(badge_id)
+                if not prog:
+                    continue
+                # Nur nicht erreichte Badges mit sinnvollem Ziel anzeigen
+                target = prog.get("target", definition.get("threshold", 0))
+                current = prog.get("current", 0)
+                earned = prog.get("earned", False)
+                if earned or target <= 0:
+                    continue
+                remaining = max(0, target - current)
+
+                next_list.append({
+                    "id": badge_id,
+                    "name": definition.get("name"),
+                    "emoji": definition.get("emoji", ""),
+                    "rarity": definition.get("rarity", "common"),
+                    "category": definition.get("category", "other"),
+                    "current": current,
+                    "target": target,
+                    "remaining": remaining,
+                    "progress_percent": prog.get("progress_percent", 0)
+                })
+
+            # Sortiere: geringster Rest zuerst, dann wertvollere Rarität absteigend
+            next_list.sort(key=lambda x: (x["remaining"], -rarity_weight.get(x["rarity"], 1)))
+            return next_list[:limit]
+        except Exception as e:
+            print(f"❌ get_next_achievements Fehler: {e}")
+            return []
+
     def backfill_persistent_badges(self):
         """Reparaturroutine: Vergibt persistente Badges rückwirkend anhand gespeicherter Scores/Daily Stats.
         Gibt eine Zusammenfassung zurück: {users_processed, badges_awarded}.
