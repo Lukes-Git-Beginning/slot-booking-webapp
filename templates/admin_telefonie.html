@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>📞 Telefonie Punkte – Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    .page { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .box { background: var(--box-bg); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: 20px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .row label { width: 120px; font-weight: 600; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { border: 1px solid rgba(255,255,255,0.1); padding: 8px; text-align: center; }
+    .table th { background: rgba(255,255,255,0.05); }
+    .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+    .badge-green { background: rgba(16,185,129,0.2); color: #10b981; }
+    .badge-yellow { background: rgba(234,179,8,0.2); color: #eab308; }
+    .badge-red { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .small { font-size: 12px; color: var(--muted); }
+  </style>
+  </head>
+<body>
+  <div class="page">
+    <h1>📞 Telefonie Punkte – Admin</h1>
+
+    <form method="get" class="row" action="{{ url_for('admin_telefonie') }}">
+      <label>Woche</label>
+      <select name="week">
+        {% for w in recent_weeks %}
+          <option value="{{ w }}" {{ 'selected' if w == week else '' }}>{{ w }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="action-btn primary">Wechseln</button>
+      <a class="action-btn secondary" href="{{ url_for('admin_telefonie_export', week=week) }}">PDF Export</a>
+    </form>
+
+    <div class="grid">
+      <div class="box">
+        <h3>Ziele setzen</h3>
+        <form method="post" class="row">
+          <input type="hidden" name="action" value="set_goal">
+          <input type="hidden" name="week" value="{{ week }}">
+          <label>Person</label>
+          <select name="user">
+            {% for p in participants %}
+              <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+          <label>Ziel</label>
+          <input type="number" name="goal_points" min="0" max="100" step="1" required>
+          <button type="submit" class="action-btn success">Speichern</button>
+        </form>
+        <p class="small">Außerhalb 18–21 Uhr werden Ziele als "wartend" gespeichert.</p>
+
+        <h3 class="mt">Aktivität erfassen</h3>
+        <form method="post" class="row">
+          <input type="hidden" name="action" value="add_activity">
+          <input type="hidden" name="week" value="{{ week }}">
+          <label>Person</label>
+          <select name="user">
+            {% for p in participants %}
+              <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+          <label>Typ</label>
+          <select name="kind">
+            <option value="T1">T1</option>
+            <option value="T2">T2</option>
+            <option value="telefonie">Telefonie</option>
+            <option value="extra">Extra</option>
+          </select>
+          <label>Punkte</label>
+          <input type="number" name="points" min="0" max="100" step="1" required>
+          <label>Notiz</label>
+          <input type="text" name="note" placeholder="z. B. Social Media">
+          <button type="submit" class="action-btn success">Erfassen</button>
+        </form>
+        <div class="row">
+          <form method="post">
+            <input type="hidden" name="action" value="apply_pending">
+            <input type="hidden" name="week" value="{{ week }}">
+            <button type="submit" class="action-btn warning">Wartende verbuchen</button>
+          </form>
+          <span class="small">Zeitfenster aktuell: {{ 'offen (18–21 Uhr)' if in_window else 'geschlossen' }}</span>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Teilnehmer verwalten</h3>
+        <form method="post" class="row">
+          <input type="hidden" name="action" value="add_participant">
+          <label>Neu</label>
+          <input type="text" name="name" placeholder="Name">
+          <button type="submit" class="action-btn primary">Hinzufügen</button>
+        </form>
+        <form method="post" class="row">
+          <input type="hidden" name="action" value="remove_participant">
+          <label>Entfernen</label>
+          <select name="name">
+            {% for p in participants %}
+              <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="action-btn danger">Entfernen</button>
+        </form>
+        <form method="post" class="row">
+          <input type="hidden" name="action" value="set_vacation">
+          <input type="hidden" name="week" value="{{ week }}">
+          <label>Urlaub</label>
+          <select name="user">
+            {% for p in participants %}
+              <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+          <select name="on_vacation">
+            <option value="0">Nein</option>
+            <option value="1">Ja</option>
+          </select>
+          <button type="submit" class="action-btn secondary">Setzen</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top:20px;">
+      <h3>Wochenübersicht – {{ week }}</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Person</th>
+            <th>Ziel</th>
+            <th>Erreicht</th>
+            <th>Offen</th>
+            <th>Bilanz</th>
+            <th>Urlaub</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in stats.users %}
+          <tr>
+            <td>{{ u.user }}</td>
+            <td><span class="badge badge-yellow">{{ u.goal }}</span></td>
+            <td><span class="badge badge-green">{{ u.achieved }}</span></td>
+            <td><span class="badge badge-red">{{ u.remaining }}</span></td>
+            <td>{{ u.balance }}</td>
+            <td>{{ 'Ja' if u.on_vacation else 'Nein' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="small">Gesamt: Ziel {{ stats.summary.total_goal }} | Erreicht {{ stats.summary.total_achieved }} | Offen {{ stats.summary.total_remaining }} | Bilanz {{ stats.summary.total_balance }}</p>
+    </div>
+
+    <div class="box" style="margin-top:20px;">
+      <h3>Diagramm</h3>
+      <canvas id="weeklyChart" height="120"></canvas>
+    </div>
+
+    <div class="box" style="margin-top:20px;">
+      <h3>Historie (Audit)</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Zeit</th>
+            <th>Person</th>
+            <th>Typ</th>
+            <th>Details</th>
+            <th>Von</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in audit %}
+          <tr>
+            <td>{{ a.ts }}</td>
+            <td>{{ a.user }}</td>
+            <td>{{ a.type }}</td>
+            <td>
+              {% if a.type in ['activity','activity_applied'] %}
+                {{ a.kind }}: {{ a.points }} {% if a.note %}- {{ a.note }}{% endif %}
+              {% elif a.type in ['goal_set','goal_applied'] %}
+                Ziel: {{ a.points }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ a.by }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    const data = {
+      labels: [{% for u in stats.users %}'{{ u.user }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+      datasets: [
+        {
+          label: 'Ziel',
+          backgroundColor: 'rgba(234,179,8,0.6)',
+          data: [{% for u in stats.users %}{{ u.goal }}{% if not loop.last %}, {% endif %}{% endfor %}],
+        },
+        {
+          label: 'Erreicht',
+          backgroundColor: 'rgba(16,185,129,0.6)',
+          data: [{% for u in stats.users %}{{ u.achieved }}{% if not loop.last %}, {% endif %}{% endfor %}],
+        },
+        {
+          label: 'Offen',
+          backgroundColor: 'rgba(239,68,68,0.6)',
+          data: [{% for u in stats.users %}{{ u.remaining }}{% if not loop.last %}, {% endif %}{% endfor %}],
+        }
+      ]
+    };
+
+    const ctx = document.getElementById('weeklyChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: data,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: false }
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, beginAtZero: true }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
+

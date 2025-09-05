@@ -22,6 +22,21 @@ import base64
 from matplotlib.dates import DateFormatter
 from collections import defaultdict
 import numpy as np
+from weekly_points import (
+    get_week_key,
+    list_recent_weeks,
+    is_in_commit_window,
+    get_participants,
+    set_participants,
+    set_week_goal,
+    record_activity,
+    apply_pending,
+    compute_week_stats,
+    add_participant,
+    remove_participant,
+    set_on_vacation,
+    get_week_audit,
+)
 
 # ----------------- Flask Setup -----------------
 app = Flask(__name__)
@@ -99,7 +114,7 @@ def safe_calendar_call(func, *args, **kwargs):
 
 def is_admin(user):
     """Prüft ob User Admin-Rechte hat"""
-    admin_users = ["admin", "Admin", "administrator", "Jose", "Simon"]  # <-- HIER DEINEN USERNAME HINZUFÜGEN!
+    admin_users = ["admin", "Admin", "administrator", "Jose", "Simon", "Alex", "David"]  # <-- Adminliste erweitert
     return user and user.lower() in [u.lower() for u in admin_users]
 
 def check_admin_access():
@@ -1203,6 +1218,25 @@ def book():
             flash("Slot erfolgreich gebucht!", "success")
         else:
             flash("Slot erfolgreich gebucht!", "success")
+
+        # Spezielle Badge-Zähler (Abend/Morgen) persistieren
+        try:
+            if user and user != "unknown":
+                from data_persistence import data_persistence
+                daily_stats = data_persistence.load_daily_user_stats()
+                today_key = datetime.now(TZ).strftime("%Y-%m-%d")
+                if user not in daily_stats:
+                    daily_stats[user] = {}
+                if today_key not in daily_stats[user]:
+                    daily_stats[user][today_key] = {"points": 0, "bookings": 0, "first_booking": False}
+                h_int = int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0
+                if h_int >= 18:
+                    daily_stats[user][today_key]["evening_bookings"] = daily_stats[user][today_key].get("evening_bookings", 0) + 1
+                elif 9 <= h_int < 12:
+                    daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
+                data_persistence.save_daily_user_stats(daily_stats)
+        except Exception as e:
+            print(f"⚠️ Konnte Spezial-Badge-Zähler nicht aktualisieren: {e}")
         
         # Zeige neue Badges an
         if new_badges:
@@ -1234,7 +1268,7 @@ def scoreboard():
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
     
-    # Hole Badge-Daten für das Leaderboard
+    # Hole Badge-Daten für das Leaderboard (persistent)
     try:
         badge_leaderboard = achievement_system.get_badge_leaderboard()
     except Exception as e:
@@ -2115,6 +2149,23 @@ def check_level_up():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route("/admin/badges/backfill")
+def admin_badges_backfill():
+    """Reparaturroutine: Vergibt persistente Badges rückwirkend."""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+
+    try:
+        result = achievement_system.backfill_persistent_badges()
+        cnt = result.get("badges_awarded", 0)
+        users = result.get("users_processed", 0)
+        flash(f"✅ Backfill abgeschlossen: {cnt} Badges neu vergeben (über {users} Nutzer).", "success")
+    except Exception as e:
+        flash(f"❌ Backfill-Fehler: {e}", "danger")
+    return redirect(url_for("scoreboard"))
+
 @app.route("/admin/insights")
 def admin_insights():
     """Detaillierte Insights und Predictions"""
@@ -2144,6 +2195,232 @@ def admin_insights():
         print(f"❌ Error in insights: {e}")
         flash(f"Fehler beim Laden der Insights: {str(e)}", "danger")
         return redirect(url_for("admin_dashboard"))
+
+# ----------------- Telefonie Punkte Backend -----------------
+@app.route("/admin/telefonie", methods=["GET", "POST"])
+def admin_telefonie():
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+
+    # Woche auswählen
+    selected_week = request.args.get("week") or get_week_key()
+    recent_weeks = list_recent_weeks(12)
+
+    # Teilnehmerliste
+    participants = get_participants()
+
+    # POST: Ziele/Aktivitäten setzen
+    if request.method == "POST":
+        action = request.form.get("action")
+        target_week = request.form.get("week") or selected_week
+        target_user = request.form.get("user")
+
+        try:
+            if action == "set_goal":
+                raw_goal = request.form.get("goal_points", 0)
+                try:
+                    goal_points = int(raw_goal)
+                except ValueError:
+                    flash("Ungültiger Zielwert.", "danger")
+                    return redirect(url_for("admin_telefonie", week=target_week))
+                if goal_points > 100:
+                    goal_points = 100
+                    flash("Ziel auf 100 begrenzt.", "warning")
+                if goal_points > 30:
+                    flash("Warnung: Ziel über 30 Punkten.", "warning")
+                set_week_goal(target_week, target_user, goal_points, set_by=user)
+                flash("Ziel gespeichert (ggf. als wartend, wenn außerhalb 18–21 Uhr).", "success")
+
+            elif action == "add_activity":
+                kind = request.form.get("kind")  # T1/T2/telefonie/extra
+                raw_points = request.form.get("points", 0)
+                try:
+                    points = int(raw_points)
+                except ValueError:
+                    flash("Ungültige Punktzahl.", "danger")
+                    return redirect(url_for("admin_telefonie", week=target_week))
+                if points > 100:
+                    points = 100
+                    flash("Punkte auf 100 begrenzt.", "warning")
+                if points > 30:
+                    flash("Warnung: Punkte über 30.", "warning")
+                note = request.form.get("note", "")
+                record_activity(target_week, target_user, kind, points, set_by=user, note=note)
+                flash("Aktivität erfasst (ggf. als wartend, wenn außerhalb 18–21 Uhr).", "success")
+
+            elif action == "apply_pending":
+                goals_applied, acts_applied = apply_pending(target_week)
+                if goals_applied or acts_applied:
+                    flash(f"Verbucht: {goals_applied} Ziele, {acts_applied} Aktivitäten.", "success")
+                else:
+                    flash("Keine Pending-Einträge oder außerhalb des 18–21 Uhr Fensters.", "info")
+
+            elif action == "add_participant":
+                name = request.form.get("name", "").strip()
+                if name:
+                    add_participant(name)
+                    flash(f"Teilnehmer hinzugefügt: {name}", "success")
+                else:
+                    flash("Name darf nicht leer sein.", "warning")
+
+            elif action == "remove_participant":
+                name = request.form.get("name", "").strip()
+                if name:
+                    remove_participant(name)
+                    flash(f"Teilnehmer entfernt: {name}", "success")
+                else:
+                    flash("Name darf nicht leer sein.", "warning")
+
+            elif action == "set_vacation":
+                on_vacation = request.form.get("on_vacation") == "1"
+                set_on_vacation(target_week, target_user, on_vacation)
+                flash("Urlaubsstatus aktualisiert.", "success")
+
+            return redirect(url_for("admin_telefonie", week=target_week))
+        except Exception as e:
+            flash(f"❌ Fehler: {str(e)}", "danger")
+            return redirect(url_for("admin_telefonie", week=target_week))
+
+    # GET: Daten anzeigen
+    stats = compute_week_stats(selected_week, participants)
+    audit_entries = get_week_audit(selected_week)
+    in_window = is_in_commit_window()
+
+    return render_template(
+        "admin_telefonie.html",
+        week=selected_week,
+        recent_weeks=recent_weeks,
+        participants=participants,
+        stats=stats,
+        audit=audit_entries,
+        in_window=in_window,
+        now=datetime.now(TZ),
+    )
+
+@app.route("/admin/telefonie/export")
+def admin_telefonie_export():
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+
+    week = request.args.get("week") or get_week_key()
+    participants = get_participants()
+    stats = compute_week_stats(week, participants)
+
+    # PDF generieren (tabellarisch + Legende + Mini-Chart)
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from flask import Response
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        title = Paragraph(f"Wochenbilanz Telefonie – Woche {week} (Export: {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')})", styles['Heading2'])
+        elements.append(title)
+        elements.append(Spacer(1, 12))
+
+        # Tabelle
+        table_data = [["Person", "Ziel", "Erreicht", "Offen", "Bilanz", "Urlaub"]]
+        for u in stats["users"]:
+            table_data.append([
+                u["user"],
+                u["goal"],
+                u["achieved"],
+                u["remaining"],
+                u["balance"],
+                "Ja" if u["on_vacation"] else "Nein",
+            ])
+
+        table = Table(table_data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
+        ]))
+        elements.append(table)
+
+        # Farblegende
+        elements.append(Spacer(1, 12))
+        legend = Table([
+            ["Ziel", ""],
+            ["Erreicht", ""],
+            ["Offen", ""],
+        ], colWidths=[80, 30])
+        legend.setStyle(TableStyle([
+            ('BACKGROUND', (1, 0), (1, 0), colors.yellow),
+            ('BACKGROUND', (1, 1), (1, 1), colors.green),
+            ('BACKGROUND', (1, 2), (1, 2), colors.red),
+            ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ]))
+        elements.append(legend)
+
+        # Summary
+        elements.append(Spacer(1, 12))
+        summary = stats["summary"]
+        elements.append(Paragraph(
+            f"Gesamt: Ziel {summary['total_goal']} | Erreicht {summary['total_achieved']} | Offen {summary['total_remaining']} | Bilanz {summary['total_balance']}",
+            styles['Normal']
+        ))
+
+        # Mini-Chart Seite
+        elements.append(PageBreak())
+        elements.append(Paragraph("Übersicht als Mini-Chart", styles['Heading3']))
+        # Matplotlib Diagramm erzeugen
+        try:
+            import matplotlib.pyplot as plt
+            import numpy as np
+            names = [u["user"] for u in stats["users"]]
+            goals = [u["goal"] for u in stats["users"]]
+            achieved = [u["achieved"] for u in stats["users"]]
+            remaining = [u["remaining"] for u in stats["users"]]
+
+            x = np.arange(len(names))
+            width = 0.25
+
+            fig, ax = plt.subplots(figsize=(10, 4))
+            ax.bar(x - width, goals, width, label='Ziel', color='#eab308')
+            ax.bar(x, achieved, width, label='Erreicht', color='#10b981')
+            ax.bar(x + width, remaining, width, label='Offen', color='#ef4444')
+            ax.set_xticks(x)
+            ax.set_xticklabels(names, rotation=20, ha='right')
+            ax.set_ylabel('Punkte')
+            ax.set_title(f'Woche {week}')
+            ax.legend()
+            ax.grid(axis='y', alpha=0.2)
+
+            img_buf = io.BytesIO()
+            plt.tight_layout()
+            plt.savefig(img_buf, format='png', dpi=140)
+            plt.close(fig)
+            img_buf.seek(0)
+
+            elements.append(Image(img_buf, width=520, height=220))
+        except Exception as chart_err:
+            elements.append(Paragraph(f"Chart konnte nicht erzeugt werden: {chart_err}", styles['Italic']))
+
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+
+        return Response(pdf, mimetype='application/pdf', headers={
+            'Content-Disposition': f"attachment; filename=telefonie_week_{week}_{datetime.now(TZ).strftime('%Y%m%d_%H%M')}.pdf"
+        })
+    except Exception as e:
+        flash(f"❌ PDF Export Fehler: {e}", "danger")
+        return redirect(url_for("admin_telefonie", week=week))
 
 def run_achievement_check():
     """

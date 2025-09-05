@@ -430,6 +430,15 @@ class AchievementSystem:
                 new_badge = self.award_badge(user, "night_owl", definition, badges_data)
                 if new_badge:
                     new_badges.append(new_badge)
+
+        # Early Bird Badge (Morgen 9-12)
+        if "early_bird" not in user_badges and "early_bird" in ACHIEVEMENT_DEFINITIONS:
+            total_morning = sum(stats.get("morning_bookings", 0) for stats in user_stats.values())
+            if total_morning >= 10:
+                definition = ACHIEVEMENT_DEFINITIONS["early_bird"]
+                new_badge = self.award_badge(user, "early_bird", definition, badges_data)
+                if new_badge:
+                    new_badges.append(new_badge)
     
     def award_badge(self, user, badge_id, definition, badges_data):
         """Vergebe ein Badge an einen User"""
@@ -606,25 +615,17 @@ class AchievementSystem:
         return badge
     
     def get_user_badges(self, user):
-        """Hole alle Badges eines Users - berechnet automatisch basierend auf aktuellen Punkten"""
-        # Lade aktuelle Scores
+        """Hole persistente Badges eines Users (dauerhaft gespeichert)."""
         try:
-            from data_persistence import data_persistence
-            scores = data_persistence.load_scores()
-        except:
-            try:
-                with open("static/scores.json", "r", encoding="utf-8") as f:
-                    scores = json.load(f)
-            except:
-                scores = {}
-        
-        # Berechne Badges basierend auf aktuellen Punkten
-        user_badges = self.calculate_badges_from_points(user, scores)
-        
-        return {
-            "badges": user_badges,
-            "total_badges": len(user_badges)
-        }
+            badges_data = self.load_badges()
+            user_entry = badges_data.get(user, {"badges": [], "total_badges": 0})
+            badges_list = user_entry.get("badges", [])
+            return {
+                "badges": badges_list,
+                "total_badges": len(badges_list)
+            }
+        except Exception:
+            return {"badges": [], "total_badges": 0}
     
     def calculate_badges_from_points(self, user, scores):
         """Berechne Badges automatisch basierend auf aktuellen Punktzahlen"""
@@ -724,33 +725,22 @@ class AchievementSystem:
         return badges
     
     def get_badge_leaderboard(self):
-        """Erstelle Rangliste nach Badge-Anzahl - berechnet automatisch basierend auf aktuellen Punkten"""
-        # Lade aktuelle Scores
+        """Erstelle Rangliste nach Badge-Anzahl basierend auf persistent gespeicherten Badges."""
         try:
-            from data_persistence import data_persistence
-            scores = data_persistence.load_scores()
-        except:
-            try:
-                with open("static/scores.json", "r", encoding="utf-8") as f:
-                    scores = json.load(f)
-            except:
-                scores = {}
-        
+            badges_data = self.load_badges()
+        except Exception:
+            badges_data = {}
+
         leaderboard = []
-        
-        for user in scores.keys():
-            # Berechne Badges für jeden User
-            user_badges = self.calculate_badges_from_points(user, scores)
-            
-            # Zähle Badges nach Seltenheit für Gewichtung
+        for user, entry in badges_data.items():
+            user_badges = entry.get("badges", [])
+
             rarity_points = 0
             rarity_counts = defaultdict(int)
-            
+
             for badge in user_badges:
-                rarity = badge["rarity"]
+                rarity = badge.get("rarity", "common")
                 rarity_counts[rarity] += 1
-                
-                # Gewichtung nach Seltenheit
                 weights = {
                     "common": 1,
                     "uncommon": 2,
@@ -760,7 +750,7 @@ class AchievementSystem:
                     "mythic": 20
                 }
                 rarity_points += weights.get(rarity, 1)
-            
+
             leaderboard.append({
                 "user": user,
                 "total_badges": len(user_badges),
@@ -768,10 +758,8 @@ class AchievementSystem:
                 "rarity_breakdown": dict(rarity_counts),
                 "badges": user_badges
             })
-        
-        # Sortiere nach Rarity Points, dann nach Total Badges
+
         leaderboard.sort(key=lambda x: (x["rarity_points"], x["total_badges"]), reverse=True)
-        
         return leaderboard
     
     def get_all_badge_definitions(self):
@@ -838,6 +826,113 @@ class AchievementSystem:
             }
         
         return progress
+
+    def backfill_persistent_badges(self):
+        """Reparaturroutine: Vergibt persistente Badges rückwirkend anhand gespeicherter Scores/Daily Stats.
+        Gibt eine Zusammenfassung zurück: {users_processed, badges_awarded}.
+        """
+        try:
+            from data_persistence import data_persistence
+
+            scores = data_persistence.load_scores()
+            daily_stats_all = data_persistence.load_daily_user_stats()
+            badges_data = self.load_badges()
+
+            users = set(scores.keys()) | set(daily_stats_all.keys())
+            total_awarded = 0
+
+            # Schwellenwerte nach Kategorie sammeln
+            daily_thresholds = [(bid, d["threshold"]) for bid, d in ACHIEVEMENT_DEFINITIONS.items() if d.get("category") == "daily" and "threshold" in d]
+            weekly_thresholds = [(bid, d["threshold"]) for bid, d in ACHIEVEMENT_DEFINITIONS.items() if d.get("category") == "weekly" and "threshold" in d]
+            monthly_thresholds = [(bid, d["threshold"]) for bid, d in ACHIEVEMENT_DEFINITIONS.items() if d.get("category") == "monthly" and "threshold" in d]
+            total_thresholds = [(bid, d["threshold"]) for bid, d in ACHIEVEMENT_DEFINITIONS.items() if d.get("category") == "total" and "threshold" in d]
+
+            for user in users:
+                user_scores = scores.get(user, {})  # {YYYY-MM: points}
+                user_stats = daily_stats_all.get(user, {})  # {YYYY-MM-DD: {..., points}}
+
+                # Stelle User-Eintragsstruktur sicher
+                if user not in badges_data:
+                    badges_data[user] = {"badges": [], "earned_dates": {}, "total_badges": 0}
+                existing = {b["id"] for b in badges_data[user]["badges"]}
+
+                # 1) Daily: Wenn irgendein Tag >= Threshold, vergebe das tägliche Badge (einmalig)
+                max_daily_points = 0
+                for day, stats in user_stats.items():
+                    try:
+                        pts = int(stats.get("points", 0))
+                    except Exception:
+                        pts = 0
+                    if pts > max_daily_points:
+                        max_daily_points = pts
+                for bid, th in daily_thresholds:
+                    if bid not in existing and max_daily_points >= th:
+                        definition = ACHIEVEMENT_DEFINITIONS[bid]
+                        if self.award_badge(user, bid, definition, badges_data):
+                            total_awarded += 1
+
+                # 2) Weekly: Aggregiere Punkte je ISO-Woche aus daily stats
+                week_sums = {}
+                for day, stats in user_stats.items():
+                    try:
+                        pts = int(stats.get("points", 0))
+                        dt = datetime.strptime(day, "%Y-%m-%d")
+                        isoy, isow, _ = dt.isocalendar()
+                        key = f"{isoy}-{isow:02d}"
+                        week_sums[key] = week_sums.get(key, 0) + pts
+                    except Exception:
+                        continue
+                max_week_points = max(week_sums.values()) if week_sums else 0
+                for bid, th in weekly_thresholds:
+                    if bid not in existing and max_week_points >= th:
+                        definition = ACHIEVEMENT_DEFINITIONS[bid]
+                        if self.award_badge(user, bid, definition, badges_data):
+                            total_awarded += 1
+
+                # 3) Monthly: prüfe je Monat
+                for bid, th in monthly_thresholds:
+                    if bid in existing:
+                        continue
+                    if any(int(v or 0) >= th for v in user_scores.values()):
+                        definition = ACHIEVEMENT_DEFINITIONS[bid]
+                        if self.award_badge(user, bid, definition, badges_data):
+                            total_awarded += 1
+
+                # 4) Total: Summe aller Monate
+                total_points = sum(int(v or 0) for v in user_scores.values())
+                for bid, th in total_thresholds:
+                    if bid not in existing and total_points >= th:
+                        definition = ACHIEVEMENT_DEFINITIONS[bid]
+                        if self.award_badge(user, bid, definition, badges_data):
+                            total_awarded += 1
+
+                # 5) Streaks & Special (First Booking)
+                try:
+                    streak_info = self.calculate_advanced_streak(user_stats)
+                    best_streak = streak_info.get("best_streak", 0)
+                except Exception:
+                    best_streak = 0
+                for bid, defn in ACHIEVEMENT_DEFINITIONS.items():
+                    if defn.get("category") == "streak" and bid not in existing:
+                        th = defn.get("threshold", 0)
+                        if best_streak >= th:
+                            if self.award_badge(user, bid, defn, badges_data):
+                                total_awarded += 1
+                # First booking
+                if "first_booking" not in existing:
+                    first_found = any((stats.get("first_booking", False) is True) for stats in user_stats.values())
+                    if first_found:
+                        defn = ACHIEVEMENT_DEFINITIONS["first_booking"]
+                        if self.award_badge(user, "first_booking", defn, badges_data):
+                            total_awarded += 1
+
+            # Speichern
+            self.save_badges(badges_data)
+            return {"users_processed": len(users), "badges_awarded": total_awarded}
+
+        except Exception as e:
+            print(f"❌ Backfill-Fehler: {e}")
+            return {"users_processed": 0, "badges_awarded": 0, "error": str(e)}
 
     def calculate_streak(self, user_stats):
         """Berechne aktuelle Streak (aufeinanderfolgende Arbeitstage mit Aktivität)"""
