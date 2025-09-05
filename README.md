@@ -174,19 +174,32 @@ Führe die Integration-Tests aus:
 python test_integration.py
 ```
 
-## 🚀 Deployment
+## 🛠 Deployment & Persistenz (Render)
 
-### Render.com
-Die Anwendung ist für Render.com konfiguriert:
-- Automatisches Deployment bei Git-Push
-- Environment Variables über Render Dashboard
-- Health Checks aktiviert
+- Persistent Disk: 1 GB
+- Mount Path: `/opt/render/project/src/persist`
+- `render.yaml` legt Symlinks `static/` und `data/` → Volume und ruft `initialize_persistence.py` auf
 
-### Lokale Entwicklung
-```bash
-export FLASK_ENV=development
-python slot_booking_webapp.py
-```
+### Wichtige ENV Variablen
+- `SECRET_KEY`: Flask Session Secret
+- `ADMIN_USERS`: Komma-separierte Adminliste, z. B. `admin,Jose,Simon`
+- `CRON_TOKEN`: Secret für `/admin/maintenance/run`
+- `CENTRAL_CALENDAR_ID`: Google Calendar Account
+- Render Secrets: `GOOGLE_CREDS_BASE64` (Service Account, Base64)
+
+## 🕒 Tägliche Maintenance
+
+### Option A – Render Scheduler
+- HTTP-Call: `GET /admin/maintenance/run` mit Header `X-CRON-TOKEN: $CRON_TOKEN`
+
+### Option B – GitHub Actions (empfohlen)
+- Workflow: `.github/workflows/daily-maintenance.yml`
+- Secrets: `MAINTENANCE_URL`, `CRON_TOKEN`
+
+## 🔐 Sicherheit
+- Security-Header (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+- Session-Cookies: `HttpOnly`, `Secure`, `SameSite=Lax`
+- Request-Body-Limit: 2 MB
 
 ## 📊 Monitoring
 

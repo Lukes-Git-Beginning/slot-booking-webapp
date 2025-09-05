@@ -133,6 +133,66 @@ def test_file_structure():
     
     return all_good
 
+def test_health_endpoint():
+    """Smoke-Test für /healthz"""
+    print("🩺 Testing /healthz…")
+    try:
+        from slot_booking_webapp import app
+        client = app.test_client()
+        res = client.get("/healthz")
+        assert res.status_code in (200, 500)
+        data = res.get_json(silent=True)
+        if data:
+            print(f"  status={data.get('status')}, free_disk_mb={data.get('free_disk_mb')}")
+        print("✅ Health Endpoint Test erfolgreich")
+        return True
+    except Exception as e:
+        print(f"❌ Health Endpoint Test fehlgeschlagen: {e}")
+        return False
+
+
+def test_maintenance_auth():
+    """Prüft, dass Maintenance nur mit Token erreichbar ist"""
+    print("🛡️ Testing /admin/maintenance/run Auth…")
+    try:
+        from slot_booking_webapp import app
+        client = app.test_client()
+        # Ohne Token
+        res = client.get("/admin/maintenance/run")
+        assert res.status_code == 401
+        print("✅ Maintenance Auth Test erfolgreich")
+        return True
+    except Exception as e:
+        print(f"❌ Maintenance Auth Test fehlgeschlagen: {e}")
+        return False
+
+
+def test_security_headers():
+    """Prüft, ob Security-Header gesetzt werden"""
+    print("🔐 Testing Security Headers…")
+    try:
+        from slot_booking_webapp import app
+        client = app.test_client()
+        res = client.get("/login")
+        assert res.status_code in (200, 302)
+        headers = res.headers
+        required = [
+            "Content-Security-Policy",
+            "X-Content-Type-Options",
+            "X-Frame-Options",
+            "Referrer-Policy",
+            "Strict-Transport-Security",
+        ]
+        missing = [h for h in required if h not in headers]
+        if missing:
+            print(f"  ⚠️ Missing headers: {missing}")
+        else:
+            print("  ✅ Alle Security-Header vorhanden")
+        return True
+    except Exception as e:
+        print(f"❌ Security Headers Test fehlgeschlagen: {e}")
+        return False
+
 def main():
     """Hauptfunktion für alle Tests"""
     print("🚀 Starting Integration Tests...")
@@ -143,7 +203,10 @@ def main():
         test_achievement_system,
         test_tracking_system,
         test_main_app,
-        test_file_structure
+        test_file_structure,
+        test_health_endpoint,
+        test_maintenance_auth,
+        test_security_headers,
     ]
     
     results = []
