@@ -114,8 +114,34 @@ def safe_calendar_call(func, *args, **kwargs):
 
 def is_admin(user):
     """Prüft ob User Admin-Rechte hat"""
-    admin_users = ["admin", "Admin", "administrator", "Jose", "Simon", "Alex", "David"]  # <-- Adminliste erweitert
+    # ENV-basierte Liste, Komma-separiert, z. B.: ADMIN_USERS="admin,Jose,Simon"
+    admin_env = os.environ.get("ADMIN_USERS", "")
+    env_admins = [u.strip() for u in admin_env.split(",") if u.strip()]
+    fallback_admins = ["admin", "Admin", "administrator", "Jose", "Simon", "Alex", "David"]
+    admin_users = env_admins if env_admins else fallback_admins
     return user and user.lower() in [u.lower() for u in admin_users]
+
+
+@app.after_request
+def add_security_headers(response):
+    """Setze grundlegende Security-Header."""
+    try:
+        # Minimal sichere Defaults; CSP erlaubt unsere CDNs
+        csp = (
+            "default-src 'self'; "
+            "img-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "font-src 'self' data: https://cdn.jsdelivr.net;"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+    except Exception:
+        pass
+    return response
 
 def check_admin_access():
     """Decorator-ähnliche Funktion für Admin-Check"""
@@ -2500,6 +2526,41 @@ def admin_users():
     except Exception as e:
         flash(f"❌ Fehler beim Laden der User-Liste: {e}", "danger")
         return redirect(url_for("index"))
+
+@app.route("/admin/maintenance/run")
+def admin_run_maintenance():
+    """Geschützter Endpoint für tägliche Maintenance (Cron)."""
+    token = request.headers.get("X-CRON-TOKEN") or request.args.get("token")
+    expected = os.environ.get("CRON_TOKEN")
+    if not expected or token != expected:
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        from maintenance import run_daily_maintenance
+        run_daily_maintenance()
+        # Cleanup alte Backups
+        try:
+            data_persistence.auto_cleanup_backups()
+        except Exception:
+            pass
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/healthz")
+def healthz():
+    """Health/Self-Check: prüft zentrale Dateien und freien Speicher grob."""
+    try:
+        ok, issues = data_persistence.validate_data_integrity()
+        # primitiver Disk-Check
+        statvfs = os.statvfs(".")
+        free_mb = (statvfs.f_frsize * statvfs.f_bavail) / (1024 * 1024)
+        return jsonify({
+            "status": "ok" if ok else "degraded",
+            "free_disk_mb": round(free_mb, 1),
+            "issues": issues
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=False)  # Debug auf False für Produktion!

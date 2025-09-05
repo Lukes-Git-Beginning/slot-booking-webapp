@@ -1,0 +1,33 @@
+name: Daily maintenance
+
+on:
+  schedule:
+    # Sommerzeit (CEST, Mär–Okt): 22:15 Berlin = 20:15 UTC
+    - cron: '15 20 * 3-10 *'
+    # Winterzeit (CET, Nov–Feb): 22:15 Berlin = 21:15 UTC
+    - cron: '15 21 * 1,2,11,12 *'
+  workflow_dispatch:
+
+jobs:
+  call-maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call maintenance endpoint
+        env:
+          MAINTENANCE_URL: ${{ secrets.MAINTENANCE_URL }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: |
+          set -e
+          : "${MAINTENANCE_URL:?MAINTENANCE_URL not set}"
+          : "${CRON_TOKEN:?CRON_TOKEN not set}"
+          # Mit kleinen Retries für Stabilität
+          for i in 1 2 3; do
+            if curl -fsS -H "X-CRON-TOKEN: ${CRON_TOKEN}" "${MAINTENANCE_URL}"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Maintenance call failed after 3 retries" >&2
+          exit 1
+
+

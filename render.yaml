@@ -46,4 +46,7 @@ services:
       - name: runtime-data
         mountPath: /opt/render/project/src/persist
         sizeGB: 1
+    # Optional: Cron-Job via Render Scheduler (alternativ: extern aufrufen)
+    # Siehe Render Dashboard → Cron; Beispiel (täglich 22:15 Berlin = 20:15 UTC im Winter/19:15 UTC im Sommer)
+    # curl -H "X-CRON-TOKEN: $CRON_TOKEN" https://<deine-domain>/admin/maintenance/run
 
