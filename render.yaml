@@ -5,11 +5,17 @@ services:
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
-      # Erstelle static Ordner falls nicht vorhanden
-      mkdir -p static
-      # Initiale availability.json generieren (mit Timeout)
-      timeout 120s python generate_availability.py || echo "Initial generation skipped"
-    startCommand: gunicorn slot_booking_webapp:app --workers 2 --threads 2 --timeout 120
+    startCommand: |
+      # Persistentes Volume einbinden: Symlinks für data/ und static/
+      mkdir -p /opt/render/project/src/persist/static /opt/render/project/src/persist/data
+      [ -L static ] || (rm -rf static && ln -s /opt/render/project/src/persist/static static)
+      [ -L data ] || (rm -rf data && ln -s /opt/render/project/src/persist/data data)
+      # Initiale Dateien/Verzeichnisse anlegen (idempotent)
+      python initialize_persistence.py || true
+      # availability.json ggf. generieren (idempotent)
+      python generate_availability.py || true
+      # App starten
+      gunicorn slot_booking_webapp:app --workers 2 --threads 2 --timeout 120
     envVars:
       # Automatisch generierter Secret Key
       - key: SECRET_KEY
@@ -34,4 +40,10 @@ services:
     scaling:
       minInstances: 1
       maxInstances: 1
+
+    # Persistentes Volume (1 GB) für Laufzeitdaten (data/, static/)
+    disks:
+      - name: runtime-data
+        mountPath: /opt/render/project/src/persist
+        sizeGB: 1
 
