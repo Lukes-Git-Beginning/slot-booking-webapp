@@ -76,7 +76,7 @@ class LevelSystem:
         if best_badge:
             best_badge_color = self.get_rarity_color(best_badge["rarity"])
         
-        return {
+        result = {
             "user": user,
             "level": level,
             "xp": xp,
@@ -90,6 +90,26 @@ class LevelSystem:
             "best_badge_color": best_badge_color,
             "level_up": level_up_info
         }
+
+        # Persistiere aktuellen Level-Stand in user_levels.json
+        try:
+            with open(self.levels_file, "r", encoding="utf-8") as f:
+                levels = json.load(f)
+        except Exception:
+            levels = {}
+        levels[user] = {
+            "level": level,
+            "xp": xp,
+            "updated_at": datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S"),
+            "level_title": level_title
+        }
+        try:
+            with open(self.levels_file, "w", encoding="utf-8") as f:
+                json.dump(levels, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+        return result
     
     def check_level_up(self, user, new_level, new_xp):
         """Prüfe ob User ein Level aufgestiegen ist"""
@@ -112,6 +132,7 @@ class LevelSystem:
         old_xp = level_history[user]["current_xp"]
         
         level_up_info = None
+        now_ts = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
         
         # Prüfe auf Level-Up
         if new_level > old_level:
@@ -121,20 +142,22 @@ class LevelSystem:
                 "old_xp": old_xp,
                 "new_xp": new_xp,
                 "xp_gained": new_xp - old_xp,
-                "timestamp": datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+                "timestamp": now_ts
             }
-            
-            # Speichere Level-Up in Historie
             level_history[user]["level_ups"].append(level_up_info)
-            level_history[user]["current_level"] = new_level
-            level_history[user]["current_xp"] = new_xp
-            level_history[user]["last_check"] = level_up_info["timestamp"]
-            
-            # Speichere Historie
+            print(f"🎉 LEVEL UP! {user} ist von Level {old_level} auf Level {new_level} aufgestiegen!")
+
+        # Aktualisiere Snapshot immer
+        level_history[user]["current_level"] = new_level
+        level_history[user]["current_xp"] = new_xp
+        level_history[user]["last_check"] = now_ts
+
+        # Speicher immer Historie (auch ohne Level-Up), damit Datei nicht leer bleibt
+        try:
             with open(self.level_history_file, "w", encoding="utf-8") as f:
                 json.dump(level_history, f, ensure_ascii=False, indent=2)
-            
-            print(f"🎉 LEVEL UP! {user} ist von Level {old_level} auf Level {new_level} aufgestiegen!")
+        except Exception:
+            pass
         
         return level_up_info
     
