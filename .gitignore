@@ -38,6 +38,9 @@ Thumbs.db
 # Logs
 *.log
 
+# GCP service account (use env-based loading instead)
+service_account.json
+
 # Temporary files
 *.tmp
 *.temp

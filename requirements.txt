@@ -55,3 +55,9 @@ contourpy==1.3.2
 fonttools==4.58.2
 pillow==11.2.1
 colorama==0.4.6
+ 
+# Monitoring
+sentry-sdk[flask]==2.9.0
+
+# Rate limiting
+Flask-Limiter==3.10.1

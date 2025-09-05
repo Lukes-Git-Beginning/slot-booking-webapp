@@ -8,6 +8,11 @@ from level_system import level_system
 from collections import defaultdict
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+import uuid
+import logging
+from logging import StreamHandler
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from creds_loader import load_google_credentials
@@ -37,9 +42,29 @@ from weekly_points import (
     set_on_vacation,
     get_week_audit,
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # ----------------- Flask Setup -----------------
 app = Flask(__name__)
+
+# Rate Limiter
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per hour", "50 per minute"])  # sane defaults
+
+# ----------------- Sentry -----------------
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
+        profiles_sample_rate=float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.0")),
+        send_default_pii=False,
+    )
+    # Basic structured logging to stdout
+    handler = StreamHandler()
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
 app.secret_key = os.getenv("SECRET_KEY", "change-me-to-random-string-now")
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -47,6 +72,20 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     MAX_CONTENT_LENGTH=2 * 1024 * 1024,  # 2 MB request body limit
 )
+
+# ----------------- Request ID Middleware -----------------
+@app.before_request
+def attach_request_id():
+    rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    # store in environ for later use
+    request.environ["request_id"] = rid
+
+@app.after_request
+def add_request_id_header(response):
+    rid = request.environ.get("request_id")
+    if rid:
+        response.headers.setdefault("X-Request-ID", rid)
+    return response
 
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -2534,6 +2573,7 @@ def admin_users():
         return redirect(url_for("index"))
 
 @app.route("/admin/maintenance/run")
+@limiter.limit("6 per hour; 2 per minute")
 def admin_run_maintenance():
     """Geschützter Endpoint für tägliche Maintenance (Cron)."""
     token = request.headers.get("X-CRON-TOKEN") or request.args.get("token")
