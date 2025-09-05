@@ -563,8 +563,13 @@ class BookingTracker:
                             total_cancelled += metrics.get("cancelled", 0)
                     
                     if total_slots > 0:
-                        # Verhindere unmögliche Werte (über 100%)
-                        appearance_rate = min(100, round(((total_completed + total_cancelled) / total_slots) * 100, 2))
+                        # Neue Definition: Auftauchquote = erschienen / (erschienen + no_show)
+                        appearance_base = total_completed + total_no_shows
+                        if appearance_base > 0:
+                            appearance_rate = min(100, round((total_completed / appearance_base) * 100, 2))
+                        else:
+                            appearance_rate = 0
+
                         success_rate = min(100, round((total_completed / total_slots) * 100, 2))
                         no_show_rate = min(100, round((total_no_shows / total_slots) * 100, 2))
                         
@@ -592,8 +597,13 @@ class BookingTracker:
                             total_cancelled_30 += metrics.get("cancelled", 0)
                     
                     if total_slots_30 > 0:
-                        # Verhindere unmögliche Werte (über 100%)
-                        appearance_rate_30 = min(100, round(((total_completed_30 + total_cancelled_30) / total_slots_30) * 100, 2))
+                        # Neue Definition: Auftauchquote = erschienen / (erschienen + no_show)
+                        appearance_base_30 = total_completed_30 + total_no_shows_30
+                        if appearance_base_30 > 0:
+                            appearance_rate_30 = min(100, round((total_completed_30 / appearance_base_30) * 100, 2))
+                        else:
+                            appearance_rate_30 = 0
+
                         success_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
                         no_show_rate_30 = min(100, round((total_no_shows_30 / total_slots_30) * 100, 2))
                         
