@@ -13,6 +13,8 @@
   --accent: #5ab1ff;
 
   --box-bg: rgba(18, 24, 32, 0.65);
+  /* Sidebar-Hintergrund (separat, aber konsistent zur Box-Optik) */
+  --sidebar-bg: rgba(18, 24, 32, 0.80);
   --box-border: rgba(255,255,255,.12);
   --shadow: 0 10px 30px rgba(0,0,0,.35);
 
@@ -49,6 +51,7 @@ body.lightmode {
   --accent: #2563eb;
 
   --box-bg: rgba(255,255,255,.80);
+  --sidebar-bg: rgba(255,255,255,.92);
   --box-border: rgba(0,0,0,.10);
   --shadow: 0 8px 24px rgba(0,0,0,.12);
 
