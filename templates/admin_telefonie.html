@@ -1,345 +1,894 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>📞 Telefonie Punkte – Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-  <style>
-    /* Theme Toggle */
-    #theme-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 20px;
-      transition: all 0.3s ease;
-      z-index: 1000;
-    }
-    #theme-toggle:hover { transform: scale(1.06); }
-    .page { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .box { background: var(--box-bg); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: 20px; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-    .row label { width: 120px; font-weight: 600; }
-    .table { width: 100%; border-collapse: collapse; }
-    .table th, .table td { border: 1px solid rgba(255,255,255,0.1); padding: 8px; text-align: center; }
-    .table th { background: rgba(255,255,255,0.05); }
-    .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; }
-    .badge-green { background: rgba(16,185,129,0.2); color: #10b981; }
-    .badge-yellow { background: rgba(234,179,8,0.2); color: #eab308; }
-    .badge-red { background: rgba(239,68,68,0.2); color: #ef4444; }
-    .small { font-size: 12px; color: var(--muted); }
-  </style>
-  </head>
+    <meta charset="UTF-8">
+    <title>Telefonie Punkte — Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* === VARIABLES === */
+        :root {
+            --bg: #0a0e13;
+            --card-bg: rgba(18, 24, 32, 0.9);
+            --border: rgba(255,255,255,.12);
+            --text: #e5eef7;
+            --text-muted: #a0aec0;
+            --accent: #5ab1ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        /* === RESET & BASE === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* === LAYOUT === */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page h1 {
+            font-size: 2.5em;
+            color: var(--accent);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* === WEEK SELECTOR === */
+        .week-selector {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .week-selector label {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .week-selector select,
+        .week-selector input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .week-selector select:focus,
+        .week-selector input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* === GRID LAYOUT === */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .box h3 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        /* === FORMS === */
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .form-row label {
+            min-width: 80px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .form-row input,
+        .form-row select {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .form-row input:focus,
+        .form-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(90, 177, 255, 0.2);
+        }
+
+        .form-row input[type="number"] {
+            max-width: 100px;
+        }
+
+        /* === BUTTONS === */
+        .action-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(90, 177, 255, 0.3);
+        }
+
+        .action-btn.primary { background: var(--accent); }
+        .action-btn.secondary { background: var(--text-muted); }
+        .action-btn.success { background: var(--success); }
+        .action-btn.warning { background: var(--warning); }
+        .action-btn.danger { background: var(--danger); }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        /* === TABLE === */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            text-align: center;
+        }
+
+        .table th {
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .table th:hover {
+            background: rgba(90, 177, 255, 0.1);
+        }
+
+        .table tbody tr {
+            transition: background 0.3s ease;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        /* === BADGES === */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-green {
+            background: rgba(16,185,129,0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .badge-yellow {
+            background: rgba(234,179,8,0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .badge-red {
+            background: rgba(239,68,68,0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* === PROGRESS BARS === */
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .progress-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .progress-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        /* === CHART CONTAINER === */
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .chart-container h3 {
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .chart-placeholder {
+            width: 100%;
+            height: 300px;
+            background: rgba(255,255,255,0.05);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.1em;
+        }
+
+        /* === AUDIT LOG === */
+        .audit-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .audit-section h3 {
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+
+        .audit-entry {
+            padding: 10px;
+            border-left: 3px solid var(--accent);
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .audit-time {
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+
+        /* === WINDOW STATUS === */
+        .window-status {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .window-open {
+            background: rgba(16,185,129,0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .window-closed {
+            background: rgba(239,68,68,0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* === THEME TOGGLE === */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            background: var(--accent);
+            color: white;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .page {
+                padding: 15px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .form-row label {
+                min-width: auto;
+            }
+
+            .table th,
+            .table td {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+
+            .progress-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .week-selector {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* === UTILITY === */
+        .text-center { text-align: center; }
+        .small { font-size: 0.8em; color: var(--text-muted); }
+        .mt { margin-top: 20px; }
+        .mb { margin-bottom: 20px; }
+    </style>
+</head>
 <body>
-  <!-- Theme Toggle -->
-  <button id="theme-toggle" aria-label="Theme Toggle">🌙</button>
-  <div class="page">
-    <h1>📞 Telefonie Punkte – Admin</h1>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
 
-    <form method="get" class="row" action="{{ url_for('admin_telefonie') }}">
-      <label>Woche</label>
-      <select name="week">
-        {% for w in recent_weeks %}
-          <option value="{{ w }}" {{ 'selected' if w == week else '' }}>{{ w }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="action-btn primary">Wechseln</button>
-      <a class="action-btn secondary" href="{{ url_for('admin_telefonie_export', week=week) }}">PDF Export</a>
-    </form>
+    <div class="page">
+        <h1>📞 Telefonie Punkte — Admin</h1>
 
-    <div class="grid">
-      <div class="box">
-        <h3>Ziele setzen</h3>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="set_goal">
-          <input type="hidden" name="week" value="{{ week }}">
-          <label>Person</label>
-          <select name="user">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <label>Ziel</label>
-          <input type="number" name="goal_points" min="0" max="100" step="1" required>
-          <button type="submit" class="action-btn success">Speichern</button>
-        </form>
-        <p class="small">Außerhalb 18–21 Uhr werden Ziele als "wartend" gespeichert.</p>
-
-        <h3 class="mt">Aktivität erfassen</h3>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="add_activity">
-          <input type="hidden" name="week" value="{{ week }}">
-          <label>Person</label>
-          <select name="user">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <label>Typ</label>
-          <select name="kind">
-            <option value="T1">T1</option>
-            <option value="T2">T2</option>
-            <option value="telefonie">Telefonie</option>
-            <option value="extra">Extra</option>
-          </select>
-          <label>Punkte</label>
-          <input type="number" name="points" min="0" max="100" step="1" required>
-          <label>Notiz</label>
-          <input type="text" name="note" placeholder="z. B. Social Media">
-          <button type="submit" class="action-btn success">Erfassen</button>
-        </form>
-        <div class="row">
-          <form method="post">
-            <input type="hidden" name="action" value="apply_pending">
-            <input type="hidden" name="week" value="{{ week }}">
-            <button type="submit" class="action-btn warning">Wartende verbuchen</button>
-          </form>
-          <span class="small">Zeitfenster aktuell: {{ 'offen (18–21 Uhr)' if in_window else 'geschlossen' }}</span>
+        <!-- Window Status -->
+        <div class="window-status {{ 'window-open' if in_window else 'window-closed' }}">
+            📅 Zeitfenster aktuell: {{ 'OFFEN (18—21 Uhr)' if in_window else 'GESCHLOSSEN' }}
         </div>
-      </div>
 
-      <div class="box">
-        <h3>Teilnehmer verwalten</h3>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="add_participant">
-          <label>Neu</label>
-          <input type="text" name="name" placeholder="Name">
-          <button type="submit" class="action-btn primary">Hinzufügen</button>
+        <!-- Week Selector -->
+        <form method="get" class="week-selector" action="{{ url_for('admin_telefonie') if url_for else '#' }}">
+            <label>📅 Woche:</label>
+            <select name="week">
+                {% for w in recent_weeks %}
+                <option value="{{ w }}" {{ 'selected' if w == week else '' }}>{{ w }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="action-btn primary">Wechseln</button>
+            <a class="action-btn secondary" href="{{ url_for('admin_telefonie_export', week=week) if url_for else '#' }}">
+                📄 PDF Export
+            </a>
         </form>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="remove_participant">
-          <label>Entfernen</label>
-          <select name="name">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <button type="submit" class="action-btn danger">Entfernen</button>
-        </form>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="set_vacation">
-          <input type="hidden" name="week" value="{{ week }}">
-          <label>Urlaub</label>
-          <select name="user">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <select name="on_vacation">
-            <option value="0">Nein</option>
-            <option value="1">Ja</option>
-          </select>
-          <button type="submit" class="action-btn secondary">Setzen</button>
-        </form>
-      </div>
-    </div>
 
-    <div class="box" style="margin-top:20px;">
-      <h3>Wochenübersicht – {{ week }}</h3>
-      <table class="table" id="weekTable">
-        <thead>
-          <tr>
-            <th data-sort="string">Person</th>
-            <th data-sort="num">Ziel</th>
-            <th data-sort="num">Erreicht</th>
-            <th data-sort="num">Offen</th>
-            <th data-sort="num">Bilanz</th>
-            <th>Urlaub</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in stats.users %}
-          <tr>
-            <td>{{ u.user }}</td>
-            <td><span class="badge badge-yellow">{{ u.goal }}</span></td>
-            <td><span class="badge badge-green">{{ u.achieved }}</span></td>
-            <td><span class="badge badge-red">{{ u.remaining }}</span></td>
-            <td>{{ u.balance }}</td>
-            <td>{{ 'Ja' if u.on_vacation else 'Nein' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="small">Gesamt: Ziel {{ stats.summary.total_goal }} | Erreicht {{ stats.summary.total_achieved }} | Offen {{ stats.summary.total_remaining }} | Bilanz {{ stats.summary.total_balance }}</p>
-      <div class="small" style="margin-top:10px;">
-        Fortschritt je Person:
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; margin-top:8px;">
-          {% for u in stats.users %}
-          {% set pct = (u.achieved / (u.goal if u.goal>0 else 1) * 100) | round(0) %}
-          <div style="background: rgba(255,255,255,0.05); border:1px solid var(--box-border); border-radius:10px; padding:8px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>{{ u.user }}</span><span>{{ pct }}%</span></div>
-            <div style="height:8px; background: rgba(255,255,255,0.08); border-radius:6px; overflow:hidden;">
-              <div style="height:100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--green), #34d399);"></div>
+        <!-- Management Forms -->
+        <div class="grid">
+            <!-- Goals & Activities -->
+            <div class="box">
+                <h3>🎯 Ziele setzen</h3>
+                <form method="post">
+                    <input type="hidden" name="action" value="set_goal">
+                    <input type="hidden" name="week" value="{{ week }}">
+                    
+                    <div class="form-row">
+                        <label>Person:</label>
+                        <select name="user" required>
+                            {% for p in participants %}
+                            <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label>Ziel:</label>
+                        <input type="number" name="goal_points" min="0" max="100" step="1" required>
+                        <button type="submit" class="action-btn success">💾 Speichern</button>
+                    </div>
+                </form>
+
+                <div class="mt">
+                    <h3>📈 Aktivität erfassen</h3>
+                    <form method="post">
+                        <input type="hidden" name="action" value="add_activity">
+                        <input type="hidden" name="week" value="{{ week }}">
+                        
+                        <div class="form-row">
+                            <label>Person:</label>
+                            <select name="user" required>
+                                {% for p in participants %}
+                                <option value="{{ p }}">{{ p }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label>Typ:</label>
+                            <select name="kind" required>
+                                <option value="T1">T1</option>
+                                <option value="T2">T2</option>
+                                <option value="telefonie">Telefonie</option>
+                                <option value="extra">Extra</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label>Punkte:</label>
+                            <input type="number" name="points" min="0" max="100" step="1" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label>Notiz:</label>
+                            <input type="text" name="note" placeholder="z.B. Social Media">
+                            <button type="submit" class="action-btn success">✅ Erfassen</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="actions">
+                    <form method="post" style="display: inline;">
+                        <input type="hidden" name="action" value="apply_pending">
+                        <input type="hidden" name="week" value="{{ week }}">
+                        <button type="submit" class="action-btn warning">⚡ Wartende verbuchen</button>
+                    </form>
+                </div>
+                
+                <p class="small mt">
+                    ℹ️ Außerhalb 18—21 Uhr werden Ziele als "wartend" gespeichert.
+                </p>
             </div>
-          </div>
-          {% endfor %}
+
+            <!-- User Management -->
+            <div class="box">
+                <h3>👥 Teilnehmer verwalten</h3>
+                <form method="post">
+                    <input type="hidden" name="action" value="add_participant">
+                    
+                    <div class="form-row">
+                        <label>Neu:</label>
+                        <input type="text" name="name" placeholder="Name" required>
+                        <button type="submit" class="action-btn primary">➕ Hinzufügen</button>
+                    </div>
+                </form>
+
+                <form method="post" class="mt">
+                    <input type="hidden" name="action" value="remove_participant">
+                    
+                    <div class="form-row">
+                        <label>Entfernen:</label>
+                        <select name="name" required>
+                            {% for p in participants %}
+                            <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="action-btn danger">🗑️ Entfernen</button>
+                    </div>
+                </form>
+
+                <form method="post" class="mt">
+                    <input type="hidden" name="action" value="set_vacation">
+                    <input type="hidden" name="week" value="{{ week }}">
+                    
+                    <div class="form-row">
+                        <label>Urlaub:</label>
+                        <select name="user" required>
+                            {% for p in participants %}
+                            <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="on_vacation" required>
+                            <option value="0">Nein</option>
+                            <option value="1">Ja</option>
+                        </select>
+                        <button type="submit" class="action-btn secondary">🏖️ Setzen</button>
+                    </div>
+                </form>
+            </div>
         </div>
-      </div>
+
+        <!-- Weekly Overview Table -->
+        <div class="box">
+            <h3>📊 Wochenübersicht — {{ week }}</h3>
+            <table class="table" id="weekTable">
+                <thead>
+                    <tr>
+                        <th data-sort="string">👤 Person</th>
+                        <th data-sort="num">🎯 Ziel</th>
+                        <th data-sort="num">✅ Erreicht</th>
+                        <th data-sort="num">📋 Offen</th>
+                        <th data-sort="num">💰 Bilanz</th>
+                        <th>🏖️ Urlaub</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in stats.users %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ u.user }}</td>
+                        <td><span class="badge badge-yellow">{{ u.goal }}</span></td>
+                        <td><span class="badge badge-green">{{ u.achieved }}</span></td>
+                        <td><span class="badge badge-red">{{ u.remaining }}</span></td>
+                        <td style="font-weight: 600; color: {{ 'var(--success)' if u.balance >= 0 else 'var(--danger)' }};">
+                            {{ '+' if u.balance > 0 else '' }}{{ u.balance }}
+                        </td>
+                        <td>{{ '✅ Ja' if u.on_vacation else '❌ Nein' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="text-center small mt">
+                📈 Gesamt: Ziel {{ stats.summary.total_goal }} | Erreicht {{ stats.summary.total_achieved }} | Offen {{ stats.summary.total_remaining }} | Bilanz {{ stats.summary.total_balance }}
+            </div>
+        </div>
+
+        <!-- Progress Visualization -->
+        <div class="box">
+            <h3>📊 Fortschritt je Person</h3>
+            <div class="progress-grid">
+                {% for u in stats.users %}
+                {% set pct = (u.achieved / (u.goal if u.goal > 0 else 1) * 100) | round(0) %}
+                <div class="progress-card">
+                    <div class="progress-name">{{ u.user }}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ pct }}%;"></div>
+                    </div>
+                    <div class="progress-text">{{ pct }}% ({{ u.achieved }}/{{ u.goal }})</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Chart Placeholder -->
+        <div class="chart-container">
+            <h3>📈 Diagramm</h3>
+            <div class="chart-placeholder">
+                📊 Interaktives Diagramm wird hier angezeigt
+                <br><small>Chart.js wurde entfernt für bessere Performance</small>
+            </div>
+        </div>
+
+        <!-- Audit Log -->
+        <div class="audit-section">
+            <h3>📋 Historie (Audit)</h3>
+            {% for a in audit %}
+            <div class="audit-entry">
+                <div class="audit-time">{{ a.ts }}</div>
+                <strong>{{ a.user }}</strong> - {{ a.type }}:
+                {% if a.type in ['activity','activity_applied'] %}
+                    {{ a.kind }}: {{ a.points }} {% if a.note %}- {{ a.note }}{% endif %}
+                {% elif a.type in ['goal_set','goal_applied'] %}
+                    Ziel: {{ a.points }}
+                {% else %}
+                    —
+                {% endif %}
+                <small>(von {{ a.by }})</small>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="box" style="margin-top:20px;">
-      <h3>Diagramm</h3>
-      <canvas id="weeklyChart" height="120"></canvas>
-    </div>
+    <script>
+        // === INIT ===
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Telefonie Admin geladen');
+            initThemeToggle();
+            initTableSorting();
+            initFormHandling();
+            animateProgressBars();
+        });
 
-    <div class="box" style="margin-top:20px;">
-      <h3>Historie (Audit)</h3>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Zeit</th>
-            <th>Person</th>
-            <th>Typ</th>
-            <th>Details</th>
-            <th>Von</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for a in audit %}
-          <tr>
-            <td>{{ a.ts }}</td>
-            <td>{{ a.user }}</td>
-            <td>{{ a.type }}</td>
-            <td>
-              {% if a.type in ['activity','activity_applied'] %}
-                {{ a.kind }}: {{ a.points }} {% if a.note %}- {{ a.note }}{% endif %}
-              {% elif a.type in ['goal_set','goal_applied'] %}
-                Ziel: {{ a.points }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
-            <td>{{ a.by }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+        // === THEME TOGGLE ===
+        function initThemeToggle() {
+            const toggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('telefonie-theme');
 
-  </div>
+            if (savedTheme === 'light') {
+                setLightTheme();
+            }
 
-  <script>
-    const data = {
-      labels: [{% for u in stats.users %}'{{ u.user }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-      datasets: [
-        {
-          label: 'Ziel',
-          backgroundColor: 'rgba(234,179,8,0.6)',
-          data: [{% for u in stats.users %}{{ u.goal }}{% if not loop.last %}, {% endif %}{% endfor %}],
-        },
-        {
-          label: 'Erreicht',
-          backgroundColor: 'rgba(16,185,129,0.6)',
-          data: [{% for u in stats.users %}{{ u.achieved }}{% if not loop.last %}, {% endif %}{% endfor %}],
-        },
-        {
-          label: 'Offen',
-          backgroundColor: 'rgba(239,68,68,0.6)',
-          data: [{% for u in stats.users %}{{ u.remaining }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            toggle.addEventListener('click', function() {
+                const isLight = document.body.style.getPropertyValue('--bg') === '#f8fafc';
+                if (isLight) {
+                    setDarkTheme();
+                } else {
+                    setLightTheme();
+                }
+            });
         }
-      ]
-    };
 
-    const ctx = document.getElementById('weeklyChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: data,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'top' },
-          title: { display: false }
-        },
-        scales: {
-          x: { stacked: true },
-          y: { stacked: true, beginAtZero: true }
+        function setDarkTheme() {
+            document.body.style.setProperty('--bg', '#0a0e13');
+            document.body.style.setProperty('--card-bg', 'rgba(18, 24, 32, 0.9)');
+            document.getElementById('themeToggle').textContent = '🌙';
+            localStorage.setItem('telefonie-theme', 'dark');
         }
-      }
-    });
 
-    // Kopfzeilen-Sortierung
-    (function() {
-      const table = document.getElementById('weekTable');
-      if (!table) return;
-      const getCellValue = (tr, idx) => tr.children[idx].innerText.replace(/[^0-9.-]/g,'');
-      const comparer = (idx, type, asc) => (a, b) => {
-        const v1 = type==='num' ? parseFloat(getCellValue(a, idx)) : a.children[idx].innerText.toLowerCase();
-        const v2 = type==='num' ? parseFloat(getCellValue(b, idx)) : b.children[idx].innerText.toLowerCase();
-        if (v1==v2 || (isNaN(v1)&&isNaN(v2))) return 0;
-        if (isNaN(v1)) return 1;
-        if (isNaN(v2)) return -1;
-        return (v1>v2?1:-1) * (asc?1:-1);
-      };
-      table.querySelectorAll('th[data-sort]')?.forEach((th, idx) => {
-        let asc = true;
-        th.style.cursor = 'pointer';
-        th.addEventListener('click', () => {
-          const tbody = table.tBodies[0];
-          Array.from(tbody.querySelectorAll('tr'))
-            .sort(comparer(idx, th.dataset.sort, asc = !asc))
-            .forEach(tr => tbody.appendChild(tr));
-        });
-      });
-    })();
-
-    // Enter-Submit und Ladezustände
-    (function(){
-      document.querySelectorAll('form').forEach(f => {
-        f.addEventListener('submit', function(){
-          const btn = this.querySelector('button[type="submit"]');
-          if (btn){ btn.disabled = true; btn.classList.add('loading-indicator'); }
-        });
-      });
-      document.querySelectorAll('input, select').forEach(inp => {
-        inp.addEventListener('keypress', function(e){
-          if (e.key === 'Enter'){
-            const form = this.form; if (form) form.requestSubmit();
-          }
-        });
-      });
-    })();
-
-    // Theme Toggle mit LocalStorage
-    (function() {
-      const body = document.body;
-      const themeToggle = document.getElementById('theme-toggle');
-      function setTheme(dark) {
-        body.classList.toggle('lightmode', !dark);
-        body.classList.toggle('darkmode', dark);
-        if (themeToggle) themeToggle.innerHTML = dark ? '🌙' : '☀️';
-        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-      }
-      window.addEventListener('DOMContentLoaded', function() {
-        let saved = null;
-        try { saved = localStorage.getItem('theme'); } catch (e) {}
-        if (saved === 'light' || saved === 'dark') {
-          setTheme(saved === 'dark');
-        } else {
-          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          setTheme(prefersDark);
+        function setLightTheme() {
+            document.body.style.setProperty('--bg', '#f8fafc');
+            document.body.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.9)');
+            document.getElementById('themeToggle').textContent = '☀️';
+            localStorage.setItem('telefonie-theme', 'light');
         }
-      });
-      if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-          setTheme(!document.body.classList.contains('darkmode'));
+
+        // === TABLE SORTING ===
+        function initTableSorting() {
+            const table = document.getElementById('weekTable');
+            if (!table) return;
+
+            const getCellValue = (tr, idx) => {
+                const cell = tr.children[idx];
+                const text = cell.innerText || cell.textContent;
+                return text.replace(/[^0-9.-]/g, '') || text;
+            };
+
+            const comparer = (idx, type, asc) => (a, b) => {
+                const v1 = type === 'num' ? parseFloat(getCellValue(a, idx)) : getCellValue(a, idx).toLowerCase();
+                const v2 = type === 'num' ? parseFloat(getCellValue(b, idx)) : getCellValue(b, idx).toLowerCase();
+                
+                if (v1 === v2 || (isNaN(v1) && isNaN(v2))) return 0;
+                if (isNaN(v1)) return 1;
+                if (isNaN(v2)) return -1;
+                
+                return (v1 > v2 ? 1 : -1) * (asc ? 1 : -1);
+            };
+
+            table.querySelectorAll('th[data-sort]').forEach((th, idx) => {
+                let asc = true;
+                th.style.cursor = 'pointer';
+                th.addEventListener('click', () => {
+                    const tbody = table.tBodies[0];
+                    Array.from(tbody.querySelectorAll('tr'))
+                        .sort(comparer(idx, th.dataset.sort, asc = !asc))
+                        .forEach(tr => tbody.appendChild(tr));
+                    
+                    // Visual feedback
+                    th.style.background = 'rgba(90, 177, 255, 0.2)';
+                    setTimeout(() => {
+                        th.style.background = '';
+                    }, 300);
+                });
+            });
+        }
+
+        // === FORM HANDLING ===
+        function initFormHandling() {
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const btn = this.querySelector('button[type="submit"]');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.6';
+                        
+                        // Re-enable after 2 seconds as fallback
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.style.opacity = '1';
+                        }, 2000);
+                    }
+                });
+            });
+
+            // Enter key navigation
+            document.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                        const form = this.closest('form');
+                        if (form) {
+                            e.preventDefault();
+                            form.requestSubmit();
+                        }
+                    }
+                });
+            });
+        }
+
+        // === ANIMATIONS ===
+        function animateProgressBars() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach((bar, index) => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, index * 100 + 500);
+            });
+        }
+
+        // === NOTIFICATIONS ===
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                max-width: 350px;
+            `;
+
+            if (type === 'success') toast.style.background = 'var(--success)';
+            if (type === 'warning') toast.style.background = 'var(--warning)';
+            if (type === 'error') toast.style.background = 'var(--danger)';
+
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // === KEYBOARD SHORTCUTS ===
+        document.addEventListener('keydown', function(e) {
+            // ESC - Back
+            if (e.key === 'Escape') {
+                window.history.back();
+            }
+            
+            // R - Refresh
+            if (e.key.toLowerCase() === 'r' && !e.ctrlKey) {
+                e.preventDefault();
+                window.location.reload();
+            }
+            
+            // T - Toggle theme
+            if (e.key.toLowerCase() === 't' && !e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('themeToggle').click();
+            }
         });
-      }
-    })();
-  </script>
+
+        // === FORM SUCCESS HANDLING ===
+        // Check for URL parameters to show success messages
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success')) {
+            showToast('Aktion erfolgreich ausgeführt!', 'success');
+        }
+        if (urlParams.get('error')) {
+            showToast('Fehler bei der Ausführung', 'error');
+        }
+
+        // === AUTO-SAVE DRAFT ===
+        let draftTimeout;
+        document.querySelectorAll('input[type="text"], input[type="number"], select').forEach(input => {
+            input.addEventListener('input', function() {
+                clearTimeout(draftTimeout);
+                draftTimeout = setTimeout(() => {
+                    // Auto-save draft to localStorage
+                    const formData = {};
+                    const form = this.closest('form');
+                    if (form) {
+                        const formElements = form.querySelectorAll('input, select');
+                        formElements.forEach(el => {
+                            if (el.name) {
+                                formData[el.name] = el.value;
+                            }
+                        });
+                        localStorage.setItem('telefonie-draft', JSON.stringify(formData));
+                    }
+                }, 1000);
+            });
+        });
+
+        // Load draft on page load
+        const savedDraft = localStorage.getItem('telefonie-draft');
+        if (savedDraft) {
+            try {
+                const draftData = JSON.parse(savedDraft);
+                Object.keys(draftData).forEach(name => {
+                    const input = document.querySelector(`[name="${name}"]`);
+                    if (input && !input.value) {
+                        input.value = draftData[name];
+                    }
+                });
+            } catch (e) {
+                // Ignore invalid draft data
+            }
+        }
+    </script>
 </body>
 </html>
-
-

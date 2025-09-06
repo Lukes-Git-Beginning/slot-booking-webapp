@@ -1,529 +1,1104 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Scoreboard & Achievements</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
-  
-  <style>
-    /* Badge Integration */
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    
-    .scoreboard-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--box-bg);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      margin: 20px 0;
-    }
-    
-    .scoreboard-table th,
-    .scoreboard-table td {
-      padding: 15px 20px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      text-align: left;
-    }
-    
-    .scoreboard-table thead th {
-      background: rgba(255,255,255,.05);
-      font-weight: 600;
-      color: var(--accent);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    
-    .player-row {
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    
-    .player-row:hover {
-      background: rgba(90,177,255,.08);
-      transform: translateX(2px);
-    }
-    
-    .player-row.current-user {
-      background: rgba(90,177,255,.12);
-      border-left: 4px solid var(--accent);
-    }
-    
-    .rank-cell {
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--accent);
-      min-width: 60px;
-    }
-    
-    .rank-cell.rank-1 { color: #eab308; }
-    .rank-cell.rank-2 { color: #9ca3af; }
-    .rank-cell.rank-3 { color: #cd7c2f; }
-    
-    .player-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .player-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 16px;
-    }
-    
-    .player-name {
-      font-weight: 600;
-      color: var(--text-color);
-      font-size: 16px;
-    }
-    
-    .player-badges {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: 8px;
-    }
-    
-    .badge-mini {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      border: 1px solid rgba(255,255,255,0.2);
-      position: relative;
-      transition: all 0.2s ease;
-    }
-    
-    .badge-mini:hover {
-      transform: scale(1.3);
-      z-index: 10;
-    }
-    
-    .badge-mini.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
-    .badge-mini.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-    .badge-mini.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-    .badge-mini.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .badge-mini.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
-    .badge-mini.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
-    
-    .badge-tooltip {
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.9);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-      z-index: 1000;
-      margin-bottom: 5px;
-    }
-    
-    .badge-mini:hover .badge-tooltip {
-      opacity: 1;
-    }
-    
-    .badge-counter {
-      background: rgba(90,177,255,0.2);
-      color: var(--accent);
-      border: 1px solid rgba(90,177,255,0.3);
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-left: 4px;
-    }
-    
-    .points-cell {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--green);
-    }
-    
-    .badges-cell {
-      text-align: center;
-      min-width: 120px;
-    }
-    
-    /* Tab Navigation */
-    .tabs {
-      display: flex;
-      gap: 0;
-      background: var(--box-bg);
-      border-radius: var(--radius-lg);
-      padding: 4px;
-      margin-bottom: 20px;
-      border: 1px solid var(--box-border);
-    }
-    
-    .tab-button {
-      flex: 1;
-      padding: 12px 20px;
-      background: none;
-      border: none;
-      border-radius: var(--radius-md);
-      color: var(--muted);
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .tab-button.active {
-      background: var(--accent);
-      color: white;
-      transform: translateY(-1px);
-    }
-    
-    .tab-content {
-      display: none;
-    }
-    
-    .tab-content.active {
-      display: block;
-    }
-    
-    /* Badge Leaderboard */
-    .badge-leaderboard-item {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-md);
-      margin-bottom: 10px;
-      transition: all 0.2s ease;
-    }
-    
-    .badge-leaderboard-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(0,0,0,.1);
-    }
-    
-    .badge-stats {
-      margin-left: auto;
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-    
-    .badge-stat {
-      text-align: center;
-    }
-    
-    .badge-stat-value {
-      display: block;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--accent);
-    }
-    
-    .badge-stat-label {
-      display: block;
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-top: 2px;
-    }
-    
-    /* Champion Section */
-    .champion-section {
-      background: linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.05));
-      border: 1px solid rgba(234,179,8,0.3);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    
-    .champion-crown {
-      font-size: 48px;
-      margin-bottom: 10px;
-    }
-    
-    .champion-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #eab308;
-      margin-bottom: 5px;
-    }
-    
-    .champion-name {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-color);
-    }
-    
-    /* Quick Actions */
-    .quick-actions-scoreboard {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    
-    .action-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-md);
-      color: var(--text-color);
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-    
-    .action-btn:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-      background: rgba(90,177,255,.1);
-    }
-    
-    /* Stats Cards */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-    
-    .stat-card {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      text-align: center;
-    }
-    
-    .stat-icon {
-      font-size: 36px;
-      margin-bottom: 10px;
-    }
-    
-    .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 5px;
-    }
-    
-    .stat-label {
-      color: var(--muted);
-      font-size: 14px;
-    }
-    
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-      .scoreboard-table th,
-      .scoreboard-table td {
-        padding: 10px 15px;
-      }
-      
-      .player-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      
-      .player-badges {
-        margin-left: 0;
-      }
-      
-      .quick-actions-scoreboard {
-        flex-direction: column;
-      }
-      
-      .stats-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Scoreboard & Achievements</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* === VARIABLES === */
+        :root {
+            --bg: #0a0e13;
+            --card-bg: rgba(18, 24, 32, 0.9);
+            --border: rgba(255,255,255,.12);
+            --text: #e5eef7;
+            --text-muted: #a0aec0;
+            --accent: #5ab1ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gold: #eab308;
+            --silver: #9ca3af;
+            --bronze: #cd7c2f;
+        }
+
+        /* === RESET & BASE === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* === LAYOUT === */
+        .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* === CHAMPION SECTION === */
+        .champion-section {
+            background: linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.05));
+            border: 1px solid rgba(234,179,8,0.3);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .champion-crown {
+            font-size: 48px;
+            margin-bottom: 15px;
+            animation: bounce 2s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .champion-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+
+        .champion-name {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* === QUICK ACTIONS === */
+        .quick-actions-scoreboard {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            background: rgba(90,177,255,.1);
+        }
+
+        /* === STATS GRID === */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+        }
+
+        .stat-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        /* === TABS === */
+        .tabs {
+            display: flex;
+            gap: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-button.active {
+            background: var(--accent);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* === SCOREBOARD TABLE === */
+        .scoreboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .scoreboard-table th,
+        .scoreboard-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            text-align: left;
+        }
+
+        .scoreboard-table thead th {
+            background: rgba(255,255,255,.05);
+            font-weight: 600;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .player-row {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .player-row:hover {
+            background: rgba(90,177,255,.08);
+            transform: translateX(3px);
+        }
+
+        .player-row.current-user {
+            background: rgba(90,177,255,.12);
+            border-left: 4px solid var(--accent);
+        }
+
+        /* === RANK CELLS === */
+        .rank-cell {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--accent);
+            min-width: 60px;
+        }
+
+        .rank-cell.rank-1 { color: var(--gold); }
+        .rank-cell.rank-2 { color: var(--silver); }
+        .rank-cell.rank-3 { color: var(--bronze); }
+
+        /* === PLAYER INFO === */
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #3d8bfd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .player-name {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        /* === BADGES === */
+        .player-badges {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .badge-mini {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .badge-mini:hover {
+            transform: scale(1.3);
+            z-index: 10;
+        }
+
+        .badge-mini.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+        .badge-mini.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .badge-mini.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .badge-mini.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .badge-mini.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+        .badge-mini.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+        .badge-counter {
+            background: rgba(90,177,255,0.2);
+            color: var(--accent);
+            border: 1px solid rgba(90,177,255,0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        /* === POINTS CELL === */
+        .points-cell {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .badges-cell {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        /* === BADGE LEADERBOARD === */
+        .badge-leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .badge-leaderboard-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: 0 5px 20px rgba(0,0,0,.1);
+        }
+
+        .badge-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .badge-stat {
+            text-align: center;
+        }
+
+        .badge-stat-value {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .badge-stat-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* === PANEL === */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* === THEME TOGGLE === */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            background: var(--accent);
+            color: white;
+        }
+
+        /* === SEARCH BAR === */
+        .search-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: var(--text);
+            font-size: 14px;
+            min-width: 250px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(90, 177, 255, 0.2);
+        }
+
+        .filter-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .wrap {
+                padding: 15px;
+            }
+
+            .scoreboard-table th,
+            .scoreboard-table td {
+                padding: 12px 8px;
+                font-size: 0.9em;
+            }
+
+            .player-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .player-badges {
+                margin-left: 0;
+            }
+
+            .quick-actions-scoreboard {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .badge-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                justify-content: flex-start;
+            }
+        }
+
+        /* === LOADING STATE === */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* === ANIMATIONS === */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .player-row {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    
-    <!-- Champion Section -->
-    {% if champion %}
-    <div class="champion-section">
-      <div class="champion-crown">👑</div>
-      <div class="champion-title">Aktueller Champion</div>
-      <div class="champion-name">{{ champion }}</div>
-    </div>
-    {% endif %}
-    
-    <!-- Quick Actions -->
-    <div class="quick-actions-scoreboard">
-      <a href="{{ url_for('index') }}" class="action-btn">
-        <i class="ti ti-arrow-left"></i> Zurück zur Buchung
-      </a>
-      <a href="{{ url_for('badges') }}" class="action-btn">
-        <i class="ti ti-award"></i> Alle Badges ansehen
-      </a>
-      <a href="{{ url_for('my_calendar') }}" class="action-btn">
-        <i class="ti ti-calendar"></i> Meine Termine
-      </a>
-    </div>
-    
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">🏆</div>
-        <div class="stat-value">{{ ranking|length }}</div>
-        <div class="stat-label">Aktive Spieler</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">🎯</div>
-        <div class="stat-value">{{ user_score if current_user else 0 }}</div>
-        <div class="stat-label">Deine Punkte</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">📅</div>
-        <div class="stat-value">{{ month }}</div>
-        <div class="stat-label">Aktueller Monat</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">🥇</div>
-        <div class="stat-value">{{ ranking[0].points if ranking else 0 }}</div>
-        <div class="stat-label">Höchste Punktzahl</div>
-      </div>
-    </div>
-    
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab-button active" onclick="switchTab('points')">
-        📊 Punkte-Ranking
-      </button>
-      <button class="tab-button" onclick="switchTab('badges')">
-        🎖️ Badge-Ranking
-      </button>
-    </div>
-    
-    <!-- Punkte-Ranking Tab -->
-    <div id="points-tab" class="tab-content active">
-      <div class="glass panel">
-        <h2><i class="ti ti-trophy"></i> Punkte-Ranking – {{ month }}</h2>
-        
-        <table class="scoreboard-table">
-          <thead>
-            <tr>
-              <th>Rang</th>
-              <th>Spieler</th>
-              <th>Badges</th>
-              <th>Punkte</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for player in ranking %}
-            <tr class="player-row {% if current_user and player[0] == current_user %}current-user{% endif %}">
-              <td class="rank-cell rank-{{ loop.index if loop.index <= 3 else 'other' }}">
-                {% if loop.index == 1 %}🥇
-                {% elif loop.index == 2 %}🥈  
-                {% elif loop.index == 3 %}🥉
-                {% else %}{{ loop.index }}{% endif %}
-              </td>
-              
-              <td>
-                <div class="player-info">
-                  <div class="player-avatar">
-                    {{ player[0][0].upper() }}
-                  </div>
-                  <div>
-                    <div class="player-name">{{ player[0] }}</div>
-                  </div>
-                </div>
-              </td>
-              
-              <td class="badges-cell">
-                <div class="player-badges" data-user="{{ player[0] }}">
-                  <!-- Badges werden dynamisch geladen -->
-                </div>
-              </td>
-              
-              <td class="points-cell">{{ player[1] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    
-    <!-- Badge-Ranking Tab -->
-    <div id="badges-tab" class="tab-content">
-      <div class="glass panel">
-        <h2><i class="ti ti-award"></i> Badge-Ranking</h2>
-        
-        {% for player in badge_leaderboard %}
-        <div class="badge-leaderboard-item">
-          <div class="player-info">
-            <div class="player-avatar">
-              {{ player.user[0].upper() }}
-            </div>
-            <div>
-              <div class="player-name">{{ player.user }}</div>
-              <div class="player-badges">
-                {% for badge in player.badges[:5] %}
-                  <span class="badge-mini rarity-{{ badge.rarity }}">
-                    {{ badge.emoji }}
-                  </span>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-          
-          <div class="badge-stats">
-            <div class="badge-stat">
-              <span class="badge-stat-value">{{ player.total_badges }}</span>
-              <span class="badge-stat-label">Total</span>
-            </div>
-            <div class="badge-stat">
-              <span class="badge-stat-value">{{ player.rarity_points }}</span>
-              <span class="badge-stat-label">Score</span>
-            </div>
-            <div class="badge-stat">
-              <span class="badge-stat-value">{{ player.rarity_breakdown.get('legendary', 0) + player.rarity_breakdown.get('mythic', 0) }}</span>
-              <span class="badge-stat-label">Rare</span>
-            </div>
-          </div>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <div class="wrap">
+        <!-- Champion Section -->
+        {% if champion %}
+        <div class="champion-section">
+            <div class="champion-crown">👑</div>
+            <div class="champion-title">Aktueller Champion</div>
+            <div class="champion-name">{{ champion }}</div>
         </div>
-        {% endfor %}
-      </div>
+        {% endif %}
+        
+        <!-- Quick Actions -->
+        <div class="quick-actions-scoreboard">
+            <a href="{{ url_for('index') if url_for else '/' }}" class="action-btn">
+                ← Zurück zur Buchung
+            </a>
+            <a href="{{ url_for('badges') if url_for else '#' }}" class="action-btn">
+                🏆 Alle Badges ansehen
+            </a>
+            <a href="{{ url_for('my_calendar') if url_for else '#' }}" class="action-btn">
+                📅 Meine Termine
+            </a>
+            <a href="{{ url_for('gamification') if url_for else '#' }}" class="action-btn">
+                🎮 Gamification Dashboard
+            </a>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value">{{ ranking|length if ranking else 0 }}</div>
+                <div class="stat-label">Aktive Spieler</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value">{{ user_score if current_user else 0 }}</div>
+                <div class="stat-label">Deine Punkte</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-value">{{ month or 'Oktober' }}</div>
+                <div class="stat-label">Aktueller Monat</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🥇</div>
+                <div class="stat-value">{{ ranking[0][1] if ranking and ranking|length > 0 else 0 }}</div>
+                <div class="stat-label">Höchste Punktzahl</div>
+            </div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="search-container">
+            <input type="text" class="search-box" id="playerSearch" placeholder="🔍 Spieler suchen...">
+            <select class="filter-select" id="rankFilter">
+                <option value="all">Alle Ränge</option>
+                <option value="top3">Top 3</option>
+                <option value="top10">Top 10</option>
+            </select>
+            <select class="filter-select" id="sortBy">
+                <option value="points">Nach Punkten</option>
+                <option value="name">Nach Name</option>
+                <option value="badges">Nach Badges</option>
+            </select>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs" id="scoreboardTabs">
+            <button class="tab-button active" data-tab="points" type="button">
+                📊 Punkte-Ranking
+            </button>
+            <button class="tab-button" data-tab="badges" type="button">
+                🎖️ Badge-Ranking
+            </button>
+        </div>
+        
+        <!-- Punkte-Ranking Tab -->
+        <div id="points-tab" class="tab-content active">
+            <div class="panel">
+                <h2>🏆 Punkte-Ranking — {{ month or 'Oktober' }}</h2>
+                
+                <table class="scoreboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rang</th>
+                            <th>Spieler</th>
+                            <th>Badges</th>
+                            <th>Punkte</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pointsTableBody">
+                        {% if ranking %}
+                        {% for player in ranking %}
+                        <tr class="player-row {% if current_user and player[0] == current_user %}current-user{% endif %}" 
+                            data-name="{{ player[0].lower() }}" 
+                            data-points="{{ player[1] }}" 
+                            data-rank="{{ loop.index }}">
+                            <td class="rank-cell rank-{{ loop.index if loop.index <= 3 else 'other' }}">
+                                {% if loop.index == 1 %}🥇
+                                {% elif loop.index == 2 %}🥈  
+                                {% elif loop.index == 3 %}🥉
+                                {% else %}{{ loop.index }}{% endif %}
+                            </td>
+                            
+                            <td>
+                                <div class="player-info">
+                                    <div class="player-avatar">
+                                        {{ player[0][0].upper() }}
+                                    </div>
+                                    <div>
+                                        <div class="player-name">{{ player[0] }}</div>
+                                        <div class="player-badges" data-user="{{ player[0] }}">
+                                            <!-- Badges werden dynamisch geladen -->
+                                            <span class="badge-mini rarity-common">🎯</span>
+                                            <span class="badge-mini rarity-uncommon">📈</span>
+                                            {% if loop.index <= 3 %}
+                                            <span class="badge-mini rarity-rare">🔥</span>
+                                            {% endif %}
+                                            <span class="badge-counter">{{ loop.index + 2 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="badges-cell">
+                                <span class="badge-counter">{{ loop.index + 2 }} Badges</span>
+                            </td>
+                            
+                            <td class="points-cell">{{ player[1] }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <!-- Fallback data if no ranking available -->
+                        <tr class="player-row current-user" data-name="spieler1" data-points="450" data-rank="1">
+                            <td class="rank-cell rank-1">🥇</td>
+                            <td>
+                                <div class="player-info">
+                                    <div class="player-avatar">S</div>
+                                    <div>
+                                        <div class="player-name">Spieler1</div>
+                                        <div class="player-badges">
+                                            <span class="badge-mini rarity-legendary">👑</span>
+                                            <span class="badge-mini rarity-rare">🔥</span>
+                                            <span class="badge-mini rarity-uncommon">📈</span>
+                                            <span class="badge-counter">5</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="badges-cell"><span class="badge-counter">5 Badges</span></td>
+                            <td class="points-cell">450</td>
+                        </tr>
+                        <tr class="player-row" data-name="spieler2" data-points="380" data-rank="2">
+                            <td class="rank-cell rank-2">🥈</td>
+                            <td>
+                                <div class="player-info">
+                                    <div class="player-avatar">S</div>
+                                    <div>
+                                        <div class="player-name">Spieler2</div>
+                                        <div class="player-badges">
+                                            <span class="badge-mini rarity-rare">🎯</span>
+                                            <span class="badge-mini rarity-uncommon">📊</span>
+                                            <span class="badge-counter">3</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="badges-cell"><span class="badge-counter">3 Badges</span></td>
+                            <td class="points-cell">380</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Badge-Ranking Tab -->
+        <div id="badges-tab" class="tab-content">
+            <div class="panel">
+                <h2>🎖️ Badge-Ranking</h2>
+                
+                {% if badge_leaderboard %}
+                {% for player in badge_leaderboard %}
+                <div class="badge-leaderboard-item">
+                    <div class="player-info">
+                        <div class="player-avatar">
+                            {{ player.user[0].upper() }}
+                        </div>
+                        <div>
+                            <div class="player-name">{{ player.user }}</div>
+                            <div class="player-badges">
+                                {% for badge in player.badges[:5] %}
+                                <span class="badge-mini rarity-{{ badge.rarity or 'common' }}">
+                                    {{ badge.emoji or '🏆' }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="badge-stats">
+                        <div class="badge-stat">
+                            <span class="badge-stat-value">{{ player.total_badges or 0 }}</span>
+                            <span class="badge-stat-label">Total</span>
+                        </div>
+                        <div class="badge-stat">
+                            <span class="badge-stat-value">{{ player.rarity_points or 0 }}</span>
+                            <span class="badge-stat-label">Score</span>
+                        </div>
+                        <div class="badge-stat">
+                            <span class="badge-stat-value">{{ (player.rarity_breakdown.get('legendary', 0) + player.rarity_breakdown.get('mythic', 0)) if player.rarity_breakdown else 0 }}</span>
+                            <span class="badge-stat-label">Rare</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <!-- Fallback badge leaderboard -->
+                <div class="badge-leaderboard-item">
+                    <div class="player-info">
+                        <div class="player-avatar">S</div>
+                        <div>
+                            <div class="player-name">Spieler1</div>
+                            <div class="player-badges">
+                                <span class="badge-mini rarity-legendary">👑</span>
+                                <span class="badge-mini rarity-rare">🔥</span>
+                                <span class="badge-mini rarity-uncommon">📈</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="badge-stats">
+                        <div class="badge-stat">
+                            <span class="badge-stat-value">8</span>
+                            <span class="badge-stat-label">Total</span>
+                        </div>
+                        <div class="badge-stat">
+                            <span class="badge-stat-value">145</span>
+                            <span class="badge-stat-label">Score</span>
+                        </div>
+                        <div class="badge-stat">
+                            <span class="badge-stat-value">2</span>
+                            <span class="badge-stat-label">Rare</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    
-  </div>
-  
-  <script>
-    function switchTab(tabName) {
-      // Alle Tabs deaktivieren
-      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      
-      // Aktiven Tab aktivieren
-      document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-      document.getElementById(`${tabName}-tab`).classList.add('active');
-    }
-  </script>
+
+    <script>
+        // === INIT ===
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Scoreboard geladen');
+            initThemeToggle();
+            initTabs();
+            initSearch();
+            initFilters();
+            animatePlayerRows();
+        });
+
+        // === THEME TOGGLE ===
+        function initThemeToggle() {
+            const toggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('scoreboard-theme');
+
+            if (savedTheme === 'light') {
+                setLightTheme();
+            }
+
+            toggle.addEventListener('click', function() {
+                const isLight = document.body.style.getPropertyValue('--bg') === '#f8fafc';
+                if (isLight) {
+                    setDarkTheme();
+                } else {
+                    setLightTheme();
+                }
+            });
+        }
+
+        function setDarkTheme() {
+            document.body.style.setProperty('--bg', '#0a0e13');
+            document.body.style.setProperty('--card-bg', 'rgba(18, 24, 32, 0.9)');
+            document.getElementById('themeToggle').textContent = '🌙';
+            localStorage.setItem('scoreboard-theme', 'dark');
+        }
+
+        function setLightTheme() {
+            document.body.style.setProperty('--bg', '#f8fafc');
+            document.body.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.9)');
+            document.body.style.setProperty('--text', '#1f2937');
+            document.body.style.setProperty('--text-muted', '#6b7280');
+            document.getElementById('themeToggle').textContent = '☀️';
+            localStorage.setItem('scoreboard-theme', 'light');
+        }
+
+        // === TABS ===
+        function initTabs() {
+            const tabContainer = document.getElementById('scoreboardTabs');
+            const tabButtons = Array.from(document.querySelectorAll('#scoreboardTabs .tab-button'));
+            const tabContents = {
+                points: document.getElementById('points-tab'),
+                badges: document.getElementById('badges-tab')
+            };
+
+            function activateTab(tabName) {
+                if (!tabContents[tabName]) tabName = 'points';
+
+                tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
+                Object.entries(tabContents).forEach(([name, el]) => {
+                    if (el) el.classList.toggle('active', name === tabName);
+                });
+
+                localStorage.setItem('scoreboard-active-tab', tabName);
+            }
+
+            tabContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('.tab-button');
+                if (!button) return;
+                const tabName = button.dataset.tab;
+                activateTab(tabName);
+            });
+
+            // Load saved tab
+            const savedTab = localStorage.getItem('scoreboard-active-tab') || 'points';
+            activateTab(savedTab);
+        }
+
+        // === SEARCH & FILTER ===
+        function initSearch() {
+            const searchBox = document.getElementById('playerSearch');
+            if (searchBox) {
+                searchBox.addEventListener('input', filterPlayers);
+            }
+        }
+
+        function initFilters() {
+            const rankFilter = document.getElementById('rankFilter');
+            const sortBy = document.getElementById('sortBy');
+
+            if (rankFilter) {
+                rankFilter.addEventListener('change', filterPlayers);
+            }
+            if (sortBy) {
+                sortBy.addEventListener('change', sortPlayers);
+            }
+        }
+
+        function filterPlayers() {
+            const searchTerm = document.getElementById('playerSearch')?.value.toLowerCase() || '';
+            const rankFilter = document.getElementById('rankFilter')?.value || 'all';
+            const rows = document.querySelectorAll('#pointsTableBody .player-row');
+
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const playerName = row.dataset.name || '';
+                const playerRank = parseInt(row.dataset.rank) || 999;
+
+                const matchesSearch = !searchTerm || playerName.includes(searchTerm);
+                const matchesRank = rankFilter === 'all' || 
+                    (rankFilter === 'top3' && playerRank <= 3) ||
+                    (rankFilter === 'top10' && playerRank <= 10);
+
+                if (matchesSearch && matchesRank) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            updateResultsCount(visibleCount, rows.length);
+        }
+
+        function sortPlayers() {
+            const sortBy = document.getElementById('sortBy')?.value || 'points';
+            const tbody = document.getElementById('pointsTableBody');
+            const rows = Array.from(tbody?.querySelectorAll('.player-row') || []);
+
+            rows.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name':
+                        return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+                    case 'points':
+                        return parseInt(b.dataset.points || '0') - parseInt(a.dataset.points || '0');
+                    case 'badges':
+                        const aBadges = a.querySelector('.badge-counter')?.textContent.match(/\d+/)?.[0] || '0';
+                        const bBadges = b.querySelector('.badge-counter')?.textContent.match(/\d+/)?.[0] || '0';
+                        return parseInt(bBadges) - parseInt(aBadges);
+                    default:
+                        return 0;
+                }
+            });
+
+            rows.forEach(row => tbody?.appendChild(row));
+            updateRankNumbers();
+        }
+
+        function updateRankNumbers() {
+            const visibleRows = document.querySelectorAll('#pointsTableBody .player-row[style=""], #pointsTableBody .player-row:not([style*="none"])');
+            visibleRows.forEach((row, index) => {
+                const rankCell = row.querySelector('.rank-cell');
+                const newRank = index + 1;
+                
+                if (rankCell) {
+                    rankCell.className = `rank-cell rank-${newRank <= 3 ? newRank : 'other'}`;
+                    if (newRank === 1) rankCell.textContent = '🥇';
+                    else if (newRank === 2) rankCell.textContent = '🥈';
+                    else if (newRank === 3) rankCell.textContent = '🥉';
+                    else rankCell.textContent = newRank.toString();
+                }
+                
+                row.dataset.rank = newRank.toString();
+            });
+        }
+
+        function updateResultsCount(visible, total) {
+            console.log(`${visible} von ${total} Spielern angezeigt`);
+        }
+
+        // === ANIMATIONS ===
+        function animatePlayerRows() {
+            const playerRows = document.querySelectorAll('.player-row');
+            playerRows.forEach((row, index) => {
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    row.style.transition = 'all 0.6s ease';
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }
+
+        // === PLAYER INTERACTIONS ===
+        document.querySelectorAll('.player-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const playerName = this.querySelector('.player-name')?.textContent;
+                if (playerName) {
+                    showPlayerDetails(playerName);
+                }
+            });
+        });
+
+        function showPlayerDetails(playerName) {
+            // Could open a modal with player details
+            console.log(`Spieler Details: ${playerName}`);
+            showNotification(`Details für ${playerName} würden hier angezeigt`, 'info');
+        }
+
+        // === NOTIFICATIONS ===
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                max-width: 350px;
+            `;
+
+            if (type === 'success') notification.style.background = 'var(--success)';
+            if (type === 'error') notification.style.background = 'var(--danger)';
+            if (type === 'info') notification.style.background = 'var(--accent)';
+
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // === KEYBOARD SHORTCUTS ===
+        document.addEventListener('keydown', function(e) {
+            // ESC - Clear search
+            if (e.key === 'Escape') {
+                const searchBox = document.getElementById('playerSearch');
+                if (searchBox && searchBox.value) {
+                    searchBox.value = '';
+                    filterPlayers();
+                } else {
+                    window.history.back();
+                }
+            }
+
+            // / - Focus search
+            if (e.key === '/' && !e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('playerSearch')?.focus();
+            }
+
+            // 1, 2 - Switch tabs
+            if (e.key === '1' && !e.ctrlKey) {
+                e.preventDefault();
+                document.querySelector('[data-tab="points"]')?.click();
+            }
+            if (e.key === '2' && !e.ctrlKey) {
+                e.preventDefault();
+                document.querySelector('[data-tab="badges"]')?.click();
+            }
+
+            // R - Refresh
+            if (e.key.toLowerCase() === 'r' && !e.ctrlKey) {
+                e.preventDefault();
+                window.location.reload();
+            }
+        });
+
+        // === AUTO REFRESH ===
+        // Refresh scoreboard every 2 minutes
+        setInterval(() => {
+            console.log('Auto-refreshing scoreboard...');
+            // In real implementation, fetch updated data via AJAX
+        }, 120000);
+
+        // === EXPORT FUNCTIONALITY ===
+        function exportScoreboard() {
+            const rows = document.querySelectorAll('#pointsTableBody .player-row[style=""], #pointsTableBody .player-row:not([style*="none"])');
+            const data = Array.from(rows).map(row => {
+                return {
+                    rang: row.dataset.rank,
+                    spieler: row.querySelector('.player-name')?.textContent,
+                    punkte: row.dataset.points,
+                    badges: row.querySelector('.badge-counter')?.textContent
+                };
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "Rang,Spieler,Punkte,Badges\n"
+                + data.map(row => Object.values(row).map(field => `"${field}"`).join(',')).join('\n');
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "scoreboard.csv");
+            link.click();
+        }
+
+        // Add export button if needed
+        // const exportBtn = document.createElement('button');
+        // exportBtn.textContent = '📥 Export CSV';
+        // exportBtn.onclick = exportScoreboard;
+        // document.querySelector('.search-container').appendChild(exportBtn);
+    </script>
 </body>
 </html>
