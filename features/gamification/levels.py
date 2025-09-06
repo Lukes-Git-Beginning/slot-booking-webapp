@@ -30,7 +30,7 @@ class LevelSystem:
     def calculate_user_level(self, user):
         """Berechne Level, XP und Fortschritt für einen User"""
         try:
-            from data_persistence import data_persistence
+            from core.persistence.data_manager import data_persistence
             scores = data_persistence.load_scores()
         except:
             try:
@@ -41,7 +41,7 @@ class LevelSystem:
         
         # Lade Badge-System
         try:
-            from achievement_system import achievement_system
+            from features.gamification.achievements import achievement_system
             user_badges = achievement_system.get_user_badges(user)
         except:
             user_badges = {"badges": [], "total_badges": 0}
@@ -188,8 +188,8 @@ class LevelSystem:
         
         # 3. Streak-XP (20% der Gesamt-XP)
         try:
-            from achievement_system import achievement_system
-            from data_persistence import data_persistence
+            from features.gamification.achievements import achievement_system
+            from core.persistence.data_manager import data_persistence
             daily_stats = data_persistence.load_daily_user_stats()
             streak_info = achievement_system.calculate_advanced_streak(daily_stats.get(user, {}))
             streak_xp = streak_info["best_streak"] * 25  # 25 XP pro Streak-Tag

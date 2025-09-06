@@ -11,9 +11,9 @@ import os
 import json
 from datetime import datetime
 
-from achievement_system import achievement_system
-from level_system import level_system
-from data_persistence import data_persistence
+from features.gamification.achievements import achievement_system
+from features.gamification.levels import level_system
+from core.persistence.data_manager import data_persistence
 
 def get_all_users_from_scores():
     scores = data_persistence.load_scores()

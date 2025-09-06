@@ -13,7 +13,7 @@ import pytz
 from datetime import datetime, timedelta, time
 from collections import defaultdict
 from googleapiclient.discovery import build
-from creds_loader import load_google_credentials
+from core.auth.credentials import load_google_credentials
 
 # ----------------- Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
@@ -21,7 +21,7 @@ TZ = pytz.timezone("Europe/Berlin")
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
 
 # ----------------- ZENTRALE COLOR-DEFINITION -----------------
-from color_mapping import get_outcome_from_color, get_potential_type
+from core.mapping.colors import get_outcome_from_color, get_potential_type
 
 # Potential-Typ Mapping (für Analyse-Zwecke) - jetzt über color_mapping.py
 POTENTIAL_TYPES = {

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import pytz
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from creds_loader import load_google_credentials
+from core.auth.credentials import load_google_credentials
 
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
@@ -20,7 +20,7 @@ CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
 TZ = pytz.timezone("Europe/Berlin")
 
 # Google Calendar Farben die NICHT blockieren sollen
-from color_mapping import NON_BLOCKING_COLORS
+from core.mapping.colors import NON_BLOCKING_COLORS
 
 weekday_map = {
     'Monday': 'Mo',

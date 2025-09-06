@@ -1,10 +1,15 @@
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import pytz
 import time
-from tracking_system import BookingTracker
-from data_persistence import data_persistence
-from level_system import level_system
+
+# ===== NEUE IMPORT-PFADE =====
+from features.tracking.system import BookingTracker
+from core.persistence.data_manager import data_persistence
+from features.gamification.levels import level_system
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
@@ -15,8 +20,11 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from creds_loader import load_google_credentials
-from cache_manager import cache_manager
+
+# ===== NEUE IMPORT-PFADE =====
+from core.auth.credentials import load_google_credentials
+from core.persistence.cache_manager import cache_manager
+
 import matplotlib
 matplotlib.use('Agg')  # Für Server ohne Display
 import matplotlib.pyplot as plt
@@ -27,7 +35,9 @@ import base64
 from matplotlib.dates import DateFormatter
 from collections import defaultdict
 import numpy as np
-from weekly_points import (
+
+# ===== NEUE IMPORT-PFADE =====
+from features.gamification.weekly_points import (
     get_week_key,
     list_recent_weeks,
     is_in_commit_window,
@@ -42,6 +52,7 @@ from weekly_points import (
     set_on_vacation,
     get_week_audit,
 )
+
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -207,7 +218,7 @@ def get_app_runtime_days():
 
 def get_color_mapping_status():
     """Gebe Color-Mapping Status für Admin Dashboard zurück"""
-    from color_mapping import CALENDAR_COLORS, NON_BLOCKING_COLORS, BLOCKING_COLORS
+    from core.mapping.colors import CALENDAR_COLORS, NON_BLOCKING_COLORS, BLOCKING_COLORS
     
     blocking_colors = []
     non_blocking_colors = []
@@ -449,8 +460,8 @@ def get_slot_suggestions(availability, n=5):
     return [s for s in slot_list if s["punkte"] > 0][:n]
 
 # ----------------- Punkte & Champion -----------------
-from achievement_system import achievement_system, ACHIEVEMENT_DEFINITIONS
-from color_mapping import blocks_availability
+from features.gamification.achievements import achievement_system, ACHIEVEMENT_DEFINITIONS
+from core.mapping.colors import blocks_availability
 
 def add_points_to_user(user, points):
     """
@@ -1293,7 +1304,7 @@ def book():
         # Spezielle Badge-Zähler (Abend/Morgen) persistieren
         try:
             if user and user != "unknown":
-                from data_persistence import data_persistence
+                from core.persistence.data_manager import data_persistence
                 daily_stats = data_persistence.load_daily_user_stats()
                 today_key = datetime.now(TZ).strftime("%Y-%m-%d")
                 if user not in daily_stats:
@@ -1768,7 +1779,7 @@ def admin_export_pdf():
 def admin_fix_points():
     """Admin Route um Punkte für bereits getrackte Buchungen zu vergeben"""
     try:
-        from tracking_system import BookingTracker
+        from features.tracking.system import BookingTracker
         tracker = BookingTracker()
         
         # Lade alle Buchungen
@@ -1910,7 +1921,7 @@ def admin_debug_points():
         return redirect(url_for("login"))
     
     try:
-        from tracking_system import BookingTracker
+        from features.tracking.system import BookingTracker
         tracker = BookingTracker()
         
         # Lade alle Buchungen
@@ -2072,7 +2083,7 @@ def gamification_dashboard():
         user_badges = achievement_system.get_user_badges(user)
         
         # Streak-Informationen
-        from data_persistence import data_persistence
+        from core.persistence.data_manager import data_persistence
         daily_stats = data_persistence.load_daily_user_stats()
         streak_info = achievement_system.calculate_advanced_streak(daily_stats.get(user, {}))
         
@@ -2542,7 +2553,7 @@ def admin_users():
             
             # Prüfe Buchungen und Punkte
             try:
-                from tracking_system import BookingTracker
+                from features.tracking.system import BookingTracker
                 tracker = BookingTracker()
                 
                 # Zähle Buchungen

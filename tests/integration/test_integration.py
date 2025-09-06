@@ -14,7 +14,7 @@ def test_color_mapping():
     print("🎨 Testing Color Mapping...")
     
     try:
-        from color_mapping import get_outcome_from_color, get_potential_type, blocks_availability
+        from core.mapping.colors import get_outcome_from_color, get_potential_type, blocks_availability
         
         # Test verschiedene Farben
         test_colors = ["2", "7", "11", "6", "9"]
@@ -38,7 +38,7 @@ def test_achievement_system():
     print("🏆 Testing Achievement System...")
     
     try:
-        from achievement_system import achievement_system
+        from features.gamification.achievements import achievement_system
         
         # Test Badge-Laden
         badges = achievement_system.load_badges()
@@ -60,7 +60,7 @@ def test_tracking_system():
     print("📊 Testing Tracking System...")
     
     try:
-        from tracking_system import BookingTracker
+        from features.tracking.system import BookingTracker
         
         tracker = BookingTracker()
         

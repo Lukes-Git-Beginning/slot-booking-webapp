@@ -11,7 +11,7 @@ import os
 import json
 import shutil
 from pathlib import Path
-from data_persistence import DataPersistence
+from core.persistence.data_manager import DataPersistence
 
 def _ensure_dir(path: Path):
     path.mkdir(parents=True, exist_ok=True)

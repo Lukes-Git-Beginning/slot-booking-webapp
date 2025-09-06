@@ -304,7 +304,7 @@ class AchievementSystem:
         Prüft automatisch auf neue Achievements
         """
         try:
-            from data_persistence import data_persistence
+            from core.persistence.data_manager import data_persistence
             
             # Lade aktuelle Daten
             scores = data_persistence.load_scores()
@@ -554,7 +554,7 @@ class AchievementSystem:
     def auto_check_mvp_badges(self):
         """Automatische MVP-Badge-Vergabe - sollte täglich laufen"""
         try:
-            from data_persistence import data_persistence
+            from core.persistence.data_manager import data_persistence
             scores = data_persistence.load_scores()
             mvp_data = self.load_mvp_badges()
             
@@ -881,7 +881,7 @@ class AchievementSystem:
         Gibt eine Zusammenfassung zurück: {users_processed, badges_awarded}.
         """
         try:
-            from data_persistence import data_persistence
+            from core.persistence.data_manager import data_persistence
 
             scores = data_persistence.load_scores()
             daily_stats_all = data_persistence.load_daily_user_stats()
@@ -1006,7 +1006,7 @@ class AchievementSystem:
     def get_badge_progress(self, user):
         """Bekomme Fortschritt für alle verfügbaren Badges"""
         try:
-            from data_persistence import data_persistence
+            from core.persistence.data_manager import data_persistence
             scores = data_persistence.load_scores()
             daily_stats = data_persistence.load_daily_user_stats()
         except:
