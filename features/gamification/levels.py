@@ -223,6 +223,10 @@ class LevelSystem:
             "epic": "#f59e0b", "legendary": "#eab308", "mythic": "#ec4899"
         }
         return colors.get(rarity, "#10b981")
+
+    def get_level_progress_color(self, progress):
+    """Kompatibilitäts-Wrapper für alte Methodenaufrufe"""
+    return self._get_progress_color(progress)
     
     def get_level_statistics(self, user):
         """Level-Statistiken für User"""
