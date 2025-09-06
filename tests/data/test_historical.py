@@ -1,80 +1,68 @@
 import json
 import os
+from pathlib import Path
 
 def test_historical_data():
+    """Test historische Daten ohne pandas dependency"""
     try:
-        print("🔄 Teste historische Daten...")
+        print("Testing Historical Data...")
         
         # Prüfe ob die Dateien existieren
-        historical_stats_file = "data/historical/historical_stats.json"
-        historical_bookings_file = "data/historical/historical_bookings.jsonl"
-        historical_outcomes_file = "data/historical/historical_outcomes.jsonl"
+        historical_dir = Path("data/historical")
+        historical_stats_file = historical_dir / "historical_stats.json"
+        historical_bookings_file = historical_dir / "historical_bookings.jsonl"
+        historical_outcomes_file = historical_dir / "historical_outcomes.jsonl"
         
         files_exist = {
-            "stats": os.path.exists(historical_stats_file),
-            "bookings": os.path.exists(historical_bookings_file),
-            "outcomes": os.path.exists(historical_outcomes_file)
+            "stats": historical_stats_file.exists(),
+            "bookings": historical_bookings_file.exists(),
+            "outcomes": historical_outcomes_file.exists()
         }
         
-        print("📁 Datei-Status:")
+        print("File Status:")
         for file_type, exists in files_exist.items():
             status = "✅" if exists else "❌"
             print(f"   {status} {file_type}")
         
-        # Lade und zeige Statistiken
+        # Lade und zeige Statistiken (falls vorhanden)
         if files_exist["stats"]:
             with open(historical_stats_file, "r", encoding="utf-8") as f:
                 stats = json.load(f)
             
-            print("\n📊 Historische Statistiken:")
-            print(f"   - Datumsbereich: {stats.get('date_range', {}).get('start', 'N/A')} bis {stats.get('date_range', {}).get('end', 'N/A')}")
-            print(f"   - Tage: {stats.get('total_days', 'N/A')}")
-            print(f"   - Termine gelegt: {stats.get('total_slots', 'N/A')}")
-            print(f"   - Erschienen: {stats.get('total_appeared', 'N/A')}")
-            print(f"   - Erfolgreich: {stats.get('total_success', 'N/A')}")
-            print(f"   - Durchschn. Auftauchquote: {stats.get('averages', {}).get('appearance_rate', 0) * 100:.1f}%")
-            print(f"   - Durchschn. Erfolgsquote: {stats.get('averages', {}).get('success_rate', 0) * 100:.1f}%")
+            print("\nHistorical Statistics:")
+            date_range = stats.get('date_range', {})
+            print(f"   - Date Range: {date_range.get('start', 'N/A')} to {date_range.get('end', 'N/A')}")
+            print(f"   - Total Days: {stats.get('total_days', 'N/A')}")
+            print(f"   - Total Slots: {stats.get('total_slots', 'N/A')}")
+            print(f"   - Total Appeared: {stats.get('total_appeared', 'N/A')}")
+            
+            appearance_rate = stats.get('appearance_rate', 0)
+            print(f"   - Appearance Rate: {appearance_rate * 100:.1f}%")
+        else:
+            print("\nNo historical stats found - this is OK for new installations")
         
-        # Zähle Buchungen und Outcomes
+        # Zähle Buchungen und Outcomes (falls vorhanden)
         if files_exist["bookings"]:
-            with open(historical_bookings_file, "r", encoding="utf-8") as f:
-                bookings = sum(1 for line in f if line.strip())
-            print(f"   - Buchungen: {bookings}")
+            try:
+                with open(historical_bookings_file, "r", encoding="utf-8") as f:
+                    bookings = sum(1 for line in f if line.strip())
+                print(f"   - Bookings: {bookings}")
+            except Exception as e:
+                print(f"   - Bookings: Error reading file ({e})")
         
         if files_exist["outcomes"]:
-            with open(historical_outcomes_file, "r", encoding="utf-8") as f:
-                outcomes = sum(1 for line in f if line.strip())
-            print(f"   - Outcomes: {outcomes}")
+            try:
+                with open(historical_outcomes_file, "r", encoding="utf-8") as f:
+                    outcomes = sum(1 for line in f if line.strip())
+                print(f"   - Outcomes: {outcomes}")
+            except Exception as e:
+                print(f"   - Outcomes: Error reading file ({e})")
         
-        # Zeige beste Zeiten
-        if files_exist["stats"] and "by_time" in stats:
-            print("\n⏰ Beste Zeiten (Erfolgsquote):")
-            time_stats = stats["by_time"]
-            sorted_times = sorted(time_stats.items(), 
-                                key=lambda x: x[1]["success_rate"], 
-                                reverse=True)
-            
-            for i, (time, data) in enumerate(sorted_times[:3]):
-                print(f"   {i+1}. {time}: {data['success_rate'] * 100:.1f}%")
-        
-        # Zeige Wochentag-Analyse
-        if files_exist["stats"] and "by_weekday" in stats:
-            print("\n📅 Wochentag-Analyse (Erfolgsquote):")
-            weekday_stats = stats["by_weekday"]
-            sorted_weekdays = sorted(weekday_stats.items(), 
-                                   key=lambda x: x[1]["success_rate"], 
-                                   reverse=True)
-            
-            for weekday, data in sorted_weekdays:
-                print(f"   - {weekday}: {data['success_rate'] * 100:.1f}%")
-        
-        print("\n✅ Historische Daten erfolgreich getestet!")
+        print("\nHistorical data test completed!")
         return True
         
     except Exception as e:
-        print(f"❌ Fehler beim Testen: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Error testing historical data: {e}")
         return False
 
 if __name__ == "__main__":

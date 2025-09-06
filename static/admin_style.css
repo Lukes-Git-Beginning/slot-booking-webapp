@@ -1,9 +1,9 @@
 /* ===========================
-   ZFA Slot Manager – Admin Style (Glasoptik)
-   Mobile-optimierte Version mit Fixes
+   ZFA Slot Manager – Unified Admin Style
+   Konsolidiert: admin_style.css + fixes.css
    =========================== */
 
-/* ---------- Farb- & UI-Variablen ---------- */
+/* ---------- CSS Variables ---------- */
 :root {
   --bg: #0b0f14;
   --bg-grad-1: #0b0f14;
@@ -13,8 +13,7 @@
   --accent: #5ab1ff;
 
   --box-bg: rgba(18, 24, 32, 0.65);
-  /* Sidebar-Hintergrund (separat, aber konsistent zur Box-Optik) */
-  --sidebar-bg: rgba(18, 24, 32, 0.80);
+  --sidebar-bg: rgba(18, 24, 32, 0.95);
   --box-border: rgba(255,255,255,.12);
   --shadow: 0 10px 30px rgba(0,0,0,.35);
 
@@ -41,7 +40,7 @@
   --input-bd: rgba(255,255,255,.18);
 }
 
-/* Lightmode-Overrides */
+/* Lightmode Overrides */
 body.lightmode {
   --bg: #f3f4f6;
   --bg-grad-1: #f3f4f6;
@@ -49,53 +48,152 @@ body.lightmode {
   --text-color: #0b1320;
   --muted: #475569;
   --accent: #2563eb;
-
   --box-bg: rgba(255,255,255,.80);
-  --sidebar-bg: rgba(255,255,255,.92);
+  --sidebar-bg: rgba(255,255,255,.95);
   --box-border: rgba(0,0,0,.10);
   --shadow: 0 8px 24px rgba(0,0,0,.12);
-
-  --success-bg: rgba(16,185,129,.12);
-  --success-bd: rgba(16,185,129,.25);
-  --danger-bg: rgba(239,68,68,.12);
-  --danger-bd: rgba(239,68,68,.25);
-  --warning-bg: rgba(234,179,8,.12);
-  --warning-bd: rgba(234,179,8,.25);
-
   --input-bg: rgba(255,255,255,.90);
   --input-bd: rgba(0,0,0,.12);
 }
 
-/* ---------- Base ---------- */
+/* ---------- Base Styles ---------- */
 * { 
   box-sizing: border-box; 
-  -webkit-tap-highlight-color: transparent; /* Entfernt blaue Highlights auf Mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body { 
   height: 100%; 
-  overflow-x: hidden; /* Verhindert horizontales Scrollen */
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   color: var(--text-color);
-  font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background:
-    radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent),
-    linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
+  font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent),
+              linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Fokus sichtbar & zugänglich */
 :focus-visible {
   outline: none;
   box-shadow: var(--focus);
   border-radius: 8px;
 }
 
-/* ---------- Buttons, Inputs ---------- */
+/* ---------- Layout: Sidebar + Main ---------- */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 290px;
+  height: 100vh;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--box-border);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: var(--shadow);
+  transition: transform .3s ease;
+  z-index: 1000;
+  transform: translateX(-100%);
+}
+
+.sidebar.active,
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
+.main {
+  padding: 74px 18px 18px;
+  margin-left: 0;
+  transition: margin-left .3s ease;
+  min-height: 100vh;
+}
+
+/* Desktop: Sidebar always visible */
+@media (min-width: 1100px) {
+  .sidebar {
+    transform: translateX(0);
+    position: relative;
+    z-index: auto;
+  }
+  
+  .main {
+    margin-left: 290px;
+  }
+  
+  #sidebar-tab {
+    display: none;
+  }
+}
+
+/* Mobile: Overlay when sidebar open */
+@media (max-width: 1099px) {
+  .sidebar {
+    width: 85%;
+    max-width: 320px;
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  body.sidebar-open .sidebar-overlay {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    padding: 60px 12px 12px;
+  }
+  
+  .panel {
+    padding: 12px;
+  }
+}
+
+/* ---------- Sidebar Toggle Button ---------- */
+#sidebar-tab {
+  position: fixed;
+  top: 18px;
+  left: 16px;
+  z-index: 1001;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+#sidebar-tab:hover {
+  transform: scale(1.05);
+  background: var(--accent);
+}
+
+/* ---------- Buttons & Forms ---------- */
 button, .btn {
   cursor: pointer;
   border: 1px solid var(--box-border);
@@ -123,11 +221,38 @@ button:active:not(:disabled),
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
+  pointer-events: none;
 }
 
-/* Action Buttons für Admin Dashboard */
+/* Button Loading State */
+button.loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+button.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: buttonSpin 1s linear infinite;
+}
+
+@keyframes buttonSpin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Action Buttons */
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -152,11 +277,6 @@ button:disabled {
   background: linear-gradient(135deg, var(--accent), #3d8bfd);
   color: white;
   border-color: var(--accent);
-}
-
-.action-btn.secondary {
-  background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
-  color: var(--text-color);
 }
 
 .action-btn.success {
@@ -185,6 +305,7 @@ button:disabled {
   margin: 30px 0;
 }
 
+/* Form Elements */
 input, select, textarea {
   width: 100%;
   color: var(--text-color);
@@ -193,9 +314,10 @@ input, select, textarea {
   border-radius: 10px;
   padding: 10px 12px;
   outline: none;
-  font-size: 16px; /* Verhindert Zoom auf iOS */
+  font-size: 16px;
   -webkit-appearance: none;
   appearance: none;
+  box-sizing: border-box;
 }
 
 textarea { 
@@ -218,75 +340,18 @@ label {
   font-size: 14px;
 }
 
-/* ---------- Layout: Sidebar + Main ---------- */
-.sidebar {
-  position: fixed;
-  top: 0; 
-  left: 0;
-  width: 290px;
-  height: 100vh;
-  padding: 16px;
-  overflow-y: auto;
-  background: var(--box-bg);
-  border-right: 1px solid var(--box-border);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  box-shadow: var(--shadow);
-  transition: transform .25s ease;
-  z-index: 50;
-  transform: translateX(-100%);
+.form-group {
+  margin-bottom: 16px;
 }
 
-.sidebar:not(.collapsed) { 
-  transform: translateX(0); 
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.main {
-  padding: 74px 18px 18px;
-  margin-left: 0;
-  transition: margin-left .25s ease;
-  min-height: 100vh;
-}
-
-.main.with-sidebar { 
-  margin-left: 290px; 
-}
-
-/* Mobile Responsive */
-@media (max-width: 1100px) {
-  .sidebar {
-    width: 85%;
-    max-width: 320px;
-  }
-  
-  .main.with-sidebar { 
-    margin-left: 0; 
-  }
-  
-  /* Overlay wenn Sidebar offen ist */
-  .sidebar:not(.collapsed)::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 100%;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: -1;
-  }
-}
-
-@media (max-width: 600px) {
-  .main {
-    padding: 60px 12px 12px;
-  }
-  
-  .panel {
-    padding: 12px;
-  }
-}
-
-/* ---------- Glasblöcke ---------- */
+/* ---------- Glass Effects ---------- */
 .glass {
   background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
   border: 1px solid var(--box-border);
@@ -318,7 +383,7 @@ label {
   flex-wrap: wrap;
 }
 
-/* ---------- Nav / KW-Leiste ---------- */
+/* ---------- Navigation ---------- */
 .nav {
   display: flex; 
   flex-wrap: wrap; 
@@ -347,7 +412,6 @@ label {
   border-color: rgba(255,255,255,.2);
 }
 
-/* Sidebar KW-Links */
 .kw-link {
   display: block; 
   padding: 10px 12px; 
@@ -366,7 +430,7 @@ label {
   background: rgba(255,255,255,.05);
 }
 
-/* ---------- Slot Sektionen ---------- */
+/* ---------- Slots & Time Sections ---------- */
 .time-section {
   display: flex;
   gap: 14px;
@@ -378,20 +442,14 @@ label {
   transition: all 0.2s ease;
 }
 
-.time-section .info { 
-  flex: 1; 
-}
-
-.time-section .slot { 
-  margin-top: 12px; 
-}
+.time-section .info { flex: 1; }
+.time-section .slot { margin-top: 12px; }
 
 .time-section.green  { box-shadow: inset 0 0 0 2px rgba(16,185,129,.20); }
 .time-section.yellow { box-shadow: inset 0 0 0 2px rgba(234,179,8,.20); }
 .time-section.orange { box-shadow: inset 0 0 0 2px rgba(249,115,22,.20); }
 .time-section.red    { box-shadow: inset 0 0 0 2px rgba(239,68,68,.20); }
 
-/* Slot-Form Responsive */
 .slot form {
   display: grid;
   grid-template-columns: 1.2fr 1.2fr 2fr 1fr auto;
@@ -401,20 +459,17 @@ label {
 
 @media (max-width: 900px) {
   .slot form { 
-    grid-template-columns: 1fr 1fr; 
+    display: block !important;
   }
   
-  .slot form textarea { 
-    grid-column: 1 / -1; 
+  .slot form > * {
+    width: 100% !important;
+    margin-bottom: 12px;
   }
   
-  .slot form select { 
-    grid-column: 1 / -1; 
-  }
-  
-  .slot form button { 
-    grid-column: 1 / -1; 
-    width: 100%;
+  .slot form button {
+    width: 100% !important;
+    padding: 12px !important;
   }
 }
 
@@ -429,14 +484,8 @@ label {
 }
 
 @keyframes slideIn {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .flash-success { background: var(--success-bg); border-color: var(--success-bd); }
@@ -444,7 +493,7 @@ label {
 .flash-warning { background: var(--warning-bg); border-color: var(--warning-bd); }
 .flash-info    { background: var(--info-bg);    border-color: var(--info-bd); }
 
-/* ---------- Tabellen ---------- */
+/* ---------- Tables ---------- */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -469,7 +518,7 @@ thead th {
   z-index: 10;
 }
 
-/* Slot-Vorschläge in Sidebar */
+/* ---------- Sidebar Slot Suggestions ---------- */
 .slot-suggest-box { 
   margin-top: 20px; 
   padding-top: 16px;
@@ -518,42 +567,7 @@ thead th {
   transform: scale(1.1);
 }
 
-/* ---------- Burger Menu ---------- */
-#sidebar-tab {
-  position: fixed;
-  top: 18px;
-  left: 16px;
-  z-index: 60;
-  width: 40px; 
-  height: 40px; 
-  border-radius: 50%;
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  border: 1px solid var(--box-border); 
-  background: var(--box-bg);
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
-  transition: left 0.25s ease, transform 0.2s ease;
-  font-size: 20px;
-}
-
-#sidebar-tab:hover {
-  transform: scale(1.05);
-}
-
-body.sidebar-open #sidebar-tab {
-  left: 306px;
-}
-
-@media (max-width: 1100px) {
-  body.sidebar-open #sidebar-tab {
-    /* Begrenze die seitliche Position des Tabs auf max. 306px */
-    left: min(calc(85vw - 30px), 306px);
-  }
-}
-
-/* ---------- Kalender-Panel ---------- */
+/* ---------- Calendar ---------- */
 #calendar {
   border-radius: var(--radius-lg);
   border: 1px solid var(--box-border);
@@ -590,7 +604,7 @@ body.sidebar-open #sidebar-tab {
   border-color: rgba(255,255,255,.2);
 }
 
-/* ---------- Links ---------- */
+/* ---------- Utility Classes ---------- */
 a { 
   color: var(--accent); 
   text-decoration: none;
@@ -601,12 +615,10 @@ a:hover {
   text-decoration: underline; 
 }
 
-/* ---------- Utility Classes ---------- */
 .text-sm { font-size: .9em; }
 .text-muted { color: var(--muted); }
 .hidden { display: none !important; }
 
-/* ---------- Loading Indicator ---------- */
 .loading-indicator {
   animation: pulse 1.5s ease infinite;
 }
@@ -616,7 +628,6 @@ a:hover {
   50% { opacity: 0.7; }
 }
 
-/* ---------- Chips ---------- */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -629,7 +640,7 @@ a:hover {
   white-space: nowrap;
 }
 
-/* ---------- Accessibility ---------- */
+/* ---------- Accessibility & Performance ---------- */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -638,7 +649,6 @@ a:hover {
   }
 }
 
-/* ---------- Print Styles ---------- */
 @media print {
   .sidebar,
   #mode-toggle,

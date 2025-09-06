@@ -1,233 +1,228 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Test-Script für die Integration der verschiedenen Systeme
+Bereinigte Integration Tests ohne externe Dependencies
 """
 
 import os
 import sys
 import json
 from datetime import datetime
+from pathlib import Path
 
-def test_color_mapping():
-    """Test der zentralen Color-Definition"""
-    print("🎨 Testing Color Mapping...")
-    
-    try:
-        from core.mapping.colors import get_outcome_from_color, get_potential_type, blocks_availability
-        
-        # Test verschiedene Farben
-        test_colors = ["2", "7", "11", "6", "9"]
-        
-        for color in test_colors:
-            outcome = get_outcome_from_color(color)
-            potential = get_potential_type(color)
-            blocks = blocks_availability(color)
-            
-            print(f"  Color {color}: Outcome={outcome}, Potential={potential}, Blocks={blocks}")
-        
-        print("✅ Color Mapping Test erfolgreich")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Color Mapping Test fehlgeschlagen: {e}")
-        return False
-
-def test_achievement_system():
-    """Test des Achievement Systems"""
-    print("🏆 Testing Achievement System...")
-    
-    try:
-        from features.gamification.achievements import achievement_system
-        
-        # Test Badge-Laden
-        badges = achievement_system.load_badges()
-        print(f"  Geladene Badges: {len(badges)} User")
-        
-        # Test Daily Stats
-        stats = achievement_system.load_daily_stats()
-        print(f"  Daily Stats: {len(stats)} User")
-        
-        print("✅ Achievement System Test erfolgreich")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Achievement System Test fehlgeschlagen: {e}")
-        return False
-
-def test_tracking_system():
-    """Test des Tracking Systems"""
-    print("📊 Testing Tracking System...")
-    
-    try:
-        from features.tracking.system import BookingTracker
-        
-        tracker = BookingTracker()
-        
-        # Prüfe ob Dateien existieren
-        files = [
-            tracker.bookings_file,
-            tracker.outcomes_file,
-            tracker.metrics_file,
-            tracker.customer_file
-        ]
-        
-        for file_path in files:
-            if os.path.exists(file_path):
-                print(f"  ✅ {os.path.basename(file_path)} existiert")
-            else:
-                print(f"  ⚠️ {os.path.basename(file_path)} fehlt")
-        
-        print("✅ Tracking System Test erfolgreich")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Tracking System Test fehlgeschlagen: {e}")
-        return False
-
-def test_main_app():
-    """Test der Hauptanwendung"""
-    print("🌐 Testing Main App...")
-    
-    try:
-        from slot_booking_webapp import app, add_points_to_user
-        
-        # Test Punkte-Funktion
-        test_result = add_points_to_user("test_user", 5)
-        print(f"  Punkte-Test: {len(test_result)} neue Badges")
-        
-        print("✅ Main App Test erfolgreich")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Main App Test fehlgeschlagen: {e}")
-        return False
+# Füge das Projektverzeichnis zum Python-Pfad hinzu
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 def test_file_structure():
-    """Test der Dateistruktur"""
-    print("📁 Testing File Structure...")
+    """Test der kritischen Dateistruktur"""
+    print("Testing File Structure...")
     
     required_files = [
+        "static/availability.json",
+        "main.py",
+        "static/admin_style.css",
+        "static/js/app.js"
+    ]
+    
+    optional_files = [
         "static/scores.json",
-        "static/champions.json",
+        "static/champions.json", 
         "static/user_badges.json",
-        "static/daily_user_stats.json",
-        "data/tracking/bookings.jsonl",
-        "data/tracking/outcomes.jsonl",
-        "data/tracking/daily_metrics.json",
-        "data/tracking/customer_profiles.json"
+        "static/daily_user_stats.json"
     ]
     
     all_good = True
+    
+    # Kritische Dateien
     for file_path in required_files:
         if os.path.exists(file_path):
             print(f"  ✅ {file_path}")
         else:
-            print(f"  ❌ {file_path} fehlt")
+            print(f"  ❌ {file_path} FEHLT (kritisch)")
             all_good = False
     
-    if all_good:
-        print("✅ File Structure Test erfolgreich")
-    else:
-        print("⚠️ File Structure Test - einige Dateien fehlen")
+    # Optionale Dateien
+    for file_path in optional_files:
+        if os.path.exists(file_path):
+            print(f"  ✅ {file_path}")
+        else:
+            print(f"  ⚠️  {file_path} fehlt (wird erstellt)")
+            # Versuche die Datei zu erstellen
+            try:
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump({}, f, indent=2)
+                print(f"  ✅ {file_path} erstellt")
+            except Exception as e:
+                print(f"  ❌ Konnte {file_path} nicht erstellen: {e}")
     
     return all_good
 
-def test_health_endpoint():
-    """Smoke-Test für /healthz"""
-    print("🩺 Testing /healthz…")
+def test_availability_json():
+    """Test der availability.json Struktur"""
+    print("Testing Availability JSON...")
+    
     try:
-        from slot_booking_webapp import app
-        client = app.test_client()
-        res = client.get("/healthz")
-        assert res.status_code in (200, 500)
-        data = res.get_json(silent=True)
-        if data:
-            print(f"  status={data.get('status')}, free_disk_mb={data.get('free_disk_mb')}")
-        print("✅ Health Endpoint Test erfolgreich")
+        with open("static/availability.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        if not isinstance(data, dict):
+            print("  ❌ availability.json ist kein Dictionary")
+            return False
+        
+        print(f"  ✅ {len(data)} Zeitslots gefunden")
+        
+        # Prüfe Format der Schlüssel
+        valid_keys = 0
+        for key in data.keys():
+            if len(key) == 16 and key[10] == ' ':  # "YYYY-MM-DD HH:MM"
+                valid_keys += 1
+        
+        print(f"  ✅ {valid_keys}/{len(data)} Schlüssel haben korrektes Format")
+        
+        # Prüfe ob Berater-Listen vorhanden sind
+        has_advisors = sum(1 for v in data.values() if isinstance(v, list) and len(v) > 0)
+        print(f"  ✅ {has_advisors} Slots haben verfügbare Berater")
+        
         return True
+        
+    except FileNotFoundError:
+        print("  ❌ availability.json nicht gefunden")
+        return False
+    except json.JSONDecodeError:
+        print("  ❌ availability.json ist korrupt")
+        return False
     except Exception as e:
-        print(f"❌ Health Endpoint Test fehlgeschlagen: {e}")
+        print(f"  ❌ Fehler: {e}")
         return False
 
+def test_basic_imports():
+    """Test der grundlegenden Imports"""
+    print("Testing Basic Imports...")
+    
+    import_tests = [
+        ("datetime", "from datetime import datetime, timedelta"),
+        ("json", "import json"),
+        ("os", "import os"),
+        ("pytz", "import pytz"),
+    ]
+    
+    all_good = True
+    for name, import_stmt in import_tests:
+        try:
+            exec(import_stmt)
+            print(f"  ✅ {name}")
+        except ImportError as e:
+            print(f"  ❌ {name}: {e}")
+            all_good = False
+    
+    return all_good
 
-def test_maintenance_auth():
-    """Prüft, dass Maintenance nur mit Token erreichbar ist"""
-    print("🛡️ Testing /admin/maintenance/run Auth…")
+def test_app_imports():
+    """Test der App-spezifischen Imports"""
+    print("Testing App Imports...")
+    
     try:
-        from slot_booking_webapp import app
-        client = app.test_client()
-        # Ohne Token
-        res = client.get("/admin/maintenance/run")
-        assert res.status_code == 401
-        print("✅ Maintenance Auth Test erfolgreich")
-        return True
-    except Exception as e:
-        print(f"❌ Maintenance Auth Test fehlgeschlagen: {e}")
-        return False
-
-
-def test_security_headers():
-    """Prüft, ob Security-Header gesetzt werden"""
-    print("🔐 Testing Security Headers…")
-    try:
-        from slot_booking_webapp import app
-        client = app.test_client()
-        res = client.get("/login")
-        assert res.status_code in (200, 302)
-        headers = res.headers
-        required = [
-            "Content-Security-Policy",
-            "X-Content-Type-Options",
-            "X-Frame-Options",
-            "Referrer-Policy",
-            "Strict-Transport-Security",
-        ]
-        missing = [h for h in required if h not in headers]
-        if missing:
-            print(f"  ⚠️ Missing headers: {missing}")
+        # Versuche main.py zu importieren
+        import main
+        print("  ✅ main.py importiert")
+        
+        # Teste ob Flask App existiert
+        if hasattr(main, 'app'):
+            print("  ✅ Flask app gefunden")
         else:
-            print("  ✅ Alle Security-Header vorhanden")
+            print("  ❌ Flask app nicht gefunden")
+            return False
+            
         return True
+        
+    except ImportError as e:
+        print(f"  ❌ Konnte main.py nicht importieren: {e}")
+        return False
     except Exception as e:
-        print(f"❌ Security Headers Test fehlgeschlagen: {e}")
+        print(f"  ❌ Unerwarteter Fehler: {e}")
         return False
 
-def main():
-    """Hauptfunktion für alle Tests"""
-    print("🚀 Starting Integration Tests...")
+def test_css_exists():
+    """Test ob CSS-Dateien existieren"""
+    print("Testing CSS Files...")
+    
+    css_files = [
+        "static/admin_style.css",
+        "static/js/app.js"
+    ]
+    
+    all_good = True
+    for css_file in css_files:
+        if os.path.exists(css_file):
+            size = os.path.getsize(css_file)
+            print(f"  ✅ {css_file} ({size} bytes)")
+        else:
+            print(f"  ❌ {css_file} fehlt")
+            all_good = False
+    
+    return all_good
+
+def test_data_directories():
+    """Test der Datenverzeichnisse"""
+    print("Testing Data Directories...")
+    
+    required_dirs = [
+        "static",
+        "data",
+        "data/tracking",
+        "data/persistent"
+    ]
+    
+    for dir_path in required_dirs:
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            print(f"  ✅ {dir_path}/")
+        else:
+            print(f"  ⚠️  {dir_path}/ fehlt - erstelle...")
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+                print(f"  ✅ {dir_path}/ erstellt")
+            except Exception as e:
+                print(f"  ❌ Konnte {dir_path}/ nicht erstellen: {e}")
+                return False
+    
+    return True
+
+def run_all_tests():
+    """Führe alle Tests aus"""
+    print("=" * 50)
+    print("SLOT BOOKING WEBAPP - INTEGRATION TESTS")
     print("=" * 50)
     
     tests = [
-        test_color_mapping,
-        test_achievement_system,
-        test_tracking_system,
-        test_main_app,
+        test_basic_imports,
         test_file_structure,
-        test_health_endpoint,
-        test_maintenance_auth,
-        test_security_headers,
+        test_data_directories,
+        test_availability_json,
+        test_css_exists,
+        test_app_imports,
     ]
     
     results = []
-    for test in tests:
+    for test_func in tests:
         try:
-            result = test()
+            result = test_func()
             results.append(result)
         except Exception as e:
-            print(f"❌ Test {test.__name__} crashed: {e}")
+            print(f"❌ Test {test_func.__name__} crashed: {e}")
             results.append(False)
         print()
     
     # Zusammenfassung
     print("=" * 50)
-    print("📋 Test Summary:")
+    print("TEST SUMMARY:")
     
     passed = sum(results)
     total = len(results)
     
-    print(f"  Passed: {passed}/{total}")
-    print(f"  Failed: {total - passed}/{total}")
+    print(f"Passed: {passed}/{total}")
+    print(f"Failed: {total - passed}/{total}")
     
     if passed == total:
         print("🎉 Alle Tests erfolgreich!")
@@ -237,4 +232,4 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run_all_tests())

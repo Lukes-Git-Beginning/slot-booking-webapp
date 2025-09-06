@@ -1,24 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Cache Manager für Slot Booking Webapp
-- Reduziert Google API Calls
-- Verbessert Performance
-- Speichert häufig abgerufene Daten
+Cache Manager für Slot Booking Webapp - Performance-optimiert
 """
 
 import os
 import json
 import time
+import pickle
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-import pickle
 
 class CacheManager:
     def __init__(self, cache_dir="cache"):
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
         
-        # Cache-Konfiguration
+        # Cache-Konfiguration (in Sekunden)
         self.cache_times = {
             "availability": 300,      # 5 Minuten
             "calendar_events": 60,    # 1 Minute
@@ -38,8 +35,6 @@ class CacheManager:
         try:
             if not os.path.exists(cache_path):
                 return False
-            
-            # Prüfe Datei-Alter
             file_age = time.time() - os.path.getmtime(cache_path)
             return file_age < max_age
         except Exception:
@@ -55,28 +50,19 @@ class CacheManager:
                 return None
             
             with open(cache_path, 'rb') as f:
-                cached_data = pickle.load(f)
-            
-            print(f"✅ Cache hit: {cache_type}")
-            return cached_data
-            
-        except Exception as e:
-            print(f"❌ Cache error: {e}")
+                return pickle.load(f)
+                
+        except Exception:
             return None
     
     def set(self, cache_type: str, key: str, data: Any) -> bool:
         """Speichert Daten im Cache"""
         try:
             cache_path = self._get_cache_path(cache_type, key)
-            
             with open(cache_path, 'wb') as f:
                 pickle.dump(data, f)
-            
-            print(f"💾 Cached: {cache_type}")
             return True
-            
-        except Exception as e:
-            print(f"❌ Cache save error: {e}")
+        except Exception:
             return False
     
     def invalidate(self, cache_type: str, key: str = "") -> bool:
@@ -85,11 +71,9 @@ class CacheManager:
             cache_path = self._get_cache_path(cache_type, key)
             if os.path.exists(cache_path):
                 os.remove(cache_path)
-                print(f"🗑️ Cache invalidated: {cache_type}")
                 return True
             return False
-        except Exception as e:
-            print(f"❌ Cache invalidation error: {e}")
+        except Exception:
             return False
     
     def clear_all(self) -> bool:
@@ -98,10 +82,8 @@ class CacheManager:
             for filename in os.listdir(self.cache_dir):
                 if filename.endswith('.cache'):
                     os.remove(os.path.join(self.cache_dir, filename))
-            print("🗑️ All cache cleared")
             return True
-        except Exception as e:
-            print(f"❌ Cache clear error: {e}")
+        except Exception:
             return False
     
     def get_cache_stats(self) -> Dict[str, Any]:
@@ -110,19 +92,13 @@ class CacheManager:
             cache_files = [f for f in os.listdir(self.cache_dir) if f.endswith('.cache')]
             total_size = sum(os.path.getsize(os.path.join(self.cache_dir, f)) for f in cache_files)
             
-            cache_types = {}
-            for filename in cache_files:
-                cache_type = filename.split('_')[0]
-                cache_types[cache_type] = cache_types.get(cache_type, 0) + 1
-            
             return {
                 "total_files": len(cache_files),
                 "total_size_mb": round(total_size / (1024 * 1024), 2),
-                "cache_types": cache_types,
                 "cache_dir": self.cache_dir
             }
-        except Exception as e:
-            return {"error": str(e)}
+        except Exception:
+            return {"error": "Stats nicht verfügbar"}
 
 # Globaler Cache Manager
 cache_manager = CacheManager()
