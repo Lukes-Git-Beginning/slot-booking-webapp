@@ -485,25 +485,29 @@ body.darkmode .achievement-notification {
       background: var(--box-bg);
     }
     
-    /* Farbcodierung für Header */
+    /* Farbcodierung für Header - KORRIGIERT für ausgebuchte Slots */
     .time-section.green .slot-header {
       background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
       border-color: rgba(16,185,129,0.25);
+      box-shadow: 0 0 15px rgba(16,185,129,0.2);
     }
     
     .time-section.yellow .slot-header {
       background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(234,179,8,0.03));
       border-color: rgba(234,179,8,0.25);
+      box-shadow: 0 0 15px rgba(234,179,8,0.2);
     }
     
     .time-section.orange .slot-header {
       background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(249,115,22,0.03));
       border-color: rgba(249,115,22,0.25);
+      box-shadow: 0 0 15px rgba(249,115,22,0.2);
     }
     
     .time-section.red .slot-header {
       background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.03));
       border-color: rgba(239,68,68,0.25);
+      box-shadow: 0 0 15px rgba(239,68,68,0.3);
     }
     
     .slot-header:hover {
@@ -527,7 +531,7 @@ body.darkmode .achievement-notification {
     .slot-stats {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       font-size: 14px;
       color: var(--muted);
     }
@@ -540,15 +544,16 @@ body.darkmode .achievement-notification {
       opacity: 0.3;
     }
     
-    /* Status-Badges */
+    /* Status-Badges - VERBESSERTER ABSTAND */
     .status-badge {
-      padding: 4px 10px;
+      padding: 6px 12px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      margin-left: 8px;
     }
     
     .status-badge.available {
@@ -966,15 +971,15 @@ body.darkmode .achievement-notification {
         {% endfor %}
       </div>
 
-      <!-- Schnell-Actions -->
+      <!-- Schnell-Actions - REPARIERTE BUTTONS -->
       <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button onclick="expandAll()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
+        <button id="expandAllBtn" class="glass-soft" style="padding: 8px 16px; font-size: 14px; cursor: pointer; border: 1px solid var(--box-border); background: var(--box-bg); color: var(--text-color); border-radius: 8px; transition: all 0.2s ease;">
           ➕ Alle aufklappen
         </button>
-        <button onclick="collapseAll()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
+        <button id="collapseAllBtn" class="glass-soft" style="padding: 8px 16px; font-size: 14px; cursor: pointer; border: 1px solid var(--box-border); background: var(--box-bg); color: var(--text-color); border-radius: 8px; transition: all 0.2s ease;">
           ➖ Alle zuklappen
         </button>
-        <button onclick="jumpToEvening()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
+        <button id="jumpToEveningBtn" class="glass-soft" style="padding: 8px 16px; font-size: 14px; cursor: pointer; border: 1px solid var(--box-border); background: var(--box-bg); color: var(--text-color); border-radius: 8px; transition: all 0.2s ease;">
           🌙 Zu Abendterminen
         </button>
       </div>
@@ -1314,14 +1319,6 @@ class AchievementSystem {
 // Achievement-System initialisieren
 let achievementSystem;
 
-// DAS HIER ZUR BESTEHENDEN DOMContentLoaded EVENT HINZUFÜGEN:
-window.addEventListener('DOMContentLoaded', () => {
-  // ... bestehender Code ...
-  
-  // NEU: Achievement System initialisieren
-  achievementSystem = new AchievementSystem();
-});
-
 // Test-Funktion für Development (optional)
 function testAchievementPopup() {
   const testBadge = {
@@ -1342,6 +1339,8 @@ document.addEventListener('keydown', function(e) {
     testAchievementPopup();
   }
 });
+    // REPARIERTE SLOT-FUNKTIONEN
+    
     // Toggle einzelnen Slot
     function toggleSlot(header) {
       const section = header.parentElement;
@@ -1359,32 +1358,51 @@ document.addEventListener('keydown', function(e) {
     
     // Alle aufklappen
     function expandAll() {
+      console.log('Expanding all slots...');
       document.querySelectorAll('.time-section.collapsible').forEach(section => {
-        section.classList.add('expanded');
-        section.querySelector('.slot-content').style.display = 'block';
+        const content = section.querySelector('.slot-content');
+        if (content) {
+          section.classList.add('expanded');
+          content.style.display = 'block';
+        }
       });
     }
     
     // Alle zuklappen
     function collapseAll() {
+      console.log('Collapsing all slots...');
       document.querySelectorAll('.time-section.collapsible').forEach(section => {
-        section.classList.remove('expanded');
-        section.querySelector('.slot-content').style.display = 'none';
+        const content = section.querySelector('.slot-content');
+        if (content) {
+          section.classList.remove('expanded');
+          content.style.display = 'none';
+        }
       });
     }
     
     // Zu Abendterminen springen
     function jumpToEvening() {
-      const eveningSlot = document.querySelector('[data-hour="18:00"]');
+      console.log('Jumping to evening slots...');
+      const eveningSlot = document.querySelector('[data-hour="18:00"]') || document.querySelector('[data-hour="20:00"]');
       if (eveningSlot) {
         eveningSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Aufklappen wenn nicht bereits aufgeklappt
         if (!eveningSlot.classList.contains('expanded')) {
-          toggleSlot(eveningSlot.querySelector('.slot-header'));
+          const header = eveningSlot.querySelector('.slot-header');
+          if (header) {
+            toggleSlot(header);
+          }
         }
+        
+        // Highlight-Effekt
         eveningSlot.style.animation = 'highlight 1s ease';
         setTimeout(() => {
           eveningSlot.style.animation = '';
         }, 1000);
+      } else {
+        console.log('No evening slots found');
+        alert('Keine Abendtermine (18:00 oder 20:00 Uhr) gefunden.');
       }
     }
     
@@ -1419,22 +1437,70 @@ document.addEventListener('keydown', function(e) {
       localStorage.setItem('theme', dark ? 'dark' : 'light');
     }
     
-    // Theme beim Laden setzen
+    // Theme beim Laden setzen + BUTTON EVENT LISTENER
     window.addEventListener('DOMContentLoaded', () => {
+      // Achievement-System sicher hier initialisieren
+      try {
+        achievementSystem = new AchievementSystem();
+      } catch(e) { console.error('Achievement init failed', e); }
       const savedTheme = localStorage.getItem('theme');
       setMode(savedTheme !== 'light', false);
       
+      // REPARIERTE BUTTON EVENT LISTENER
+      const expandBtn = document.getElementById('expandAllBtn');
+      const collapseBtn = document.getElementById('collapseAllBtn');
+      const jumpBtn = document.getElementById('jumpToEveningBtn');
+      
+      if (expandBtn) {
+        expandBtn.addEventListener('click', expandAll);
+        expandBtn.addEventListener('mouseenter', function() {
+          this.style.background = 'rgba(90,177,255,0.1)';
+          this.style.transform = 'translateY(-1px)';
+        });
+        expandBtn.addEventListener('mouseleave', function() {
+          this.style.background = 'var(--box-bg)';
+          this.style.transform = 'translateY(0)';
+        });
+      }
+      
+      if (collapseBtn) {
+        collapseBtn.addEventListener('click', collapseAll);
+        collapseBtn.addEventListener('mouseenter', function() {
+          this.style.background = 'rgba(90,177,255,0.1)';
+          this.style.transform = 'translateY(-1px)';
+        });
+        collapseBtn.addEventListener('mouseleave', function() {
+          this.style.background = 'var(--box-bg)';
+          this.style.transform = 'translateY(0)';
+        });
+      }
+      
+      if (jumpBtn) {
+        jumpBtn.addEventListener('click', jumpToEvening);
+        jumpBtn.addEventListener('mouseenter', function() {
+          this.style.background = 'rgba(90,177,255,0.1)';
+          this.style.transform = 'translateY(-1px)';
+        });
+        jumpBtn.addEventListener('mouseleave', function() {
+          this.style.background = 'var(--box-bg)';
+          this.style.transform = 'translateY(0)';
+        });
+      }
+      
       // Show keyboard hint after 3 seconds
       setTimeout(() => {
-        document.getElementById('kbdHint').classList.add('show');
-        setTimeout(() => {
-          document.getElementById('kbdHint').classList.remove('show');
-        }, 5000);
+        const kbdHint = document.getElementById('kbdHint');
+        if (kbdHint) {
+          kbdHint.classList.add('show');
+          setTimeout(() => {
+            kbdHint.classList.remove('show');
+          }, 5000);
+        }
       }, 3000);
       
       // Auf Mobile standardmäßig zugeklappt
       if (window.innerWidth < 768) {
-        collapseAll();
+        setTimeout(() => collapseAll(), 100);
       }
     });
     
