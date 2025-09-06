@@ -545,8 +545,8 @@ body.sidebar-open #sidebar-tab {
 
 @media (max-width: 1100px) {
   body.sidebar-open #sidebar-tab {
-    left: calc(85vw - 30px);
-    max-left: 290px;
+    /* Begrenze die seitliche Position des Tabs auf max. 306px */
+    left: min(calc(85vw - 30px), 306px);
   }
 }
 
