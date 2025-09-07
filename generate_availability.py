@@ -229,8 +229,9 @@ def main():
             
             # Prüfe jeden Berater (nutze gecachte Events)
             for name, cal_id in consultants.items():
-                # Prüfe Einschränkungen
-                if name in restricted_slots and time not in restricted_slots[name]:
+                # Prüfe Einschränkungen: Wenn ein Berater für bestimmte Uhrzeiten gesperrt ist,
+                # dann überspringe genau diese Uhrzeiten für diesen Berater
+                if name in restricted_slots and time in restricted_slots[name]:
                     continue
                 
                 # Nutze die vorher geholten Events

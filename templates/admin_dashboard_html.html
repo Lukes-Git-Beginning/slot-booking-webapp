@@ -475,7 +475,7 @@
       <a href="{{ url_for('admin_insights') }}" class="action-btn">
         <i class="ti ti-brain"></i> Detaillierte Insights
       </a>
-      <a href="#export" class="action-btn">
+      <a href="{{ url_for('export_analytics') }}" class="action-btn">
         <i class="ti ti-download"></i> Daten Export
       </a>
       <a href="#admin-tools" class="action-btn">
@@ -789,7 +789,7 @@
         <i class="ti ti-trophy"></i>
         Punkte für getrackte Buchungen vergeben
       </a>
-      <a href="{{ url_for('admin_export_csv') }}" class="export-btn" style="background: #10b981;">
+      <a href="{{ url_for('export_csv') }}" class="export-btn" style="background: #10b981;">
         <i class="ti ti-file-spreadsheet"></i>
         CSV Export (ZIP)
       </a>

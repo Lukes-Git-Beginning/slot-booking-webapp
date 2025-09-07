@@ -50,6 +50,15 @@ service = build("calendar", "v3", credentials=creds)
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
 TZ = pytz.timezone("Europe/Berlin")
 
+# ----------------- Persistenz Bootstrap & Backup-Cleanup -----------------
+# Stelle sicher, dass Persist-Daten vorhanden sind (Migration von static falls nötig)
+try:
+    data_persistence.bootstrap_from_static_if_missing()
+    # Optional: altes Backup aufräumen beim Start
+    data_persistence.auto_cleanup_backups()
+except Exception as _e:
+    print(f"⚠️ Persistenz-Init Hinweis: {_e}")
+
 # ----------------- Konfiguration -----------------
 SLOTS_PER_BERATER = 4  # Slots pro Berater & Uhrzeit
 EXCLUDE_CHAMPION_USERS = ["callcenter", "admin"]
@@ -1255,6 +1264,7 @@ def weekly_tracking_report():
         flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
         return redirect(url_for("login"))
     
+    tracker = BookingTracker()
     report = tracker.get_weekly_report()
     return jsonify(report)
     
@@ -1348,17 +1358,25 @@ def check_for_updates():
     try:
         # Prüfe auf neue Buchungen
         bookings = load_jsonl_data("data/tracking/bookings.jsonl")
-        recent_bookings = [
-            b for b in bookings 
-            if (datetime.now(TZ) - datetime.fromisoformat(b.get("timestamp", ""))).seconds < 30
-        ]
+        now_ts = datetime.now(TZ)
+        def parse_ts(ts):
+            try:
+                return datetime.fromisoformat(ts)
+            except Exception:
+                return None
+        recent_bookings = []
+        for b in bookings:
+            ts = parse_ts(b.get("timestamp", ""))
+            if ts and (now_ts - ts).total_seconds() < 30:
+                recent_bookings.append(b)
         
         # Prüfe auf neue Outcomes
         outcomes = load_jsonl_data("data/tracking/outcomes.jsonl")
-        recent_outcomes = [
-            o for o in outcomes
-            if (datetime.now(TZ) - datetime.fromisoformat(o.get("timestamp", ""))).seconds < 30
-        ]
+        recent_outcomes = []
+        for o in outcomes:
+            ts = parse_ts(o.get("timestamp", ""))
+            if ts and (now_ts - ts).total_seconds() < 30:
+                recent_outcomes.append(o)
         
         updates = {}
         if recent_bookings:
@@ -1630,6 +1648,7 @@ def admin_export_pdf():
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib import colors
         from reportlab.lib.units import inch
+        from flask import make_response
         
         # Erstelle PDF
         response = make_response()
@@ -2442,8 +2461,25 @@ def admin_users():
         return redirect(url_for("login"))
     
     try:
-        # Hole alle aktiven User
-        active_users = get_all_active_users()
+        # Hole alle aktiven User (aus Scores und Tracking abgeleitet)
+        scores = data_persistence.load_scores()
+        active_users = set(scores.keys())
+        try:
+            from tracking_system import BookingTracker
+            tracker = BookingTracker()
+            if os.path.exists(tracker.bookings_file):
+                with open(tracker.bookings_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip():
+                            try:
+                                booking = json.loads(line)
+                                if booking.get("user"):
+                                    active_users.add(booking.get("user"))
+                            except json.JSONDecodeError:
+                                continue
+        except Exception:
+            pass
+        active_users = sorted(active_users)
         base_users = get_userlist()
         
         # Erstelle User-Liste mit Details

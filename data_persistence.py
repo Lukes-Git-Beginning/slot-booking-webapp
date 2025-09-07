@@ -10,13 +10,24 @@ from pathlib import Path
 
 class DataPersistence:
     def __init__(self):
-        self.data_dir = Path("data/persistent")
-        self.backup_dir = Path("data/backups")
+        """
+        Primäre Persistenz auf Render Persist-Disk, Fallback lokal.
+        - Primär: /opt/render/project/src/persist/{persistent,backups}
+        - Fallback: data/{persistent,backups}
+        - Dual-Write: zusätzlich nach static/ für Kompatibilität
+        """
+        persist_base = Path(os.getenv("PERSIST_BASE", "/opt/render/project/src/persist"))
+        if not persist_base.exists():
+            persist_base = Path("data")
+
+        self.data_dir = persist_base / "persistent"
+        self.backup_dir = persist_base / "backups"
         self.static_dir = Path("static")
-        
+
         # Erstelle Verzeichnisse
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
+        self.static_dir.mkdir(parents=True, exist_ok=True)
     
     def save_scores(self, scores_data):
         """Speichere Scores mit Backup"""
@@ -227,12 +238,25 @@ class DataPersistence:
     def _create_backup(self, filename, data):
         """Erstelle Backup mit Timestamp"""
         try:
+            # filename inkl. .json erwarten
+            if not filename.endswith(".json"):
+                filename = f"{filename}.json"
+
+            # Falls keine Daten übergeben wurden, lade aus der aktuellen Datei
+            if data is None:
+                source_path = self.data_dir / filename
+                if source_path.exists():
+                    with open(source_path, "r", encoding="utf-8") as sf:
+                        data = json.load(sf)
+                else:
+                    data = {}
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_file = self.backup_dir / f"{filename}.{timestamp}.backup"
             with open(backup_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            
-            # Behalte nur die letzten 5 Backups
+
+            # Behalte nur die letzten 10 Backups
             self._cleanup_old_backups(filename)
         except Exception as e:
             print(f"⚠️ Backup-Fehler für {filename}: {e}")
@@ -240,7 +264,7 @@ class DataPersistence:
     def auto_cleanup_backups(self):
         """Automatische Bereinigung alter Backups"""
         try:
-            for filename in ["scores", "champions", "user_badges", "daily_user_stats"]:
+            for filename in ["scores.json", "champions.json", "user_badges.json", "daily_user_stats.json"]:
                 self._cleanup_old_backups(filename)
             print("✅ Backup-Cleanup abgeschlossen")
         except Exception as e:
@@ -249,8 +273,12 @@ class DataPersistence:
     def _cleanup_old_backups(self, filename):
         """Bereinige alte Backups für eine bestimmte Datei"""
         try:
-            backup_files = list(self.backup_dir.glob(f"{filename}_*.backup"))
-            
+            # Einheitliches Format: <filename>.json.YYYYmmdd_HHMMSS.backup
+            if not filename.endswith(".json"):
+                filename = f"{filename}.json"
+
+            backup_files = list(self.backup_dir.glob(f"{filename}.*.backup"))
+
             # Behalte nur die letzten 10 Backups
             if len(backup_files) > 10:
                 # Sortiere nach Erstellungsdatum (älteste zuerst)
@@ -268,8 +296,8 @@ class DataPersistence:
         """Bekomme Backup-Statistiken"""
         try:
             stats = {}
-            for filename in ["scores", "champions", "user_badges", "daily_user_stats"]:
-                backup_files = list(self.backup_dir.glob(f"{filename}_*.backup"))
+            for filename in ["scores.json", "champions.json", "user_badges.json", "daily_user_stats.json"]:
+                backup_files = list(self.backup_dir.glob(f"{filename}.*.backup"))
                 stats[filename] = {
                     "count": len(backup_files),
                     "latest": None,
@@ -290,7 +318,10 @@ class DataPersistence:
     def restore_from_latest_backup(self, filename):
         """Stelle aus dem neuesten Backup wieder her"""
         try:
-            backup_files = list(self.backup_dir.glob(f"{filename}_*.backup"))
+            if not filename.endswith(".json"):
+                filename = f"{filename}.json"
+
+            backup_files = list(self.backup_dir.glob(f"{filename}.*.backup"))
             if not backup_files:
                 return False, "Keine Backups verfügbar"
             
@@ -302,7 +333,7 @@ class DataPersistence:
                 data = json.load(f)
             
             # Daten wiederherstellen
-            target_file = self.data_dir / f"{filename}.json"
+            target_file = self.data_dir / filename
             with open(target_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
@@ -355,12 +386,12 @@ class DataPersistence:
     def auto_backup_all(self):
         """Automatisches Backup aller Daten"""
         try:
-            files_to_backup = ["scores", "champions", "user_badges", "daily_user_stats"]
+            files_to_backup = ["scores.json", "champions.json", "user_badges.json", "daily_user_stats.json"]
             backed_up = []
             
             for filename in files_to_backup:
                 try:
-                    source_file = self.data_dir / f"{filename}.json"
+                    source_file = self.data_dir / filename
                     if source_file.exists():
                         self._create_backup(filename, None)  # None = lade automatisch
                         backed_up.append(filename)
@@ -377,6 +408,29 @@ class DataPersistence:
         except Exception as e:
             print(f"❌ Fehler beim automatischen Backup: {e}")
             return []
+
+    def bootstrap_from_static_if_missing(self):
+        """Initiale Migration: Falls Dateien im Persist-Verzeichnis fehlen, aus static/ übernehmen."""
+        try:
+            mapping = {
+                "scores.json": (self.save_scores, self.static_dir / "scores.json"),
+                "champions.json": (self.save_champions, self.static_dir / "champions.json"),
+                "user_badges.json": (self.save_user_badges, self.static_dir / "user_badges.json"),
+                "daily_user_stats.json": (self.save_daily_user_stats, self.static_dir / "daily_user_stats.json"),
+            }
+
+            for fname, (save_fn, static_path) in mapping.items():
+                target_path = self.data_dir / fname
+                if not target_path.exists() and static_path.exists():
+                    try:
+                        with open(static_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        save_fn(data)
+                        print(f"✅ Migriert {fname} aus static/ → persist")
+                    except Exception as e:
+                        print(f"⚠️ Konnte {fname} nicht aus static migrieren: {e}")
+        except Exception as e:
+            print(f"❌ Bootstrap-Fehler: {e}")
 
 # Globale Instanz
 data_persistence = DataPersistence()
