@@ -1643,11 +1643,11 @@ def admin_export_pdf():
         return redirect(url_for("login"))
     
     try:
-        from reportlab.lib.pagesizes import letter, A4
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib import colors
-        from reportlab.lib.units import inch
+        from reportlab.lib.pagesizes import letter, A4  # type: ignore
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer  # type: ignore
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # type: ignore
+        from reportlab.lib import colors  # type: ignore
+        from reportlab.lib.units import inch  # type: ignore
         from flask import make_response
         
         # Erstelle PDF
@@ -2331,10 +2331,10 @@ def admin_telefonie_export():
 
     # PDF generieren (tabellarisch + Legende + Mini-Chart)
     try:
-        from reportlab.lib.pagesizes import A4
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
-        from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4  # type: ignore
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak  # type: ignore
+        from reportlab.lib.styles import getSampleStyleSheet  # type: ignore
+        from reportlab.lib import colors  # type: ignore
         from flask import Response
 
         buffer = io.BytesIO()
