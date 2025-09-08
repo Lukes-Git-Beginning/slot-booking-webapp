@@ -52,6 +52,16 @@ app.secret_key = config.SECRET_KEY
 # Initialize error handler
 error_handler.init_app(app)
 
+# Register gamification blueprint
+try:
+    from gamification_routes import gamification_bp
+    app.register_blueprint(gamification_bp)
+    print("✅ Gamification Blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️ Could not import gamification_routes: {e}")
+except Exception as e:
+    print(f"⚠️ Error registering gamification blueprint: {e}")
+
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = config.SCOPES
 creds = load_google_credentials(SCOPES)
@@ -1286,6 +1296,23 @@ def book():
             else:
                 flash("Slot erfolgreich gebucht!", "success")
 
+            # NEW: Quest Progress Integration
+            if user and user != "unknown":
+                try:
+                    from gamification_routes import update_quest_progress_for_booking
+                    booking_data = {
+                        "has_description": bool(description),
+                        "booking_time": int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0,
+                        "points_earned": points,
+                        "date": date,
+                        "hour": hour
+                    }
+                    update_quest_progress_for_booking(user, booking_data)
+                except ImportError:
+                    pass  # Enhanced features not available
+                except Exception as e:
+                    print(f"⚠️ Could not update quest progress: {e}")
+
             # Spezielle Badge-Zähler (Abend/Morgen) persistieren
             try:
                 if user and user != "unknown":
@@ -2105,6 +2132,27 @@ def gamification_dashboard():
         # Nächste Ziele
         next_goals = achievement_system.get_next_achievements(user)
         
+        # NEW: Enhanced gamification features
+        prestige_data = {}
+        today_quests = {"quests": [], "bonus_multiplier": 1.0, "total_completed": 0, "total_claimed": 0}
+        user_coins = 0
+        customization = {"avatar": {"background": "gradient_blue", "border": "simple", "effect": "none", "title": "none"}}
+        
+        try:
+            from prestige_system import prestige_system
+            from daily_quests import daily_quest_system
+            from personalization_system import personalization_system
+            
+            # Get enhanced data
+            prestige_data = prestige_system.calculate_user_prestige(user)
+            today_quests = daily_quest_system.get_user_daily_quests(user)
+            user_coins = daily_quest_system.get_user_coins(user)
+            customization = personalization_system.get_user_customization(user)
+        except ImportError as e:
+            print(f"⚠️ Enhanced features not available: {e}")
+        except Exception as e:
+            print(f"⚠️ Error loading enhanced features: {e}")
+        
         # Badge-Statistiken berechnen
         badge_stats = {
             "by_rarity": {
@@ -2147,7 +2195,12 @@ def gamification_dashboard():
                              current_user=user,
                              current_month_points=current_month_points,
                              user_rank=user_rank,
-                             total_players=len(month_ranking))
+                             total_players=len(month_ranking),
+                             # Enhanced gamification features
+                             prestige_data=prestige_data,
+                             today_quests=today_quests,
+                             user_coins=user_coins,
+                             customization=customization)
     except Exception as e:
         print(f"❌ Gamification Dashboard Fehler: {e}")
         # Fallback-Daten bei Fehlern

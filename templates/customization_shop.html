@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Customization Shop - {{ current_user }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+    
+    <style>
+        .shop-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .customization-preview {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .avatar-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .avatar-preview.effect-sparkle {
+            animation: sparkle 2s ease-in-out infinite;
+        }
+        
+        .avatar-preview.effect-floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        .avatar-preview.effect-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .avatar-preview.effect-rotate {
+            animation: rotate 4s linear infinite;
+        }
+        
+        .avatar-preview.effect-bounce {
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.05) rotate(5deg); }
+            75% { transform: scale(1.05) rotate(-5deg); }
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-5px); }
+            75% { transform: translateY(-15px); }
+        }
+        
+        .avatar-title {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .customization-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .category-section {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+        }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 20px;
+        }
+        
+        .category-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .category-stats {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: right;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+        
+        .theme-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .item-card {
+            background: rgba(255,255,255,0.03);
+            border: 2px solid var(--box-border);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .item-card.selected {
+            border-color: var(--accent);
+            background: rgba(90,177,255,0.1);
+        }
+        
+        .item-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(60%);
+        }
+        
+        .item-card.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 14px;
+        }
+        
+        .item-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .theme-preview {
+            width: 100%;
+            height: 80px;
+            border-radius: var(--radius-md);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .theme-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            opacity: 0.8;
+        }
+        
+        .theme-preview-text {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .item-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+        
+        .unlock-condition {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 3px 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        
+        .unlock-condition.unlocked {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .save-customization {
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 15px 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 30px auto;
+            display: block;
+            font-size: 16px;
+        }
+        
+        .save-customization:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+        
+        .personal-goals {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin: 30px 0;
+            color: white;
+        }
+        
+        .goals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .goal-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            position: relative;
+        }
+        
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .goal-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .goal-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .goal-status.completed {
+            background: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+        
+        .goal-progress {
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+        
+        .create-goal-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 12px 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 15px;
+        }
+        
+        .create-goal-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--box-bg);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--muted);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        .form-select, .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-md);
+            background: var(--box-bg);
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--muted);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="shop-container">
+        
+        <!-- Header -->
+        <div class="glass panel">
+            <h1><i class="ti ti-palette"></i> Customization Shop</h1>
+            <p>Personalisiere dein Profil und erstelle individuelle Ziele</p>
+            
+            <a href="{{ url_for('gamification') }}" style="color: var(--accent); text-decoration: none;">
+                ← Zurück zum Dashboard
+            </a>
+        </div>
+        
+        <!-- Avatar Preview -->
+        <div class="customization-preview">
+            <h2>Dein Avatar</h2>
+            <div class="avatar-preview" id="avatarPreview">
+                {{ current_user[0].upper() }}
+            </div>
+            <div class="avatar-title" id="avatarTitle">{{ profile.display_name or current_user }}</div>
+            
+            <button class="save-customization" id="saveBtn" onclick="saveCustomization()">
+                <i class="ti ti-device-floppy"></i>
+                Änderungen speichern
+            </button>
+        </div>
+        
+        <!-- Customization Categories -->
+        <div class="customization-categories">
+            
+            <!-- Backgrounds -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">
+                        <i class="ti ti-color-swatch"></i>
+                        Avatar Hintergrund
+                    </div>
+                    <div class="category-stats">
+                        {{ shop.unlocked_count }} / {{ shop.unlocked_count + shop.locked_count }} freigeschaltet
+                    </div>
+                </div>
+                
+                <div class="items-grid">
+                    {% for item in shop.avatar_components.backgrounds or [] %}
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
+                         onclick="selectItem('background', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                        <div class="item-preview" style="background: {{ item.preview.color }};"></div>
+                        <div class="item-name">{{ item.name }}</div>
+                        <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
+                            {{ 'Freigeschaltet' if item.unlocked else item.unlock_condition.replace('_', ' ').title() }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Borders -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">
+                        <i class="ti ti-border-all"></i>
+                        Avatar Rahmen
+                    </div>
+                </div>
+                
+                <div class="items-grid">
+                    {% for item in shop.avatar_components.borders or [] %}
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
+                         onclick="selectItem('border', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                        <div class="item-preview" style="border: {{ item.preview.style }}; {{ 'box-shadow: ' + item.preview.glow if item.preview.glow else '' }};"></div>
+                        <div class="item-name">{{ item.name }}</div>
+                        <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
+                            {{ 'Freigeschaltet' if item.unlocked else item.unlock_condition.replace('_', ' ').title() }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Effects -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">
+                        <i class="ti ti-sparkles"></i>
+                        Avatar Effekte
+                    </div>
+                </div>
+                
+                <div class="items-grid">
+                    {% for item in shop.avatar_components.effects or [] %}
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
+                         onclick="selectItem('effect', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                        <div class="item-preview" style="background: var(--accent);"></div>
+                        <div class="item-name">{{ item.name }}</div>
+                        <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
+                            {{ 'Freigeschaltet' if item.unlocked else item.unlock_condition.replace('_', ' ').title() }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Titles -->
+            <div class="category-section">
+                <div class="category-header">
+                    <div class="category-title">
+                        <i class="ti ti-crown"></i>
+                        Titel
+                    </div>
+                </div>
+                
+                <div class="items-grid">
+                    {% for item in shop.avatar_components.titles or [] %}
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
+                         onclick="selectItem('title', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                        <div class="item-preview" style="background: {{ item.preview.color or 'var(--muted)' }};">
+                            {{ item.preview.text[:2] if item.preview.text else '🏷️' }}
+                        </div>
+                        <div class="item-name">{{ item.name or 'Kein Titel' }}</div>
+                        <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
+                            {{ 'Freigeschaltet' if item.unlocked else item.unlock_condition.replace('_', ' ').title() }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Themes Section -->
+        <div class="category-section">
+            <div class="category-header">
+                <div class="category-title">
+                    <i class="ti ti-brush"></i>
+                    App-Themes
+                </div>
+            </div>
+            
+            <div class="theme-items-grid">
+                {% for theme_id, theme in shop.themes.items() %}
+                <div class="item-card {{ 'locked' if not theme.unlocked else '' }}" 
+                     onclick="selectTheme('{{ theme_id }}', {{ theme.unlocked|tojson }})">
+                    <div class="theme-preview" style="background: {{ theme.preview.background if 'linear-gradient' in (theme.preview.background or '') else theme.preview.primary }};">
+                        <div class="theme-preview-text">{{ theme.name }}</div>
+                    </div>
+                    <div class="item-name">{{ theme.name }}</div>
+                    <div class="unlock-condition {{ 'unlocked' if theme.unlocked else '' }}">
+                        {{ 'Freigeschaltet' if theme.unlocked else theme.unlock_condition.replace('_', ' ').title() }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Personal Goals -->
+        <div class="personal-goals">
+            <h2><i class="ti ti-target"></i> Persönliche Ziele</h2>
+            <p>Erstelle individuelle Herausforderungen und verfolge deinen Fortschritt</p>
+            
+            <div class="goals-grid">
+                {% for goal in personal_goals or [] %}
+                <div class="goal-card">
+                    <div class="goal-header">
+                        <div>
+                            <div class="goal-title">{{ goal.name }}</div>
+                            <div style="font-size: 13px; opacity: 0.8;">{{ goal.description }}</div>
+                        </div>
+                        <div class="goal-status {{ 'completed' if goal.completed else '' }}">
+                            {{ 'Abgeschlossen' if goal.completed else 'Aktiv' }}
+                        </div>
+                    </div>
+                    
+                    <div class="goal-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ goal.progress_percent or 0 }}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>{{ goal.current_progress or 0 }} / {{ goal.target or 0 }}</span>
+                            <span>{{ (goal.progress_percent or 0)|round(1) }}%</span>
+                        </div>
+                    </div>
+                    
+                    {% if goal.completed and not goal.claimed %}
+                    <button class="create-goal-btn" onclick="claimGoalReward('{{ goal.id }}')">
+                        <i class="ti ti-gift"></i>
+                        Belohnung einlösen
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <!-- Create New Goal Card -->
+                <div class="goal-card" style="display: flex; align-items: center; justify-content: center; min-height: 200px; border: 2px dashed rgba(255,255,255,0.3);">
+                    <div style="text-align: center;">
+                        <i class="ti ti-plus" style="font-size: 48px; margin-bottom: 15px; opacity: 0.6;"></i>
+                        <button class="create-goal-btn" onclick="openGoalModal()">
+                            <i class="ti ti-target"></i>
+                            Neues Ziel erstellen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
+            <a href="{{ url_for('gamification') }}" class="nav-btn">
+                <i class="ti ti-arrow-left"></i> Dashboard
+            </a>
+            <a href="{{ url_for('daily_quests') }}" class="nav-btn">
+                <i class="ti ti-target"></i> Quests
+            </a>
+            <a href="{{ url_for('prestige_dashboard') }}" class="nav-btn">
+                <i class="ti ti-star"></i> Prestige
+            </a>
+        </div>
+    </div>
+    
+    <!-- Goal Creation Modal -->
+    <div class="modal" id="goalModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Neues persönliches Ziel</h3>
+                <button class="modal-close" onclick="closeGoalModal()">&times;</button>
+            </div>
+            
+            <form id="goalForm">
+                <div class="form-group">
+                    <label class="form-label">Ziel-Typ</label>
+                    <select class="form-select" id="goalTemplate" onchange="updateGoalPreview()">
+                        <option value="">Wähle einen Ziel-Typ...</option>
+                        <option value="daily_points">Tägliche Punkte</option>
+                        <option value="weekly_bookings">Wöchentliche Buchungen</option>
+                        <option value="streak_maintenance">Streak halten</option>
+                        <option value="badge_collection">Badge Sammlung</option>
+                        <option value="rank_improvement">Ranking verbessern</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Ziel-Wert</label>
+                    <input type="number" class="form-input" id="goalTarget" min="1" placeholder="z.B. 10">
+                    <small style="color: var(--muted); margin-top: 5px; display: block;" id="goalHint"></small>
+                </div>
+                
+                <div id="goalPreview" style="display: none; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <strong>Vorschau:</strong>
+                    <div id="goalPreviewText"></div>
+                </div>
+            </form>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeGoalModal()">Abbrechen</button>
+                <button class="btn btn-primary" onclick="createGoal()">Ziel erstellen</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentCustomization = {
+            background: '{{ customization.avatar.background }}',
+            border: '{{ customization.avatar.border }}',
+            effect: '{{ customization.avatar.effect }}',
+            title: '{{ customization.avatar.title }}'
+        };
+        let currentTheme = '{{ profile.theme or "default" }}';
+        
+        // Initialize preview
+        updateAvatarPreview();
+        
+        function selectItem(category, itemId, unlocked) {
+            if (!unlocked) {
+                showNotification('Dieses Item ist noch nicht freigeschaltet!', 'error');
+                return;
+            }
+            
+            // Remove previous selection
+            document.querySelectorAll('.item-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked item
+            event.currentTarget.classList.add('selected');
+            
+            currentCustomization[category] = itemId;
+            updateAvatarPreview();
+        }
+        
+        function selectTheme(themeId, unlocked) {
+            if (!unlocked) {
+                showNotification('Dieses Theme ist noch nicht freigeschaltet!', 'error');
+                return;
+            }
+            
+            // Remove previous selection
+            document.querySelectorAll('.theme-items-grid .item-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked theme
+            event.currentTarget.classList.add('selected');
+            
+            currentTheme = themeId;
+        }
+        
+        function updateAvatarPreview() {
+            const preview = document.getElementById('avatarPreview');
+            const shop = {{ shop | tojson | safe }};
+            
+            // Update background
+            const bgItem = shop.avatar_components.backgrounds.find(item => item.id === currentCustomization.background);
+            if (bgItem) {
+                preview.style.background = bgItem.preview.color;
+            }
+            
+            // Update border
+            const borderItem = shop.avatar_components.borders.find(item => item.id === currentCustomization.border);
+            if (borderItem) {
+                preview.style.border = borderItem.preview.style;
+                if (borderItem.preview.glow) {
+                    preview.style.boxShadow = borderItem.preview.glow;
+                }
+            }
+            
+            // Update effect
+            preview.className = 'avatar-preview';
+            if (currentCustomization.effect && currentCustomization.effect !== 'none') {
+                preview.classList.add(`effect-${currentCustomization.effect}`);
+            }
+        }
+        
+        async function saveCustomization() {
+            try {
+                const response = await fetch('/api/update-customization', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        avatar: currentCustomization,
+                        theme: currentTheme
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Anpassungen gespeichert!', 'success');
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Fehler beim Speichern', 'error');
+            }
+        }
+        
+        function openGoalModal() {
+            document.getElementById('goalModal').classList.add('show');
+        }
+        
+        function closeGoalModal() {
+            document.getElementById('goalModal').classList.remove('show');
+            document.getElementById('goalForm').reset();
+            document.getElementById('goalPreview').style.display = 'none';
+        }
+        
+        function updateGoalPreview() {
+            const template = document.getElementById('goalTemplate').value;
+            const target = document.getElementById('goalTarget').value;
+            const preview = document.getElementById('goalPreview');
+            const previewText = document.getElementById('goalPreviewText');
+            const hint = document.getElementById('goalHint');
+            
+            const templates = {
+                daily_points: { name: 'Tägliche Punkte', desc: 'Erreiche {target} Punkte pro Tag', min: 1, max: 50 },
+                weekly_bookings: { name: 'Wöchentliche Buchungen', desc: 'Mache {target} Buchungen pro Woche', min: 5, max: 100 },
+                streak_maintenance: { name: 'Streak halten', desc: 'Halte eine Streak von {target} Tagen', min: 3, max: 365 },
+                badge_collection: { name: 'Badge Sammlung', desc: 'Sammle {target} neue Badges', min: 1, max: 20 },
+                rank_improvement: { name: 'Ranking verbessern', desc: 'Erreiche Rang {target} oder besser', min: 1, max: 20 }
+            };
+            
+            if (template && templates[template]) {
+                const tmpl = templates[template];
+                hint.textContent = `Empfohlener Bereich: ${tmpl.min} - ${tmpl.max}`;
+                document.getElementById('goalTarget').min = tmpl.min;
+                document.getElementById('goalTarget').max = tmpl.max;
+                
+                if (target) {
+                    previewText.innerHTML = `<strong>${tmpl.name}</strong><br>${tmpl.desc.replace('{target}', target)}`;
+                    preview.style.display = 'block';
+                } else {
+                    preview.style.display = 'none';
+                }
+            } else {
+                preview.style.display = 'none';
+                hint.textContent = '';
+            }
+        }
+        
+        async function createGoal() {
+            const template = document.getElementById('goalTemplate').value;
+            const target = parseInt(document.getElementById('goalTarget').value);
+            
+            if (!template || !target) {
+                showNotification('Bitte fülle alle Felder aus', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/create-personal-goal', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        template: template,
+                        target: target
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Persönliches Ziel erstellt!', 'success');
+                    closeGoalModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Fehler beim Erstellen des Ziels', 'error');
+            }
+        }
+        
+        async function claimGoalReward(goalId) {
+            try {
+                const response = await fetch('/api/claim-goal-reward', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({goal_id: goalId})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`🎉 ${result.message}`, 'success');
+                    location.reload();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Fehler beim Einlösen der Belohnung', 'error');
+            }
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                border-radius: 8px;
+                font-weight: 500;
+                z-index: 1001;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Add nav-btn styles and animations
+        const style = document.createElement('style');
+        style.textContent = `
+            .nav-btn {
+                padding: 12px 24px;
+                background: var(--accent);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border: none;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .nav-btn:hover {
+                background: #3b82f6;
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            }
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Set initial selections
+        document.addEventListener('DOMContentLoaded', function() {
+            // Select current customization items
+            Object.entries(currentCustomization).forEach(([category, itemId]) => {
+                const itemCard = document.querySelector(`[onclick*="selectItem('${category}', '${itemId}'"]`);
+                if (itemCard) {
+                    itemCard.classList.add('selected');
+                }
+            });
+            
+            // Select current theme
+            const themeCard = document.querySelector(`[onclick*="selectTheme('${currentTheme}'"]`);
+            if (themeCard) {
+                themeCard.classList.add('selected');
+            }
+        });
+    </script>
+</body>
+</html>
