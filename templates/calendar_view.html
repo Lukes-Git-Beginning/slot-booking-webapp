@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Kalender-Ansicht - {{ current_user }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+    
+    <style>
+        .calendar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 25px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px 30px;
+        }
+        
+        .week-navigation {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        
+        .nav-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--box-border);
+        }
+        
+        .week-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .day-column {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            min-height: 500px;
+        }
+        
+        .day-header {
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .day-header.today {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .day-content {
+            padding: 15px;
+        }
+        
+        .calendar-event {
+            background: var(--box-bg);
+            border-radius: var(--radius-md);
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .calendar-event:hover {
+            transform: translateX(3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .event-time {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        
+        .event-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+        
+        .event-type {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        
+        /* Color mappings for different event types */
+        .event-completed { border-left-color: #10b981; }
+        .event-pending { border-left-color: #6b7280; }
+        .event-no-show { border-left-color: #ef4444; }
+        .event-cancelled { border-left-color: #f59e0b; }
+        
+        .event-type.normal { background: #10b981; }
+        .event-type.top { background: #3b82f6; }
+        .event-type.closer { background: #f59e0b; }
+        .event-type.recall { background: #8b5cf6; }
+        .event-type.standard { background: #6b7280; }
+        
+        .color-legend {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px 30px;
+        }
+        
+        .legend-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid transparent;
+        }
+        
+        .legend-info {
+            flex: 1;
+        }
+        
+        .legend-name {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        .legend-desc {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        
+        .empty-day {
+            text-align: center;
+            color: var(--muted);
+            font-style: italic;
+            padding: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .calendar-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .week-navigation {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        
+        <!-- Header -->
+        <div class="calendar-header">
+            <div>
+                <h1><i class="ti ti-calendar"></i> Kalender-Ansicht</h1>
+                <p>Google Calendar mit verbesserter Farbkodierung</p>
+            </div>
+            
+            <div class="week-navigation">
+                <a href="{{ url_for('index') }}" class="nav-btn secondary">
+                    <i class="ti ti-arrow-left"></i> Zurück
+                </a>
+                <a href="{{ url_for('calendar_view', week=prev_week.strftime('%Y-%m-%d')) }}" class="nav-btn">
+                    <i class="ti ti-chevron-left"></i> Vorherige Woche
+                </a>
+                <div class="week-title">
+                    {{ week_start.strftime('%d.%m.%Y') }} - {{ week_end.strftime('%d.%m.%Y') }}
+                </div>
+                <a href="{{ url_for('calendar_view', week=next_week.strftime('%Y-%m-%d')) }}" class="nav-btn">
+                    Nächste Woche <i class="ti ti-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="calendar-grid">
+            {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
+            
+            {% for i in range(7) %}
+                {% set current_date = week_start + timedelta(days=i) %}
+                {% set day_events = events_by_day.get(current_date, []) %}
+                
+                <div class="day-column">
+                    <div class="day-header {% if current_date == today %}today{% endif %}">
+                        <div>{{ weekdays[i] }}</div>
+                        <div style="font-size: 14px; margin-top: 3px;">{{ current_date.strftime('%d.%m') }}</div>
+                    </div>
+                    
+                    <div class="day-content">
+                        {% if day_events %}
+                            {% for event in day_events %}
+                                <div class="calendar-event event-{{ event.outcome }}" 
+                                     title="{{ event.color_description }}">
+                                    <div class="event-time">{{ event.time_str }}</div>
+                                    <div class="event-title">{{ event.summary }}</div>
+                                    {% if event.description %}
+                                        <div style="font-size: 11px; color: var(--muted); margin-top: 3px;">
+                                            {{ event.description[:50] }}{% if event.description|length > 50 %}...{% endif %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="event-type {{ event.potential_type }}">
+                                        {{ event.color_name }} - {{ event.potential_type|title }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-day">Keine Termine</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Color Legend -->
+        <div class="color-legend">
+            <div class="legend-title">
+                <i class="ti ti-palette"></i> Farbkodierung
+            </div>
+            
+            <div class="legend-grid">
+                {% for color_id, color_info in calendar_colors.items() %}
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: 
+                            {% if color_info.outcome == 'completed' %}#10b981{% endif %}
+                            {% if color_info.outcome == 'no_show' %}#ef4444{% endif %}
+                            {% if color_info.outcome == 'cancelled' %}#f59e0b{% endif %}
+                            {% if color_info.outcome == 'pending' %}#6b7280{% endif %}
+                            {% if color_info.outcome == 'rescheduled' %}#8b5cf6{% endif %}
+                            {% if color_info.outcome == 'not_interested' %}#ec4899{% endif %}
+                        "></div>
+                        <div class="legend-info">
+                            <div class="legend-name">{{ color_info.name }} (ID: {{ color_id }})</div>
+                            <div class="legend-desc">{{ color_info.description }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        // Fix for today's date (since we don't have moment.js)
+        const today = new Date().toDateString();
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // Add click handler for events
+        document.querySelectorAll('.calendar-event').forEach(event => {
+            event.addEventListener('click', function() {
+                // Could expand to show more details in a modal
+                const title = this.querySelector('.event-title').textContent;
+                const time = this.querySelector('.event-time').textContent;
+                alert(`Termin: ${title}\nZeit: ${time}`);
+            });
+        });
+    </script>
+</body>
+</html>
