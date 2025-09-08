@@ -7,7 +7,11 @@ import os
 import json
 import tempfile
 import shutil
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    # fcntl is not available on Windows
+    fcntl = None
 import time
 from contextlib import contextmanager
 from typing import Any, Dict, Optional

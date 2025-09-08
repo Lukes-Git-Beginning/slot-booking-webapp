@@ -508,7 +508,7 @@ class AchievementSystem:
         badges_data[user]["earned_dates"][badge_id] = badge["earned_date"]
         badges_data[user]["total_badges"] += 1
         
-        print(f"🎖️ Badge verliehen: {user} erhält '{definition['name']}' ({definition['emoji']})")
+        print(f"Badge verliehen: {user} erhaelt '{definition['name']}'")
         
         return badge
     
@@ -651,7 +651,7 @@ class AchievementSystem:
         mvp_data[user]["badges"].append(badge)
         mvp_data[user]["periods"][period] = badge["earned_date"]
         
-        print(f"🏆 MVP-Badge verliehen: {user} erhält '{definition['name']}' für {period}")
+        print(f"MVP-Badge verliehen: {user} erhaelt '{definition['name']}' fuer {period}")
         
         return badge
     
@@ -972,7 +972,7 @@ class AchievementSystem:
             return {"users_processed": len(users), "badges_awarded": total_awarded}
 
         except Exception as e:
-            print(f"❌ Backfill-Fehler: {e}")
+            print(f"Backfill-Fehler: {e}")
             return {"users_processed": 0, "badges_awarded": 0, "error": str(e)}
 
     def calculate_streak(self, user_stats):

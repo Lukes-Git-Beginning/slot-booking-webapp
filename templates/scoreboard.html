@@ -165,8 +165,9 @@
     
     .level-cell {
       text-align: center;
-      min-width: 100px;
-      padding: 10px 15px;
+      min-width: 80px;
+      max-width: 90px;
+      padding: 8px 12px;
     }
     
     .level-display {
@@ -177,7 +178,7 @@
     }
     
     .level-number {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       background: linear-gradient(135deg, var(--accent), #3b82f6);
       -webkit-background-clip: text;
@@ -563,6 +564,64 @@
       // Aktiven Tab aktivieren
       document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
       document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+    
+    // Lade Badges für alle User
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUserBadges();
+    });
+    
+    async function loadUserBadges() {
+      const badgeContainers = document.querySelectorAll('.player-badges[data-user]');
+      
+      for (const container of badgeContainers) {
+        const username = container.getAttribute('data-user');
+        try {
+          const response = await fetch(`/api/user/${username}/badges`);
+          if (response.ok) {
+            const data = await response.json();
+            displayUserBadges(container, data.badges || []);
+          }
+        } catch (error) {
+          console.error(`Failed to load badges for ${username}:`, error);
+        }
+      }
+    }
+    
+    function displayUserBadges(container, badges) {
+      container.innerHTML = '';
+      
+      if (!badges || badges.length === 0) {
+        container.innerHTML = '<span style="color: var(--muted); font-size: 12px;">Keine Badges</span>';
+        return;
+      }
+      
+      // Zeige bis zu 5 beste Badges (nach Seltenheit sortiert)
+      const rarityOrder = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
+      const sortedBadges = badges.sort((a, b) => (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0));
+      const displayBadges = sortedBadges.slice(0, 5);
+      
+      displayBadges.forEach(badge => {
+        const badgeElement = document.createElement('span');
+        badgeElement.className = `badge-mini rarity-${badge.rarity}`;
+        badgeElement.textContent = badge.emoji;
+        badgeElement.title = `${badge.name} - ${badge.description}`;
+        
+        const tooltip = document.createElement('div');
+        tooltip.className = 'badge-tooltip';
+        tooltip.textContent = badge.name;
+        badgeElement.appendChild(tooltip);
+        
+        container.appendChild(badgeElement);
+      });
+      
+      // Badge Counter hinzufügen
+      if (badges.length > 5) {
+        const counter = document.createElement('span');
+        counter.className = 'badge-counter';
+        counter.textContent = `+${badges.length - 5}`;
+        container.appendChild(counter);
+      }
     }
   </script>
 </body>
