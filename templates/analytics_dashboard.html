@@ -337,7 +337,7 @@
             <h1><i class="ti ti-chart-line"></i> Analytics Dashboard</h1>
             <p>Detaillierte Einblicke in deine Performance und Verhaltensmuster</p>
             
-            <a href="{{ url_for('gamification') }}" style="color: var(--accent); text-decoration: none;">
+            <a href="{{ url_for('gamification_dashboard') }}" style="color: var(--accent); text-decoration: none;">
                 ← Zurück zum Dashboard
             </a>
         </div>
@@ -650,7 +650,7 @@
         
         <!-- Navigation -->
         <div style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
-            <a href="{{ url_for('gamification') }}" class="nav-btn">
+            <a href="{{ url_for('gamification_dashboard') }}" class="nav-btn">
                 <i class="ti ti-arrow-left"></i> Dashboard
             </a>
             <a href="{{ url_for('daily_quests') }}" class="nav-btn">
