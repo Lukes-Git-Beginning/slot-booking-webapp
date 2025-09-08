@@ -1562,7 +1562,7 @@ def my_calendar():
 
 @app.route("/calendar-view")
 def calendar_view():
-    """Google Calendar View mit Farbkodierung für bessere Sichtbarkeit"""
+    """Availability Calendar View - zeigt verfügbare Slots statt Termine"""
     user = session.get("user")
     if not user:
         return redirect(url_for("login"))
@@ -1581,73 +1581,58 @@ def calendar_view():
         except ValueError:
             pass
     
-    # Google Calendar Events abrufen
-    calendar_events = []
-    events_result = safe_calendar_call(
-        service.events().list,
-        calendarId=CENTRAL_CALENDAR_ID,
-        timeMin=TZ.localize(datetime.combine(week_start, datetime.min.time())).isoformat(),
-        timeMax=TZ.localize(datetime.combine(week_end, datetime.max.time())).isoformat(),
-        singleEvents=True,
-        orderBy='startTime'
-    )
-    
-    if events_result:
-        from color_mapping import CALENDAR_COLORS
-        events = events_result.get('items', [])
-        
-        for event in events:
-            try:
-                start_dt = datetime.fromisoformat(event["start"]["dateTime"])
-                end_dt = datetime.fromisoformat(event["end"]["dateTime"])
-                
-                color_id = event.get("colorId", "9")
-                color_info = CALENDAR_COLORS.get(color_id, {})
-                
-                calendar_events.append({
-                    "summary": event.get("summary", "Untitled"),
-                    "description": event.get("description", ""),
-                    "start_time": start_dt,
-                    "end_time": end_dt,
-                    "date": start_dt.date(),
-                    "day_name": start_dt.strftime("%A"),
-                    "time_str": f"{start_dt.strftime('%H:%M')} - {end_dt.strftime('%H:%M')}",
-                    "color_id": color_id,
-                    "color_name": color_info.get("name", "Unbekannt"),
-                    "color_description": color_info.get("description", ""),
-                    "outcome": color_info.get("outcome", "pending"),
-                    "potential_type": color_info.get("potential_type", "standard")
-                })
-            except Exception as e:
-                print(f"Fehler beim Parsen von Calendar Event: {e}")
-                continue
-    
-    # Events nach Tag gruppieren
-    events_by_day = {}
-    for event in calendar_events:
-        date_key = event["date"]
-        if date_key not in events_by_day:
-            events_by_day[date_key] = []
-        events_by_day[date_key].append(event)
+    # Load availability data
+    availability_data = {}
+    try:
+        with open("static/availability.json", "r", encoding="utf-8") as f:
+            availability_data = json.load(f)
+    except Exception as e:
+        print(f"Fehler beim Laden der Availability-Daten: {e}")
     
     # Navigation für andere Wochen
     prev_week = week_start - timedelta(days=7)
     next_week = week_start + timedelta(days=7)
     
-    # Erstelle Liste der Wochentage mit Daten für Template
+    # Erstelle Liste der Wochentage mit Availability-Daten für Template
     weekdays_data = []
     weekday_names = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
     
+    # Standard time slots (2-hour blocks)
+    time_slots = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00']
+    
     for i in range(7):
         current_date = week_start + timedelta(days=i)
-        day_events = events_by_day.get(current_date, [])
+        date_str = current_date.strftime('%Y-%m-%d')
+        
+        # Collect availability for this day
+        day_availability = []
+        for time_slot in time_slots:
+            slot_key = f"{date_str} {time_slot}"
+            available_consultants = availability_data.get(slot_key, [])
+            slot_count = len(available_consultants)
+            
+            # Create time slot object
+            try:
+                start_time = datetime.strptime(f"{date_str} {time_slot}", "%Y-%m-%d %H:%M")
+                end_time = start_time + timedelta(hours=2)
+                
+                day_availability.append({
+                    'time': time_slot,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'slot_count': slot_count,
+                    'available_consultants': available_consultants,
+                    'availability_level': 'high' if slot_count >= 4 else 'medium' if slot_count >= 1 else 'none'
+                })
+            except ValueError:
+                continue
         
         weekdays_data.append({
             'name': weekday_names[i],
             'date': current_date,
             'date_str': current_date.strftime('%d.%m'),
             'is_today': current_date == today,
-            'events': day_events
+            'availability': day_availability
         })
     
     return render_template("calendar_view.html",
@@ -1656,8 +1641,7 @@ def calendar_view():
                          week_end=week_end,
                          prev_week=prev_week,
                          next_week=next_week,
-                         current_user=user,
-                         calendar_colors=CALENDAR_COLORS)
+                         current_user=user)
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
