@@ -26,7 +26,7 @@ def require_login(f):
     """Decorator für Login-Anforderung"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'current_user' not in session:
+        if 'user' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -38,7 +38,7 @@ def require_login(f):
 def daily_quests():
     """Daily Quests Dashboard"""
     try:
-        user = session['current_user']
+        user = session['user']
         
         # Hole User-Quests
         user_quests = daily_quest_system.get_user_daily_quests(user)
@@ -56,7 +56,7 @@ def daily_quests():
         print(f"Error in daily_quests route: {e}")
         traceback.print_exc()
         return render_template('daily_quests.html', 
-            current_user=session.get('current_user', ''),
+            current_user=session.get('user', ''),
             quests=[], 
             user_coins=0,
             error="Fehler beim Laden der Daily Quests"
@@ -67,7 +67,7 @@ def daily_quests():
 def analytics_dashboard():
     """Advanced Analytics Dashboard"""
     try:
-        user = session['current_user']
+        user = session['user']
         
         # Generiere oder lade Analytics
         analytics = analytics_system.get_user_analytics(user)
@@ -80,7 +80,7 @@ def analytics_dashboard():
         print(f"Error in analytics_dashboard route: {e}")
         traceback.print_exc()
         return render_template('analytics_dashboard.html',
-            current_user=session.get('current_user', ''),
+            current_user=session.get('user', ''),
             analytics={
                 "overview": {},
                 "booking_patterns": {},
@@ -99,7 +99,7 @@ def analytics_dashboard():
 def prestige_dashboard():
     """Prestige & Mastery Dashboard"""
     try:
-        user = session['current_user']
+        user = session['user']
         
         # Hole Prestige-Daten
         prestige_data = prestige_system.calculate_user_prestige(user)
@@ -116,7 +116,7 @@ def prestige_dashboard():
         print(f"Error in prestige_dashboard route: {e}")
         traceback.print_exc()
         return render_template('prestige_dashboard.html',
-            current_user=session.get('current_user', ''),
+            current_user=session.get('user', ''),
             prestige_data={
                 "current_level": 1,
                 "prestige_level": 0,
@@ -136,7 +136,7 @@ def prestige_dashboard():
 def customization_shop():
     """Customization & Personalization Shop"""
     try:
-        user = session['current_user']
+        user = session['user']
         
         # Hole User-Profil und Shop-Daten
         profile = personalization_system.load_user_profile(user)
@@ -155,8 +155,8 @@ def customization_shop():
         print(f"Error in customization_shop route: {e}")
         traceback.print_exc()
         return render_template('customization_shop.html',
-            current_user=session.get('current_user', ''),
-            profile={"display_name": session.get('current_user', ''), "theme": "default"},
+            current_user=session.get('user', ''),
+            profile={"display_name": session.get('user', ''), "theme": "default"},
             shop={"avatar_components": {}, "themes": {}, "unlocked_count": 0, "locked_count": 0},
             personal_goals=[],
             customization={"avatar": {"background": "gradient_blue", "border": "simple", "effect": "none", "title": "none"}},
@@ -170,7 +170,7 @@ def customization_shop():
 def api_claim_quest():
     """API: Quest-Belohnung einlösen"""
     try:
-        user = session['current_user']
+        user = session['user']
         data = request.get_json()
         quest_id = data.get('quest_id')
         
@@ -189,7 +189,7 @@ def api_claim_quest():
 def api_spin_wheel():
     """API: Glücksrad drehen"""
     try:
-        user = session['current_user']
+        user = session['user']
         result = daily_quest_system.spin_wheel(user)
         return jsonify(result)
         
@@ -202,7 +202,7 @@ def api_spin_wheel():
 def api_perform_prestige():
     """API: Prestige durchführen"""
     try:
-        user = session['current_user']
+        user = session['user']
         result = prestige_system.perform_prestige(user)
         return jsonify(result)
         
@@ -215,7 +215,7 @@ def api_perform_prestige():
 def api_upgrade_mastery():
     """API: Mastery-Level upgraden"""
     try:
-        user = session['current_user']
+        user = session['user']
         data = request.get_json()
         category_id = data.get('category_id')
         
@@ -234,7 +234,7 @@ def api_upgrade_mastery():
 def api_update_customization():
     """API: Avatar-Customization updaten"""
     try:
-        user = session['current_user']
+        user = session['user']
         data = request.get_json()
         
         # Update Avatar-Customization
@@ -259,7 +259,7 @@ def api_update_customization():
 def api_create_personal_goal():
     """API: Persönliches Ziel erstellen"""
     try:
-        user = session['current_user']
+        user = session['user']
         data = request.get_json()
         
         template = data.get('template')
@@ -280,7 +280,7 @@ def api_create_personal_goal():
 def api_claim_goal_reward():
     """API: Persönliches Ziel Belohnung einlösen"""
     try:
-        user = session['current_user']
+        user = session['user']
         data = request.get_json()
         goal_id = data.get('goal_id')
         
@@ -299,7 +299,7 @@ def api_claim_goal_reward():
 def api_refresh_analytics():
     """API: Analytics neu generieren"""
     try:
-        user = session['current_user']
+        user = session['user']
         analytics = analytics_system.get_user_analytics(user, force_refresh=True)
         return jsonify({"success": True, "analytics": analytics})
         
@@ -414,7 +414,7 @@ def not_found_error(error):
     return render_template('error.html', 
         error_code=404,
         error_message="Seite nicht gefunden",
-        current_user=session.get('current_user', '')
+        current_user=session.get('user', '')
     ), 404
 
 @gamification_bp.errorhandler(500)
@@ -423,5 +423,5 @@ def internal_error(error):
     return render_template('error.html',
         error_code=500, 
         error_message="Interner Server-Fehler",
-        current_user=session.get('current_user', '')
+        current_user=session.get('user', '')
     ), 500
