@@ -25,6 +25,7 @@
       padding: 15px 20px;
       border-bottom: 1px solid rgba(255,255,255,.08);
       text-align: left;
+      vertical-align: middle;
     }
     
     .scoreboard-table thead th {
@@ -55,7 +56,9 @@
       font-weight: 700;
       font-size: 18px;
       color: var(--accent);
-      min-width: 60px;
+      min-width: 80px;
+      width: 80px;
+      text-align: center;
     }
     
     .rank-cell.rank-1 { color: #eab308; }
@@ -156,17 +159,21 @@
       font-size: 18px;
       font-weight: 700;
       color: var(--green);
+      min-width: 100px;
+      width: 100px;
+      text-align: right;
     }
     
     .badges-cell {
-      text-align: center;
+      text-align: left;
       min-width: 120px;
+      width: 120px;
     }
     
     .level-cell {
-      text-align: center;
-      min-width: 80px;
-      max-width: 90px;
+      text-align: left;
+      min-width: 100px;
+      width: 100px;
       padding: 8px 12px;
     }
     
@@ -461,11 +468,11 @@
         <table class="scoreboard-table">
           <thead>
             <tr>
-              <th>Rang</th>
+              <th style="text-align: center; width: 80px;">Rang</th>
               <th>Spieler</th>
-              <th>Level</th>
-              <th>Badges</th>
-              <th>Punkte</th>
+              <th style="width: 100px;">Level</th>
+              <th style="width: 120px;">Badges</th>
+              <th style="text-align: right; width: 100px;">Punkte</th>
             </tr>
           </thead>
           <tbody>
