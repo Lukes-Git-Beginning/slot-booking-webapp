@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Kalender-Ansicht - {{ current_user }}</title>
+    <title>Verfügbarkeits-Kalender - {{ current_user }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
@@ -184,44 +184,19 @@
             display: inline-block;
         }
         
-        /* Color mappings for different event types */
-        .event-completed { 
+        /* Availability Level Colors */
+        .availability-high { 
             background: #4caf50; 
             color: white; 
         }
-        .event-pending { 
-            background: #9e9e9e; 
-            color: white; 
-        }
-        .event-no-show { 
-            background: #f44336; 
-            color: white; 
-        }
-        .event-cancelled { 
+        .availability-medium { 
             background: #ff9800; 
             color: white; 
         }
-        .event-rescheduled { 
-            background: #9c27b0; 
+        .availability-none { 
+            background: #f44336; 
             color: white; 
         }
-        .event-not-interested { 
-            background: #e91e63; 
-            color: white; 
-        }
-        
-        /* Specific color IDs from Google Calendar */
-        .color-2 { background: #4caf50; color: white; } /* Grün - Normal */
-        .color-7 { background: #2196f3; color: white; } /* Blau - Top */
-        .color-5 { background: #ffeb3b; color: black; } /* Gelb - Closer */
-        .color-3 { background: #9c27b0; color: white; } /* Weintraube - Recall */
-        .color-9 { background: #607d8b; color: white; } /* Graphit - Standard */
-        .color-10 { background: #e91e63; color: white; } /* Flamingo - Standard */
-        .color-11 { background: #f44336; color: white; } /* Tomate - No Show */
-        .color-6 { background: #ff9800; color: white; } /* Mandarine - Cancelled */
-        .color-4 { background: #673ab7; color: white; } /* Lavendel - No T1 */
-        .color-8 { background: #795548; color: white; } /* Pekoe - Customer Name */
-        .color-1 { background: #9c27b0; color: white; } /* Lavendel - Custom */
         
         .color-legend {
             background: var(--box-bg);
@@ -310,8 +285,8 @@
         <!-- Header -->
         <div class="calendar-header">
             <div>
-                <h1><i class="ti ti-calendar"></i> Kalender-Ansicht</h1>
-                <p>Google Calendar mit verbesserter Farbkodierung</p>
+                <h1><i class="ti ti-calendar"></i> Verfügbarkeits-Kalender</h1>
+                <p>Slot-Verfügbarkeit in 2-Stunden-Blöcken</p>
             </div>
             
             <div class="week-navigation">
@@ -359,24 +334,32 @@
                             <div class="hour-line"></div>
                         {% endfor %}
                         
-                        <!-- Events positioned absolutely -->
-                        {% for event in day_data.events %}
-                            {% set start_hour = event.start_time.hour %}
-                            {% set start_minute = event.start_time.minute %}
-                            {% set end_hour = event.end_time.hour %}
-                            {% set end_minute = event.end_time.minute %}
+                        <!-- Availability blocks positioned absolutely -->
+                        {% for slot in day_data.availability %}
+                            {% set start_hour = slot.start_time.hour %}
+                            {% set start_minute = slot.start_time.minute %}
+                            {% set end_hour = slot.end_time.hour %}
+                            {% set end_minute = slot.end_time.minute %}
                             
                             {% if start_hour >= 8 and start_hour < 23 %}
                                 {% set top_position = ((start_hour - 8) * 60 + start_minute) %}
                                 {% set duration_minutes = ((end_hour - start_hour) * 60 + (end_minute - start_minute)) %}
                                 {% set height = duration_minutes|int %}
                                 
-                                <div class="calendar-event color-{{ event.color_id }}" 
+                                <div class="calendar-event availability-{{ slot.availability_level }}" 
                                      style="top: {{ top_position }}px; height: {{ height }}px;"
-                                     title="{{ event.color_description }}">
-                                    <div class="event-title">{{ event.summary }}</div>
-                                    <div class="event-time">{{ event.time_str }}</div>
-                                    <div class="event-type-badge">{{ event.color_name }}</div>
+                                     title="Verfügbare Slots: {{ slot.slot_count }}{% if slot.available_consultants %} ({{ slot.available_consultants|join(', ') }}){% endif %}">
+                                    <div class="event-title">
+                                        {% if slot.slot_count > 0 %}
+                                            {{ slot.slot_count }} Slots
+                                        {% else %}
+                                            Keine Slots
+                                        {% endif %}
+                                    </div>
+                                    <div class="event-time">{{ slot.time }} - {{ slot.end_time.strftime('%H:%M') }}</div>
+                                    {% if slot.slot_count > 0 and slot.available_consultants|length <= 3 %}
+                                        <div class="event-type-badge">{{ slot.available_consultants|join(', ') }}</div>
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         {% endfor %}
@@ -385,51 +368,49 @@
             </div>
         </div>
         
-        <!-- Color Legend -->
+        <!-- Availability Legend -->
         <div class="color-legend">
             <div class="legend-title">
-                <i class="ti ti-palette"></i> Farbkodierung
+                <i class="ti ti-clock"></i> Verfügbarkeits-Anzeige
             </div>
             
             <div class="legend-grid">
-                {% for color_id, color_info in calendar_colors.items() %}
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: 
-                            {% if color_id == '2' %}#4caf50{% endif %}
-                            {% if color_id == '7' %}#2196f3{% endif %}
-                            {% if color_id == '5' %}#ffeb3b{% endif %}
-                            {% if color_id == '3' %}#9c27b0{% endif %}
-                            {% if color_id == '9' %}#607d8b{% endif %}
-                            {% if color_id == '10' %}#e91e63{% endif %}
-                            {% if color_id == '11' %}#f44336{% endif %}
-                            {% if color_id == '6' %}#ff9800{% endif %}
-                            {% if color_id == '4' %}#673ab7{% endif %}
-                            {% if color_id == '8' %}#795548{% endif %}
-                            {% if color_id == '1' %}#9c27b0{% endif %}
-                        "></div>
-                        <div class="legend-info">
-                            <div class="legend-name">{{ color_info.name }} (ID: {{ color_id }})</div>
-                            <div class="legend-desc">{{ color_info.description }}</div>
-                        </div>
+                <div class="legend-item">
+                    <div class="legend-color availability-high"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">Hohe Verfügbarkeit</div>
+                        <div class="legend-desc">4+ Slots verfügbar (2-Stunden-Blöcke)</div>
                     </div>
-                {% endfor %}
+                </div>
+                
+                <div class="legend-item">
+                    <div class="legend-color availability-medium"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">Begrenzte Verfügbarkeit</div>
+                        <div class="legend-desc">1-3 Slots verfügbar</div>
+                    </div>
+                </div>
+                
+                <div class="legend-item">
+                    <div class="legend-color availability-none"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">Keine Verfügbarkeit</div>
+                        <div class="legend-desc">Keine Slots verfügbar</div>
+                    </div>
+                </div>
             </div>
         </div>
         
     </div>
     
     <script>
-        // Fix for today's date (since we don't have moment.js)
-        const today = new Date().toDateString();
-        const todayStr = new Date().toISOString().split('T')[0];
-        
-        // Add click handler for events
-        document.querySelectorAll('.calendar-event').forEach(event => {
-            event.addEventListener('click', function() {
-                // Could expand to show more details in a modal
+        // Add click handler for availability slots
+        document.querySelectorAll('.calendar-event').forEach(slot => {
+            slot.addEventListener('click', function() {
                 const title = this.querySelector('.event-title').textContent;
                 const time = this.querySelector('.event-time').textContent;
-                alert(`Termin: ${title}\nZeit: ${time}`);
+                const tooltip = this.getAttribute('title');
+                alert(`Verfügbarkeit: ${title}\nZeit: ${time}\n${tooltip}`);
             });
         });
     </script>
