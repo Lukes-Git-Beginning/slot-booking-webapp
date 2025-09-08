@@ -316,20 +316,22 @@ def extract_weekly_summary(availability, current_date=None):
                 )
             else:
                 events = []
-            for event in events:
-                if "start" in event and "dateTime" in event["start"]:
-                    try:
-                        dt = datetime.fromisoformat(event["start"]["dateTime"])
-                        # Nur zukünftige Events zählen
-                        if dt.date() >= today:
-                            # WICHTIG: Prüfe ob Event die Verfügbarkeit blockiert
-                            color_id = event.get("colorId", "2")  # Default: Grün
-                            if blocks_availability(color_id):  # Nur blockierende Events zählen
-                                key = week_key_from_date(dt)
-                                week_booked[key] += 1
-                    except Exception as e:
-                        print(f"Fehler beim Parsen von Event-Zeit: {e}")
-                        continue
+        
+        # Process all events (cached or freshly retrieved)
+        for event in events:
+            if "start" in event and "dateTime" in event["start"]:
+                try:
+                    dt = datetime.fromisoformat(event["start"]["dateTime"])
+                    # Nur zukünftige Events zählen
+                    if dt.date() >= today:
+                        # WICHTIG: Prüfe ob Event die Verfügbarkeit blockiert
+                        color_id = event.get("colorId", "2")  # Default: Grün
+                        if blocks_availability(color_id):  # Nur blockierende Events zählen
+                            key = week_key_from_date(dt)
+                            week_booked[key] += 1
+                except Exception as e:
+                    print(f"Fehler beim Parsen von Event-Zeit: {e}")
+                    continue
 
     summary = []
     for key, possible in week_possible.items():
