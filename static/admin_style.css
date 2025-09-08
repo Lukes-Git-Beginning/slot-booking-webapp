@@ -34,6 +34,15 @@
   --radius-md: 12px;
   --radius-sm: 10px;
 
+  /* Consistent Spacing System */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
   --focus: 0 0 0 3px rgba(90,177,255,.35);
   --input-bg: rgba(255,255,255,.06);
   --input-bd: rgba(255,255,255,.18);
@@ -69,6 +78,31 @@ body.lightmode {
   -webkit-tap-highlight-color: transparent; /* Entfernt blaue Highlights auf Mobile */
 }
 
+/* ---------- Utility Classes for Consistent Spacing ---------- */
+.p-xs { padding: var(--spacing-xs) !important; }
+.p-sm { padding: var(--spacing-sm) !important; }
+.p-md { padding: var(--spacing-md) !important; }
+.p-lg { padding: var(--spacing-lg) !important; }
+.p-xl { padding: var(--spacing-xl) !important; }
+
+.m-xs { margin: var(--spacing-xs) !important; }
+.m-sm { margin: var(--spacing-sm) !important; }
+.m-md { margin: var(--spacing-md) !important; }
+.m-lg { margin: var(--spacing-lg) !important; }
+.m-xl { margin: var(--spacing-xl) !important; }
+
+.mt-xs { margin-top: var(--spacing-xs) !important; }
+.mt-sm { margin-top: var(--spacing-sm) !important; }
+.mt-md { margin-top: var(--spacing-md) !important; }
+.mt-lg { margin-top: var(--spacing-lg) !important; }
+.mt-xl { margin-top: var(--spacing-xl) !important; }
+
+.mb-xs { margin-bottom: var(--spacing-xs) !important; }
+.mb-sm { margin-bottom: var(--spacing-sm) !important; }
+.mb-md { margin-bottom: var(--spacing-md) !important; }
+.mb-lg { margin-bottom: var(--spacing-lg) !important; }
+.mb-xl { margin-bottom: var(--spacing-xl) !important; }
+
 html, body { 
   height: 100%; 
   overflow-x: hidden; /* Verhindert horizontales Scrollen */
@@ -82,7 +116,9 @@ body {
     radial-gradient(1000px 600px at 20% 10%, rgba(90,177,255,.06), transparent),
     linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
   background-attachment: fixed;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Fokus sichtbar & zugänglich */
@@ -92,14 +128,60 @@ body {
   border-radius: 8px;
 }
 
+/* ---------- Performance & Accessibility Improvements ---------- */
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .main {
+    padding: var(--spacing-2xl) var(--spacing-sm) var(--spacing-sm);
+  }
+  
+  .panel {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  button, .btn {
+    min-height: 44px; /* Touch target minimum size */
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --box-border: rgba(255,255,255,.3);
+    --text-color: #ffffff;
+    --muted: #cccccc;
+  }
+}
+
+/* Focus indicators for keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ---------- Buttons, Inputs ---------- */
 button, .btn {
   cursor: pointer;
   border: 1px solid var(--box-border);
   background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
   color: var(--text-color);
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
   transition: transform .06s ease, background .2s ease, border-color .2s ease;
   box-shadow: 0 2px 10px rgba(0,0,0,.2);
   font-size: 14px;
@@ -129,7 +211,7 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
@@ -179,7 +261,7 @@ button:disabled {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
-  margin: 30px 0;
+  margin: var(--spacing-xl) 0;
 }
 
 input, select, textarea {
@@ -188,7 +270,7 @@ input, select, textarea {
   background: var(--input-bg);
   border: 1px solid var(--input-bd);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: var(--spacing-sm) var(--spacing-sm);
   outline: none;
   font-size: 16px; /* Verhindert Zoom auf iOS */
   -webkit-appearance: none;
@@ -210,7 +292,7 @@ select {
 
 label { 
   display: block; 
-  margin: 6px 0 4px; 
+  margin: var(--spacing-xs) 0 var(--spacing-xs); 
   color: var(--muted); 
   font-size: 14px;
 }
@@ -222,7 +304,7 @@ label {
   left: 0;
   width: 290px;
   height: 100vh;
-  padding: 16px;
+  padding: var(--spacing-md);
   overflow-y: auto;
   background: var(--box-bg);
   border-right: 1px solid var(--box-border);
@@ -239,7 +321,7 @@ label {
 }
 
 .main {
-  padding: 74px 18px 18px;
+  padding: var(--spacing-3xl) var(--spacing-md) var(--spacing-md);
   margin-left: 0;
   transition: margin-left .25s ease;
   min-height: 100vh;
@@ -275,11 +357,11 @@ label {
 
 @media (max-width: 600px) {
   .main {
-    padding: 60px 12px 12px;
+    padding: var(--spacing-3xl) var(--spacing-sm) var(--spacing-sm);
   }
   
   .panel {
-    padding: 12px;
+    padding: var(--spacing-sm);
   }
 }
 
@@ -302,12 +384,12 @@ label {
 }
 
 .panel { 
-  padding: 16px; 
-  margin-bottom: 16px; 
+  padding: var(--spacing-md); 
+  margin-bottom: var(--spacing-md); 
 }
 
 .panel h2 { 
-  margin: 0 0 10px; 
+  margin: 0 0 var(--spacing-sm); 
   font-size: 1.2em; 
   display: flex; 
   align-items: center; 
@@ -320,13 +402,13 @@ label {
   display: flex; 
   flex-wrap: wrap; 
   gap: 8px;
-  margin: 8px 0 14px;
+  margin: var(--spacing-sm) 0 var(--spacing-md);
 }
 
 .nav a {
   text-decoration: none;
   color: var(--text-color);
-  padding: 8px 12px;
+  padding: var(--spacing-sm) var(--spacing-sm);
   border-radius: 10px;
   border: 1px solid var(--box-border);
   background: var(--box-bg);
@@ -347,7 +429,7 @@ label {
 /* Sidebar KW-Links */
 .kw-link {
   display: block; 
-  padding: 10px 12px; 
+  padding: var(--spacing-sm) var(--spacing-sm); 
   border-radius: 8px; 
   text-decoration: none;
   transition: all 0.2s ease;
@@ -367,7 +449,7 @@ label {
 .time-section {
   display: flex;
   gap: 14px;
-  padding: 14px;
+  padding: var(--spacing-md);
   border-radius: var(--radius-lg);
   border: 1px solid var(--box-border);
   background: var(--box-bg);
@@ -417,7 +499,7 @@ label {
 
 /* ---------- Flash Messages ---------- */
 [class^="flash-"] {
-  padding: 12px 14px;
+  padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--box-border);
   background: var(--box-bg);
@@ -452,7 +534,7 @@ table {
 }
 
 th, td { 
-  padding: 10px; 
+  padding: var(--spacing-sm); 
   border-bottom: 1px solid rgba(255,255,255,.08); 
   text-align: left; 
 }
@@ -484,7 +566,7 @@ thead th {
 }
 
 .slot-suggest-table td {
-  padding: 6px 8px;
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .slot-suggest-pts { 
@@ -572,7 +654,7 @@ body.sidebar-open #sidebar-tab {
   border: 1px solid var(--box-border);
   color: var(--text-color);
   border-radius: 10px;
-  padding: 6px 12px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   font-size: 14px;
 }
 
@@ -618,7 +700,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: 20px;
   border: 1px solid var(--box-border);
   background: var(--box-bg);
