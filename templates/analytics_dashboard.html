@@ -12,24 +12,25 @@
         .analytics-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 30px 25px;
         }
         
         .insights-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin: 30px 0;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin: 35px 0;
         }
         
         .insight-card {
             background: var(--box-bg);
             border: 1px solid var(--box-border);
             border-radius: var(--radius-lg);
-            padding: 25px;
+            padding: 30px;
             position: relative;
             overflow: hidden;
             transition: all 0.3s ease;
+            min-height: 180px;
         }
         
         .insight-card:hover {
@@ -38,26 +39,28 @@
         }
         
         .insight-card h3 {
-            margin: 0 0 20px 0;
+            margin: 0 0 25px 0;
             color: var(--accent);
-            font-size: 18px;
+            font-size: 19px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            font-weight: 600;
         }
         
         .metric-large {
-            font-size: 36px;
+            font-size: 42px;
             font-weight: bold;
             color: var(--text-color);
-            margin: 10px 0;
+            margin: 15px 0;
             line-height: 1;
         }
         
         .metric-label {
             color: var(--muted);
-            font-size: 14px;
-            margin-bottom: 15px;
+            font-size: 15px;
+            margin-bottom: 18px;
+            line-height: 1.4;
         }
         
         .trend-indicator {
@@ -93,12 +96,14 @@
         
         .user-type-badge {
             display: inline-block;
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.2);
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.25);
             border-radius: 25px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
-            margin: 15px 0;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
         
         .motivation-list {
@@ -265,7 +270,7 @@
         
         .tab-button {
             flex: 1;
-            padding: 12px 20px;
+            padding: 15px 25px;
             background: none;
             border: none;
             border-radius: var(--radius-md);
@@ -273,6 +278,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-size: 15px;
         }
         
         .tab-button.active {
@@ -326,6 +332,22 @@
             font-size: 12px;
             color: var(--muted);
             text-align: right;
+        }
+        
+        .analytics-container .glass.panel {
+            padding: 35px 40px;
+            margin-bottom: 40px;
+        }
+        
+        .analytics-container h1 {
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+        
+        .analytics-container p {
+            margin-bottom: 25px;
+            font-size: 16px;
+            line-height: 1.5;
         }
     </style>
 </head>
