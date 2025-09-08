@@ -248,21 +248,16 @@
         
         <!-- Calendar Grid -->
         <div class="calendar-grid">
-            {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
-            
-            {% for i in range(7) %}
-                {% set current_date = week_start + timedelta(days=i) %}
-                {% set day_events = events_by_day.get(current_date, []) %}
-                
+            {% for day_data in weekdays_data %}
                 <div class="day-column">
-                    <div class="day-header {% if current_date == today %}today{% endif %}">
-                        <div>{{ weekdays[i] }}</div>
-                        <div style="font-size: 14px; margin-top: 3px;">{{ current_date.strftime('%d.%m') }}</div>
+                    <div class="day-header {% if day_data.is_today %}today{% endif %}">
+                        <div>{{ day_data.name }}</div>
+                        <div style="font-size: 14px; margin-top: 3px;">{{ day_data.date_str }}</div>
                     </div>
                     
                     <div class="day-content">
-                        {% if day_events %}
-                            {% for event in day_events %}
+                        {% if day_data.events %}
+                            {% for event in day_data.events %}
                                 <div class="calendar-event event-{{ event.outcome }}" 
                                      title="{{ event.color_description }}">
                                     <div class="event-time">{{ event.time_str }}</div>

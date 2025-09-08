@@ -56,11 +56,11 @@ error_handler.init_app(app)
 try:
     from gamification_routes import gamification_bp
     app.register_blueprint(gamification_bp)
-    print("✅ Gamification Blueprint registered successfully")
+    print("Gamification Blueprint registered successfully")
 except ImportError as e:
-    print(f"⚠️ Could not import gamification_routes: {e}")
+    print(f"Could not import gamification_routes: {e}")
 except Exception as e:
-    print(f"⚠️ Error registering gamification blueprint: {e}")
+    print(f"Error registering gamification blueprint: {e}")
 
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = config.SCOPES
@@ -1634,15 +1634,30 @@ def calendar_view():
     prev_week = week_start - timedelta(days=7)
     next_week = week_start + timedelta(days=7)
     
+    # Erstelle Liste der Wochentage mit Daten für Template
+    weekdays_data = []
+    weekday_names = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+    
+    for i in range(7):
+        current_date = week_start + timedelta(days=i)
+        day_events = events_by_day.get(current_date, [])
+        
+        weekdays_data.append({
+            'name': weekday_names[i],
+            'date': current_date,
+            'date_str': current_date.strftime('%d.%m'),
+            'is_today': current_date == today,
+            'events': day_events
+        })
+    
     return render_template("calendar_view.html",
-                         events_by_day=events_by_day,
+                         weekdays_data=weekdays_data,
                          week_start=week_start,
                          week_end=week_end,
                          prev_week=prev_week,
                          next_week=next_week,
                          current_user=user,
-                         calendar_colors=CALENDAR_COLORS,
-                         today=today)
+                         calendar_colors=CALENDAR_COLORS)
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
