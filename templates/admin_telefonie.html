@@ -8,21 +8,158 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
-    .page { max-width: 1200px; margin: 0 auto; padding: 18px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .box { background: var(--box-bg); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: 18px; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-    .row label { width: 120px; font-weight: 600; }
-    .table { width: 100%; border-collapse: collapse; }
-    .table th, .table td { border: 1px solid rgba(255,255,255,0.1); padding: 6px; text-align: center; }
-    .table th { background: rgba(255,255,255,0.05); }
-    .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+    .page { 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      padding: var(--spacing-md); 
+    }
+    
+    .grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: var(--spacing-md); 
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .box { 
+      background: var(--box-bg); 
+      border: 1px solid var(--box-border); 
+      border-radius: var(--radius-lg); 
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .actions { 
+      display: flex; 
+      gap: var(--spacing-sm); 
+      flex-wrap: wrap; 
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .row { 
+      display: flex; 
+      gap: var(--spacing-sm); 
+      align-items: center; 
+      margin-bottom: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+    
+    .row label { 
+      min-width: 120px; 
+      font-weight: 600; 
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .row input, .row select {
+      min-width: 150px;
+      padding: var(--spacing-xs) var(--spacing-sm);
+    }
+    
+    .table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin: var(--spacing-md) 0;
+    }
+    
+    .table th, .table td { 
+      border: 1px solid rgba(255,255,255,0.1); 
+      padding: var(--spacing-sm) var(--spacing-xs); 
+      text-align: center; 
+    }
+    
+    .table th { 
+      background: rgba(255,255,255,0.05); 
+      font-weight: 600;
+      padding: var(--spacing-md) var(--spacing-xs);
+    }
+    
+    .badge { 
+      padding: var(--spacing-xs) var(--spacing-sm); 
+      border-radius: 12px; 
+      font-size: 12px; 
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
     .badge-green { background: rgba(16,185,129,0.2); color: #10b981; }
     .badge-yellow { background: rgba(234,179,8,0.2); color: #eab308; }
     .badge-red { background: rgba(239,68,68,0.2); color: #ef4444; }
-    .small { font-size: 12px; color: var(--muted); }
-    .mt { margin-top: 12px; }
+    
+    .small { 
+      font-size: 12px; 
+      color: var(--muted); 
+      margin-top: var(--spacing-xs);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .mt { margin-top: var(--spacing-lg); }
+    
+    h1 {
+      margin-bottom: var(--spacing-xl);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 2px solid var(--box-border);
+    }
+    
+    h3 {
+      margin-bottom: var(--spacing-md);
+      color: var(--accent);
+    }
+    
+    /* Mobile Optimization */
+    @media (max-width: 768px) {
+      .page {
+        padding: var(--spacing-sm);
+      }
+      
+      .grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+      }
+      
+      .box {
+        padding: var(--spacing-md);
+      }
+      
+      .row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .row label {
+        min-width: auto;
+        margin-bottom: var(--spacing-xs);
+      }
+      
+      .table-container {
+        overflow-x: auto;
+        margin: var(--spacing-sm) -var(--spacing-md);
+      }
+      
+      .table {
+        min-width: 600px;
+      }
+      
+      .table th, .table td {
+        padding: var(--spacing-xs);
+        font-size: 11px;
+      }
+      
+      .actions {
+        flex-direction: column;
+      }
+      
+      .action-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .badge {
+        font-size: 10px;
+        padding: 2px var(--spacing-xs);
+      }
+    }
   </style>
   </head>
 <body>
@@ -127,9 +264,10 @@
       </div>
     </div>
 
-    <div class="box" style="margin-top:20px;">
+    <div class="box">
       <h3>Wochenübersicht – {{ week }}</h3>
-      <table class="table">
+      <div class="table-container">
+        <table class="table">
         <thead>
           <tr>
             <th>Person</th>
@@ -152,18 +290,20 @@
           </tr>
           {% endfor %}
         </tbody>
-      </table>
+        </table>
+      </div>
       <p class="small">Gesamt: Ziel {{ stats.summary.total_goal }} | Erreicht {{ stats.summary.total_achieved }} | Offen {{ stats.summary.total_remaining }} | Bilanz {{ stats.summary.total_balance }}</p>
     </div>
 
-    <div class="box" style="margin-top:20px;">
+    <div class="box">
       <h3>Diagramm</h3>
       <canvas id="weeklyChart" height="120"></canvas>
     </div>
 
-    <div class="box" style="margin-top:20px;">
+    <div class="box">
       <h3>Historie (Audit)</h3>
-      <table class="table">
+      <div class="table-container">
+        <table class="table">
         <thead>
           <tr>
             <th>Zeit</th>
@@ -192,7 +332,8 @@
           </tr>
           {% endfor %}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
 
   </div>

@@ -2,16 +2,23 @@ import os
 import json
 import pytz
 import time
+import secrets
 from tracking_system import BookingTracker
 from data_persistence import data_persistence
 from level_system import level_system
 from collections import defaultdict
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
+from typing import Dict, List, Any, Optional, Union, Tuple, Callable
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from creds_loader import load_google_credentials
 from cache_manager import cache_manager
+from request_deduplication import request_deduplicator, SlotLockContext
+from json_utils import optimize_json_storage, get_file_size_mb
+from error_handler import error_handler, raise_validation_error, raise_calendar_error, safe_execute
+from config import config, slot_config, gamification_config, api_config
+from structured_logger import app_logger, calendar_logger, booking_logger, auth_logger, log_performance, log_request
 import matplotlib
 matplotlib.use('Agg')  # Für Server ohne Display
 import matplotlib.pyplot as plt
@@ -40,15 +47,18 @@ from weekly_points import (
 
 # ----------------- Flask Setup -----------------
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "change-me-to-random-string-now")
+app.secret_key = config.SECRET_KEY
+
+# Initialize error handler
+error_handler.init_app(app)
 
 # ----------------- Google Calendar API Setup -----------------
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
+SCOPES = config.SCOPES
 creds = load_google_credentials(SCOPES)
 service = build("calendar", "v3", credentials=creds)
 
-CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
-TZ = pytz.timezone("Europe/Berlin")
+CENTRAL_CALENDAR_ID = config.CENTRAL_CALENDAR_ID
+TZ = pytz.timezone(slot_config.TIMEZONE)
 
 # ----------------- Persistenz Bootstrap & Backup-Cleanup -----------------
 # Stelle sicher, dass Persist-Daten vorhanden sind (Migration von static falls nötig)
@@ -60,24 +70,32 @@ except Exception as _e:
     print(f"⚠️ Persistenz-Init Hinweis: {_e}")
 
 # ----------------- Konfiguration -----------------
-SLOTS_PER_BERATER = 4  # Slots pro Berater & Uhrzeit
-EXCLUDE_CHAMPION_USERS = ["callcenter", "admin"]
+SLOTS_PER_BERATER = slot_config.SLOTS_PER_BERATER
+EXCLUDE_CHAMPION_USERS = gamification_config.get_excluded_champion_users()
 
 # ----------------- Hilfsfunktionen mit Error Handling -----------------
-def safe_calendar_call(func, *args, **kwargs):
+def safe_calendar_call(func: Callable, *args: Any, **kwargs: Any) -> Optional[Dict[str, Any]]:
     """
     Wrapper für Google Calendar API calls mit Retry, Error Handling
     und auto-execute(): Wenn das Ergebnis eine .execute()-Methode hat,
     wird sie aufgerufen und ein dict zurückgegeben.
     """
-    max_retries = 3
+    max_retries = api_config.CALENDAR_API_MAX_RETRIES
+    start_time = time.time()
+    operation = f"{func.__name__ if hasattr(func, '__name__') else 'calendar_api_call'}"
+    
     for attempt in range(max_retries):
         try:
             req_or_result = func(*args, **kwargs)  # z.B. service.events().list(...)
             # WICHTIG: Wenn es ein HttpRequest ist → execute()
             if hasattr(req_or_result, "execute") and callable(req_or_result.execute):
-                return req_or_result.execute()
+                result = req_or_result.execute()
+                duration_ms = (time.time() - start_time) * 1000
+                calendar_logger.log_calendar_api_call(operation, duration_ms, success=True)
+                return result
             # Falls bereits ein fertiges dict/Result übergeben wurde
+            duration_ms = (time.time() - start_time) * 1000
+            calendar_logger.log_calendar_api_call(operation, duration_ms, success=True)
             return req_or_result
         except HttpError as e:
             status = getattr(getattr(e, "resp", None), "status", None)
@@ -88,9 +106,13 @@ def safe_calendar_call(func, *args, **kwargs):
                 continue
             elif status == 403:  # Permission denied
                 print(f"[Calendar] Permission denied: {e}")
+                if attempt == max_retries - 1:
+                    raise_calendar_error(f"Kalender-Berechtigung verweigert: {e}", status)
                 return None
             elif status == 404:  # Not found
                 print(f"[Calendar] Resource not found: {e}")
+                if attempt == max_retries - 1:
+                    raise_calendar_error(f"Kalender-Resource nicht gefunden: {e}", status)
                 return None
             elif status and status >= 500:  # Server error
                 wait_time = 2 ** attempt
@@ -98,7 +120,13 @@ def safe_calendar_call(func, *args, **kwargs):
                 time.sleep(wait_time)
                 continue
             else:  # andere HTTP Fehler
-                print(f"[Calendar] HTTP-Fehler {status}: {e}")
+                duration_ms = (time.time() - start_time) * 1000
+                calendar_logger.log_calendar_api_call(
+                    operation, duration_ms, success=False, 
+                    status_code=status, error_message=str(e)
+                )
+                if attempt == max_retries - 1:
+                    raise_calendar_error(f"Kalender-API Fehler: {e}", status)
                 return None
         except ConnectionError as e:
             print(f"[Calendar] Verbindungsfehler: {e}")
@@ -121,9 +149,9 @@ def safe_calendar_call(func, *args, **kwargs):
     return None
 # 2. ADMIN-CHECK FUNKTIONEN
 
-def is_admin(user):
+def is_admin(user: Optional[str]) -> bool:
     """Prüft ob User Admin-Rechte hat"""
-    admin_users = ["admin", "Admin", "administrator", "Jose", "Simon", "Alex", "David"]  # <-- Adminliste erweitert
+    admin_users = config.get_admin_users()
     return user and user.lower() in [u.lower() for u in admin_users]
 
 def check_admin_access():
@@ -170,7 +198,7 @@ def get_color_mapping_status():
         "total_colors": len(CALENDAR_COLORS)
     }
 
-def get_userlist():
+def get_userlist() -> Dict[str, str]:
     userlist_raw = os.environ.get("USERLIST", "")
     userdict = {}
     for entry in userlist_raw.split(","):
@@ -193,7 +221,7 @@ def get_week_start(d):
 def get_current_kw(d):
     return d.isocalendar()[1]
 
-def load_availability():
+def load_availability() -> Dict[str, List[str]]:
     """Lade availability.json mit Cache und robustem Error Handling"""
     # Prüfe Cache zuerst
     cached_data = cache_manager.get("availability")
@@ -245,23 +273,39 @@ def extract_weekly_summary(availability, current_date=None):
             print(f"Fehler beim Parsen von Slot-Zeit {slot_time}: {e}")
             continue
 
-    # Gebuchte Termine abrufen mit Error Handling
+    # Gebuchte Termine abrufen mit Error Handling und Caching
     if week_dates:
         min_start = min(rng[0] for rng in week_dates.values())
         max_end = max(rng[1] for rng in week_dates.values()) + timedelta(days=1)
         
-        events_result = safe_calendar_call(
-            service.events().list,
-            calendarId=CENTRAL_CALENDAR_ID,
-            timeMin=TZ.localize(datetime.combine(min_start.date(), datetime.min.time())).isoformat(),
-            timeMax=TZ.localize(datetime.combine(max_end.date(), datetime.max.time())).isoformat(),
-            singleEvents=True,
-            orderBy='startTime',
-            maxResults=2500
+        # Cache-Key für diesen Datumsbereich
+        date_range_key = f"{min_start.strftime('%Y-%m-%d')}_{max_end.strftime('%Y-%m-%d')}"
+        events = cache_manager.get_calendar_events(
+            min_start.strftime('%Y-%m-%d'), 
+            max_end.strftime('%Y-%m-%d')
         )
         
-        if events_result:
-            events = events_result.get('items', [])
+        if events is None:
+            events_result = safe_calendar_call(
+                service.events().list,
+                calendarId=CENTRAL_CALENDAR_ID,
+                timeMin=TZ.localize(datetime.combine(min_start.date(), datetime.min.time())).isoformat(),
+                timeMax=TZ.localize(datetime.combine(max_end.date(), datetime.max.time())).isoformat(),
+                singleEvents=True,
+                orderBy='startTime',
+                maxResults=2500
+            )
+            
+            if events_result:
+                events = events_result.get('items', [])
+                # Cache für 30 Minuten (längere Zeiträume ändern sich seltener)
+                cache_manager.set_calendar_events(
+                    min_start.strftime('%Y-%m-%d'), 
+                    max_end.strftime('%Y-%m-%d'), 
+                    events
+                )
+            else:
+                events = []
             for event in events:
                 if "start" in event and "dateTime" in event["start"]:
                     try:
@@ -318,8 +362,8 @@ def extract_detailed_summary(availability):
             continue
     return [{"label": label, "slots": slots} for label, slots in by_week.items()]
 
-def get_slot_status(date_str, hour, berater_count):
-    """Hole Slot-Status mit Error Handling"""
+def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[Dict[str, Any]], int, int, int, bool]:
+    """Hole Slot-Status mit Error Handling und Caching"""
     max_slots = berater_count * SLOTS_PER_BERATER
     try:
         slot_start = TZ.localize(datetime.strptime(f"{date_str} {hour}", "%Y-%m-%d %H:%M"))
@@ -328,20 +372,29 @@ def get_slot_status(date_str, hour, berater_count):
         print(f"Fehler beim Parsen der Slot-Zeit: {e}")
         return [], 0, max_slots, 0, False
 
-    events_result = safe_calendar_call(
-        service.events().list,
-        calendarId=CENTRAL_CALENDAR_ID,
-        timeMin=slot_start.isoformat(),
-        timeMax=slot_end.isoformat(),
-        singleEvents=True,
-        orderBy='startTime'
-    )
+    # Verwende Cache für Events dieses Zeitfensters
+    cache_key = f"{date_str}_{hour}"
+    cached_events = cache_manager.get("calendar_events", cache_key)
     
-    if not events_result:
-        # Bei API-Fehler: Sicherheitsmodus - keine neuen Buchungen
-        return [], 0, max_slots, 0, False
-    
-    events = events_result.get('items', [])
+    if cached_events is not None:
+        events = cached_events
+    else:
+        events_result = safe_calendar_call(
+            service.events().list,
+            calendarId=CENTRAL_CALENDAR_ID,
+            timeMin=slot_start.isoformat(),
+            timeMax=slot_end.isoformat(),
+            singleEvents=True,
+            orderBy='startTime'
+        )
+        
+        if not events_result:
+            # Bei API-Fehler: Sicherheitsmodus - keine neuen Buchungen
+            return [], 0, max_slots, 0, False
+        
+        events = events_result.get('items', [])
+        # Cache für 2 Minuten (kurz, da Buchungen schnell ändern können)
+        cache_manager.set("calendar_events", cache_key, events)
     
     # Filtere Platzhalter-Events (zweistellige Zahlen)
     gebuchte = [ev for ev in events if not (ev.get("summary", "").isdigit() and len(ev.get("summary", "")) == 2)]
@@ -1136,125 +1189,130 @@ def day_view(date_str):
 def index():
     return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
-@app.route("/export/bookings/<month>")
-def export_bookings(month):
-    """Exportiere Buchungen als CSV"""
-    user = session.get("user")
-    if not is_admin(user):
-        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
-        return redirect(url_for("login"))
-    
-    # Hole alle Buchungen des Monats
-    # Erstelle CSV
-    # Return als Download
 
 @app.route("/book", methods=["POST"])
 def book():
-    first = request.form.get("first_name")
-    last = request.form.get("last_name")
-    description = request.form.get("description", "")
-    date = request.form.get("date")
-    hour = request.form.get("hour")
-    color_id = request.form.get("color", "9")
     user = session.get("user")
+    
+    with log_request(booking_logger, "create_booking", user_id=user) as request_id:
+        first = request.form.get("first_name")
+        last = request.form.get("last_name")
+        description = request.form.get("description", "")
+        date = request.form.get("date")
+        hour = request.form.get("hour")
+        color_id = request.form.get("color", "9")
 
-    # Validierung
-    if not all([first, last, date, hour]):
-        flash("Bitte alle Pflichtfelder ausfüllen.", "danger")
-        return redirect(url_for("day_view", date_str=date))
-
-    key = f"{date} {hour}"
-    berater_count = len(load_availability().get(key, []))
-    slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
-    
-    try:
-        slot_date = datetime.strptime(date, "%Y-%m-%d").date()
-    except ValueError:
-        flash("Ungültiges Datum.", "danger")
-        return redirect(url_for("index"))
-    
-    points = get_slot_points(hour, slot_date)
-
-    if overbooked or freie_count <= 0:
-        flash("Slot ist bereits voll belegt.", "danger")
-        return redirect(url_for("day_view", date_str=date))
-
-    try:
-        slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
-        slot_end = slot_start + timedelta(hours=2)
-    except Exception as e:
-        flash("Fehler beim Erstellen des Termins.", "danger")
-        print(f"Fehler beim Parsen der Zeit: {e}")
-        return redirect(url_for("day_view", date_str=date))
-    
-    event_body = {
-        "summary": f"{last}, {first}",
-        "description": description,
-        "start": {"dateTime": slot_start.isoformat()},
-        "end": {"dateTime": slot_end.isoformat()},
-        "colorId": color_id
-    }
-    
-    result = safe_calendar_call(
-        service.events().insert,
-        calendarId=CENTRAL_CALENDAR_ID,
-        body=event_body
-    )
-    
-    if result:
-        # Tracking hinzufügen
-        try:
-            tracker = BookingTracker()
-            tracker.track_booking(
-                customer_name=f"{last}, {first}",
-                date=date,
-                time_slot=hour,
-                user=user or "unknown",
-                color_id=color_id,
-                description=description
+        # Validierung
+        if not all([first, last, date, hour]):
+            raise_validation_error(
+                "Pflichtfelder fehlen", 
+                user_message="Bitte alle Pflichtfelder ausfüllen."
             )
-        except Exception as e:
-            print(f"❌ Tracking error: {e}")
-        
-        # NEU: Achievement System Integration - IMMER Punkte vergeben wenn möglich
-        new_badges = []
-        if user and user != "unknown" and points > 0:
-            new_badges = add_points_to_user(user, points)
-            flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
-        elif user and user != "unknown":
-            # Auch bei 0 Punkten Achievement System aufrufen
-            new_badges = add_points_to_user(user, 0)
-            flash("Slot erfolgreich gebucht!", "success")
-        else:
-            flash("Slot erfolgreich gebucht!", "success")
 
-        # Spezielle Badge-Zähler (Abend/Morgen) persistieren
-        try:
-            if user and user != "unknown":
-                from data_persistence import data_persistence
-                daily_stats = data_persistence.load_daily_user_stats()
-                today_key = datetime.now(TZ).strftime("%Y-%m-%d")
-                if user not in daily_stats:
-                    daily_stats[user] = {}
-                if today_key not in daily_stats[user]:
-                    daily_stats[user][today_key] = {"points": 0, "bookings": 0, "first_booking": False}
-                h_int = int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0
-                if h_int >= 18:
-                    daily_stats[user][today_key]["evening_bookings"] = daily_stats[user][today_key].get("evening_bookings", 0) + 1
-                elif 9 <= h_int < 12:
-                    daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
-                data_persistence.save_daily_user_stats(daily_stats)
-        except Exception as e:
-            print(f"⚠️ Konnte Spezial-Badge-Zähler nicht aktualisieren: {e}")
+        # Request deduplication - verhindert gleichzeitige Buchungen
+        with SlotLockContext(request_deduplicator, user, date, hour) as lock_id:
+            if lock_id is None:
+                flash("Slot wird gerade von einem anderen Nutzer bearbeitet. Bitte versuchen Sie es erneut.", "warning")
+                return redirect(url_for("day_view", date_str=date))
+
+        key = f"{date} {hour}"
+        berater_count = len(load_availability().get(key, []))
+        slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
         
-        # Zeige neue Badges an
-        if new_badges:
-            badge_names = [badge["name"] for badge in new_badges]
-            flash(f"🏆 Neue Badges erhalten: {', '.join(badge_names)}", "success")
-    else:
-        flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
-    
-    return redirect(url_for("day_view", date_str=date))
+        try:
+            slot_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            raise_validation_error(
+                f"Ungültiges Datum: {date}",
+                field="date",
+                user_message="Das angegebene Datum ist ungültig."
+            )
+        
+        points = get_slot_points(hour, slot_date)
+
+        if overbooked or freie_count <= 0:
+            flash("Slot ist bereits voll belegt.", "danger")
+            return redirect(url_for("day_view", date_str=date))
+
+        try:
+            slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
+            slot_end = slot_start + timedelta(hours=2)
+        except Exception as e:
+            flash("Fehler beim Erstellen des Termins.", "danger")
+            print(f"Fehler beim Parsen der Zeit: {e}")
+            return redirect(url_for("day_view", date_str=date))
+        
+        event_body = {
+            "summary": f"{last}, {first}",
+            "description": description,
+            "start": {"dateTime": slot_start.isoformat()},
+            "end": {"dateTime": slot_end.isoformat()},
+            "colorId": color_id
+        }
+        
+        result = safe_calendar_call(
+            service.events().insert,
+            calendarId=CENTRAL_CALENDAR_ID,
+            body=event_body
+        )
+        
+        if result:
+            # Invalidate cache for this slot since we just booked it
+            cache_key = f"{date}_{hour}"
+            cache_manager.invalidate("calendar_events", cache_key)
+            
+            # Tracking hinzufügen
+            try:
+                tracker = BookingTracker()
+                tracker.track_booking(
+                    customer_name=f"{last}, {first}",
+                    date=date,
+                    time_slot=hour,
+                    user=user or "unknown",
+                    color_id=color_id,
+                    description=description
+                )
+            except Exception as e:
+                print(f"❌ Tracking error: {e}")
+            
+            # NEU: Achievement System Integration - IMMER Achievement System aufrufen
+            new_badges = []
+            if user and user != "unknown":
+                new_badges = add_points_to_user(user, points)
+                if points > 0:
+                    flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
+                else:
+                    flash("Slot erfolgreich gebucht!", "success")
+            else:
+                flash("Slot erfolgreich gebucht!", "success")
+
+            # Spezielle Badge-Zähler (Abend/Morgen) persistieren
+            try:
+                if user and user != "unknown":
+                    from data_persistence import data_persistence
+                    daily_stats = data_persistence.load_daily_user_stats()
+                    today_key = datetime.now(TZ).strftime("%Y-%m-%d")
+                    if user not in daily_stats:
+                        daily_stats[user] = {}
+                    if today_key not in daily_stats[user]:
+                        daily_stats[user][today_key] = {"points": 0, "bookings": 0, "first_booking": False}
+                    h_int = int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0
+                    if h_int >= 18:
+                        daily_stats[user][today_key]["evening_bookings"] = daily_stats[user][today_key].get("evening_bookings", 0) + 1
+                    elif 9 <= h_int < 12:
+                        daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
+                    data_persistence.save_daily_user_stats(daily_stats)
+            except Exception as e:
+                print(f"⚠️ Konnte Spezial-Badge-Zähler nicht aktualisieren: {e}")
+            
+            # Zeige neue Badges an
+            if new_badges:
+                badge_names = [badge["name"] for badge in new_badges]
+                flash(f"🏆 Neue Badges erhalten: {', '.join(badge_names)}", "success")
+        else:
+            flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
+        
+        return redirect(url_for("day_view", date_str=date))
     
 @app.route("/tracking/report/weekly")
 def weekly_tracking_report():
@@ -1285,13 +1343,24 @@ def scoreboard():
         print(f"❌ Badge Leaderboard Fehler: {e}")
         badge_leaderboard = []
     
+    # Hole Level-Daten für alle User im Ranking
+    user_levels = {}
+    for username, _ in ranking:
+        try:
+            user_level_data = level_system.calculate_user_level(username)
+            user_levels[username] = user_level_data
+        except Exception as e:
+            print(f"❌ Level-Berechnung Fehler für {username}: {e}")
+            user_levels[username] = {"level": 1, "level_title": "Anfänger", "xp": 0}
+    
     return render_template("scoreboard.html", 
                          ranking=ranking, 
                          user_score=user_score, 
                          month=month, 
                          current_user=user, 
                          champion=champion,
-                         badge_leaderboard=badge_leaderboard)
+                         badge_leaderboard=badge_leaderboard,
+                         user_levels=user_levels)
 
 @app.route("/badges")
 def badges():
@@ -2047,14 +2116,8 @@ def gamification_dashboard():
                 badge_stats["by_rarity"][rarity] += 1
         
         # Raritäts-Farben für Template
-        rarity_colors = {
-            "common": "#10b981",
-            "uncommon": "#3b82f6",
-            "rare": "#8b5cf6",
-            "epic": "#f59e0b",
-            "legendary": "#eab308",
-            "mythic": "#ec4899"
-        }
+        from achievement_system import RARITY_COLORS
+        rarity_colors = RARITY_COLORS
         
         # Aktuelle Monatspunkte
         scores = data_persistence.load_scores()
@@ -2102,14 +2165,7 @@ def gamification_dashboard():
                 "best_streak": 0
             },
             "next_goals": [],
-            "rarity_colors": {
-                "common": "#10b981",
-                "uncommon": "#3b82f6",
-                "rare": "#8b5cf6",
-                "epic": "#f59e0b",
-                "legendary": "#eab308",
-                "mythic": "#ec4899"
-            },
+            "rarity_colors": RARITY_COLORS,
             "current_month_points": 0,
             "user_rank": 0,
             "total_players": 0
@@ -2533,6 +2589,86 @@ def admin_users():
     except Exception as e:
         flash(f"❌ Fehler beim Laden der User-Liste: {e}", "danger")
         return redirect(url_for("index"))
+
+@app.route("/admin/storage/optimize", methods=["GET", "POST"])
+def admin_storage_optimize():
+    """Admin Route für Storage-Optimierung"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        try:
+            # Optimiere verschiedene Verzeichnisse
+            results = {}
+            directories = ["static", "data/persistent", "data/tracking"]
+            
+            for directory in directories:
+                if os.path.exists(directory):
+                    result = optimize_json_storage(directory, size_threshold_mb=0.1)  # 100KB threshold
+                    results[directory] = result
+                    
+            # Cache-Statistiken
+            cache_stats = cache_manager.get_cache_stats()
+            
+            # Deduplication-Statistiken
+            dedup_stats = request_deduplicator.get_stats()
+            
+            flash(f"✅ Storage-Optimierung abgeschlossen!", "success")
+            
+            return jsonify({
+                "status": "success",
+                "optimization_results": results,
+                "cache_stats": cache_stats,
+                "deduplication_stats": dedup_stats
+            })
+            
+        except Exception as e:
+            flash(f"❌ Fehler bei Storage-Optimierung: {e}", "danger")
+            return jsonify({"status": "error", "error": str(e)})
+    
+    # GET request - zeige aktuelle Storage-Info
+    try:
+        storage_info = {}
+        directories = ["static", "data/persistent", "data/tracking", "cache"]
+        
+        for directory in directories:
+            if os.path.exists(directory):
+                total_size = 0
+                file_count = 0
+                json_files = 0
+                
+                for root, dirs, files in os.walk(directory):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        try:
+                            size = os.path.getsize(file_path)
+                            total_size += size
+                            file_count += 1
+                            if file.endswith('.json'):
+                                json_files += 1
+                        except:
+                            continue
+                
+                storage_info[directory] = {
+                    "total_size_mb": round(total_size / (1024 * 1024), 2),
+                    "file_count": file_count,
+                    "json_files": json_files
+                }
+        
+        # Cache und Deduplication Stats
+        cache_stats = cache_manager.get_cache_stats()
+        dedup_stats = request_deduplicator.get_stats()
+        
+        return jsonify({
+            "storage_info": storage_info,
+            "cache_stats": cache_stats,
+            "deduplication_stats": dedup_stats
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
     app.run(debug=False)  # Debug auf False für Produktion!

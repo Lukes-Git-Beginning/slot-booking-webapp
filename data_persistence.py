@@ -7,9 +7,11 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any, Optional, List
+from json_utils import atomic_write_json, atomic_read_json, atomic_update_json
 
 class DataPersistence:
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Primäre Persistenz auf Render Persist-Disk, Fallback lokal.
         - Primär: /opt/render/project/src/persist/{persistent,backups}
@@ -20,30 +22,29 @@ class DataPersistence:
         if not persist_base.exists():
             persist_base = Path("data")
 
-        self.data_dir = persist_base / "persistent"
-        self.backup_dir = persist_base / "backups"
-        self.static_dir = Path("static")
+        self.data_dir: Path = persist_base / "persistent"
+        self.backup_dir: Path = persist_base / "backups"
+        self.static_dir: Path = Path("static")
 
         # Erstelle Verzeichnisse
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
         self.static_dir.mkdir(parents=True, exist_ok=True)
     
-    def save_scores(self, scores_data):
-        """Speichere Scores mit Backup"""
+    def save_scores(self, scores_data: Dict[str, Any]) -> bool:
+        """Speichere Scores mit Backup und atomischen Schreibvorgängen"""
         try:
-            # Speichere in persistentem Verzeichnis
-            scores_file = self.data_dir / "scores.json"
-            with open(scores_file, "w", encoding="utf-8") as f:
-                json.dump(scores_data, f, indent=2, ensure_ascii=False)
+            # Speichere in persistentem Verzeichnis mit atomischen Operationen
+            scores_file = str(self.data_dir / "scores.json")
+            if not atomic_write_json(scores_file, scores_data):
+                return False
             
             # Backup erstellen
             self._create_backup("scores.json", scores_data)
             
             # Auch in static/ für Kompatibilität
-            static_scores = self.static_dir / "scores.json"
-            with open(static_scores, "w", encoding="utf-8") as f:
-                json.dump(scores_data, f, indent=2, ensure_ascii=False)
+            static_scores = str(self.static_dir / "scores.json")
+            atomic_write_json(static_scores, scores_data)
                 
             print(f"✅ Scores gespeichert: {len(scores_data)} Benutzer")
             return True
@@ -51,23 +52,22 @@ class DataPersistence:
             print(f"❌ Fehler beim Speichern der Scores: {e}")
             return False
     
-    def load_scores(self):
-        """Lade Scores mit Fallback"""
+    def load_scores(self) -> Dict[str, Any]:
+        """Lade Scores mit Fallback und atomischen Lesevorgängen"""
         try:
             # Versuche persistentes Verzeichnis
-            scores_file = self.data_dir / "scores.json"
-            if scores_file.exists():
-                with open(scores_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
+            scores_file = str(self.data_dir / "scores.json")
+            data = atomic_read_json(scores_file)
+            if data is not None:
+                return data
             
             # Fallback: static/ Verzeichnis
-            static_scores = self.static_dir / "scores.json"
-            if static_scores.exists():
-                with open(static_scores, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    # Speichere in persistentes Verzeichnis
-                    self.save_scores(data)
-                    return data
+            static_scores = str(self.static_dir / "scores.json")
+            data = atomic_read_json(static_scores)
+            if data is not None:
+                # Speichere in persistentes Verzeichnis
+                self.save_scores(data)
+                return data
             
             # Fallback: Leere Daten
             return {}
@@ -419,16 +419,47 @@ class DataPersistence:
                 "daily_user_stats.json": (self.save_daily_user_stats, self.static_dir / "daily_user_stats.json"),
             }
 
+            migrated_files = []
             for fname, (save_fn, static_path) in mapping.items():
                 target_path = self.data_dir / fname
-                if not target_path.exists() and static_path.exists():
+                
+                # Migration nur wenn persistent fehlt ODER leer ist, aber static existiert
+                should_migrate = False
+                if not target_path.exists():
+                    should_migrate = True
+                    reason = "fehlt"
+                elif target_path.stat().st_size == 0 and static_path.exists():
+                    should_migrate = True
+                    reason = "ist leer"
+                elif target_path.exists() and static_path.exists():
+                    # Prüfe ob static neuer ist (größere Datei oder neuerer Timestamp)
+                    try:
+                        static_size = static_path.stat().st_size
+                        persist_size = target_path.stat().st_size
+                        if static_size > persist_size:
+                            should_migrate = True
+                            reason = f"static größer ({static_size} vs {persist_size} bytes)"
+                    except:
+                        pass
+
+                if should_migrate and static_path.exists():
                     try:
                         with open(static_path, "r", encoding="utf-8") as f:
                             data = json.load(f)
-                        save_fn(data)
-                        print(f"✅ Migriert {fname} aus static/ → persist")
+                        if data:  # Nur migrieren wenn Daten vorhanden
+                            save_fn(data)
+                            migrated_files.append(f"{fname} ({reason})")
+                            print(f"✅ Migriert {fname} aus static/ → persist ({reason})")
                     except Exception as e:
                         print(f"⚠️ Konnte {fname} nicht aus static migrieren: {e}")
+            
+            if migrated_files:
+                print(f"🔄 Bootstrap-Migration abgeschlossen: {len(migrated_files)} Dateien")
+                # Erstelle Backup nach Migration
+                self.auto_backup_all()
+            else:
+                print("ℹ️ Bootstrap: Keine Migration erforderlich")
+                
         except Exception as e:
             print(f"❌ Bootstrap-Fehler: {e}")
 

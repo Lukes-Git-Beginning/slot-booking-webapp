@@ -10,23 +10,17 @@ import os
 import json
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 import pickle
+from config import slot_config
 
 class CacheManager:
-    def __init__(self, cache_dir="cache"):
-        self.cache_dir = cache_dir
+    def __init__(self, cache_dir: str = "cache") -> None:
+        self.cache_dir: str = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
         
-        # Cache-Konfiguration
-        self.cache_times = {
-            "availability": 300,      # 5 Minuten
-            "calendar_events": 60,    # 1 Minute
-            "user_scores": 600,       # 10 Minuten
-            "customer_profiles": 1800, # 30 Minuten
-            "analytics": 900,         # 15 Minuten
-            "badges": 300             # 5 Minuten
-        }
+        # Cache-Konfiguration - aus zentraler Konfiguration
+        self.cache_times: Dict[str, int] = slot_config.CACHE_TIMES
     
     def _get_cache_path(self, cache_type: str, key: str = "") -> str:
         """Generiert Cache-Dateipfad"""
@@ -46,7 +40,7 @@ class CacheManager:
             return False
     
     def get(self, cache_type: str, key: str = "") -> Optional[Any]:
-        """Holt Daten aus Cache"""
+        """Holt Daten aus Cache mit verbesserter Performance"""
         try:
             cache_path = self._get_cache_path(cache_type, key)
             max_age = self.cache_times.get(cache_type, 300)
@@ -54,25 +48,30 @@ class CacheManager:
             if not self._is_cache_valid(cache_path, max_age):
                 return None
             
+            # Verwende optimierte Pickle-Einstellungen für bessere Performance
             with open(cache_path, 'rb') as f:
                 cached_data = pickle.load(f)
             
-            print(f"✅ Cache hit: {cache_type}")
+            print(f"✅ Cache hit: {cache_type}_{key}")
             return cached_data
             
+        except (FileNotFoundError, pickle.PickleError):
+            # Stumm für normale Cache-Misses
+            return None
         except Exception as e:
             print(f"❌ Cache error: {e}")
             return None
     
     def set(self, cache_type: str, key: str, data: Any) -> bool:
-        """Speichert Daten im Cache"""
+        """Speichert Daten im Cache mit optimierter Performance"""
         try:
             cache_path = self._get_cache_path(cache_type, key)
             
+            # Verwende höchstes Protokoll für bessere Performance und kleinere Dateien
             with open(cache_path, 'wb') as f:
-                pickle.dump(data, f)
+                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
             
-            print(f"💾 Cached: {cache_type}")
+            print(f"💾 Cached: {cache_type}_{key}")
             return True
             
         except Exception as e:
@@ -123,6 +122,26 @@ class CacheManager:
             }
         except Exception as e:
             return {"error": str(e)}
+    
+    def get_calendar_events(self, date_start: str, date_end: str) -> Optional[Any]:
+        """Spezielle Methode für Calendar Events mit Datums-Schlüssel"""
+        date_key = f"{date_start}_{date_end}"
+        return self.get("calendar_events_daily", date_key)
+    
+    def set_calendar_events(self, date_start: str, date_end: str, events: Any) -> bool:
+        """Spezielle Methode zum Speichern von Calendar Events"""
+        date_key = f"{date_start}_{date_end}"
+        return self.set("calendar_events_daily", date_key, events)
+    
+    def get_consultant_events(self, consultant_email: str, date_start: str, date_end: str) -> Optional[Any]:
+        """Cache für spezifische Berater-Kalender"""
+        key = f"{consultant_email}_{date_start}_{date_end}"
+        return self.get("consultant_calendars", key)
+    
+    def set_consultant_events(self, consultant_email: str, date_start: str, date_end: str, events: Any) -> bool:
+        """Cache für spezifische Berater-Kalender setzen"""
+        key = f"{consultant_email}_{date_start}_{date_end}"
+        return self.set("consultant_calendars", key, events)
 
 # Globaler Cache Manager
 cache_manager = CacheManager()

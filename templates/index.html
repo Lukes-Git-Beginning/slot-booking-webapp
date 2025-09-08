@@ -9,10 +9,10 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
 
   <style>
-    .panel { padding:16px; margin-bottom:16px; }
-    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--box-border); background: var(--box-bg); }
+    .panel { padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+    .chip { display:inline-flex; align-items:center; gap: var(--spacing-xs); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm); border:1px solid var(--box-border); background: var(--box-bg); }
     #sidebar-tab {
-      position: fixed; left: 14px; top: 18px; z-index: 60;
+      position: fixed; left: var(--spacing-md); top: var(--spacing-md); z-index: 60;
       width: 40px; height: 40px; border-radius: 50%;
       display:flex; align-items:center; justify-content:center;
       border:1px solid var(--box-border); background: var(--box-bg);
@@ -25,8 +25,8 @@
     /* Achievement Popup System */
 .achievement-notification {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
   z-index: 2000;
   max-width: 400px;
   background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));

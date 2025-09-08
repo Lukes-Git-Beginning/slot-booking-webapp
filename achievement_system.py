@@ -12,6 +12,16 @@ from collections import defaultdict
 
 TZ = pytz.timezone("Europe/Berlin")
 
+# Raritäts-Farben für konsistente Darstellung
+RARITY_COLORS = {
+    "common": "#10b981",
+    "uncommon": "#3b82f6", 
+    "rare": "#8b5cf6",
+    "epic": "#f59e0b",
+    "legendary": "#eab308",
+    "mythic": "#ec4899"
+}
+
 # Definiere alle verfügbaren Badges
 ACHIEVEMENT_DEFINITIONS = {
     # Tägliche Punkte Badges
@@ -49,7 +59,7 @@ ACHIEVEMENT_DEFINITIONS = {
     },
     
     # Wöchentliche Punkte Badges
-    "weekly_50": {
+    "weekly_100": {
         "name": "Wochenkrieger ⚔️",
         "description": "100 Punkte in einer Woche erreicht",
         "category": "weekly",
@@ -57,7 +67,7 @@ ACHIEVEMENT_DEFINITIONS = {
         "emoji": "⚔️",
         "rarity": "uncommon"
     },
-    "weekly_100": {
+    "weekly_200": {
         "name": "Wochenmeister 🎯",
         "description": "200 Punkte in einer Woche erreicht",
         "category": "weekly",
@@ -251,20 +261,32 @@ class AchievementSystem:
                 json.dump({}, f)
     
     def load_badges(self):
-        """Lade alle User-Badges"""
+        """Lade alle User-Badges über data_persistence"""
         try:
-            with open(self.badges_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return {}
+            from data_persistence import data_persistence
+            return data_persistence.load_badges()
+        except Exception as e:
+            print(f"Fehler beim Laden der Badges über data_persistence: {e}")
+            # Fallback: Direkt laden
+            try:
+                with open(self.badges_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                return {}
     
     def save_badges(self, badges_data):
-        """Speichere User-Badges"""
+        """Speichere User-Badges über data_persistence für Deployment-Sicherheit"""
         try:
-            with open(self.badges_file, "w", encoding="utf-8") as f:
-                json.dump(badges_data, f, ensure_ascii=False, indent=2)
+            from data_persistence import data_persistence
+            data_persistence.save_user_badges(badges_data)
         except Exception as e:
             print(f"Fehler beim Speichern der Badges: {e}")
+            # Fallback: Direkt speichern falls data_persistence nicht verfügbar
+            try:
+                with open(self.badges_file, "w", encoding="utf-8") as f:
+                    json.dump(badges_data, f, ensure_ascii=False, indent=2)
+            except Exception as e2:
+                print(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
     
     def load_mvp_badges(self):
         """Lade MVP-Badges"""
@@ -275,58 +297,77 @@ class AchievementSystem:
             return {}
     
     def save_mvp_badges(self, mvp_data):
-        """Speichere MVP-Badges"""
+        """Speichere MVP-Badges über data_persistence für Deployment-Sicherheit"""
         try:
+            from data_persistence import data_persistence
+            # MVP badges werden als Teil der normalen badges gespeichert
+            # oder wir können eine separate MVP-Speicherfunktion hinzufügen
             with open(self.mvp_file, "w", encoding="utf-8") as f:
                 json.dump(mvp_data, f, ensure_ascii=False, indent=2)
+            # Backup über data_persistence erstellen
+            data_persistence._create_backup("mvp_badges.json", mvp_data)
         except Exception as e:
             print(f"Fehler beim Speichern der MVP-Badges: {e}")
     
     def load_daily_stats(self):
-        """Lade tägliche User-Statistiken"""
+        """Lade tägliche User-Statistiken über data_persistence"""
         try:
-            with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return {}
+            from data_persistence import data_persistence
+            return data_persistence.load_daily_user_stats()
+        except Exception as e:
+            print(f"Fehler beim Laden der Daily Stats über data_persistence: {e}")
+            # Fallback: Direkt laden
+            try:
+                with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                return {}
     
     def save_daily_stats(self, stats_data):
-        """Speichere tägliche User-Statistiken"""
+        """Speichere tägliche User-Statistiken über data_persistence"""
         try:
-            with open("static/daily_user_stats.json", "w", encoding="utf-8") as f:
-                json.dump(stats_data, f, ensure_ascii=False, indent=2)
+            from data_persistence import data_persistence
+            data_persistence.save_daily_user_stats(stats_data)
         except Exception as e:
             print(f"Fehler beim Speichern der Stats: {e}")
+            # Fallback: Direkt speichern
+            try:
+                with open("static/daily_user_stats.json", "w", encoding="utf-8") as f:
+                    json.dump(stats_data, f, ensure_ascii=False, indent=2)
+            except Exception as e2:
+                print(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
     
     def add_points_and_check_achievements(self, user, points):
         """
-        Erweitert die bestehende add_points_to_user Funktion
-        Prüft automatisch auf neue Achievements
+        Prüft auf neue Achievements OHNE Punkte zu vergeben
+        (Punkte werden bereits vom aufrufenden System vergeben)
         """
         try:
             from data_persistence import data_persistence
             
-            # Lade aktuelle Daten
+            # Lade aktuelle Daten (Punkte sind bereits gespeichert)
             scores = data_persistence.load_scores()
             daily_stats = data_persistence.load_daily_user_stats()
             badges_data = self.load_badges()
             
-            # Update Scores
+            # Setup für Daily Stats (ohne Punkte zu ändern)
             month = datetime.now(TZ).strftime("%Y-%m")
             today = datetime.now(TZ).strftime("%Y-%m-%d")
             
+            # Stelle sicher dass User in scores existiert (ohne Punkte zu ändern)
             if user not in scores:
                 scores[user] = {}
             if month not in scores[user]:
                 scores[user][month] = 0
-            scores[user][month] += points
+            # ENTFERNT: scores[user][month] += points  # ← Das war das Problem!
             
-            # Update Daily Stats
+            # Update Daily Stats (only track activity, not add points again)
             if user not in daily_stats:
                 daily_stats[user] = {}
             if today not in daily_stats[user]:
                 daily_stats[user][today] = {"points": 0, "bookings": 0, "first_booking": False}
             
+            # Track points for this booking (for daily stats, but don't double-add)
             daily_stats[user][today]["points"] += points
             daily_stats[user][today]["bookings"] += 1
             
@@ -334,8 +375,7 @@ class AchievementSystem:
             if not daily_stats[user][today].get("first_booking", False):
                 daily_stats[user][today]["first_booking"] = True
             
-            # Speichere Updates
-            data_persistence.save_scores(scores)
+            # Speichere nur Daily Stats Updates (Scores werden bereits vom aufrufenden System gespeichert)
             data_persistence.save_daily_user_stats(daily_stats)
             
             # Prüfe auf neue Badges
@@ -376,7 +416,8 @@ class AchievementSystem:
         
         # 3. Monatliche Punkte Badges
         user_scores = scores.get(user, {})
-        month_points = sum(user_scores.values())
+        current_month = datetime.now(TZ).strftime("%Y-%m")
+        month_points = user_scores.get(current_month, 0)
         for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
             if definition["category"] == "monthly" and "threshold" in definition:
                 if month_points >= definition["threshold"]:
@@ -385,7 +426,7 @@ class AchievementSystem:
                         new_badges.append(new_badge)
         
         # 4. Gesamtpunkte Badges
-        total_points = sum(sum(month_scores.values()) for month_scores in scores.values())
+        total_points = sum(user_scores.values())
         for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
             if definition["category"] == "total" and "threshold" in definition:
                 if total_points >= definition["threshold"]:

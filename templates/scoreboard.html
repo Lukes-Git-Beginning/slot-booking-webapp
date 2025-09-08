@@ -163,6 +163,37 @@
       min-width: 120px;
     }
     
+    .level-cell {
+      text-align: center;
+      min-width: 100px;
+      padding: 10px 15px;
+    }
+    
+    .level-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    .level-number {
+      font-size: 24px;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--accent), #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    
+    .level-title {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
     /* Tab Navigation */
     .tabs {
       display: flex;
@@ -431,6 +462,7 @@
             <tr>
               <th>Rang</th>
               <th>Spieler</th>
+              <th>Level</th>
               <th>Badges</th>
               <th>Punkte</th>
             </tr>
@@ -453,6 +485,14 @@
                   <div>
                     <div class="player-name">{{ player[0] }}</div>
                   </div>
+                </div>
+              </td>
+              
+              <td class="level-cell">
+                {% set user_level = user_levels.get(player[0], {}) %}
+                <div class="level-display">
+                  <div class="level-number">{{ user_level.get('level', 1) }}</div>
+                  <div class="level-title">{{ user_level.get('level_title', 'Anfänger') }}</div>
                 </div>
               </td>
               
