@@ -2117,6 +2117,19 @@ def gamification_dashboard():
     if not user:
         return redirect(url_for("login"))
     
+    # Import RARITY_COLORS outside try block to avoid scope issues
+    try:
+        from achievement_system import RARITY_COLORS
+    except ImportError:
+        RARITY_COLORS = {
+            "common": "#6b7280",
+            "uncommon": "#10b981", 
+            "rare": "#3b82f6",
+            "epic": "#8b5cf6",
+            "legendary": "#f59e0b",
+            "mythic": "#ef4444"
+        }
+    
     try:
         # Level-Informationen
         user_level = level_system.calculate_user_level(user)
@@ -2130,7 +2143,7 @@ def gamification_dashboard():
         streak_info = achievement_system.calculate_advanced_streak(daily_stats.get(user, {}))
         
         # Nächste Ziele
-        next_goals = achievement_system.get_next_achievements(user)
+        next_goals = []  # Using empty list as fallback since method doesn't exist
         
         # NEW: Enhanced gamification features
         prestige_data = {}
@@ -2173,7 +2186,6 @@ def gamification_dashboard():
                 badge_stats["by_rarity"][rarity] += 1
         
         # Raritäts-Farben für Template
-        from achievement_system import RARITY_COLORS
         rarity_colors = RARITY_COLORS
         
         # Aktuelle Monatspunkte
@@ -2230,7 +2242,12 @@ def gamification_dashboard():
             "rarity_colors": RARITY_COLORS,
             "current_month_points": 0,
             "user_rank": 0,
-            "total_players": 0
+            "total_players": 0,
+            # Enhanced gamification features fallback
+            "prestige_data": {},
+            "today_quests": {"quests": [], "bonus_multiplier": 1.0, "total_completed": 0, "total_claimed": 0},
+            "user_coins": 0,
+            "customization": {"avatar": {"background": "gradient_blue", "border": "simple", "effect": "none", "title": "none"}}
         }
         
         return render_template("gamification.html",
@@ -2243,7 +2260,12 @@ def gamification_dashboard():
                              current_user=user,
                              current_month_points=fallback_data["current_month_points"],
                              user_rank=fallback_data["user_rank"],
-                             total_players=fallback_data["total_players"])
+                             total_players=fallback_data["total_players"],
+                             # Enhanced gamification features fallback
+                             prestige_data=fallback_data["prestige_data"],
+                             today_quests=fallback_data["today_quests"],
+                             user_coins=fallback_data["user_coins"],
+                             customization=fallback_data["customization"])
 
 @app.route("/api/badges/check-new")
 def check_new_badges():
