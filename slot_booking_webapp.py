@@ -2036,6 +2036,15 @@ def api_user_badges():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/user/<username>/badges")
+def api_user_badges_by_username(username):
+    """API Endpoint für Badge-Daten eines bestimmten Users (für Scoreboard)"""
+    try:
+        user_badges = achievement_system.get_user_badges(username)
+        return jsonify(user_badges)
+    except Exception as e:
+        return jsonify({"error": str(e), "badges": []}), 200  # Return empty badges on error
+
 @app.route("/api/user/badges/mark-seen", methods=["POST"])
 def api_mark_badges_seen():
     """Markiere neue Badges als gesehen"""
