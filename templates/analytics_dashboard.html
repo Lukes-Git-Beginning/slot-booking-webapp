@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics Dashboard - {{ current_user }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .analytics-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .insight-card {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .insight-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.1);
+        }
+        
+        .insight-card h3 {
+            margin: 0 0 20px 0;
+            color: var(--accent);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .metric-large {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--text-color);
+            margin: 10px 0;
+            line-height: 1;
+        }
+        
+        .metric-label {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .trend-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .trend-up {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .trend-down {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .trend-stable {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+        }
+        
+        .behavior-insights {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+        }
+        
+        .user-type-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 15px 0;
+        }
+        
+        .motivation-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .motivation-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .motivation-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .predictions-section {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 30px;
+            border-radius: var(--radius-lg);
+            margin: 30px 0;
+        }
+        
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+        
+        .prediction-label {
+            font-weight: 500;
+        }
+        
+        .prediction-value {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .recommendations {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .recommendation-category {
+            margin: 25px 0;
+        }
+        
+        .recommendation-category h4 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .recommendation-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .recommendation-list li {
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255,255,255,0.03);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--accent);
+        }
+        
+        .recommendation-list li.high-priority {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+        
+        .recommendation-list li.medium-priority {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+        
+        .stats-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .comparison-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: var(--radius-md);
+        }
+        
+        .comparison-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        
+        .comparison-label {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        
+        .pattern-visualization {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin: 20px 0;
+        }
+        
+        .pattern-day {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .pattern-day.active {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .pattern-day.inactive {
+            background: rgba(255,255,255,0.1);
+            color: var(--muted);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0;
+            background: var(--box-bg);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            margin-bottom: 30px;
+            border: 1px solid var(--box-border);
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--muted);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-button.active {
+            background: var(--accent);
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .achievement-progress-viz {
+            margin: 20px 0;
+        }
+        
+        .achievement-bar {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 15px;
+        }
+        
+        .achievement-name {
+            min-width: 120px;
+            font-size: 13px;
+            color: var(--text-color);
+        }
+        
+        .achievement-progress-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .achievement-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .achievement-percentage {
+            min-width: 40px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="analytics-container">
+        
+        <!-- Header -->
+        <div class="glass panel">
+            <h1><i class="ti ti-chart-line"></i> Analytics Dashboard</h1>
+            <p>Detaillierte Einblicke in deine Performance und Verhaltensmuster</p>
+            
+            <a href="{{ url_for('gamification') }}" style="color: var(--accent); text-decoration: none;">
+                ← Zurück zum Dashboard
+            </a>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('overview')">
+                📊 Überblick
+            </button>
+            <button class="tab-button" onclick="switchTab('patterns')">
+                🔍 Muster
+            </button>
+            <button class="tab-button" onclick="switchTab('predictions')">
+                🔮 Prognosen
+            </button>
+            <button class="tab-button" onclick="switchTab('recommendations')">
+                💡 Empfehlungen
+            </button>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overview-tab" class="tab-content active">
+            
+            <!-- Key Metrics -->
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <h3><i class="ti ti-activity"></i> Aktivität</h3>
+                    <div class="metric-large">{{ analytics.overview.total_days_active or 0 }}</div>
+                    <div class="metric-label">Aktive Tage</div>
+                    <div class="stats-comparison">
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.overview.average_daily_bookings or 0 }}</div>
+                            <div class="comparison-label">Ø Buchungen/Tag</div>
+                        </div>
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.overview.activity_level or "Niedrig" }}</div>
+                            <div class="comparison-label">Aktivitätslevel</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <h3><i class="ti ti-flame"></i> Streaks</h3>
+                    <div class="metric-large">{{ analytics.overview.current_streak or 0 }}</div>
+                    <div class="metric-label">Aktuelle Streak</div>
+                    <div class="stats-comparison">
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.overview.longest_streak or 0 }}</div>
+                            <div class="comparison-label">Beste Streak</div>
+                        </div>
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.overview.consistency_rating or "Gut" }}</div>
+                            <div class="comparison-label">Konsistenz</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <h3><i class="ti ti-target"></i> Effizienz</h3>
+                    <div class="metric-large">{{ analytics.overview.efficiency_score or 0 }}%</div>
+                    <div class="metric-label">Effizienz-Score</div>
+                    <div class="stats-comparison">
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.overview.peak_activity_time or "10:00" }}</div>
+                            <div class="comparison-label">Peak-Zeit</div>
+                        </div>
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.overview.peak_activity_day or "Montag" }}</div>
+                            <div class="comparison-label">Peak-Tag</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="insight-card behavior-insights">
+                    <h3><i class="ti ti-brain"></i> Behavioral Insights</h3>
+                    <div class="user-type-badge">{{ analytics.behavioral_insights.user_type or "Balanced User" }}</div>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">Motivationsfaktoren:</h4>
+                    <ul class="motivation-list">
+                        {% for driver in analytics.behavioral_insights.motivation_drivers or [] %}
+                        <li><i class="ti ti-spark"></i> {{ driver }}</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <div style="margin-top: 20px;">
+                        <strong>Engagement Pattern:</strong> {{ analytics.behavioral_insights.engagement_pattern or "Regular" }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Trends Chart -->
+            <div class="insight-card">
+                <h3><i class="ti ti-trending-up"></i> Performance Trends</h3>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <div style="display: flex; gap: 20px; margin-top: 15px;">
+                    <div class="trend-indicator {{ 'trend-up' if analytics.performance_trends.points_trend == 'improving' else 'trend-down' if analytics.performance_trends.points_trend == 'declining' else 'trend-stable' }}">
+                        <i class="ti ti-trending-{{ 'up' if analytics.performance_trends.points_trend == 'improving' else 'down' if analytics.performance_trends.points_trend == 'declining' else 'up' }}"></i>
+                        Punkte {{ analytics.performance_trends.points_trend or 'stable' }}
+                    </div>
+                    <div class="trend-indicator {{ 'trend-up' if analytics.performance_trends.booking_trend == 'improving' else 'trend-down' if analytics.performance_trends.booking_trend == 'declining' else 'trend-stable' }}">
+                        <i class="ti ti-calendar"></i>
+                        Buchungen {{ analytics.performance_trends.booking_trend or 'stable' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Patterns Tab -->
+        <div id="patterns-tab" class="tab-content">
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <h3><i class="ti ti-clock"></i> Zeitpräferenzen</h3>
+                    <h4>Bevorzugte Uhrzeiten:</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0;">
+                        {% for time in analytics.booking_patterns.preferred_times or [] %}
+                        <span style="background: var(--accent); color: white; padding: 6px 12px; border-radius: 15px; font-size: 13px;">{{ time }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <h4>Bevorzugte Wochentage:</h4>
+                    <div class="pattern-visualization">
+                        {% for day in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
+                        <div class="pattern-day {{ 'active' if day[:2] in (analytics.booking_patterns.preferred_days or [])|map('slice', 0, 2) else 'inactive' }}">
+                            {{ day }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <h3><i class="ti ti-gauge"></i> Buchungsverhalten</h3>
+                    <div class="metric-large">{{ analytics.booking_patterns.booking_velocity or "Normal" }}</div>
+                    <div class="metric-label">Buchungsgeschwindigkeit</div>
+                    
+                    <div class="stats-comparison">
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.booking_patterns.advance_booking_days or 0 }}</div>
+                            <div class="comparison-label">Ø Vorlaufzeit (Tage)</div>
+                        </div>
+                        <div class="comparison-item">
+                            <div class="comparison-value">{{ analytics.booking_patterns.consistency_score|round or 0 }}%</div>
+                            <div class="comparison-label">Konsistenz-Score</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <h3><i class="ti ti-calendar-stats"></i> Saisonale Muster</h3>
+                    <div class="chart-container">
+                        <canvas id="seasonalChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="insight-card">
+                    <h3><i class="ti ti-award"></i> Achievement-Analyse</h3>
+                    <div class="metric-large">{{ analytics.achievements_analysis.completion_rate or 0 }}%</div>
+                    <div class="metric-label">Abschlussquote</div>
+                    
+                    <h4 style="margin-top: 20px;">Lieblingskategorien:</h4>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0;">
+                        {% for category in analytics.achievements_analysis.favorite_categories or [] %}
+                        <span style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent); padding: 4px 10px; border-radius: 12px; font-size: 12px;">{{ category|title }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="achievement-progress-viz">
+                        {% for rec in analytics.achievements_analysis.next_recommendations[:5] or [] %}
+                        <div class="achievement-bar">
+                            <div class="achievement-name">{{ rec.name[:15] + '...' if rec.name|length > 15 else rec.name }}</div>
+                            <div class="achievement-progress-bar">
+                                <div class="achievement-progress-fill" style="width: {{ rec.progress_percent }}%"></div>
+                            </div>
+                            <div class="achievement-percentage">{{ rec.progress_percent|round }}%</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Predictions Tab -->
+        <div id="predictions-tab" class="tab-content">
+            <div class="predictions-section">
+                <h2><i class="ti ti-crystal-ball"></i> Zukunftsprognosen</h2>
+                <p>Basierend auf deinen bisherigen Daten und Mustern</p>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Nächstes Level erreicht in:</div>
+                    <div class="prediction-value">{{ analytics.predictions.next_level_eta or "Unbekannt" }}</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Nächstes Badge erreichbar in:</div>
+                    <div class="prediction-value">{{ analytics.predictions.next_badge_eta or "Unbekannt" }}</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Monatliche Punkte-Prognose:</div>
+                    <div class="prediction-value">{{ analytics.predictions.monthly_points_forecast or 0 }} Punkte</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Streak-Überlebenswahrscheinlichkeit:</div>
+                    <div class="prediction-value">{{ analytics.predictions.streak_survival_probability or 0 }}%</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Performance-Trajektorie:</div>
+                    <div class="prediction-value">
+                        {% if analytics.predictions.performance_trajectory == 'improving' %}
+                        📈 Verbessernd
+                        {% elif analytics.predictions.performance_trajectory == 'declining' %}
+                        📉 Abnehmend
+                        {% else %}
+                        📊 Stabil
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Peer Comparison -->
+            <div class="insight-card">
+                <h3><i class="ti ti-users"></i> Vergleich mit anderen</h3>
+                <div class="stats-comparison">
+                    <div class="comparison-item">
+                        <div class="comparison-value">#{{ analytics.comparisons.ranking_position or "?" }}</div>
+                        <div class="comparison-label">Deine Position</div>
+                    </div>
+                    <div class="comparison-item">
+                        <div class="comparison-value">{{ analytics.comparisons.percentile or 0 }}%</div>
+                        <div class="comparison-label">Percentile</div>
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 20px;">Überdurchschnittliche Bereiche:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    {% for area in analytics.comparisons.above_average_areas or [] %}
+                    <li style="padding: 5px 0; color: var(--green);"><i class="ti ti-check"></i> {{ area }}</li>
+                    {% endfor %}
+                </ul>
+                
+                <h4>Verbesserungsmöglichkeiten:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    {% for opp in analytics.comparisons.improvement_opportunities or [] %}
+                    <li style="padding: 5px 0; color: var(--muted);"><i class="ti ti-arrow-up"></i> {{ opp }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Recommendations Tab -->
+        <div id="recommendations-tab" class="tab-content">
+            <div class="recommendations">
+                <h2><i class="ti ti-bulb"></i> Personalisierte Empfehlungen</h2>
+                <p>Maßgeschneiderte Tipps um deine Performance zu verbessern</p>
+                
+                <div class="recommendation-category">
+                    <h4><i class="ti ti-zap"></i> Sofortige Maßnahmen</h4>
+                    <ul class="recommendation-list">
+                        {% for action in analytics.recommendations.immediate_actions or [] %}
+                        <li class="{{ action.priority }}-priority">
+                            <strong>{{ action.title }}</strong><br>
+                            <span style="color: var(--muted); font-size: 14px;">{{ action.description }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="recommendation-category">
+                    <h4><i class="ti ti-calendar-week"></i> Wöchentliche Ziele</h4>
+                    <ul class="recommendation-list">
+                        {% for goal in analytics.recommendations.weekly_goals or [] %}
+                        <li>{{ goal }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="recommendation-category">
+                    <h4><i class="ti ti-settings"></i> Optimierungstipps</h4>
+                    <ul class="recommendation-list">
+                        {% for tip in analytics.recommendations.optimization_tips or [] %}
+                        <li>{{ tip }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="recommendation-category">
+                    <h4><i class="ti ti-gamepad-2"></i> Gamification-Fokus</h4>
+                    <ul class="recommendation-list">
+                        {% for focus in analytics.recommendations.gamification_focus or [] %}
+                        <li>{{ focus }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                {% if analytics.predictions.recommended_actions %}
+                <div class="recommendation-category">
+                    <h4><i class="ti ti-route"></i> Empfohlene Aktionen</h4>
+                    <ul class="recommendation-list">
+                        {% for action in analytics.predictions.recommended_actions %}
+                        <li>{{ action }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
+            <a href="{{ url_for('gamification') }}" class="nav-btn">
+                <i class="ti ti-arrow-left"></i> Dashboard
+            </a>
+            <a href="{{ url_for('daily_quests') }}" class="nav-btn">
+                <i class="ti ti-target"></i> Quests
+            </a>
+            <a href="{{ url_for('prestige_dashboard') }}" class="nav-btn">
+                <i class="ti ti-star"></i> Prestige
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(tabName) {
+            // Alle Tabs deaktivieren
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Aktiven Tab aktivieren
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        // Performance Chart
+        const performanceCtx = document.getElementById('performanceChart');
+        if (performanceCtx) {
+            const weeklyData = {{ analytics.performance_trends.weekly_performance | tojson | safe }};
+            
+            new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: weeklyData.map(w => w.week),
+                    datasets: [{
+                        label: 'Wöchentliche Punkte',
+                        data: weeklyData.map(w => w.points),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Wöchentliche Buchungen',
+                        data: weeklyData.map(w => w.bookings),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: false,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f8fafc' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Seasonal Chart
+        const seasonalCtx = document.getElementById('seasonalChart');
+        if (seasonalCtx) {
+            const seasonalData = {{ analytics.booking_patterns.seasonal_patterns | tojson | safe }};
+            
+            new Chart(seasonalCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(seasonalData || {}),
+                    datasets: [{
+                        label: 'Buchungen pro Monat',
+                        data: Object.values(seasonalData || {}),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f8fafc' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Add nav-btn styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .nav-btn {
+                padding: 12px 24px;
+                background: var(--accent);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border: none;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .nav-btn:hover {
+                background: #3b82f6;
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

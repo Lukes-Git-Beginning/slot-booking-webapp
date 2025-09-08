@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Quests - {{ current_user }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+    
+    <style>
+        .quests-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .quest-card {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .quest-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        
+        .quest-card.completed {
+            border-color: var(--green);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        
+        .quest-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .quest-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quest-rarity {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .quest-rarity.common { background: rgba(16,185,129,0.2); color: #10b981; }
+        .quest-rarity.uncommon { background: rgba(59,130,246,0.2); color: #3b82f6; }
+        .quest-rarity.rare { background: rgba(139,92,246,0.2); color: #8b5cf6; }
+        .quest-rarity.epic { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .quest-rarity.legendary { background: rgba(234,179,8,0.2); color: #eab308; }
+        
+        .quest-description {
+            color: var(--muted);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .quest-progress {
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #3d8bfd);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .progress-fill.completed {
+            background: linear-gradient(90deg, var(--green), #059669);
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .quest-rewards {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .reward-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .quest-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .claim-btn {
+            padding: 10px 20px;
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .claim-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        
+        .claim-btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .claimed-badge {
+            padding: 6px 12px;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--green);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .minigame-section {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .minigame-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+            50% { transform: scale(1.1) rotate(180deg); opacity: 0.8; }
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border-radius: 50%;
+            border: 8px solid rgba(255,255,255,0.3);
+            background: conic-gradient(
+                #f59e0b 0deg 45deg,
+                #3b82f6 45deg 90deg,
+                #10b981 90deg 135deg,
+                #ec4899 135deg 180deg,
+                #8b5cf6 180deg 225deg,
+                #eab308 225deg 270deg,
+                #ef4444 270deg 315deg,
+                #6b7280 315deg 360deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        
+        .wheel-container:hover {
+            transform: scale(1.05);
+        }
+        
+        .wheel-center {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--accent);
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .coin-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin: 20px auto;
+            width: fit-content;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .spin-btn {
+            padding: 15px 30px;
+            background: rgba(255,255,255,0.9);
+            color: var(--accent);
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 20px;
+        }
+        
+        .spin-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .spin-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--radius-md);
+            display: none;
+        }
+        
+        .daily-bonus {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            color: white;
+        }
+        
+        .bonus-multiplier {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .quest-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="quests-container">
+        
+        <!-- Header -->
+        <div class="glass panel">
+            <h1><i class="ti ti-target"></i> Daily Quests</h1>
+            <p>Erfülle tägliche Herausforderungen und verdiene wertvolle Belohnungen!</p>
+            
+            <a href="{{ url_for('gamification') }}" style="color: var(--accent); text-decoration: none;">
+                ← Zurück zum Dashboard
+            </a>
+        </div>
+        
+        <!-- Daily Bonus -->
+        {% if bonus_multiplier > 1.0 %}
+        <div class="daily-bonus">
+            <h3>🎉 Tages-Bonus aktiv!</h3>
+            <div class="bonus-multiplier">{{ (bonus_multiplier * 100 - 100)|round|int }}% Extra Belohnungen</div>
+            <p>Heute ist dein Glückstag! Alle Quest-Belohnungen sind verstärkt.</p>
+        </div>
+        {% endif %}
+        
+        <!-- Quest Stats -->
+        <div class="quest-stats">
+            <div class="stat-card">
+                <div class="stat-value">{{ user_coins or 0 }}</div>
+                <div class="stat-label">💰 Coins</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_completed or 0 }}</div>
+                <div class="stat-label">✅ Abgeschlossen</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_claimed or 0 }}</div>
+                <div class="stat-label">🎁 Eingelöst</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ (quests|length) or 0 }}</div>
+                <div class="stat-label">🎯 Verfügbar</div>
+            </div>
+        </div>
+        
+        <!-- Daily Quests -->
+        <div class="glass panel">
+            <h2><i class="ti ti-calendar-check"></i> Heutige Quests</h2>
+            
+            {% if quests %}
+                {% for quest in quests %}
+                <div class="quest-card {% if quest.completed %}completed{% endif %}">
+                    <div class="quest-header">
+                        <div class="quest-title">
+                            {{ quest.title }}
+                        </div>
+                        <div class="quest-rarity {{ quest.rarity }}">{{ quest.rarity.title() }}</div>
+                    </div>
+                    
+                    <div class="quest-description">
+                        {{ quest.description }}
+                    </div>
+                    
+                    <div class="quest-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill {% if quest.completed %}completed{% endif %}" 
+                                 style="width: {{ quest.progress_percent }}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>{{ quest.progress }} / {{ quest.target }}</span>
+                            <span>{{ quest.progress_percent|round(1) }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="quest-rewards">
+                        {% if quest.rewards.xp %}
+                        <div class="reward-item">
+                            <span>⚡</span>
+                            <span>{{ quest.rewards.xp }} XP</span>
+                        </div>
+                        {% endif %}
+                        {% if quest.rewards.coins %}
+                        <div class="reward-item">
+                            <span>💰</span>
+                            <span>{{ quest.rewards.coins }} Coins</span>
+                        </div>
+                        {% endif %}
+                        {% if quest.rewards.points %}
+                        <div class="reward-item">
+                            <span>🎯</span>
+                            <span>{{ quest.rewards.points }} Punkte</span>
+                        </div>
+                        {% endif %}
+                        {% if quest.rewards.badge %}
+                        <div class="reward-item">
+                            <span>🎖️</span>
+                            <span>Badge</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="quest-actions">
+                        {% if quest.claimed %}
+                        <div class="claimed-badge">
+                            <i class="ti ti-check"></i>
+                            Belohnung eingelöst
+                        </div>
+                        {% elif quest.completed %}
+                        <button class="claim-btn" onclick="claimQuest('{{ quest.id }}')">
+                            <i class="ti ti-gift"></i>
+                            Belohnung einlösen
+                        </button>
+                        {% else %}
+                        <button class="claim-btn" disabled>
+                            <i class="ti ti-clock"></i>
+                            In Bearbeitung
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div style="text-align: center; padding: 60px; color: var(--muted);">
+                <i class="ti ti-target" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+                <h3>Keine Quests verfügbar</h3>
+                <p>Schaue später wieder vorbei für neue Herausforderungen!</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Mini-Game: Glücksrad -->
+        <div class="minigame-section">
+            <h2><i class="ti ti-dice"></i> Glücksrad</h2>
+            <p>Drehe das Rad des Glücks und gewinne fantastische Preise!</p>
+            
+            <div class="coin-display">
+                <span>💰</span>
+                <span id="currentCoins">{{ user_coins or 0 }}</span>
+                <span>Coins</span>
+            </div>
+            
+            <div class="wheel-container" id="wheelContainer" onclick="spinWheel()">
+                <div class="wheel-center">🎲</div>
+            </div>
+            
+            <button class="spin-btn" id="spinBtn" onclick="spinWheel()">
+                <i class="ti ti-rotate"></i>
+                Rad drehen (10 Coins)
+            </button>
+            
+            <div class="spin-result" id="spinResult">
+                <h3 id="resultTitle"></h3>
+                <p id="resultDescription"></p>
+            </div>
+            
+            <p style="font-size: 14px; opacity: 0.8; margin-top: 15px;">
+                💡 Tipp: Erfülle Quests um mehr Coins zu verdienen!
+            </p>
+        </div>
+        
+        <!-- Navigation -->
+        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
+            <a href="{{ url_for('gamification') }}" class="nav-btn">
+                <i class="ti ti-arrow-left"></i> Dashboard
+            </a>
+            <a href="{{ url_for('badges') }}" class="nav-btn">
+                <i class="ti ti-award"></i> Badges
+            </a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-btn">
+                <i class="ti ti-chart-bar"></i> Analytics
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        let isSpinning = false;
+        
+        async function claimQuest(questId) {
+            try {
+                const response = await fetch('/api/claim-quest', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({quest_id: questId})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    location.reload(); // Refresh to show updated state
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Fehler beim Einlösen der Belohnung', 'error');
+            }
+        }
+        
+        async function spinWheel() {
+            if (isSpinning) return;
+            
+            const currentCoins = parseInt(document.getElementById('currentCoins').textContent);
+            if (currentCoins < 10) {
+                showNotification('Nicht genug Coins! Du brauchst 10 Coins zum Drehen.', 'error');
+                return;
+            }
+            
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('spinResult').style.display = 'none';
+            
+            // Animation
+            const wheel = document.getElementById('wheelContainer');
+            wheel.style.transform = 'rotate(' + (Math.random() * 3600 + 720) + 'deg)';
+            wheel.style.transition = 'transform 3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+            
+            try {
+                const response = await fetch('/api/spin-wheel', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const result = await response.json();
+                
+                setTimeout(() => {
+                    if (result.success) {
+                        // Update coin display
+                        document.getElementById('currentCoins').textContent = result.remaining_coins;
+                        
+                        // Show result
+                        const resultDiv = document.getElementById('spinResult');
+                        document.getElementById('resultTitle').textContent = '🎉 ' + result.prize.name;
+                        document.getElementById('resultDescription').textContent = 'Du hast ' + result.prize.value + ' gewonnen!';
+                        resultDiv.style.display = 'block';
+                        resultDiv.style.background = result.prize.color + '20';
+                        
+                        showNotification('Gewonnen: ' + result.prize.name, 'success');
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                    
+                    isSpinning = false;
+                    document.getElementById('spinBtn').disabled = false;
+                }, 3000);
+                
+            } catch (error) {
+                showNotification('Fehler beim Drehen des Rades', 'error');
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+            }
+        }
+        
+        function showNotification(message, type) {
+            // Simple notification system
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                border-radius: 8px;
+                font-weight: 500;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            .nav-btn {
+                padding: 12px 24px;
+                background: var(--accent);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border: none;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .nav-btn:hover {
+                background: #3b82f6;
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
