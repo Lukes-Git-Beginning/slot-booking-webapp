@@ -184,18 +184,21 @@
             display: inline-block;
         }
         
-        /* Availability Level Colors */
+        /* Availability Level Colors - Dark Theme Friendly */
         .availability-high { 
-            background: #4caf50; 
-            color: white; 
+            background: #2e7d35; 
+            color: #e8f5e8; 
+            border: 1px solid #4caf50;
         }
         .availability-medium { 
-            background: #ff9800; 
-            color: white; 
+            background: #bf720b; 
+            color: #fff3e0; 
+            border: 1px solid #ff9800;
         }
         .availability-none { 
-            background: #f44336; 
-            color: white; 
+            background: #c62828; 
+            color: #ffebee; 
+            border: 1px solid #f44336;
         }
         
         .color-legend {
@@ -348,12 +351,12 @@
                                 
                                 <div class="calendar-event availability-{{ slot.availability_level }}" 
                                      style="top: {{ top_position }}px; height: {{ height }}px;"
-                                     title="Verfügbare Slots: {{ slot.slot_count }}{% if slot.available_consultants %} ({{ slot.available_consultants|join(', ') }}){% endif %}">
+                                     title="Verfügbare Berater: {{ slot.slot_count }}{% if slot.available_consultants %} ({{ slot.available_consultants|join(', ') }}){% endif %}">
                                     <div class="event-title">
                                         {% if slot.slot_count > 0 %}
-                                            {{ slot.slot_count }} Slots
+                                            {{ slot.slot_count }} Berater
                                         {% else %}
-                                            Keine Slots
+                                            Keine Berater
                                         {% endif %}
                                     </div>
                                     <div class="event-time">{{ slot.time }} - {{ slot.end_time.strftime('%H:%M') }}</div>
@@ -379,7 +382,7 @@
                     <div class="legend-color availability-high"></div>
                     <div class="legend-info">
                         <div class="legend-name">Hohe Verfügbarkeit</div>
-                        <div class="legend-desc">4+ Slots verfügbar (2-Stunden-Blöcke)</div>
+                        <div class="legend-desc">4+ Berater verfügbar (2-Stunden-Blöcke)</div>
                     </div>
                 </div>
                 
@@ -387,7 +390,7 @@
                     <div class="legend-color availability-medium"></div>
                     <div class="legend-info">
                         <div class="legend-name">Begrenzte Verfügbarkeit</div>
-                        <div class="legend-desc">1-3 Slots verfügbar</div>
+                        <div class="legend-desc">1-3 Berater verfügbar</div>
                     </div>
                 </div>
                 
@@ -395,7 +398,7 @@
                     <div class="legend-color availability-none"></div>
                     <div class="legend-info">
                         <div class="legend-name">Keine Verfügbarkeit</div>
-                        <div class="legend-desc">Keine Slots verfügbar</div>
+                        <div class="legend-desc">Keine Berater verfügbar</div>
                     </div>
                 </div>
             </div>
