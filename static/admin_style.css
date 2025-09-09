@@ -290,6 +290,12 @@ select {
   padding-right: 30px;
 }
 
+select option {
+  background: var(--input-bg);
+  color: var(--text-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
 label { 
   display: block; 
   margin: var(--spacing-xs) 0 var(--spacing-xs); 
