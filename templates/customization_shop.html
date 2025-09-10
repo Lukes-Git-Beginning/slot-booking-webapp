@@ -708,6 +708,20 @@
     </div>
     
     <script>
+        let pageIsActive = true;
+        
+        // Cleanup when leaving the page
+        window.addEventListener('beforeunload', function() {
+            pageIsActive = false;
+        });
+        
+        // Cleanup when navigating away
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                pageIsActive = false;
+            }
+        });
+        
         let currentCustomization = {
             background: '{{ customization.avatar.background }}',
             border: '{{ customization.avatar.border }}',
@@ -781,8 +795,9 @@
         }
         
         async function saveCustomization() {
+            if (!pageIsActive) return;
             try {
-                const response = await fetch('/api/update-customization', {
+                const response = await fetch('{{ url_for('gamification.api_update_customization') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -847,6 +862,7 @@
         }
         
         async function createGoal() {
+            if (!pageIsActive) return;
             const template = document.getElementById('goalTemplate').value;
             const target = parseInt(document.getElementById('goalTarget').value);
             
@@ -856,7 +872,7 @@
             }
             
             try {
-                const response = await fetch('/api/create-personal-goal', {
+                const response = await fetch('{{ url_for('gamification.api_create_personal_goal') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -880,8 +896,9 @@
         }
         
         async function claimGoalReward(goalId) {
+            if (!pageIsActive) return;
             try {
-                const response = await fetch('/api/claim-goal-reward', {
+                const response = await fetch('{{ url_for('gamification.api_claim_goal_reward') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({goal_id: goalId})

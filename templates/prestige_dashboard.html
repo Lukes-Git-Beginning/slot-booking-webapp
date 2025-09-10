@@ -605,13 +605,28 @@
     </div>
     
     <script>
+        let pageIsActive = true;
+        
+        // Cleanup when leaving the page
+        window.addEventListener('beforeunload', function() {
+            pageIsActive = false;
+        });
+        
+        // Cleanup when navigating away
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                pageIsActive = false;
+            }
+        });
+        
         async function performPrestige() {
+            if (!pageIsActive) return;
             if (!confirm('Bist du sicher? Ein Prestige setzt dein Level auf 1 zurück, gewährt aber mächtige Boni!')) {
                 return;
             }
             
             try {
-                const response = await fetch('/api/perform-prestige', {
+                const response = await fetch('{{ url_for('gamification.api_perform_prestige') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'}
                 });
@@ -630,8 +645,9 @@
         }
         
         async function upgradeMastery(categoryId) {
+            if (!pageIsActive) return;
             try {
-                const response = await fetch('/api/upgrade-mastery', {
+                const response = await fetch('{{ url_for('gamification.api_upgrade_mastery') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({category_id: categoryId})
