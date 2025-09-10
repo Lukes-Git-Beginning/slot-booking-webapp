@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Weekly Executive Summary - Week {{ report.meta.week }}</title>
+  <title>Wöchentliche Zusammenfassung - Woche {{ report.meta.week }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
@@ -236,9 +236,9 @@
     <!-- Report Header with Export Button -->
     <div class="report-header">
       <a href="{{ url_for('admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="export-btn-header">
-        📄 Export PDF
+        📄 PDF Exportieren
       </a>
-      <div class="report-title">Weekly Executive Summary</div>
+      <div class="report-title">Wöchentliche Zusammenfassung</div>
       <div class="report-subtitle">
         Week {{ report.meta.week }} ({{ report.meta.week_start }} - {{ report.meta.week_end }})
       </div>
@@ -251,7 +251,7 @@
         <div class="card-value {{ report.executive_summary.overall_status.color }}">
           {{ report.executive_summary.key_metrics.achievement_rate }}%
         </div>
-        <div class="card-label">Team Achievement</div>
+        <div class="card-label">Team-Leistung</div>
         <div class="status-indicator status-{{ report.executive_summary.overall_status.color }}">
           {{ report.executive_summary.overall_status.status }}
         </div>
@@ -260,18 +260,18 @@
       <div class="summary-card">
         <div class="card-icon">🎯</div>
         <div class="card-value blue">{{ report.executive_summary.key_metrics.total_points_achieved }}</div>
-        <div class="card-label">Points Achieved</div>
+        <div class="card-label">Erreichte Punkte</div>
         <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          of {{ report.executive_summary.key_metrics.total_points_goal }} target
+          von {{ report.executive_summary.key_metrics.total_points_goal }} Ziel
         </div>
       </div>
       
       <div class="summary-card">
         <div class="card-icon">👥</div>
         <div class="card-value blue">{{ report.performance_overview.team_distribution.high_performers }}</div>
-        <div class="card-label">High Performers</div>
+        <div class="card-label">Top-Performer</div>
         <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          {{ report.performance_overview.team_distribution.medium_performers }} medium, {{ report.performance_overview.team_distribution.low_performers }} need support
+          {{ report.performance_overview.team_distribution.medium_performers }} mittel, {{ report.performance_overview.team_distribution.low_performers }} brauchen Unterstützung
         </div>
       </div>
       
@@ -279,9 +279,9 @@
       <div class="summary-card">
         <div class="card-icon">🏖️</div>
         <div class="card-value yellow">{{ report.absence_analysis.absence_rate }}%</div>
-        <div class="card-label">Team Absent</div>
+        <div class="card-label">Team Abwesend</div>
         <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          {{ report.absence_analysis.total_absent }} people absent
+          {{ report.absence_analysis.total_absent }} Personen abwesend
         </div>
       </div>
       {% endif %}
@@ -291,7 +291,7 @@
     <div class="team-overview">
       <h3 style="margin-bottom: var(--spacing-md); display: flex; align-items: center;">
         <span style="margin-right: var(--spacing-sm);">👥</span>
-        Team Performance This Week
+        Team-Leistung Diese Woche
       </h3>
       
       <div class="team-grid">
@@ -302,38 +302,24 @@
               {{ user_stat.achieved }}/{{ user_stat.goal }}
             </div>
             <div class="member-status status-{{ 'green' if user_stat.balance >= 0 else 'yellow' if user_stat.balance >= -5 else 'red' }}">
-              {% if user_stat.on_vacation %}🏖️ Vacation{% elif user_stat.balance >= 0 %}✅ On Track{% elif user_stat.balance >= -5 %}⚠️ Behind{% else %}🚨 Action Needed{% endif %}
+              {% if user_stat.on_vacation %}🏖️ Urlaub{% elif user_stat.balance >= 0 %}✅ Im Plan{% elif user_stat.balance >= -5 %}⚠️ Rückstand{% else %}🚨 Handlung erforderlich{% endif %}
             </div>
           </div>
         {% endfor %}
       </div>
     </div>
     
-    <!-- Priority Actions -->
-    <div class="actions-section">
-      <h3 style="margin-bottom: var(--spacing-md); display: flex; align-items: center;">
-        <span style="margin-right: var(--spacing-sm);">🎯</span>
-        Priority Actions This Week
-      </h3>
-      
-      {% for action in report.action_items[:4] %}
-        <div class="action-item">
-          <span class="action-icon">{{ action[:2] }}</span>
-          <span>{{ action[2:] }}</span>
-        </div>
-      {% endfor %}
-    </div>
     
     <!-- Bottom Actions -->
     <div class="bottom-actions">
       <a href="{{ url_for('admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="btn btn-primary">
-        <i class="ti ti-download"></i> Export PDF Report
+        <i class="ti ti-download"></i> PDF-Bericht exportieren
       </a>
       <a href="{{ url_for('admin_reports_monthly') }}" class="btn btn-secondary">
-        <i class="ti ti-calendar"></i> View Monthly Report
+        <i class="ti ti-calendar"></i> Monatsbericht anzeigen
       </a>
       <a href="{{ url_for('admin_telefonie') }}" class="btn btn-secondary">
-        <i class="ti ti-arrow-left"></i> Back to Admin
+        <i class="ti ti-arrow-left"></i> Zurück zur Verwaltung
       </a>
     </div>
     
