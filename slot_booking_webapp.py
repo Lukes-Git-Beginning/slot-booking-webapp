@@ -39,6 +39,9 @@ from weekly_points import (
     record_activity,
     apply_pending,
     compute_week_stats,
+    set_vacation_period,
+    get_user_vacation_periods,
+    is_user_on_vacation,
     add_participant,
     remove_participant,
     set_on_vacation,
@@ -2519,6 +2522,20 @@ def admin_telefonie():
                 on_vacation = request.form.get("on_vacation") == "1"
                 set_on_vacation(target_week, target_user, on_vacation)
                 flash("Urlaubsstatus aktualisiert.", "success")
+                
+            elif action == "set_vacation_period":
+                start_date = request.form.get("start_date")
+                end_date = request.form.get("end_date") 
+                reason = request.form.get("reason", "Urlaub")
+                
+                if not start_date or not end_date:
+                    flash("Start- und End-Datum sind erforderlich.", "danger")
+                else:
+                    result = set_vacation_period(target_user, start_date, end_date, reason)
+                    if result["success"]:
+                        flash(result["message"], "success")
+                    else:
+                        flash(result["message"], "danger")
 
             return redirect(url_for("admin_telefonie", week=target_week))
         except Exception as e:
@@ -2663,6 +2680,116 @@ def admin_telefonie_export():
     except Exception as e:
         flash(f"❌ PDF Export Fehler: {e}", "danger")
         return redirect(url_for("admin_telefonie", week=week))
+
+@app.route("/admin/reports/weekly")
+@app.route("/admin/reports/weekly/<week_key>")
+def admin_reports_weekly(week_key=None):
+    """Executive Weekly Report"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        from executive_reports import ExecutiveReports
+        reports = ExecutiveReports()
+        report = reports.generate_weekly_executive_report(week_key)
+        return render_template("executive_weekly_report.html", report=report)
+    except Exception as e:
+        flash(f"❌ Fehler beim Generieren des Wochenberichts: {e}", "danger")
+        return redirect(url_for("admin_telefonie"))
+
+@app.route("/admin/reports/monthly")
+@app.route("/admin/reports/monthly/<int:year>/<int:month>")
+def admin_reports_monthly(year=None, month=None):
+    """Executive Monthly Report"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        from executive_reports import ExecutiveReports
+        reports = ExecutiveReports()
+        report = reports.generate_monthly_executive_report(year, month)
+        return render_template("executive_monthly_report.html", report=report)
+    except Exception as e:
+        flash(f"❌ Fehler beim Generieren des Monatsberichts: {e}", "danger")
+        return redirect(url_for("admin_telefonie"))
+
+@app.route("/admin/reports/export/<report_type>")
+def admin_telefonie_export_report(report_type):
+    """Export Executive Report as PDF"""
+    user = session.get("user")
+    if not is_admin(user):
+        flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
+        return redirect(url_for("login"))
+    
+    try:
+        from executive_reports import ExecutiveReports
+        import io
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from flask import Response
+        
+        reports = ExecutiveReports()
+        
+        if report_type == "weekly":
+            week = request.args.get("week")
+            report = reports.generate_weekly_executive_report(week)
+            title = f"Weekly Executive Report - Week {report['meta']['week']}"
+        elif report_type == "monthly":
+            year = request.args.get("year", type=int)
+            month = request.args.get("month", type=int)
+            report = reports.generate_monthly_executive_report(year, month)
+            title = f"Monthly Executive Report - {report['meta']['month_name']}"
+        else:
+            flash("❌ Ungültiger Report-Typ", "danger")
+            return redirect(url_for("admin_telefonie"))
+        
+        # Generate PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title_para = Paragraph(title, styles['Heading1'])
+        elements.append(title_para)
+        elements.append(Spacer(1, 20))
+        
+        # Executive Summary
+        summary_title = Paragraph("Executive Summary", styles['Heading2'])
+        elements.append(summary_title)
+        
+        summary_text = f"Achievement Rate: {report['executive_summary']['key_metrics'].get('achievement_rate', report['executive_summary']['key_metrics'].get('monthly_achievement_rate', 0))}%"
+        summary_para = Paragraph(summary_text, styles['Normal'])
+        elements.append(summary_para)
+        elements.append(Spacer(1, 10))
+        
+        # Status
+        status = report['executive_summary']['overall_status']['status']
+        status_para = Paragraph(f"Overall Status: {status}", styles['Normal'])
+        elements.append(status_para)
+        elements.append(Spacer(1, 20))
+        
+        # Build PDF
+        doc.build(elements)
+        buffer.seek(0)
+        pdf = buffer.read()
+        buffer.close()
+        
+        timestamp = datetime.now(TZ).strftime('%Y%m%d_%H%M')
+        filename = f"{report_type}_executive_report_{timestamp}.pdf"
+        
+        return Response(pdf, mimetype='application/pdf', headers={
+            'Content-Disposition': f'attachment; filename={filename}'
+        })
+        
+    except Exception as e:
+        flash(f"❌ PDF Export Fehler: {e}", "danger")
+        return redirect(url_for("admin_telefonie"))
 
 def run_achievement_check():
     """

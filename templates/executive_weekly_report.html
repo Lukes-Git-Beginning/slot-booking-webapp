@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Weekly Executive Report - Week {{ report.meta.week }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  
+  <style>
+    .executive-report {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--spacing-lg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .report-header {
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
+      color: white;
+      padding: var(--spacing-xl);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-xl);
+      text-align: center;
+    }
+    
+    .report-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .report-subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    
+    .executive-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+    }
+    
+    .executive-card {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .executive-card.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    
+    .card-icon {
+      font-size: 24px;
+      margin-right: var(--spacing-sm);
+    }
+    
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: auto;
+    }
+    
+    .status-green {
+      background: rgba(16,185,129,0.2);
+      color: #10b981;
+    }
+    
+    .status-yellow {
+      background: rgba(234,179,8,0.2);
+      color: #eab308;
+    }
+    
+    .status-red {
+      background: rgba(239,68,68,0.2);
+      color: #ef4444;
+    }
+    
+    .metric-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .metric-label {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .highlights-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .highlights-list li {
+      padding: var(--spacing-xs) 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .highlights-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .performer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md);
+    }
+    
+    .performer-group {
+      text-align: center;
+      padding: var(--spacing-md);
+      border-radius: var(--radius-md);
+    }
+    
+    .performer-group.high {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    
+    .performer-group.medium {
+      background: rgba(234,179,8,0.1);
+      border: 1px solid rgba(234,179,8,0.3);
+    }
+    
+    .performer-group.low {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    
+    .performer-count {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .performer-group.high .performer-count { color: #10b981; }
+    .performer-group.medium .performer-count { color: #eab308; }
+    .performer-group.low .performer-count { color: #ef4444; }
+    
+    .performer-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+    
+    .performer-list {
+      margin-top: var(--spacing-sm);
+      font-size: 12px;
+    }
+    
+    .performer-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+      font-size: 11px;
+    }
+    
+    .action-items {
+      margin-top: var(--spacing-md);
+    }
+    
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .action-item:last-child {
+      border-bottom: none;
+    }
+    
+    .action-icon {
+      margin-right: var(--spacing-sm);
+      margin-top: 2px;
+    }
+    
+    .trends-chart {
+      height: 250px;
+      margin-top: var(--spacing-md);
+    }
+    
+    .export-actions {
+      margin-top: var(--spacing-xl);
+      text-align: center;
+      padding-top: var(--spacing-lg);
+      border-top: 1px solid var(--box-border);
+    }
+    
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--spacing-sm) var(--spacing-lg);
+      margin: 0 var(--spacing-sm);
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(90,177,255,0.3);
+    }
+    
+    .export-btn i {
+      margin-right: var(--spacing-xs);
+    }
+    
+    @media print {
+      .export-actions {
+        display: none;
+      }
+      
+      .executive-report {
+        padding: 20px;
+      }
+      
+      .report-header {
+        background: #f8f9fa !important;
+        color: #333 !important;
+        border: 1px solid #ddd;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .executive-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .performer-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .metric-value {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="executive-report">
+    
+    <!-- Report Header -->
+    <div class="report-header">
+      <div class="report-title">📊 Weekly Executive Report</div>
+      <div class="report-subtitle">
+        Week {{ report.meta.week }} ({{ report.meta.week_start }} - {{ report.meta.week_end }}) | 
+        Generated: {{ report.meta.generated_at }}
+      </div>
+    </div>
+    
+    <!-- Executive Summary -->
+    <div class="executive-grid">
+      <div class="executive-card">
+        <div class="card-header">
+          <span class="card-icon">🎯</span>
+          Overall Performance
+          <span class="status-indicator status-{{ report.executive_summary.overall_status.color }}">
+            {{ report.executive_summary.overall_status.icon }} {{ report.executive_summary.overall_status.status }}
+          </span>
+        </div>
+        
+        <div class="metric-value">{{ report.executive_summary.key_metrics.achievement_rate }}%</div>
+        <div class="metric-label">Team Achievement Rate</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+          <div>
+            <div style="font-size: 20px; font-weight: 600; color: var(--green);">
+              {{ report.executive_summary.key_metrics.total_points_achieved }}
+            </div>
+            <div style="font-size: 12px; color: var(--muted);">Points Achieved</div>
+          </div>
+          <div>
+            <div style="font-size: 20px; font-weight: 600; color: var(--muted);">
+              {{ report.executive_summary.key_metrics.total_points_goal }}
+            </div>
+            <div style="font-size: 12px; color: var(--muted);">Target Points</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Team Distribution -->
+      <div class="executive-card">
+        <div class="card-header">
+          <span class="card-icon">👥</span>
+          Team Performance Distribution
+        </div>
+        
+        <div class="performer-grid">
+          <div class="performer-group high">
+            <div class="performer-count">{{ report.performance_overview.team_distribution.high_performers }}</div>
+            <div class="performer-label">High Performers</div>
+            <div class="performer-list">
+              {% for performer in report.performance_overview.performers.high[:3] %}
+                <div class="performer-item">
+                  <span>{{ performer.name }}</span>
+                  <span>{{ performer.rate }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="performer-group medium">
+            <div class="performer-count">{{ report.performance_overview.team_distribution.medium_performers }}</div>
+            <div class="performer-label">Medium Performers</div>
+            <div class="performer-list">
+              {% for performer in report.performance_overview.performers.medium[:3] %}
+                <div class="performer-item">
+                  <span>{{ performer.name }}</span>
+                  <span>{{ performer.rate }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="performer-group low">
+            <div class="performer-count">{{ report.performance_overview.team_distribution.low_performers }}</div>
+            <div class="performer-label">Need Support</div>
+            <div class="performer-list">
+              {% for performer in report.performance_overview.performers.low[:3] %}
+                <div class="performer-item">
+                  <span>{{ performer.name }}</span>
+                  <span>{{ performer.rate }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Highlights and Trends -->
+    <div class="executive-grid">
+      <div class="executive-card">
+        <div class="card-header">
+          <span class="card-icon">⭐</span>
+          Key Highlights
+        </div>
+        <ul class="highlights-list">
+          {% for highlight in report.executive_summary.highlights %}
+            <li>{{ highlight }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      
+      <div class="executive-card">
+        <div class="card-header">
+          <span class="card-icon">📈</span>
+          Performance Trends
+          {% if report.trends_analysis.trend_direction == 'improving' %}
+            <span class="status-indicator status-green">📈 Improving</span>
+          {% elif report.trends_analysis.trend_direction == 'declining' %}
+            <span class="status-indicator status-red">📉 Declining</span>
+          {% else %}
+            <span class="status-indicator status-yellow">➡️ Stable</span>
+          {% endif %}
+        </div>
+        
+        <div class="metric-value">
+          {{ report.trends_analysis.average_performance }}%
+        </div>
+        <div class="metric-label">4-Week Average Performance</div>
+        
+        {% if report.trends_analysis.trend_change != 0 %}
+        <div style="margin-top: var(--spacing-md);">
+          <span style="font-size: 16px; font-weight: 600; color: {{ 'var(--green)' if report.trends_analysis.trend_change > 0 else 'var(--red)' }};">
+            {{ '+' if report.trends_analysis.trend_change > 0 else '' }}{{ report.trends_analysis.trend_change }}%
+          </span>
+          <span style="color: var(--muted); margin-left: var(--spacing-xs);">vs. last week</span>
+        </div>
+        {% endif %}
+        
+        <canvas id="trendsChart" class="trends-chart"></canvas>
+      </div>
+    </div>
+    
+    <!-- Absence Analysis -->
+    {% if report.absence_analysis.total_absent > 0 %}
+    <div class="executive-card full-width">
+      <div class="card-header">
+        <span class="card-icon">🏖️</span>
+        Absence Analysis
+        <span class="status-indicator status-{{ 'green' if report.absence_analysis.impact == 'Low' else 'yellow' if report.absence_analysis.impact == 'Medium' else 'red' }}">
+          {{ report.absence_analysis.impact }} Impact
+        </span>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: var(--spacing-lg);">
+        <div>
+          <div class="metric-value">{{ report.absence_analysis.absence_rate }}%</div>
+          <div class="metric-label">Team Absence Rate</div>
+          <div style="margin-top: var(--spacing-md);">
+            <div style="font-size: 14px; color: var(--muted);">
+              {{ report.absence_analysis.total_absent }} of {{ report.meta.total_participants }} team members absent
+            </div>
+            <div style="font-size: 14px; color: var(--muted); margin-top: var(--spacing-xs);">
+              Status: {{ report.absence_analysis.operational_status }}
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <div style="font-weight: 600; margin-bottom: var(--spacing-sm);">Absent Team Members:</div>
+          {% for absent in report.absence_analysis.absent_users %}
+            <div style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <span>{{ absent.name }}</span>
+              <span style="color: var(--muted);">{{ absent.reason }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <!-- Action Items -->
+    <div class="executive-card full-width">
+      <div class="card-header">
+        <span class="card-icon">🎯</span>
+        Priority Action Items
+      </div>
+      
+      <div class="action-items">
+        {% for action in report.action_items %}
+          <div class="action-item">
+            <span class="action-icon">{{ action[:2] }}</span>
+            <span>{{ action[2:] }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Export Actions -->
+    <div class="export-actions">
+      <a href="{{ url_for('admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="export-btn">
+        <i class="ti ti-download"></i> Export PDF
+      </a>
+      <a href="{{ url_for('admin_telefonie') }}" class="export-btn" style="background: var(--muted);">
+        <i class="ti ti-arrow-left"></i> Back to Admin
+      </a>
+    </div>
+    
+  </div>
+  
+  <script>
+    // Trends Chart
+    const trendsData = {
+      labels: [{% for week_data in report.trends_analysis.weekly_data %}'Week {{ week_data.week }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Achievement Rate (%)',
+        data: [{% for week_data in report.trends_analysis.weekly_data %}{{ week_data.achievement_rate }}{% if not loop.last %}, {% endif %}{% endfor %}],
+        borderColor: 'rgba(90,177,255,1)',
+        backgroundColor: 'rgba(90,177,255,0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4
+      }]
+    };
+    
+    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+    new Chart(trendsCtx, {
+      type: 'line',
+      data: trendsData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

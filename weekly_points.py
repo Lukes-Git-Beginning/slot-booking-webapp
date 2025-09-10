@@ -300,3 +300,211 @@ def remove_participant(name: str) -> None:
     save_data(data)
 
 
+def reset_week_for_all_users(week_key: Optional[str] = None) -> Dict:
+    """
+    Automatischer Wochen-Reset für alle Teilnehmer.
+    Archiviert aktuelle Woche und initialisiert neue Woche.
+    """
+    if week_key is None:
+        week_key = get_week_key()
+    
+    data = load_data()
+    participants = data.get("participants", DEFAULT_PARTICIPANTS)
+    
+    # Archive current week data if it exists
+    archive_data = {}
+    if week_key in data["weeks"]:
+        archive_data = {
+            "archived_week": week_key,
+            "archived_at": datetime.now(TZ).isoformat(),
+            "participants_count": len(participants),
+            "week_data": data["weeks"][week_key]
+        }
+    
+    # Initialize new week for all participants
+    ensure_week(data, week_key)
+    reset_count = 0
+    
+    for participant in participants:
+        ensure_user_week(data, week_key, participant)
+        user_data = data["weeks"][week_key]["users"][participant]
+        
+        # Reset to clean state
+        user_data.update({
+            "goal_points": 0,
+            "on_vacation": False,
+            "vacation_periods": [],  # New: time-based vacation system
+            "activities": [],
+            "pending_activities": [],
+            "pending_goal": None,
+            "audit": [{
+                "type": "week_reset",
+                "by": "system",
+                "ts": datetime.now(TZ).isoformat(),
+                "note": f"Automated weekly reset for week {week_key}"
+            }]
+        })
+        reset_count += 1
+    
+    # Add reset metadata to week
+    data["weeks"][week_key]["reset_info"] = {
+        "reset_at": datetime.now(TZ).isoformat(),
+        "reset_by": "system",
+        "participants_reset": reset_count,
+        "archived_data": archive_data
+    }
+    
+    save_data(data)
+    
+    return {
+        "success": True,
+        "week": week_key,
+        "participants_reset": reset_count,
+        "archive_created": bool(archive_data),
+        "reset_timestamp": datetime.now(TZ).isoformat()
+    }
+
+
+def set_vacation_period(user: str, start_date: str, end_date: str, reason: str = "Urlaub") -> Dict:
+    """
+    Setzt Urlaubszeitraum für einen User (neue zeitbasierte Logik).
+    
+    Args:
+        user: Username
+        start_date: Start-Datum im Format "YYYY-MM-DD"
+        end_date: End-Datum im Format "YYYY-MM-DD" 
+        reason: Grund der Abwesenheit (Urlaub, Arzt/Zahnarzt, Krankheit, etc.)
+    """
+    try:
+        # Validate dates
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        
+        if start > end:
+            return {"success": False, "message": "Start-Datum muss vor End-Datum liegen"}
+        
+        data = load_data()
+        
+        # Get all affected weeks
+        current_date = start
+        affected_weeks = []
+        
+        while current_date <= end:
+            week_key = get_week_key(datetime.combine(current_date, time()))
+            affected_weeks.append(week_key)
+            current_date += timedelta(days=7 - current_date.weekday())  # Next Monday
+        
+        # Remove duplicates
+        affected_weeks = list(set(affected_weeks))
+        
+        # Update each affected week
+        for week_key in affected_weeks:
+            ensure_user_week(data, week_key, user)
+            user_data = data["weeks"][week_key]["users"][user]
+            
+            # Initialize vacation_periods if not exists (backward compatibility)
+            if "vacation_periods" not in user_data:
+                user_data["vacation_periods"] = []
+            
+            # Add new vacation period
+            vacation_period = {
+                "start": start_date,
+                "end": end_date,
+                "reason": reason,
+                "created_at": datetime.now(TZ).isoformat()
+            }
+            user_data["vacation_periods"].append(vacation_period)
+            
+            # Set legacy on_vacation flag for backward compatibility
+            user_data["on_vacation"] = True
+            
+            # Add audit entry
+            user_data.setdefault("audit", []).append({
+                "type": "vacation_set",
+                "start_date": start_date,
+                "end_date": end_date,
+                "reason": reason,
+                "by": "admin",
+                "ts": datetime.now(TZ).isoformat()
+            })
+        
+        save_data(data)
+        
+        return {
+            "success": True,
+            "message": f"Urlaubszeitraum für {user} gesetzt: {start_date} bis {end_date}",
+            "affected_weeks": affected_weeks,
+            "reason": reason
+        }
+        
+    except ValueError as e:
+        return {"success": False, "message": f"Ungültiges Datumsformat: {e}"}
+    except Exception as e:
+        return {"success": False, "message": f"Fehler beim Setzen des Urlaubs: {e}"}
+
+
+def is_user_on_vacation(user: str, check_date: Optional[datetime] = None) -> Dict:
+    """
+    Prüft ob User an einem bestimmten Datum im Urlaub ist.
+    
+    Returns: {
+        "on_vacation": bool,
+        "reason": str,
+        "period": dict or None
+    }
+    """
+    if check_date is None:
+        check_date = datetime.now(TZ)
+    
+    check_date_str = check_date.strftime("%Y-%m-%d")
+    week_key = get_week_key(check_date)
+    
+    data = load_data()
+    ensure_user_week(data, week_key, user)
+    user_data = data["weeks"][week_key]["users"][user]
+    
+    # Check new vacation_periods system
+    vacation_periods = user_data.get("vacation_periods", [])
+    for period in vacation_periods:
+        if period["start"] <= check_date_str <= period["end"]:
+            return {
+                "on_vacation": True,
+                "reason": period["reason"],
+                "period": period
+            }
+    
+    # Fallback to legacy on_vacation flag
+    if user_data.get("on_vacation", False):
+        return {
+            "on_vacation": True,
+            "reason": "Urlaub",
+            "period": None
+        }
+    
+    return {
+        "on_vacation": False,
+        "reason": None,
+        "period": None
+    }
+
+
+def get_user_vacation_periods(user: str) -> List[Dict]:
+    """Gibt alle Urlaubszeiträume eines Users zurück."""
+    data = load_data()
+    all_periods = []
+    
+    # Sammle Urlaubsperioden aus allen Wochen
+    for week_key, week_data in data["weeks"].items():
+        if user in week_data["users"]:
+            user_data = week_data["users"][user]
+            periods = user_data.get("vacation_periods", [])
+            for period in periods:
+                # Verhindere Duplikate (gleiche Periode kann in mehreren Wochen stehen)
+                if not any(p["start"] == period["start"] and p["end"] == period["end"] for p in all_periods):
+                    all_periods.append(period)
+    
+    # Sortiere nach Start-Datum
+    all_periods.sort(key=lambda x: x["start"])
+    return all_periods
+
+

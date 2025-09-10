@@ -26,7 +26,7 @@ def require_login(f):
     """Decorator für Login-Anforderung"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user' not in session:
+        if 'user' not in session or not session.get('user'):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -38,7 +38,9 @@ def require_login(f):
 def daily_quests():
     """Daily Quests Dashboard"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         
         # Hole User-Quests
         user_quests = daily_quest_system.get_user_daily_quests(user)
@@ -67,7 +69,9 @@ def daily_quests():
 def analytics_dashboard():
     """Advanced Analytics Dashboard"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         
         # Generiere oder lade Analytics
         analytics = analytics_system.get_user_analytics(user)
@@ -99,7 +103,9 @@ def analytics_dashboard():
 def prestige_dashboard():
     """Prestige & Mastery Dashboard"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         
         # Hole Prestige-Daten
         prestige_data = prestige_system.calculate_user_prestige(user)
@@ -136,7 +142,9 @@ def prestige_dashboard():
 def customization_shop():
     """Customization & Personalization Shop"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         
         # Hole User-Profil und Shop-Daten
         profile = personalization_system.load_user_profile(user)
@@ -170,7 +178,9 @@ def customization_shop():
 def api_claim_quest():
     """API: Quest-Belohnung einlösen"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         data = request.get_json()
         quest_id = data.get('quest_id')
         
@@ -189,7 +199,9 @@ def api_claim_quest():
 def api_spin_wheel():
     """API: Glücksrad drehen"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         result = daily_quest_system.spin_wheel(user)
         return jsonify(result)
         
@@ -202,7 +214,9 @@ def api_spin_wheel():
 def api_perform_prestige():
     """API: Prestige durchführen"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         result = prestige_system.perform_prestige(user)
         return jsonify(result)
         
@@ -215,7 +229,9 @@ def api_perform_prestige():
 def api_upgrade_mastery():
     """API: Mastery-Level upgraden"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         data = request.get_json()
         category_id = data.get('category_id')
         
@@ -234,7 +250,9 @@ def api_upgrade_mastery():
 def api_update_customization():
     """API: Avatar-Customization updaten"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         data = request.get_json()
         
         # Update Avatar-Customization
@@ -259,7 +277,9 @@ def api_update_customization():
 def api_create_personal_goal():
     """API: Persönliches Ziel erstellen"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         data = request.get_json()
         
         template = data.get('template')
@@ -280,7 +300,9 @@ def api_create_personal_goal():
 def api_claim_goal_reward():
     """API: Persönliches Ziel Belohnung einlösen"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         data = request.get_json()
         goal_id = data.get('goal_id')
         
@@ -299,7 +321,9 @@ def api_claim_goal_reward():
 def api_refresh_analytics():
     """API: Analytics neu generieren"""
     try:
-        user = session['user']
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
         analytics = analytics_system.get_user_analytics(user, force_refresh=True)
         return jsonify({"success": True, "analytics": analytics})
         
@@ -318,6 +342,29 @@ def api_user_badges(username):
     except Exception as e:
         print(f"Error in api_user_badges: {e}")
         return jsonify({"badges": [], "total_badges": 0})
+
+@gamification_bp.route('/api/user/<username>/avatar')
+@require_login
+def api_user_avatar(username):
+    """API: User-Avatar-Customization für Scoreboard laden"""
+    try:
+        customization = personalization_system.get_user_customization(username)
+        avatar_data = customization.get('avatar', {
+            "background": "gradient_blue",
+            "border": "simple", 
+            "effect": "none",
+            "title": "none"
+        })
+        return jsonify(avatar_data)
+        
+    except Exception as e:
+        print(f"Error in api_user_avatar: {e}")
+        return jsonify({
+            "background": "gradient_blue",
+            "border": "simple", 
+            "effect": "none",
+            "title": "none"
+        })
 
 # ===== QUEST PROGRESS UPDATES =====
 
