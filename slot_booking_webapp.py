@@ -76,6 +76,8 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 # ----------------- Extended Booking Configuration -----------------
 # Default consultants for fallback availability (beyond loaded availability window)
 DEFAULT_CONSULTANTS = ["Sara", "Patrick", "Dominik", "Tim", "Ann-Kathrin"]
+# Limited consultants for standard availability (max 2 advisors)
+DEFAULT_STANDARD_CONSULTANTS = ["Sara", "Patrick"]
 # Maximum weeks ahead for booking (12 weeks = ~3 months)
 MAX_BOOKING_WEEKS_AHEAD = 12
 # Business hours for default availability
@@ -314,8 +316,12 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
         if target_date < today:
             return []
         
-        # Return default consultant list
-        return DEFAULT_CONSULTANTS.copy()
+        # Exclude 9 AM slots on Monday through Thursday (weekday 0-3)
+        if hour == "09:00" and target_date.weekday() <= 3:  # Monday=0, Tuesday=1, Wednesday=2, Thursday=3
+            return []
+        
+        # Return limited consultant list for standard availability (max 2 advisors)
+        return DEFAULT_STANDARD_CONSULTANTS.copy()
         
     except (ValueError, TypeError):
         return []
