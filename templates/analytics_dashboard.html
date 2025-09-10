@@ -685,6 +685,20 @@
     </div>
     
     <script>
+        let pageIsActive = true;
+        
+        // Cleanup when leaving the page
+        window.addEventListener('beforeunload', function() {
+            pageIsActive = false;
+        });
+        
+        // Cleanup when navigating away
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                pageIsActive = false;
+            }
+        });
+        
         function switchTab(tabName) {
             // Alle Tabs deaktivieren
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));

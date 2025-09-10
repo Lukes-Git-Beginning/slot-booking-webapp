@@ -492,10 +492,24 @@
     
     <script>
         let isSpinning = false;
+        let pageIsActive = true;
+        
+        // Cleanup when leaving the page
+        window.addEventListener('beforeunload', function() {
+            pageIsActive = false;
+        });
+        
+        // Cleanup when navigating away
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                pageIsActive = false;
+            }
+        });
         
         async function claimQuest(questId) {
+            if (!pageIsActive) return;
             try {
-                const response = await fetch('/api/claim-quest', {
+                const response = await fetch('{{ url_for('gamification.api_claim_quest') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({quest_id: questId})
@@ -515,7 +529,7 @@
         }
         
         async function spinWheel() {
-            if (isSpinning) return;
+            if (isSpinning || !pageIsActive) return;
             
             const currentCoins = parseInt(document.getElementById('currentCoins').textContent);
             if (currentCoins < 10) {
@@ -533,7 +547,7 @@
             wheel.style.transition = 'transform 3s cubic-bezier(0.4, 0.0, 0.2, 1)';
             
             try {
-                const response = await fetch('/api/spin-wheel', {
+                const response = await fetch('{{ url_for('gamification.api_spin_wheel') }}', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'}
                 });
