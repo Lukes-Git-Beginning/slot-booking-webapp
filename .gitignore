@@ -46,6 +46,8 @@ Thumbs.db
 data/tracking/*.jsonl
 data/tracking/*.json
 data/persistent/*.json
+# EXCEPTION: weekly_points.json needs to be tracked to prevent data loss
+!data/persistent/weekly_points.json
 data/backups/*.backup
 static/scores.json
 static/user_badges.json
