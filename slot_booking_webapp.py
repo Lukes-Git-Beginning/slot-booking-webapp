@@ -73,6 +73,14 @@ service = build("calendar", "v3", credentials=creds)
 CENTRAL_CALENDAR_ID = config.CENTRAL_CALENDAR_ID
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
+# ----------------- Extended Booking Configuration -----------------
+# Default consultants for fallback availability (beyond loaded availability window)
+DEFAULT_CONSULTANTS = ["Sara", "Patrick", "Dominik", "Tim", "Ann-Kathrin"]
+# Maximum weeks ahead for booking (12 weeks = ~3 months)
+MAX_BOOKING_WEEKS_AHEAD = 12
+# Business hours for default availability
+DEFAULT_BUSINESS_HOURS = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+
 # ----------------- Persistenz Bootstrap & Backup-Cleanup -----------------
 # Stelle sicher, dass Persist-Daten vorhanden sind (Migration von static falls nötig)
 try:
@@ -221,12 +229,34 @@ def get_userlist() -> Dict[str, str]:
     return userdict
 
 def get_week_days(anchor_date):
-    """Zeige 7 Tage (3 Tage vor und nach dem aktuellen Tag)"""
+    """Zeige erweiterte Tage-Navigation für bessere Buchungsübersicht"""
     days = []
-    for i in range(-3, 4):  # -3 bis +3 Tage
+    today = datetime.now(TZ).date()
+    
+    # Erweiterte Navigation: 3 Tage vor bis 10 Tage nach dem aktuellen/gewählten Tag
+    for i in range(-3, 11):  # -3 bis +10 Tage (14 Tage total)
         check_date = anchor_date + timedelta(days=i)
-        days.append(check_date)
-    return days
+        
+        # Nur werktägliche Tage hinzufügen (Montag=0 bis Freitag=4)
+        if check_date.weekday() < 5:
+            # Nur zukünftige Termine oder heutiges Datum
+            if check_date >= today:
+                # Prüfe, ob das Datum im Buchungshorizont liegt
+                weeks_ahead = (check_date - today).days / 7
+                if weeks_ahead <= MAX_BOOKING_WEEKS_AHEAD:
+                    days.append(check_date)
+    
+    # Mindestens 5 Tage anzeigen, auch wenn weiter in der Zukunft
+    if len(days) < 5:
+        current = anchor_date
+        while len(days) < 10:
+            current += timedelta(days=1)
+            if current.weekday() < 5:  # Nur Werktage
+                weeks_ahead = (current - today).days / 7
+                if weeks_ahead <= MAX_BOOKING_WEEKS_AHEAD:
+                    days.append(current)
+    
+    return sorted(list(set(days)))  # Duplikate entfernen und sortieren
 
 def get_week_start(d):
     return d - timedelta(days=d.weekday())
@@ -256,6 +286,54 @@ def load_availability() -> Dict[str, List[str]]:
     except Exception as e:
         print(f"⚠️ Fehler beim Laden der availability.json: {e}")
         return {}
+
+def get_default_availability(date_str: str, hour: str) -> List[str]:
+    """
+    Fallback availability for dates beyond the loaded availability window.
+    Returns default consultant list if date is within booking horizon and business rules.
+    """
+    try:
+        # Parse the date
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        today = datetime.now(TZ).date()
+        
+        # Check if date is within booking horizon
+        weeks_ahead = (target_date - today).days / 7
+        if weeks_ahead > MAX_BOOKING_WEEKS_AHEAD:
+            return []
+        
+        # Check if it's a weekday (no weekend bookings)
+        if target_date.weekday() >= 5:  # Saturday=5, Sunday=6
+            return []
+        
+        # Check if it's a business hour
+        if hour not in DEFAULT_BUSINESS_HOURS:
+            return []
+        
+        # Check if date is not in the past
+        if target_date < today:
+            return []
+        
+        # Return default consultant list
+        return DEFAULT_CONSULTANTS.copy()
+        
+    except (ValueError, TypeError):
+        return []
+
+def get_effective_availability(date_str: str, hour: str) -> List[str]:
+    """
+    Get consultant availability - use loaded data if available, otherwise fallback to defaults.
+    Returns list of consultant names available for the given date and hour.
+    """
+    key = f"{date_str} {hour}"
+    availability = load_availability()
+    
+    # If we have specific availability data, use it
+    if key in availability:
+        return availability[key]
+    
+    # Otherwise, use default availability if within booking horizon
+    return get_default_availability(date_str, hour)
 
 def week_key_from_date(dt):
     return f"{dt.year}-KW{dt.isocalendar()[1]}"
@@ -1159,13 +1237,21 @@ def day_view(date_str):
     except ValueError:
         return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
     
-    availability = load_availability()
     slots = {}
     
+    # Check if we have loaded availability data for this date
+    availability = load_availability()
+    
     for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
-        key = f"{date_str} {hour}"
-        berater_count = len(availability.get(key, []))
+        # Use effective availability (loaded data + fallback defaults)
+        effective_beraters = get_effective_availability(date_str, hour)
+        berater_count = len(effective_beraters)
         slot_list, booked, total, freie_count, overbooked = get_slot_status(date_str, hour, berater_count)
+        
+        # Check if this slot uses loaded data or default fallback
+        key = f"{date_str} {hour}"
+        using_default = key not in availability and berater_count > 0
+        
         slots[hour] = {
             "events": slot_list, 
             "booked": booked, 
@@ -1173,6 +1259,7 @@ def day_view(date_str):
             "free_count": freie_count, 
             "available_beraters": berater_count,
             "overbooked": overbooked,
+            "using_default": using_default,
         }
     
     # Berechne Level-Daten für User
@@ -1230,8 +1317,9 @@ def book():
                 flash("Slot wird gerade von einem anderen Nutzer bearbeitet. Bitte versuchen Sie es erneut.", "warning")
                 return redirect(url_for("day_view", date_str=date))
 
-        key = f"{date} {hour}"
-        berater_count = len(load_availability().get(key, []))
+        # Use effective availability (loaded data + fallback defaults)
+        effective_beraters = get_effective_availability(date, hour)
+        berater_count = len(effective_beraters)
         slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
         
         try:
