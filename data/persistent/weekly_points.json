@@ -1,0 +1,156 @@
+{
+  "participants": [
+    "Christian",
+    "Dominik",
+    "Sara",
+    "Patrick",
+    "Tim",
+    "Sonja"
+  ],
+  "weeks": {
+    "2025-37": {
+      "users": {
+        "Christian": {
+          "goal_points": 18,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "goal_set",
+              "points": 18,
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.788333+02:00"
+            }
+          ]
+        },
+        "Dominik": {
+          "goal_points": 18,
+          "on_vacation": false,
+          "activities": [
+            {
+              "kind": "telefonie",
+              "points": 1,
+              "note": "Restored from screenshot",
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.802855+02:00"
+            }
+          ],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "goal_set",
+              "points": 18,
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.796505+02:00"
+            },
+            {
+              "type": "activity",
+              "kind": "telefonie",
+              "points": 1,
+              "note": "Restored from screenshot",
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.802855+02:00"
+            }
+          ]
+        },
+        "Sara": {
+          "goal_points": 15,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "goal_set",
+              "points": 15,
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.808510+02:00"
+            }
+          ]
+        },
+        "Patrick": {
+          "goal_points": 17,
+          "on_vacation": false,
+          "activities": [
+            {
+              "kind": "telefonie",
+              "points": 2,
+              "note": "Restored from screenshot",
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.819887+02:00"
+            }
+          ],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "goal_set",
+              "points": 17,
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.814281+02:00"
+            },
+            {
+              "type": "activity",
+              "kind": "telefonie",
+              "points": 2,
+              "note": "Restored from screenshot",
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.819887+02:00"
+            }
+          ]
+        },
+        "Tim": {
+          "goal_points": 18,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "goal_set",
+              "points": 18,
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.825505+02:00"
+            }
+          ]
+        },
+        "Sonja": {
+          "goal_points": 3,
+          "on_vacation": false,
+          "activities": [
+            {
+              "kind": "telefonie",
+              "points": 1,
+              "note": "Restored from screenshot",
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.839011+02:00"
+            }
+          ],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "goal_set",
+              "points": 3,
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.832490+02:00"
+            },
+            {
+              "type": "activity",
+              "kind": "telefonie",
+              "points": 1,
+              "note": "Restored from screenshot",
+              "by": "system_restore",
+              "ts": "2025-09-10T19:54:26.839011+02:00"
+            }
+          ]
+        }
+      },
+      "created_at": "2025-09-10T19:54:26.788289+02:00",
+      "frozen": false
+    }
+  }
+}
