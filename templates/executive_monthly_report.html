@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Monthly Executive Summary - {{ report.meta.month_name }}</title>
+  <title>Monatliche Zusammenfassung - {{ report.meta.month_name }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
@@ -284,11 +284,11 @@
     <!-- Report Header with Export Button -->
     <div class="report-header">
       <a href="{{ url_for('admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="export-btn-header">
-        📄 Export PDF
+        📄 PDF Exportieren
       </a>
-      <div class="report-title">Monthly Executive Summary</div>
+      <div class="report-title">Monatliche Zusammenfassung</div>
       <div class="report-subtitle">
-        {{ report.meta.month_name }} | {{ report.meta.weeks_included }} weeks analyzed
+        {{ report.meta.month_name }} | {{ report.meta.weeks_included }} Wochen analysiert
       </div>
     </div>
     
@@ -299,7 +299,7 @@
         <div class="card-value {{ report.executive_summary.overall_status.color }}">
           {{ report.executive_summary.key_metrics.monthly_achievement_rate }}%
         </div>
-        <div class="card-label">Monthly Achievement</div>
+        <div class="card-label">Monatsleistung</div>
         <div class="status-indicator status-{{ report.executive_summary.overall_status.color }}">
           {{ report.executive_summary.overall_status.status }}
         </div>
@@ -308,18 +308,18 @@
       <div class="summary-card">
         <div class="card-icon">🎯</div>
         <div class="card-value purple">{{ report.executive_summary.key_metrics.total_monthly_achieved }}</div>
-        <div class="card-label">Total Points</div>
+        <div class="card-label">Gesamtpunkte</div>
         <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          of {{ report.executive_summary.key_metrics.total_monthly_goal }} target
+          von {{ report.executive_summary.key_metrics.total_monthly_goal }} Ziel
         </div>
       </div>
       
       <div class="summary-card">
         <div class="card-icon">📊</div>
         <div class="card-value blue">{{ report.monthly_performance.best_week.rate }}%</div>
-        <div class="card-label">Best Week</div>
+        <div class="card-label">Beste Woche</div>
         <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          Week {{ report.monthly_performance.best_week.week }}
+          Woche {{ report.monthly_performance.best_week.week }}
         </div>
       </div>
       
@@ -328,9 +328,9 @@
         <div class="card-value {{ 'green' if report.monthly_performance.consistency == 'High' else 'yellow' if report.monthly_performance.consistency == 'Medium' else 'red' }}">
           {{ report.monthly_performance.consistency }}
         </div>
-        <div class="card-label">Consistency</div>
+        <div class="card-label">Beständigkeit</div>
         <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          Performance stability
+          Leistungsstabilität
         </div>
       </div>
     </div>
@@ -339,7 +339,7 @@
     <div class="performance-overview">
       <h3 style="margin-bottom: var(--spacing-md); display: flex; align-items: center;">
         <span style="margin-right: var(--spacing-sm);">📅</span>
-        Weekly Performance Breakdown
+        Wöchentliche Leistungsübersicht
       </h3>
       
       <div class="weeks-grid">
@@ -359,7 +359,7 @@
     <div class="team-analysis">
       <h3 style="margin-bottom: var(--spacing-md); display: flex; align-items: center;">
         <span style="margin-right: var(--spacing-sm);">👥</span>
-        Team Member Monthly Analysis
+        Teammitglieder Monatsanalyse
       </h3>
       
       <div class="team-grid">
@@ -373,39 +373,25 @@
               {{ analysis.performance_rating.icon }} {{ analysis.performance_rating.level }}
             </div>
             <div class="member-stats">
-              {{ analysis.monthly_achieved }}/{{ analysis.monthly_goal }} pts<br>
-              {{ analysis.weeks_active }} weeks active
+              {{ analysis.monthly_achieved }}/{{ analysis.monthly_goal }} Pkt<br>
+              {{ analysis.weeks_active }} Wochen aktiv
             </div>
           </div>
         {% endfor %}
       </div>
     </div>
     
-    <!-- Strategic Recommendations -->
-    <div class="recommendations-section">
-      <h3 style="margin-bottom: var(--spacing-md); display: flex; align-items: center;">
-        <span style="margin-right: var(--spacing-sm);">🚀</span>
-        Strategic Recommendations for Next Month
-      </h3>
-      
-      {% for recommendation in report.recommendations[:5] %}
-        <div class="recommendation-item">
-          <span class="recommendation-icon">{{ recommendation[:2] }}</span>
-          <span>{{ recommendation[2:] }}</span>
-        </div>
-      {% endfor %}
-    </div>
     
     <!-- Bottom Actions -->
     <div class="bottom-actions">
       <a href="{{ url_for('admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="btn btn-primary">
-        <i class="ti ti-download"></i> Export PDF Report
+        <i class="ti ti-download"></i> PDF-Bericht exportieren
       </a>
       <a href="{{ url_for('admin_reports_weekly') }}" class="btn btn-secondary">
-        <i class="ti ti-calendar"></i> View Weekly Report
+        <i class="ti ti-calendar"></i> Wochenbericht anzeigen
       </a>
       <a href="{{ url_for('admin_telefonie') }}" class="btn btn-secondary">
-        <i class="ti ti-arrow-left"></i> Back to Admin
+        <i class="ti ti-arrow-left"></i> Zurück zur Verwaltung
       </a>
     </div>
     
