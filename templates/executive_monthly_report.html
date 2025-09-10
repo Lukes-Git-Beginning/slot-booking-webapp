@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Monthly Executive Report - {{ report.meta.month_name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  
+  <style>
+    .executive-report {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: var(--spacing-lg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .report-header {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      padding: var(--spacing-xl);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-xl);
+      text-align: center;
+    }
+    
+    .report-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .report-subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    
+    .monthly-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+    }
+    
+    .monthly-card {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .monthly-card.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    
+    .card-icon {
+      font-size: 24px;
+      margin-right: var(--spacing-sm);
+    }
+    
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: auto;
+    }
+    
+    .status-green {
+      background: rgba(16,185,129,0.2);
+      color: #10b981;
+    }
+    
+    .status-yellow {
+      background: rgba(234,179,8,0.2);
+      color: #eab308;
+    }
+    
+    .status-red {
+      background: rgba(239,68,68,0.2);
+      color: #ef4444;
+    }
+    
+    .metric-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .metric-label {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .individual-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md);
+    }
+    
+    .individual-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      text-align: center;
+    }
+    
+    .individual-name {
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .individual-rating {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .individual-rating.green {
+      background: rgba(16,185,129,0.2);
+      color: #10b981;
+    }
+    
+    .individual-rating.yellow {
+      background: rgba(234,179,8,0.2);
+      color: #eab308;
+    }
+    
+    .individual-rating.red {
+      background: rgba(239,68,68,0.2);
+      color: #ef4444;
+    }
+    
+    .individual-stats {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    
+    .individual-stats div {
+      margin-bottom: 2px;
+    }
+    
+    .weekly-breakdown {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+    }
+    
+    .week-card {
+      text-align: center;
+      padding: var(--spacing-sm);
+      background: rgba(255,255,255,0.02);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .week-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .week-rate {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .week-points {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    
+    .recommendations-list {
+      list-style: none;
+      padding: 0;
+      margin: var(--spacing-md) 0;
+    }
+    
+    .recommendations-list li {
+      display: flex;
+      align-items: flex-start;
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .recommendations-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .recommendation-icon {
+      margin-right: var(--spacing-sm);
+      margin-top: 2px;
+    }
+    
+    .monthly-chart {
+      height: 300px;
+      margin-top: var(--spacing-md);
+    }
+    
+    .performance-comparison {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md);
+    }
+    
+    .comparison-item {
+      text-align: center;
+      padding: var(--spacing-md);
+      background: rgba(255,255,255,0.02);
+      border-radius: var(--radius-md);
+    }
+    
+    .comparison-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .comparison-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .export-actions {
+      margin-top: var(--spacing-xl);
+      text-align: center;
+      padding-top: var(--spacing-lg);
+      border-top: 1px solid var(--box-border);
+    }
+    
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--spacing-sm) var(--spacing-lg);
+      margin: 0 var(--spacing-sm);
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(90,177,255,0.3);
+    }
+    
+    .export-btn i {
+      margin-right: var(--spacing-xs);
+    }
+    
+    @media print {
+      .export-actions {
+        display: none;
+      }
+      
+      .executive-report {
+        padding: 20px;
+      }
+      
+      .report-header {
+        background: #f8f9fa !important;
+        color: #333 !important;
+        border: 1px solid #ddd;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .monthly-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .individual-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .performance-comparison {
+        grid-template-columns: 1fr;
+      }
+      
+      .weekly-breakdown {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .metric-value {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="executive-report">
+    
+    <!-- Report Header -->
+    <div class="report-header">
+      <div class="report-title">📊 Monthly Executive Report</div>
+      <div class="report-subtitle">
+        {{ report.meta.month_name }} | {{ report.meta.weeks_included }} weeks analyzed | 
+        Generated: {{ report.meta.generated_at }}
+      </div>
+    </div>
+    
+    <!-- Monthly Summary -->
+    <div class="monthly-grid">
+      <div class="monthly-card">
+        <div class="card-header">
+          <span class="card-icon">🎯</span>
+          Monthly Performance
+          <span class="status-indicator status-{{ report.executive_summary.overall_status.color }}">
+            {{ report.executive_summary.overall_status.icon }} {{ report.executive_summary.overall_status.status }}
+          </span>
+        </div>
+        
+        <div class="metric-value">{{ report.executive_summary.key_metrics.monthly_achievement_rate }}%</div>
+        <div class="metric-label">Overall Monthly Achievement</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+          <div>
+            <div style="font-size: 20px; font-weight: 600; color: var(--green);">
+              {{ report.executive_summary.key_metrics.total_monthly_achieved }}
+            </div>
+            <div style="font-size: 12px; color: var(--muted);">Points Achieved</div>
+          </div>
+          <div>
+            <div style="font-size: 20px; font-weight: 600; color: var(--muted);">
+              {{ report.executive_summary.key_metrics.total_monthly_goal }}
+            </div>
+            <div style="font-size: 12px; color: var(--muted);">Total Target</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="monthly-card">
+        <div class="card-header">
+          <span class="card-icon">📊</span>
+          Performance Analysis
+        </div>
+        
+        <div class="performance-comparison">
+          <div class="comparison-item">
+            <div class="comparison-label">Best Week</div>
+            <div class="comparison-value">{{ report.monthly_performance.best_week.rate }}%</div>
+            <div style="font-size: 11px; color: var(--muted);">{{ report.monthly_performance.best_week.week }}</div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Average</div>
+            <div class="comparison-value">{{ report.monthly_performance.average_weekly_rate }}%</div>
+            <div style="font-size: 11px; color: var(--muted);">Weekly Average</div>
+          </div>
+          
+          <div class="comparison-item">
+            <div class="comparison-label">Consistency</div>
+            <div class="comparison-value" style="font-size: 16px; color: {{ 'var(--green)' if report.monthly_performance.consistency == 'High' else 'var(--yellow)' if report.monthly_performance.consistency == 'Medium' else 'var(--red)' }};">
+              {{ report.monthly_performance.consistency }}
+            </div>
+            <div style="font-size: 11px; color: var(--muted);">Performance</div>
+          </div>
+        </div>
+        
+        <canvas id="monthlyChart" class="monthly-chart"></canvas>
+      </div>
+    </div>
+    
+    <!-- Weekly Breakdown -->
+    <div class="monthly-card full-width">
+      <div class="card-header">
+        <span class="card-icon">📅</span>
+        Weekly Performance Breakdown
+      </div>
+      
+      <div class="weekly-breakdown">
+        {% for week_data in report.monthly_performance.weekly_data %}
+          <div class="week-card">
+            <div class="week-title">{{ week_data.week }}</div>
+            <div class="week-rate" style="color: {{ 'var(--green)' if week_data.achievement_rate >= 90 else 'var(--yellow)' if week_data.achievement_rate >= 70 else 'var(--red)' }};">
+              {{ week_data.achievement_rate }}%
+            </div>
+            <div class="week-points">{{ week_data.achieved }}/{{ week_data.goal }} pts</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Individual Analysis -->
+    <div class="monthly-card full-width">
+      <div class="card-header">
+        <span class="card-icon">👥</span>
+        Individual Team Member Analysis
+      </div>
+      
+      <div class="individual-grid">
+        {% for user, analysis in report.individual_analysis.items() %}
+          <div class="individual-card">
+            <div class="individual-name">{{ user }}</div>
+            <div class="individual-rating {{ analysis.performance_rating.color }}">
+              {{ analysis.performance_rating.icon }} {{ analysis.performance_rating.level }}
+            </div>
+            <div class="individual-stats">
+              <div><strong>{{ analysis.achievement_rate }}%</strong> achievement</div>
+              <div>{{ analysis.monthly_achieved }}/{{ analysis.monthly_goal }} points</div>
+              <div>{{ analysis.weeks_active }} weeks active</div>
+              <div>{{ analysis.avg_weekly_points }} avg/week</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Monthly Highlights -->
+    <div class="monthly-grid">
+      <div class="monthly-card">
+        <div class="card-header">
+          <span class="card-icon">⭐</span>
+          Monthly Highlights
+        </div>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {% for highlight in report.executive_summary.month_highlights %}
+            <li style="padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">{{ highlight }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      
+      <div class="monthly-card">
+        <div class="card-header">
+          <span class="card-icon">🔍</span>
+          Key Insights
+        </div>
+        <div style="margin-top: var(--spacing-md);">
+          <div style="margin-bottom: var(--spacing-sm);">
+            <strong>Team Health:</strong> 
+            <span style="color: {{ 'var(--green)' if report.monthly_performance.consistency == 'High' else 'var(--yellow)' if report.monthly_performance.consistency == 'Medium' else 'var(--red)' }};">
+              {{ report.monthly_performance.consistency }} consistency
+            </span>
+          </div>
+          <div style="margin-bottom: var(--spacing-sm);">
+            <strong>Best Performing Week:</strong> {{ report.monthly_performance.best_week.week }} ({{ report.monthly_performance.best_week.rate }}%)
+          </div>
+          <div style="margin-bottom: var(--spacing-sm);">
+            <strong>Focus Area:</strong> 
+            {% if report.monthly_performance.worst_week.rate < 70 %}
+              Support needed for consistent performance
+            {% else %}
+              Maintain current momentum
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Strategic Recommendations -->
+    <div class="monthly-card full-width">
+      <div class="card-header">
+        <span class="card-icon">🚀</span>
+        Strategic Recommendations for Next Month
+      </div>
+      
+      <ul class="recommendations-list">
+        {% for recommendation in report.recommendations %}
+          <li>
+            <span class="recommendation-icon">{{ recommendation[:2] }}</span>
+            <span>{{ recommendation[2:] }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    
+    <!-- Export Actions -->
+    <div class="export-actions">
+      <a href="{{ url_for('admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="export-btn">
+        <i class="ti ti-download"></i> Export PDF
+      </a>
+      <a href="{{ url_for('admin_telefonie') }}" class="export-btn" style="background: var(--muted);">
+        <i class="ti ti-arrow-left"></i> Back to Admin
+      </a>
+    </div>
+    
+  </div>
+  
+  <script>
+    // Monthly Performance Chart
+    const monthlyData = {
+      labels: [{% for week_data in report.monthly_performance.weekly_data %}'{{ week_data.week }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+      datasets: [
+        {
+          label: 'Achievement Rate (%)',
+          data: [{% for week_data in report.monthly_performance.weekly_data %}{{ week_data.achievement_rate }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          borderColor: 'rgba(99,102,241,1)',
+          backgroundColor: 'rgba(99,102,241,0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Points Achieved',
+          data: [{% for week_data in report.monthly_performance.weekly_data %}{{ week_data.achieved }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          type: 'bar',
+          backgroundColor: 'rgba(139,92,246,0.3)',
+          borderColor: 'rgba(139,92,246,0.8)',
+          borderWidth: 1,
+          yAxisID: 'y1'
+        }
+      ]
+    };
+    
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(monthlyCtx, {
+      type: 'line',
+      data: monthlyData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            beginAtZero: true,
+            grid: {
+              drawOnChartArea: false,
+            },
+            ticks: {
+              callback: function(value) {
+                return value + ' pts';
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Weekly Performance Throughout the Month'
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

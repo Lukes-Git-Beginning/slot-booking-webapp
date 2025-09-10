@@ -176,6 +176,16 @@
       <button type="submit" class="action-btn primary">Wechseln</button>
       <a class="action-btn secondary" href="{{ url_for('admin_telefonie_export', week=week) }}">PDF Export</a>
     </form>
+    
+    <!-- Executive Reports Access -->
+    <div class="actions">
+      <a class="action-btn" href="{{ url_for('admin_reports_weekly') }}" style="background: linear-gradient(135deg, var(--accent), #3d8bfd);">
+        📊 Weekly Executive Report
+      </a>
+      <a class="action-btn" href="{{ url_for('admin_reports_monthly') }}" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+        📈 Monthly Executive Report
+      </a>
+    </div>
 
     <div class="grid">
       <div class="box">
@@ -249,7 +259,7 @@
         <form method="post" class="row">
           <input type="hidden" name="action" value="set_vacation">
           <input type="hidden" name="week" value="{{ week }}">
-          <label>Urlaub</label>
+          <label>Legacy Urlaub</label>
           <select name="user">
             {% for p in participants %}
               <option value="{{ p }}">{{ p }}</option>
@@ -261,6 +271,37 @@
           </select>
           <button type="submit" class="action-btn secondary">Setzen</button>
         </form>
+        
+        <h3 class="mt">🏖️ Urlaubszeitraum setzen</h3>
+        <form method="post">
+          <input type="hidden" name="action" value="set_vacation_period">
+          <div class="row">
+            <label>Person</label>
+            <select name="user" required>
+              {% for p in participants %}
+                <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row">
+            <label>Von (Datum)</label>
+            <input type="date" name="start_date" required>
+            <label>Bis (Datum)</label>
+            <input type="date" name="end_date" required>
+          </div>
+          <div class="row">
+            <label>Grund</label>
+            <select name="reason">
+              <option value="Urlaub">🏖️ Urlaub</option>
+              <option value="Arzt/Zahnarzt">🦷 Arzt/Zahnarzt</option>
+              <option value="Krankheit">🤒 Krankheit</option>
+              <option value="Diensttermin">🏢 Diensttermin</option>
+              <option value="Sonstiges">📝 Sonstiges</option>
+            </select>
+            <button type="submit" class="action-btn success">Zeitraum setzen</button>
+          </div>
+        </form>
+        <p class="small">Setzt Urlaubszeitraum für alle betroffenen Wochen. Überschreibt Ziele automatisch auf 0.</p>
       </div>
     </div>
 

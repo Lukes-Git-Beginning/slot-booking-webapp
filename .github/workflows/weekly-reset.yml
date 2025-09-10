@@ -1,0 +1,119 @@
+name: Weekly Points Reset (Telefonie)
+
+on:
+  schedule:
+    # Every Monday at 6:00 AM Berlin time (4:00 UTC)
+    - cron: '0 4 * * 1'
+  workflow_dispatch:  # Manual trigger for testing
+
+jobs:
+  weekly-reset:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 📂 Ensure Data Directory Exists
+        run: |
+          mkdir -p data/persistent
+          # Create weekly_points.json if it doesn't exist
+          if [ ! -f data/persistent/weekly_points.json ]; then
+            echo '{"participants": ["Christian", "Dominik", "Sara", "Patrick", "Tim", "Sonja"], "weeks": {}}' > data/persistent/weekly_points.json
+          fi
+          echo "✅ Weekly points data directory prepared"
+
+      - name: 🔄 Run Weekly Reset
+        run: |
+          echo "🕐 Starting weekly reset at $(date)"
+          python -c "
+          import sys
+          sys.path.append('.')
+          from weekly_points import reset_week_for_all_users, get_week_key
+          from datetime import datetime
+          import pytz
+          
+          TZ = pytz.timezone('Europe/Berlin')
+          current_week = get_week_key()
+          
+          try:
+              print(f'🔄 Performing weekly reset for week {current_week}')
+              result = reset_week_for_all_users()
+              
+              if result['success']:
+                  print(f'✅ Weekly reset completed successfully!')
+                  print(f'   - Week: {result[\"week\"]}')
+                  print(f'   - Participants reset: {result[\"participants_reset\"]}')
+                  print(f'   - Archive created: {result[\"archive_created\"]}')
+                  print(f'   - Timestamp: {result[\"reset_timestamp\"]}')
+              else:
+                  print(f'❌ Weekly reset failed')
+                  sys.exit(1)
+                  
+          except Exception as e:
+              print(f'❌ Error during weekly reset: {e}')
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
+          "
+          echo "✅ Weekly reset completed"
+
+      - name: 💾 Commit Reset Data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add weekly points data
+          git add data/persistent/weekly_points.json 2>/dev/null || true
+          
+          # Get current week for commit message
+          CURRENT_WEEK=$(python -c "from weekly_points import get_week_key; print(get_week_key())")
+          
+          # Commit only if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🔄 Auto: Weekly points reset for week $CURRENT_WEEK [skip ci]
+            
+            - Automated weekly reset completed
+            - All participants initialized for new week
+            - Previous week data archived
+            - Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+            
+            git push
+          fi
+
+      - name: 📊 Generate Summary
+        run: |
+          python -c "
+          import sys
+          sys.path.append('.')
+          from weekly_points import get_participants, compute_week_stats, get_week_key
+          
+          try:
+              current_week = get_week_key()
+              participants = get_participants()
+              stats = compute_week_stats(current_week)
+              
+              print(f'📊 Weekly Reset Summary for {current_week}:')
+              print(f'   - Total participants: {len(participants)}')
+              print(f'   - Participants: {', '.join(participants)}')
+              print(f'   - All users reset to 0 points')
+              print(f'   - All vacation flags cleared')
+              print(f'   - Ready for new week! 🚀')
+              
+          except Exception as e:
+              print(f'ℹ️ Summary generation skipped: {e}')
+          " || true  # Don't fail if summary can't be generated
