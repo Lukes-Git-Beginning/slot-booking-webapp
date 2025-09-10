@@ -320,6 +320,10 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
         if hour == "09:00" and target_date.weekday() <= 3:  # Monday=0, Tuesday=1, Wednesday=2, Thursday=3
             return []
         
+        # Exclude Friday evening slots (16:00, 18:00, 20:00) - outside working hours
+        if target_date.weekday() == 4 and hour in ["16:00", "18:00", "20:00"]:  # Friday=4
+            return []
+        
         # Return limited consultant list for standard availability (max 2 advisors)
         return DEFAULT_STANDARD_CONSULTANTS.copy()
         
