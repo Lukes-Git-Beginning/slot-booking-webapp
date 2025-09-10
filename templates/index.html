@@ -1018,6 +1018,14 @@ body.darkmode .achievement-notification {
                     <span class="status-badge available">✅ {{ slot.free_count }} frei</span>
                   {% endif %}
                 </span>
+                {% if slot.using_default %}
+                <span class="stat-divider">|</span>
+                <span class="stat-item">
+                  <span class="status-badge" style="background: rgba(139,92,246,0.15); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3);">
+                    🔮 Standard-Verfügbarkeit
+                  </span>
+                </span>
+                {% endif %}
               </span>
             </div>
             <div class="slot-toggle">
@@ -1034,6 +1042,16 @@ body.darkmode .achievement-notification {
                 <strong>{{ total }}</strong> Kapazität | 
                 <strong>{{ booked }}</strong> bereits gebucht
               </div>
+
+              {% if slot.using_default %}
+              <div style="background: rgba(139,92,246,0.1); padding: 10px; border-radius: 8px; margin: 10px 0; border-left: 3px solid #8b5cf6;">
+                <strong>🔮 Standard-Verfügbarkeit</strong><br>
+                <span style="font-size: 13px; color: var(--muted);">
+                  Für diesen Termin werden Standard-Berater verwendet, da keine spezifische Verfügbarkeit geladen ist.
+                  Buchungen sind bis zu {{ 12 }} Wochen im Voraus möglich.
+                </span>
+              </div>
+              {% endif %}
 
               {% if slot.overbooked %}
                 <div style="color: var(--red); font-weight: bold; margin: 10px 0;">
@@ -1321,8 +1339,10 @@ let achievementSystem;
 window.addEventListener('DOMContentLoaded', () => {
   // ... bestehender Code ...
   
-  // NEU: Achievement System initialisieren
+  // NEU: Achievement System nur initialisieren wenn User eingeloggt ist
+  {% if user_level %}
   achievementSystem = new AchievementSystem();
+  {% endif %}
 });
 
 // Test-Funktion für Development (optional)
@@ -1615,6 +1635,7 @@ document.addEventListener('keydown', function(e) {
      
      // Level Up Functions
      function checkForLevelUp() {
+       {% if user_level %}
        fetch('/api/level/check-up')
          .then(response => response.json())
          .then(data => {
@@ -1623,6 +1644,7 @@ document.addEventListener('keydown', function(e) {
            }
          })
          .catch(error => console.error('Level up check error:', error));
+       {% endif %}
      }
      
      function showLevelUpPopup(levelUpData) {
