@@ -60,10 +60,10 @@ CALENDAR_COLORS = {
     },
     "6": {
         "name": "Mandarine", 
-        "outcome": "cancelled",
+        "outcome": "no_show",
         "potential_type": "cancelled",
         "blocks_availability": False,  # WICHTIG: Blockiert NICHT die Verfügbarkeit
-        "description": "Abgesagt - Termin storniert"
+        "description": "Abgesagt/Umgebucht - Zählt als No-Show"
     },
     
     # Häufige Berater-Änderungen (NICHT blockierend)
