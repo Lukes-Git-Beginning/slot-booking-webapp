@@ -800,8 +800,9 @@ class BookingTracker:
                 hist_stats = historical_data["stats"]
                 
                 # Auftauchquote Vergleich (neue Klassifizierung)
-                current_appearance = current_dashboard.get("last_30_days", {}).get("appearance_rate", 0) / 100.0  # Konvertiere von Prozent zu Dezimal
-                hist_appearance = hist_stats.get("appearance_rate", 0)
+                # Both rates should be in decimal format for comparison
+                current_appearance = current_dashboard.get("last_30_days", {}).get("appearance_rate", 0) / 100.0  # Convert percentage to decimal
+                hist_appearance = hist_stats.get("appearance_rate", 0)  # Already in decimal format
                 
                 insights["comparisons"]["appearance_rate"] = {
                     "current": current_appearance,
