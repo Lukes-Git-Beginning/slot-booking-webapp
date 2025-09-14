@@ -175,6 +175,11 @@ class ErrorHandler:
     
     def handle_http_error(self, status_code: int, message: str) -> Response:
         """Handle HTTP-Errors"""
+        from flask import request
+        
+        # Für API-Requests (die mit /api/ beginnen) oder AJAX-Requests nur JSON zurückgeben
+        is_api_request = request.path.startswith('/api/') or request.is_json or 'XMLHttpRequest' in request.headers.get('X-Requested-With', '')
+        
         if status_code == 404:
             error_type = ErrorType.NOT_FOUND
         else:
@@ -187,7 +192,11 @@ class ErrorHandler:
             user_message=message
         )
         
-        return self.handle_error(error)
+        # Für API/AJAX-Requests immer JSON Response, keine Flash Messages
+        if is_api_request:
+            return self.json_error_response(error)
+        else:
+            return self.handle_error(error)
 
 # Convenience functions für häufige Error-Patterns
 def raise_validation_error(message: str, field: Optional[str] = None, user_message: Optional[str] = None):
