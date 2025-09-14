@@ -542,6 +542,25 @@ def unequip_cosmetic():
         print(f"Error unequipping cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Entfernen"})
 
+@gamification_bp.route('/admin/unlock-all-cosmetics', methods=['POST'])
+@require_login
+def admin_unlock_all_cosmetics():
+    """Admin Route: Schalte alle Kosmetik-Items frei"""
+    try:
+        user = session.get('user')
+        
+        # Prüfe ob User Admin ist (du kannst hier deine Admin-Logik einfügen)
+        # Für jetzt nehme ich an, dass der erste User oder "admin" der Admin ist
+        if user not in ["Luke", "admin"]:  # Passe diese Liste an deine Admins an
+            return jsonify({"success": False, "message": "Keine Admin-Berechtigung"})
+        
+        result = cosmetics_shop.unlock_all_for_admin(user)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in admin unlock all cosmetics: {e}")
+        return jsonify({"success": False, "message": "Fehler beim Admin-Unlock"})
+
 # ===== DAILY MAINTENANCE =====
 
 def run_daily_maintenance():
