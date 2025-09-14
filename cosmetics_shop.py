@@ -483,6 +483,61 @@ class CosmeticsShop:
         self.save_active_cosmetics(active)
         
         return {"success": True, "message": f"{item_type.title()} entfernt"}
+    
+    def unlock_all_for_admin(self, user):
+        """Schalte alle Kosmetik-Items für Admin frei (ohne Coins-Kosten)"""
+        purchases = self.load_purchases()
+        
+        # Initialisiere User falls nicht vorhanden
+        if user not in purchases:
+            purchases[user] = {"titles": [], "themes": [], "avatars": [], "effects": [], "purchase_history": []}
+        
+        # Sammle alle verfügbaren Items
+        all_titles = list(TITLE_SHOP.keys())
+        all_themes = list(COLOR_THEMES.keys())  
+        all_avatars = list(AVATAR_EMOJIS.keys())
+        all_effects = list(SPECIAL_EFFECTS.keys())
+        
+        # Füge alle Items hinzu (ohne Duplikate)
+        for title_id in all_titles:
+            if title_id not in purchases[user]["titles"]:
+                purchases[user]["titles"].append(title_id)
+                
+        for theme_id in all_themes:
+            if theme_id not in purchases[user]["themes"]:
+                purchases[user]["themes"].append(theme_id)
+                
+        for avatar_id in all_avatars:
+            if avatar_id not in purchases[user]["avatars"]:
+                purchases[user]["avatars"].append(avatar_id)
+                
+        for effect_id in all_effects:
+            if effect_id not in purchases[user]["effects"]:
+                purchases[user]["effects"].append(effect_id)
+        
+        # Füge Admin-Unlock-Eintrag zur Kaufhistorie hinzu
+        purchases[user]["purchase_history"].append({
+            "item_type": "admin_unlock",
+            "item_id": "all_cosmetics",
+            "item_name": "🔓 Admin Unlock All",
+            "price": 0,
+            "purchased_at": datetime.now(TZ).isoformat()
+        })
+        
+        self.save_purchases(purchases)
+        
+        total_unlocked = len(all_titles) + len(all_themes) + len(all_avatars) + len(all_effects)
+        
+        return {
+            "success": True,
+            "message": f"Alle {total_unlocked} Kosmetik-Items für Admin freigeschaltet!",
+            "unlocked": {
+                "titles": len(all_titles),
+                "themes": len(all_themes), 
+                "avatars": len(all_avatars),
+                "effects": len(all_effects)
+            }
+        }
 
 # Globale Instanz
 cosmetics_shop = CosmeticsShop()

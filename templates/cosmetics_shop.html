@@ -303,6 +303,14 @@
             <h1><i class="ti ti-shopping-bag"></i> Cosmetics Shop</h1>
             <div class="coins-amount">💰 {{ user_coins }} Coins</div>
             <p>Kaufe lustige Titel, Themes und Effekte mit deinen verdienten Coins!</p>
+            
+            {% if current_user in ["Luke", "admin"] %}
+            <div style="margin-top: 15px;">
+                <button onclick="adminUnlockAll()" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;">
+                    🔓 Admin: Alle Items freischalten
+                </button>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Current Cosmetics Preview -->
@@ -681,6 +689,35 @@
         });
         
         modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+        
+        // Admin Function: Unlock all cosmetics
+        async function adminUnlockAll() {
+            if (!confirm('🔓 Alle Kosmetik-Items für Admin freischalten?\n\nDies kann nicht rückgängig gemacht werden!')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/gamification/admin/unlock-all-cosmetics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    // Reload page to show unlocked items
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showMessage(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Admin unlock error:', error);
+                showMessage('❌ Fehler beim Admin-Unlock', 'error');
+            }
+        }
     </script>
 </body>
 </html>
