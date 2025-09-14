@@ -1301,6 +1301,11 @@ def day_view(date_str):
 def index():
     return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
+@app.route("/favicon.ico")
+def favicon():
+    """Serve favicon to prevent 404 errors"""
+    return '', 204
+
 
 @app.route("/book", methods=["POST"])
 def book():
