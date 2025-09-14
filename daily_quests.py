@@ -18,10 +18,10 @@ QUEST_POOL = {
     # Buchungs-Quests
     "speed_booker": {
         "title": "⚡ Blitz-Bucher",
-        "description": "Buche 3 Termine in unter 5 Minuten",
+        "description": "Buche 3 Termine in unter 15 Minuten",
         "type": "speed_booking",
         "target": 3,
-        "time_limit": 300,  # 5 Minuten in Sekunden
+        "time_limit": 900,  # 15 Minuten in Sekunden
         "rewards": {"xp": 100, "coins": 50, "points": 3},
         "rarity": "common",
         "category": "booking"
@@ -88,15 +88,15 @@ QUEST_POOL = {
         "category": "minigame"
     },
     
-    # Soziale Quests
-    "team_player": {
-        "title": "🤝 Teamplayer",
-        "description": "Hilf 2 anderen Usern bei ihren Zielen",
-        "type": "social_help",
-        "target": 2,
-        "rewards": {"xp": 90, "coins": 45, "karma_points": 10},
-        "rarity": "uncommon", 
-        "category": "social"
+    # Performance Quests
+    "perfectionist": {
+        "title": "💎 Perfectionist",
+        "description": "Buche 5 Termine ohne Fehler oder Stornierungen",
+        "type": "quality_streak",
+        "target": 5,
+        "rewards": {"xp": 90, "coins": 45, "points": 3},
+        "rarity": "uncommon",
+        "category": "performance"
     }
 }
 
