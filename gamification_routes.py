@@ -16,6 +16,7 @@ try:
     from personalization_system import personalization_system
     from achievement_system import achievement_system
     from level_system import LevelSystem
+    from cosmetics_shop import cosmetics_shop
 except ImportError as e:
     print(f"Import Error in gamification_routes: {e}")
 
@@ -431,6 +432,115 @@ def check_and_unlock_customizations(user):
     except Exception as e:
         print(f"Error checking customization unlocks: {e}")
         return {"newly_unlocked": [], "total_unlocked": []}
+
+# ===== COSMETICS SHOP ROUTES =====
+
+@gamification_bp.route('/cosmetics-shop')
+@require_login
+def cosmetics_shop_view():
+    """Cosmetics Shop Dashboard"""
+    try:
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
+        
+        # Hole User-Coins aus Daily Quest System
+        user_coins = daily_quest_system.get_user_coins(user)
+        
+        # Hole Kosmetik-Daten
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(user)
+        
+        return render_template('cosmetics_shop.html',
+            current_user=user,
+            user_coins=user_coins,
+            cosmetics=user_cosmetics
+        )
+        
+    except Exception as e:
+        print(f"Error in cosmetics_shop route: {e}")
+        traceback.print_exc()
+        return render_template('cosmetics_shop.html', 
+            current_user=user,
+            error="Fehler beim Laden des Cosmetics Shops",
+            user_coins=0,
+            cosmetics={"owned": {}, "active": {}, "available_titles": {}, "available_themes": {}, "available_avatars": {}, "available_effects": {}}
+        )
+
+@gamification_bp.route('/cosmetics/purchase', methods=['POST'])
+@require_login
+def purchase_cosmetic():
+    """Kaufe Kosmetik-Item"""
+    try:
+        user = session.get('user')
+        data = request.get_json()
+        
+        item_type = data.get('item_type')
+        item_id = data.get('item_id')
+        
+        if not item_type or not item_id:
+            return jsonify({"success": False, "message": "Unvollständige Daten"})
+        
+        # Prüfe User-Coins
+        user_coins = daily_quest_system.get_user_coins(user)
+        
+        # Kaufe Item
+        result = cosmetics_shop.purchase_item(user, item_type, item_id, user_coins)
+        
+        if result["success"]:
+            # Deduct coins from user
+            coins_data = daily_quest_system.load_user_coins()
+            coins_data[user] = coins_data.get(user, 0) - result["price"]
+            daily_quest_system.save_user_coins(coins_data)
+            
+            result["remaining_coins"] = coins_data.get(user, 0)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error purchasing cosmetic: {e}")
+        return jsonify({"success": False, "message": "Fehler beim Kauf"})
+
+@gamification_bp.route('/cosmetics/equip', methods=['POST'])
+@require_login  
+def equip_cosmetic():
+    """Rüste Kosmetik-Item aus"""
+    try:
+        user = session.get('user')
+        data = request.get_json()
+        
+        item_type = data.get('item_type')
+        item_id = data.get('item_id')
+        
+        if not item_type or not item_id:
+            return jsonify({"success": False, "message": "Unvollständige Daten"})
+        
+        result = cosmetics_shop.equip_item(user, item_type, item_id)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error equipping cosmetic: {e}")
+        return jsonify({"success": False, "message": "Fehler beim Ausrüsten"})
+
+@gamification_bp.route('/cosmetics/unequip', methods=['POST'])
+@require_login
+def unequip_cosmetic():
+    """Entferne Kosmetik-Item"""
+    try:
+        user = session.get('user')
+        data = request.get_json()
+        
+        item_type = data.get('item_type')
+        item_id = data.get('item_id')  # Optional für Effekte
+        
+        if not item_type:
+            return jsonify({"success": False, "message": "Item-Typ fehlt"})
+        
+        result = cosmetics_shop.unequip_item(user, item_type, item_id)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error unequipping cosmetic: {e}")
+        return jsonify({"success": False, "message": "Fehler beim Entfernen"})
 
 # ===== DAILY MAINTENANCE =====
 

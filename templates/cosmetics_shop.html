@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Cosmetics Shop - {{ current_user }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+    
+    <style>
+        .shop-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .coins-header {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+        }
+        
+        .coins-amount {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .shop-section {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .shop-item {
+            background: var(--surface);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .shop-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: var(--accent);
+        }
+        
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .item-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+        
+        .item-price {
+            background: var(--accent);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .item-description {
+            color: var(--muted);
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .item-rarity {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        
+        .rarity-common { background: rgba(16,185,129,0.2); color: #10b981; }
+        .rarity-uncommon { background: rgba(59,130,246,0.2); color: #3b82f6; }
+        .rarity-rare { background: rgba(139,92,246,0.2); color: #8b5cf6; }
+        .rarity-epic { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .rarity-legendary { background: rgba(236,72,153,0.2); color: #ec4899; }
+        
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-purchase {
+            flex: 1;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--radius-md);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-purchase:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        
+        .btn-purchase:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-equip {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--radius-md);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-unequip {
+            background: var(--orange);
+            color: white;
+        }
+        
+        .owned-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--green);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .equipped-indicator {
+            background: var(--accent);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-md);
+            color: var(--text-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(90,177,255,0.1);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        
+        .preview-section {
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .current-avatar {
+            font-size: 4em;
+            margin: 20px 0;
+        }
+        
+        .current-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 10px 0;
+        }
+        
+        .current-theme {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .color-sample {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid var(--box-border);
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .success-message {
+            background: var(--green);
+            color: white;
+            padding: 15px;
+            border-radius: var(--radius-md);
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .error-message {
+            background: var(--red);
+            color: white;
+            padding: 15px;
+            border-radius: var(--radius-md);
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                justify-content: center;
+            }
+            
+            .item-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Light/Dark Toggle -->
+    <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
+
+    <div class="shop-container">
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <a href="{{ url_for('index') }}" class="nav-btn">
+                <i class="ti ti-home"></i> Startseite
+            </a>
+            <a href="{{ url_for('gamification.daily_quests') }}" class="nav-btn">
+                <i class="ti ti-target"></i> Daily Quests
+            </a>
+            <a href="{{ url_for('gamification.prestige_dashboard') }}" class="nav-btn">
+                <i class="ti ti-crown"></i> Prestige
+            </a>
+            <a href="{{ url_for('badges') }}" class="nav-btn">
+                <i class="ti ti-award"></i> Badges
+            </a>
+        </div>
+
+        <!-- Header -->
+        <div class="coins-header">
+            <h1><i class="ti ti-shopping-bag"></i> Cosmetics Shop</h1>
+            <div class="coins-amount">💰 {{ user_coins }} Coins</div>
+            <p>Kaufe lustige Titel, Themes und Effekte mit deinen verdienten Coins!</p>
+        </div>
+
+        <!-- Current Cosmetics Preview -->
+        <div class="preview-section">
+            <h2>🎭 Deine aktuelle Erscheinung</h2>
+            
+            <div class="current-avatar">{{ cosmetics.active.avatar or "🧑‍💼" }}</div>
+            
+            {% if cosmetics.active.title %}
+                <div class="current-title">{{ cosmetics.active.title }}</div>
+            {% else %}
+                <div class="current-title" style="color: var(--muted);">Kein Titel ausgerüstet</div>
+            {% endif %}
+            
+            {% if cosmetics.active.theme and cosmetics.active.theme != "default" %}
+                <div><strong>Theme:</strong> {{ cosmetics.active.theme }}</div>
+            {% endif %}
+            
+            {% if cosmetics.active.effects %}
+                <div><strong>Aktive Effekte:</strong> {{ cosmetics.active.effects|length }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Funny Titles Section -->
+        {% if cosmetics.available_titles %}
+        <div class="shop-section">
+            <div class="section-title">
+                <span>🏷️ Lustige Titel</span>
+                <span style="font-size: 0.8em; color: var(--muted);">({{ cosmetics.available_titles|length }} verfügbar)</span>
+            </div>
+            
+            <div class="items-grid">
+                {% for title_id, title in cosmetics.available_titles.items() %}
+                <div class="shop-item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-name">{{ title.name }}</div>
+                            <div class="item-rarity rarity-{{ title.rarity }}">{{ title.rarity }}</div>
+                        </div>
+                        <div class="item-price">{{ title.price }} 💰</div>
+                    </div>
+                    
+                    <div class="item-description">{{ title.description }}</div>
+                    
+                    <div class="item-actions">
+                        <button class="btn-purchase" 
+                                onclick="purchaseItem('title', '{{ title_id }}', {{ title.price }})"
+                                {% if user_coins < title.price %}disabled{% endif %}>
+                            {% if user_coins < title.price %}
+                                Zu teuer
+                            {% else %}
+                                Kaufen
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Owned Titles Section -->
+        {% if cosmetics.owned.titles %}
+        <div class="shop-section">
+            <div class="section-title">
+                <span>🎖️ Deine Titel</span>
+                <span style="font-size: 0.8em; color: var(--muted);">({{ cosmetics.owned.titles|length }} im Besitz)</span>
+            </div>
+            
+            <div class="items-grid">
+                {% for title_id in cosmetics.owned.titles %}
+                    <!-- Note: In a real implementation, you'd need to pass the full title data -->
+                <div class="shop-item">
+                    <div class="owned-indicator {% if cosmetics.active.title == title_id %}equipped-indicator{% endif %}">
+                        {% if cosmetics.active.title == title_id %}Ausgerüstet{% else %}Im Besitz{% endif %}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-name">{{ title_id }}</div>
+                    </div>
+                    
+                    <div class="item-actions">
+                        {% if cosmetics.active.title == title_id %}
+                            <button class="btn-unequip" onclick="unequipItem('title')">
+                                Ablegen
+                            </button>
+                        {% else %}
+                            <button class="btn-equip" onclick="equipItem('title', '{{ title_id }}')">
+                                Ausrüsten
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Color Themes Section -->
+        {% if cosmetics.available_themes %}
+        <div class="shop-section">
+            <div class="section-title">
+                <span>🎨 Farb-Themes</span>
+                <span style="font-size: 0.8em; color: var(--muted);">({{ cosmetics.available_themes|length }} verfügbar)</span>
+            </div>
+            
+            <div class="items-grid">
+                {% for theme_id, theme in cosmetics.available_themes.items() %}
+                <div class="shop-item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-name">{{ theme.name }}</div>
+                            <div class="item-rarity rarity-{{ theme.rarity }}">{{ theme.rarity }}</div>
+                        </div>
+                        <div class="item-price">{{ theme.price }} 💰</div>
+                    </div>
+                    
+                    <div class="item-description">{{ theme.description }}</div>
+                    
+                    {% if theme.colors %}
+                    <div class="current-theme">
+                        {% for color_name, color_value in theme.colors.items() %}
+                            <div class="color-sample" style="background-color: {{ color_value }}" title="{{ color_name }}"></div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="item-actions">
+                        <button class="btn-purchase" 
+                                onclick="purchaseItem('theme', '{{ theme_id }}', {{ theme.price }})"
+                                {% if user_coins < theme.price %}disabled{% endif %}>
+                            {% if user_coins < theme.price %}
+                                Zu teuer
+                            {% else %}
+                                Kaufen
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Avatar Emojis Section -->
+        {% if cosmetics.available_avatars %}
+        <div class="shop-section">
+            <div class="section-title">
+                <span>😀 Avatar Emojis</span>
+                <span style="font-size: 0.8em; color: var(--muted);">({{ cosmetics.available_avatars|length }} verfügbar)</span>
+            </div>
+            
+            <div class="items-grid">
+                {% for avatar_id, avatar in cosmetics.available_avatars.items() %}
+                <div class="shop-item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-name">{{ avatar.emoji }} {{ avatar.name }}</div>
+                        </div>
+                        <div class="item-price">{{ avatar.price }} 💰</div>
+                    </div>
+                    
+                    <div class="item-description">Kategorie: {{ avatar.category }}</div>
+                    
+                    <div class="item-actions">
+                        <button class="btn-purchase" 
+                                onclick="purchaseItem('avatar', '{{ avatar_id }}', {{ avatar.price }})"
+                                {% if user_coins < avatar.price %}disabled{% endif %}>
+                            {% if user_coins < avatar.price %}
+                                Zu teuer
+                            {% else %}
+                                Kaufen
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Special Effects Section -->
+        {% if cosmetics.available_effects %}
+        <div class="shop-section">
+            <div class="section-title">
+                <span>✨ Spezialeffekte</span>
+                <span style="font-size: 0.8em; color: var(--muted);">({{ cosmetics.available_effects|length }} verfügbar)</span>
+            </div>
+            
+            <div class="items-grid">
+                {% for effect_id, effect in cosmetics.available_effects.items() %}
+                <div class="shop-item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-name">{{ effect.name }}</div>
+                            <div class="item-rarity rarity-{{ effect.rarity }}">{{ effect.rarity }}</div>
+                        </div>
+                        <div class="item-price">{{ effect.price }} 💰</div>
+                    </div>
+                    
+                    <div class="item-description">{{ effect.description }}</div>
+                    
+                    <div class="item-actions">
+                        <button class="btn-purchase" 
+                                onclick="purchaseItem('effect', '{{ effect_id }}', {{ effect.price }})"
+                                {% if user_coins < effect.price %}disabled{% endif %}>
+                            {% if user_coins < effect.price %}
+                                Zu teuer
+                            {% else %}
+                                Kaufen
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not cosmetics.available_titles and not cosmetics.available_themes and not cosmetics.available_avatars and not cosmetics.available_effects %}
+        <div class="shop-section" style="text-align: center; padding: 50px;">
+            <h2>🎉 Alles gekauft!</h2>
+            <p>Du besitzt bereits alle verfügbaren Cosmetics. Schau regelmäßig vorbei für neue Items!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let currentCoins = {{ user_coins }};
+
+        async function purchaseItem(itemType, itemId, price) {
+            if (currentCoins < price) {
+                showMessage('Nicht genug Coins!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/cosmetics/purchase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        item_type: itemType,
+                        item_id: itemId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentCoins = result.remaining_coins;
+                    updateCoinsDisplay();
+                    showMessage(result.message, 'success');
+                    
+                    // Reload page after 2 seconds to show updated inventory
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Kauf', 'error');
+                console.error('Purchase error:', error);
+            }
+        }
+
+        async function equipItem(itemType, itemId) {
+            try {
+                const response = await fetch('/cosmetics/equip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        item_type: itemType,
+                        item_id: itemId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    
+                    // Reload page to show updated equipment
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Ausrüsten', 'error');
+                console.error('Equip error:', error);
+            }
+        }
+
+        async function unequipItem(itemType, itemId = null) {
+            try {
+                const body = { item_type: itemType };
+                if (itemId) body.item_id = itemId;
+
+                const response = await fetch('/cosmetics/unequip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    
+                    // Reload page to show updated equipment
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Entfernen', 'error');
+                console.error('Unequip error:', error);
+            }
+        }
+
+        function updateCoinsDisplay() {
+            const coinsDisplay = document.querySelector('.coins-amount');
+            if (coinsDisplay) {
+                coinsDisplay.textContent = `💰 ${currentCoins} Coins`;
+            }
+        }
+
+        function showMessage(message, type) {
+            // Remove existing messages
+            const existingMessages = document.querySelectorAll('.success-message, .error-message');
+            existingMessages.forEach(msg => msg.remove());
+
+            // Create new message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+            messageDiv.textContent = message;
+
+            // Insert at top of container
+            const container = document.querySelector('.shop-container');
+            container.insertBefore(messageDiv, container.firstChild);
+
+            // Remove after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Theme Toggle (copy from existing functionality)
+        const body = document.body;
+        const modeToggle = document.getElementById("mode-toggle");
+        
+        function setMode(dark, animate = true) {
+            if (animate) {
+                body.style.transition = 'background 0.3s ease';
+            }
+            body.classList.toggle('lightmode', !dark);
+            body.classList.toggle('darkmode', dark);
+            modeToggle.innerHTML = dark ? '🌙' : '☀️';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+        
+        // Theme beim Laden setzen
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            setMode(savedTheme !== 'light', false);
+        });
+        
+        modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+    </script>
+</body>
+</html>
