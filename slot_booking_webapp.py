@@ -1217,8 +1217,18 @@ def load_json_data(file_path):
 def login():
     userlist = get_userlist()
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+
+        # Input validation
+        if not username or not password:
+            flash("Benutzername und Passwort sind erforderlich.", "danger")
+            return redirect(url_for("login"))
+
+        if len(username) > 50 or len(password) > 100:
+            flash("Eingabe zu lang.", "danger")
+            return redirect(url_for("login"))
+
         if username in userlist and password == userlist[username]:
             session.update({"logged_in": True, "user": username})
             champ = check_and_set_champion()
@@ -1246,41 +1256,61 @@ def day_view(date_str):
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
-    
-    slots = {}
-    
-    # Check if we have loaded availability data for this date
-    availability = load_availability()
-    
-    for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
-        # Use effective availability (loaded data + fallback defaults)
-        effective_beraters = get_effective_availability(date_str, hour)
-        berater_count = len(effective_beraters)
-        slot_list, booked, total, freie_count, overbooked = get_slot_status(date_str, hour, berater_count)
-        
-        # Check if this slot uses loaded data or default fallback
-        key = f"{date_str} {hour}"
-        using_default = key not in availability and berater_count > 0
-        
-        slots[hour] = {
-            "events": slot_list, 
-            "booked": booked, 
-            "total": total,
-            "free_count": freie_count, 
-            "available_beraters": berater_count,
-            "overbooked": overbooked,
-            "using_default": using_default,
-        }
-    
-    # Berechne Level-Daten für User
+
+    # Try to get cached day view data (cache for 5 minutes to balance freshness vs performance)
+    day_cache_key = f"day_view_{date_str}_{datetime.now(TZ).strftime('%H_%M')[:-1]}5"
+    cached_slots = cache_manager.get("day_view", day_cache_key)
+
+    if cached_slots:
+        slots = cached_slots
+    else:
+        slots = {}
+
+        # Check if we have loaded availability data for this date
+        availability = load_availability()
+
+        for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
+            # Use effective availability (loaded data + fallback defaults)
+            effective_beraters = get_effective_availability(date_str, hour)
+            berater_count = len(effective_beraters)
+            slot_list, booked, total, freie_count, overbooked = get_slot_status(date_str, hour, berater_count)
+
+            # Check if this slot uses loaded data or default fallback
+            key = f"{date_str} {hour}"
+            using_default = key not in availability and berater_count > 0
+
+            slots[hour] = {
+                "events": slot_list,
+                "booked": booked,
+                "total": total,
+                "free_count": freie_count,
+                "available_beraters": berater_count,
+                "overbooked": overbooked,
+                "using_default": using_default,
+            }
+
+        # Cache the computed slots for 5 minutes
+        cache_manager.set("day_view", day_cache_key, slots)
+
+    # Berechne Level-Daten für User (with caching)
     user = session.get("user")
     user_level = None
     if user:
-        user_level = level_system.calculate_user_level(user)
-        # Füge Farben hinzu
-        user_level["progress_color"] = level_system.get_level_progress_color(user_level["progress_to_next"])
-        if user_level["best_badge"]:
-            user_level["best_badge_color"] = level_system.get_rarity_color(user_level["best_badge"]["rarity"])
+        # Cache user level calculation for 10 minutes
+        level_cache_key = f"user_level_{user}_{datetime.now(TZ).strftime('%Y-%m-%d_%H_%M')[:-1]}0"
+        cached_level = cache_manager.get("user_level", level_cache_key)
+
+        if cached_level:
+            user_level = cached_level
+        else:
+            user_level = level_system.calculate_user_level(user)
+            # Füge Farben hinzu
+            user_level["progress_color"] = level_system.get_level_progress_color(user_level["progress_to_next"])
+            if user_level["best_badge"]:
+                user_level["best_badge_color"] = level_system.get_rarity_color(user_level["best_badge"]["rarity"])
+
+            # Cache the user level data
+            cache_manager.set("user_level", level_cache_key, user_level)
     
     return render_template(
         "index.html",
@@ -1312,18 +1342,48 @@ def book():
     user = session.get("user")
     
     with log_request(booking_logger, "create_booking", user_id=user) as request_id:
-        first = request.form.get("first_name")
-        last = request.form.get("last_name")
-        description = request.form.get("description", "")
-        date = request.form.get("date")
-        hour = request.form.get("hour")
+        first = request.form.get("first_name", "").strip()
+        last = request.form.get("last_name", "").strip()
+        description = request.form.get("description", "").strip()
+        date = request.form.get("date", "")
+        hour = request.form.get("hour", "")
         color_id = request.form.get("color", "9")
 
-        # Validierung
+        # Input validation
         if not all([first, last, date, hour]):
             raise_validation_error(
-                "Pflichtfelder fehlen", 
+                "Pflichtfelder fehlen",
                 user_message="Bitte alle Pflichtfelder ausfüllen."
+            )
+
+        # Length validation
+        if len(first) > 100 or len(last) > 100:
+            raise_validation_error(
+                "Name zu lang",
+                user_message="Name darf nicht länger als 100 Zeichen sein."
+            )
+
+        if len(description) > 500:
+            raise_validation_error(
+                "Beschreibung zu lang",
+                user_message="Beschreibung darf nicht länger als 500 Zeichen sein."
+            )
+
+        # Date format validation
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise_validation_error(
+                "Ungültiges Datumsformat",
+                user_message="Ungültiges Datum."
+            )
+
+        # Hour format validation
+        valid_hours = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+        if hour not in valid_hours:
+            raise_validation_error(
+                "Ungültige Uhrzeit",
+                user_message="Ungültige Uhrzeit gewählt."
             )
 
         # Request deduplication - verhindert gleichzeitige Buchungen
@@ -1464,19 +1524,34 @@ def weekly_tracking_report():
 @app.route("/scoreboard")
 def scoreboard():
     user = session.get("user")
-    scores = data_persistence.load_scores()
-    
+
+    # Try to get cached scoreboard data first
+    cache_key = f"scoreboard_{datetime.now(TZ).strftime('%Y-%m-%d_%H')}"
+    cached_data = cache_manager.get("scoreboard", cache_key)
+
+    if cached_data:
+        scores = cached_data["scores"]
+        badge_leaderboard = cached_data["badge_leaderboard"]
+    else:
+        scores = data_persistence.load_scores()
+
+        # Hole Badge-Daten für das Leaderboard (persistent)
+        try:
+            badge_leaderboard = achievement_system.get_badge_leaderboard()
+        except Exception as e:
+            print(f"❌ Badge Leaderboard Fehler: {e}")
+            badge_leaderboard = []
+
+        # Cache the data for 1 hour
+        cache_manager.set("scoreboard", cache_key, {
+            "scores": scores,
+            "badge_leaderboard": badge_leaderboard
+        })
+
     month = datetime.now(TZ).strftime("%Y-%m")
     ranking = sorted([(u, v.get(month, 0)) for u, v in scores.items()], key=lambda x: x[1], reverse=True)
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
-    
-    # Hole Badge-Daten für das Leaderboard (persistent)
-    try:
-        badge_leaderboard = achievement_system.get_badge_leaderboard()
-    except Exception as e:
-        print(f"❌ Badge Leaderboard Fehler: {e}")
-        badge_leaderboard = []
     
     # Hole Level-Daten für alle User im Ranking
     user_levels = {}
@@ -1765,22 +1840,31 @@ def admin_dashboard():
     days_running = get_app_runtime_days()
     
     try:
-        # Initialisiere Tracking System
-        tracker = BookingTracker()
-        
-        # Hole Dashboard Daten mit Fallback
-        try:
-            dashboard_data = tracker.get_enhanced_dashboard()
-        except Exception as e:
-            print(f"⚠️ Dashboard data error: {e}")
-            dashboard_data = {
-                "current": {
-                    "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0},
-                    "last_30_days": {"success_rate": 0, "appearance_rate": 0}
-                },
-                "historical": {"by_weekday": {}},
-                "combined_insights": {"recommendations": []}
-            }
+        # Try to get cached dashboard data first (cache for 15 minutes)
+        dashboard_cache_key = f"admin_dashboard_{datetime.now(TZ).strftime('%Y-%m-%d_%H_%M')[:-1]}0"
+        cached_dashboard = cache_manager.get("admin_dashboard", dashboard_cache_key)
+
+        if cached_dashboard:
+            dashboard_data = cached_dashboard
+        else:
+            # Initialisiere Tracking System
+            tracker = BookingTracker()
+
+            # Hole Dashboard Daten mit Fallback
+            try:
+                dashboard_data = tracker.get_enhanced_dashboard()
+                # Cache the expensive dashboard data for 15 minutes
+                cache_manager.set("admin_dashboard", dashboard_cache_key, dashboard_data)
+            except Exception as e:
+                print(f"⚠️ Dashboard data error: {e}")
+                dashboard_data = {
+                    "current": {
+                        "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0},
+                        "last_30_days": {"success_rate": 0, "appearance_rate": 0}
+                    },
+                    "historical": {"by_weekday": {}},
+                    "combined_insights": {"recommendations": []}
+                }
         
         try:
             weekly_report = tracker.get_weekly_report()
@@ -2561,18 +2645,32 @@ def admin_telefonie():
 
     # POST: Ziele/Aktivitäten setzen
     if request.method == "POST":
-        action = request.form.get("action")
-        target_week = request.form.get("week") or selected_week
-        target_user = request.form.get("user")
+        action = request.form.get("action", "").strip()
+        target_week = request.form.get("week", "").strip() or selected_week
+        target_user = request.form.get("user", "").strip()
+
+        # Input validation for common fields
+        if not action:
+            flash("Aktion nicht angegeben.", "danger")
+            return redirect(url_for("admin_telefonie", week=selected_week))
+
+        if target_user and len(target_user) > 50:
+            flash("Benutzername zu lang.", "danger")
+            return redirect(url_for("admin_telefonie", week=selected_week))
 
         try:
             if action == "set_goal":
-                raw_goal = request.form.get("goal_points", 0)
+                raw_goal = request.form.get("goal_points", "0").strip()
                 try:
                     goal_points = int(raw_goal)
                 except ValueError:
                     flash("Ungültiger Zielwert.", "danger")
                     return redirect(url_for("admin_telefonie", week=target_week))
+
+                if goal_points < 0:
+                    flash("Zielwert kann nicht negativ sein.", "danger")
+                    return redirect(url_for("admin_telefonie", week=target_week))
+
                 if goal_points > 100:
                     goal_points = 100
                     flash("Ziel auf 100 begrenzt.", "warning")
@@ -2582,12 +2680,23 @@ def admin_telefonie():
                 flash("Ziel gespeichert (ggf. als wartend, wenn außerhalb 18–21 Uhr).", "success")
 
             elif action == "add_activity":
-                kind = request.form.get("kind")  # T1/T2/telefonie/extra
-                raw_points = request.form.get("points", 0)
+                kind = request.form.get("kind", "").strip()  # T1/T2/telefonie/extra
+                raw_points = request.form.get("points", "0").strip()
+
+                # Validate kind field
+                valid_kinds = ["T1", "T2", "telefonie", "extra"]
+                if kind not in valid_kinds:
+                    flash("Ungültiger Aktivitätstyp.", "danger")
+                    return redirect(url_for("admin_telefonie", week=target_week))
+
                 try:
                     points = int(raw_points)
                 except ValueError:
                     flash("Ungültige Punktzahl.", "danger")
+                    return redirect(url_for("admin_telefonie", week=target_week))
+
+                if points < 0:
+                    flash("Punktzahl kann nicht negativ sein.", "danger")
                     return redirect(url_for("admin_telefonie", week=target_week))
                 if points > 100:
                     points = 100
@@ -2627,13 +2736,28 @@ def admin_telefonie():
                 flash("Urlaubsstatus aktualisiert.", "success")
                 
             elif action == "set_vacation_period":
-                start_date = request.form.get("start_date")
-                end_date = request.form.get("end_date") 
-                reason = request.form.get("reason", "Urlaub")
-                
+                start_date = request.form.get("start_date", "").strip()
+                end_date = request.form.get("end_date", "").strip()
+                reason = request.form.get("reason", "Urlaub").strip()
+
                 if not start_date or not end_date:
                     flash("Start- und End-Datum sind erforderlich.", "danger")
+                elif len(reason) > 100:
+                    flash("Urlaubsgrund zu lang (max. 100 Zeichen).", "danger")
                 else:
+                    # Validate date formats
+                    try:
+                        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+                        if end_dt < start_dt:
+                            flash("End-Datum muss nach Start-Datum liegen.", "danger")
+                            return redirect(url_for("admin_telefonie", week=target_week))
+
+                    except ValueError:
+                        flash("Ungültiges Datumsformat (YYYY-MM-DD erwartet).", "danger")
+                        return redirect(url_for("admin_telefonie", week=target_week))
+
                     result = set_vacation_period(target_user, start_date, end_date, reason)
                     if result["success"]:
                         flash(result["message"], "success")

@@ -389,13 +389,23 @@ class DailyQuestSystem:
         if "xp" in rewards:
             xp_reward = int(rewards["xp"] * multiplier)
             given_rewards["xp"] = xp_reward
-            # TODO: Integration mit level_system.py
+            # XP wird über Punkte-System gehandhabt - Level-System berechnet XP automatisch aus Gesamtpunkten
+            try:
+                from achievement_system import achievement_system
+                achievement_system.add_points_and_check_achievements(user, xp_reward)
+            except Exception as e:
+                print(f"Warning: Could not add XP rewards via achievement system: {e}")
         
         # Punkte (delegieren an Scoring-System)
         if "points" in rewards:
-            points_reward = int(rewards["points"] * multiplier) 
+            points_reward = int(rewards["points"] * multiplier)
             given_rewards["points"] = points_reward
-            # TODO: Integration mit data_persistence.py
+            # Integration mit data_persistence.py über achievement_system
+            try:
+                from achievement_system import achievement_system
+                achievement_system.add_points_and_check_achievements(user, points_reward)
+            except Exception as e:
+                print(f"Warning: Could not add points rewards via achievement system: {e}")
         
         # Spezielle Rewards
         for reward_type in ["badge", "streak_protection", "spins"]:

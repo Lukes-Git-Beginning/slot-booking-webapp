@@ -66,7 +66,7 @@ class BookingTracker:
                 "color_id": color_id,
                 "description_length": len(description) if description else 0,
                 "has_description": bool(description),
-                "booking_lead_time": (datetime.strptime(date, "%Y-%m-%d") - datetime.now(TZ).date()).days,
+                "booking_lead_time": (datetime.strptime(date, "%Y-%m-%d").date() - datetime.now(TZ).date()).days,
                 "booked_at_hour": datetime.now(TZ).hour,
                 "booked_on_weekday": datetime.now(TZ).strftime("%A")
             }
