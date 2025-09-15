@@ -315,6 +315,11 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
         # Check if date is not in the past
         if target_date < today:
             return []
+
+        # Standard-Verfügbarkeit should only be used for dates at least 3 weeks in the future
+        # This prevents fallback to standard availability for past or near-future slots with no availability
+        if weeks_ahead < 3:
+            return []
         
         # Exclude 9 AM slots on Monday through Thursday (weekday 0-3)
         if hour == "09:00" and target_date.weekday() <= 3:  # Monday=0, Tuesday=1, Wednesday=2, Thursday=3
