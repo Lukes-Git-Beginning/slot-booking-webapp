@@ -271,7 +271,8 @@ class AchievementSystem:
             try:
                 with open(self.badges_file, "r", encoding="utf-8") as f:
                     return json.load(f)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
+                print(f"Warning: Could not load badges file: {e}")
                 return {}
     
     def save_badges(self, badges_data):
@@ -293,7 +294,8 @@ class AchievementSystem:
         try:
             with open(self.mvp_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Could not load MVP file: {e}")
             return {}
     
     def save_mvp_badges(self, mvp_data):
@@ -320,7 +322,8 @@ class AchievementSystem:
             try:
                 with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
                     return json.load(f)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
+                print(f"Warning: Could not load daily stats: {e}")
                 return {}
     
     def save_daily_stats(self, stats_data):
@@ -694,7 +697,8 @@ class AchievementSystem:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
                 if date_obj >= week_start.date():
                     week_points += stats.get("points", 0)
-            except:
+            except (ValueError, TypeError) as e:
+                print(f"Warning: Invalid date format in user stats: {date_str}, {e}")
                 continue
         
         # Streak berechnen
@@ -738,7 +742,8 @@ class AchievementSystem:
                         if month_champion == user:
                             earned = True
                             earned_date = current_month
-                    except:
+                    except (KeyError, TypeError, ValueError, AttributeError) as e:
+                        print(f"Warning: Error checking month champion for {user}: {e}")
                         pass
                 elif badge_id == "mvp_year":
                     # Prüfe ob User Champion des aktuellen Jahres ist
@@ -748,7 +753,8 @@ class AchievementSystem:
                         if year_champion == user:
                             earned = True
                             earned_date = str(current_year)
-                    except:
+                    except (KeyError, TypeError, ValueError, AttributeError) as e:
+                        print(f"Warning: Error checking year champion for {user}: {e}")
                         pass
             
             if earned:
@@ -824,7 +830,8 @@ class AchievementSystem:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
                 if date_obj >= week_start.date():
                     week_points += stats.get("points", 0)
-            except:
+            except (ValueError, TypeError) as e:
+                print(f"Warning: Invalid date format in user stats: {date_str}, {e}")
                 continue
         
         # Berechne Streak
@@ -1001,13 +1008,15 @@ class AchievementSystem:
             from data_persistence import data_persistence
             scores = data_persistence.load_scores()
             daily_stats = data_persistence.load_daily_user_stats()
-        except:
+        except (ImportError, AttributeError) as e:
+            print(f"Warning: Could not import data_persistence, falling back to static files: {e}")
             try:
                 with open("static/scores.json", "r", encoding="utf-8") as f:
                     scores = json.load(f)
                 with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
                     daily_stats = json.load(f)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError, IOError) as e2:
+                print(f"Warning: Could not load static files either: {e2}")
                 scores = {}
                 daily_stats = {}
         

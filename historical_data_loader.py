@@ -29,35 +29,51 @@ class HistoricalDataLoader:
     def load_historical_data(self):
         """Lädt die historischen Excel-Daten"""
         try:
-            print("📊 Lade historische Daten...")
+            print("Lade historische Daten...")
             df = pd.read_excel(self.historical_file)
             
             # Bereinige die Daten
             df = self._clean_data(df)
             
-            print(f"✅ {len(df)} historische Datensätze geladen")
+            print(f"{len(df)} historische Datensätze geladen")
             return df
             
         except Exception as e:
-            print(f"❌ Fehler beim Laden der historischen Daten: {e}")
+            print(f"Fehler beim Laden der historischen Daten: {e}")
             return None
     
     def _clean_data(self, df):
         """Bereinigt die Excel-Daten - nur relevante Spalten und Zeilen"""
         # Entferne Zeilen ohne Datum
         df = df.dropna(subset=['Datum'])
-        
+
         # Konvertiere Datum zu datetime
         df['Datum'] = pd.to_datetime(df['Datum'])
-        
+
         # Fülle NaN-Werte mit 0 für numerische Spalten
         numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
         df[numeric_columns] = df[numeric_columns].fillna(0)
-        
+
         # Fülle NaN-Werte mit leeren Strings für Text-Spalten
         text_columns = df.select_dtypes(include=['object']).columns
         df[text_columns] = df[text_columns].fillna('')
-        
+
+        # FILTER: Nur gültige Daten - keine zukünftigen Daten, nur Werktage, nur Zeilen mit echten Buchungen
+        today = datetime.now(TZ).date()
+        start_date = datetime.strptime('2025-01-13', '%Y-%m-%d').date()
+
+        # Filtere Datum zwischen Start und heute
+        df = df[(df['Datum'].dt.date >= start_date) & (df['Datum'].dt.date <= today)]
+
+        # Filtere nur Werktage (Montag=0, Sonntag=6)
+        df = df[df['Datum'].dt.weekday < 5]  # 0-4 = Mo-Fr
+
+        # Filtere nur Zeilen mit tatsächlichen Buchungen (Gelegt > 0)
+        if 'Gelegt' in df.columns:
+            df = df[df['Gelegt'] > 0]
+
+        print(f"Nach Bereinigung: {len(df)} gültige Datensätze von {start_date} bis {today}")
+
         return df
     
     def convert_to_tracking_format(self, df):
@@ -176,11 +192,23 @@ class HistoricalDataLoader:
         # Auftauchquote
         appearance_rate = total_appeared / total_gelegt if total_gelegt > 0 else 0
         
+        # Berechne korrekte Business Days (nur Werktage mit echten Buchungen)
+        unique_business_days = len(df['Datum'].dt.date.unique())
+        today = datetime.now(TZ).date()
+        start_date = datetime.strptime('2025-01-13', '%Y-%m-%d').date()
+
         stats = {
-            "total_days": len(df['Datum'].dt.date.unique()),
+            "total_days": unique_business_days,
+            "working_days_analyzed": unique_business_days,  # Neue Klarstellung
             "date_range": {
-                "start": df['Datum'].min().strftime('%Y-%m-%d'),
-                "end": df['Datum'].max().strftime('%Y-%m-%d')
+                "start": max(df['Datum'].min().strftime('%Y-%m-%d'), '2025-01-13'),
+                "end": min(df['Datum'].max().strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d'))
+            },
+            "data_quality": {
+                "future_dates_excluded": True,
+                "weekends_excluded": True,
+                "empty_rows_excluded": True,
+                "only_actual_bookings": True
             },
             "total_slots": int(total_gelegt),
             "total_appeared": int(total_appeared),
@@ -247,7 +275,7 @@ class HistoricalDataLoader:
             with open(os.path.join(self.output_dir, "historical_stats.json"), "w", encoding="utf-8") as f:
                 json.dump(stats, f, ensure_ascii=False, indent=2, default=str)
             
-            print(f"✅ Historische Daten gespeichert:")
+            print(f"Historische Daten gespeichert:")
             print(f"   - {len(bookings)} Buchungen")
             print(f"   - {len(outcomes)} Outcomes")
             print(f"   - Statistiken")
@@ -256,12 +284,12 @@ class HistoricalDataLoader:
             return True
             
         except Exception as e:
-            print(f"❌ Fehler beim Speichern: {e}")
+            print(f"Fehler beim Speichern: {e}")
             return False
     
     def process_historical_data(self):
         """Hauptfunktion: Verarbeitet alle historischen Daten"""
-        print("🔄 Verarbeite historische Daten...")
+        print("Verarbeite historische Daten...")
         
         # Lade Daten
         df = self.load_historical_data()
@@ -278,10 +306,10 @@ class HistoricalDataLoader:
         success = self.save_historical_data(tracking_data, stats)
         
         if success:
-            print("✅ Historische Daten erfolgreich verarbeitet!")
+            print("Historische Daten erfolgreich verarbeitet!")
             return True
         else:
-            print("❌ Fehler bei der Verarbeitung")
+            print("Fehler bei der Verarbeitung")
             return False
 
 if __name__ == "__main__":

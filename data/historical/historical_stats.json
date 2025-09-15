@@ -1,8 +1,15 @@
 {
-  "total_days": 269,
+  "total_days": 144,
+  "working_days_analyzed": 144,
   "date_range": {
     "start": "2025-01-13",
-    "end": "2026-01-22"
+    "end": "2025-08-11"
+  },
+  "data_quality": {
+    "future_dates_excluded": true,
+    "weekends_excluded": true,
+    "empty_rows_excluded": true,
+    "only_actual_bookings": true
   },
   "total_slots": 4660,
   "total_appeared": 1141,

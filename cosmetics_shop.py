@@ -282,7 +282,8 @@ class CosmeticsShop:
         try:
             with open(self.purchases_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Could not load purchases file: {e}")
             return {}
     
     def save_purchases(self, data):
@@ -295,7 +296,8 @@ class CosmeticsShop:
         try:
             with open(self.active_cosmetics_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Could not load active cosmetics file: {e}")
             return {}
     
     def save_active_cosmetics(self, data):

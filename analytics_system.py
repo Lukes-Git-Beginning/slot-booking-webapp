@@ -474,7 +474,8 @@ class AdvancedAnalytics:
                 if daily_avg_points > 0:
                     days_needed = xp_needed / daily_avg_points
                     predictions["next_level_eta"] = f"{int(days_needed)} Tage"
-            except:
+            except (ImportError, AttributeError, ValueError, TypeError) as e:
+                print(f"Warning: Error calculating level predictions for {user}: {e}")
                 pass
             
             # Streak Survival Probability
@@ -637,7 +638,8 @@ class AdvancedAnalytics:
                 iso_year, iso_week, _ = date_obj.isocalendar()
                 week_key = f"{iso_year}-W{iso_week:02d}"
                 weekly_data[week_key].append(stats)
-            except:
+            except (ValueError, TypeError, AttributeError) as e:
+                print(f"Warning: Invalid date format in weekly analytics: {date_str}, {e}")
                 continue
         return weekly_data
     
