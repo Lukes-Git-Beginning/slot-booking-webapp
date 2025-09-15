@@ -1262,6 +1262,9 @@ def day_view(date_str):
     except ValueError:
         return redirect(url_for("day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
+    # Load availability data (needed for summary calculations regardless of caching)
+    availability = load_availability()
+
     # Try to get cached day view data (cache for 5 minutes to balance freshness vs performance)
     day_cache_key = f"day_view_{date_str}_{datetime.now(TZ).strftime('%H_%M')[:-1]}5"
     cached_slots = cache_manager.get("day_view", day_cache_key)
@@ -1270,9 +1273,6 @@ def day_view(date_str):
         slots = cached_slots
     else:
         slots = {}
-
-        # Check if we have loaded availability data for this date
-        availability = load_availability()
 
         for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
             # Use effective availability (loaded data + fallback defaults)
