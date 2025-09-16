@@ -5,15 +5,16 @@ Persistenz und Logik für Wochen-Punkte (T1, T2, Telefonie, Extra)
 Features:
 - Ziele (goal_points) pro Nutzer und Woche (ISO: YYYY-WW)
 - Aktivitäten (T1, T2, telefonie, extra) als Punkte
-- Pending-Queues für Einträge außerhalb des Zeitfensters (18–21 Uhr, Europe/Berlin)
+- Pending-Queues für Einträge außerhalb des Zeitfensters (10–22 Uhr, Europe/Berlin)
 - Urlaub-Flag pro Nutzer/Woche (setzt Ziel rechnerisch auf 0)
 - Aggregation/Statistik zur Darstellung (Ziel, erreicht, offen, Bilanz)
 """
 
+import csv
 import json
 import os
 from datetime import datetime, time, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import pytz
 
@@ -56,12 +57,12 @@ def list_recent_weeks(num_weeks: int = 8) -> List[str]:
 
 
 def is_in_commit_window(check_dt: Optional[datetime] = None) -> bool:
-    """Einträge zwischen 18:00 und 21:00 (inklusive 21:00) verbuchen."""
+    """Einträge zwischen 10:00 und 22:00 (inklusive 22:00) verbuchen."""
     if check_dt is None:
         check_dt = datetime.now(TZ)
     local = check_dt.astimezone(TZ)
-    start = time(18, 0)
-    end = time(21, 0)
+    start = time(10, 0)
+    end = time(22, 0)
     return start <= local.time() <= end
 
 
@@ -135,53 +136,130 @@ def set_on_vacation(week_key: str, user: str, on_vacation: bool) -> None:
     save_data(data)
 
 
-def set_week_goal(week_key: str, user: str, goal_points: int, set_by: str) -> None:
+def validate_participant(user: str) -> Dict[str, Union[bool, str]]:
+    """Validates if participant exists in system."""
+    participants = get_participants()
+    if not user or not user.strip():
+        return {"valid": False, "error": "User name cannot be empty"}
+    if user not in participants:
+        return {"valid": False, "error": f"User '{user}' not found in participants: {participants}"}
+    return {"valid": True, "error": None}
+
+
+def check_duplicate_activity(week_key: str, user: str, kind: str, points: int, window_minutes: int = 5) -> Dict[str, Union[bool, str]]:
+    """Checks for duplicate activities within time window."""
+    data = load_data()
+    if week_key not in data["weeks"] or user not in data["weeks"][week_key]["users"]:
+        return {"duplicate": False, "error": None}
+
+    user_data = data["weeks"][week_key]["users"][user]
+    activities = user_data.get("activities", []) + user_data.get("pending_activities", [])
+    now = datetime.now(TZ)
+
+    for activity in activities:
+        try:
+            activity_time = datetime.fromisoformat(activity.get("ts", ""))
+            time_diff = abs((now - activity_time).total_seconds() / 60)
+
+            if (activity.get("kind") == kind and
+                activity.get("points") == points and
+                time_diff < window_minutes):
+                return {"duplicate": True, "error": f"Similar activity added {time_diff:.1f} minutes ago"}
+        except Exception:
+            continue
+
+    return {"duplicate": False, "error": None}
+
+
+def set_week_goal(week_key: str, user: str, goal_points: int, set_by: str) -> Dict[str, Union[bool, str]]:
     """Setzt Wochenziel. Außerhalb des Fensters als pending gespeichert."""
-    data = load_data()
-    ensure_user_week(data, week_key, user)
-    user_entry = data["weeks"][week_key]["users"][user]
-    clamped = min(100, max(0, int(goal_points)))
-    if is_in_commit_window():
-        user_entry["goal_points"] = clamped
-        user_entry["pending_goal"] = None
-        user_entry.setdefault("audit", []).append({
-            "type": "goal_set",
-            "points": int(clamped),
-            "by": set_by,
-            "ts": datetime.now(TZ).isoformat()
-        })
-    else:
-        user_entry["pending_goal"] = clamped
-    save_data(data)
+    # Validation
+    validation = validate_participant(user)
+    if not validation["valid"]:
+        return {"success": False, "error": validation["error"]}
+
+    # Check if user is on vacation
+    vacation_status = is_user_on_vacation(user)
+    if vacation_status["on_vacation"]:
+        return {"success": False, "error": f"User {user} is on vacation ({vacation_status['reason']}). Goal not set."}
+
+    try:
+        data = load_data()
+        ensure_user_week(data, week_key, user)
+        user_entry = data["weeks"][week_key]["users"][user]
+        clamped = min(100, max(0, int(goal_points)))
+
+        if is_in_commit_window():
+            user_entry["goal_points"] = clamped
+            user_entry["pending_goal"] = None
+            user_entry.setdefault("audit", []).append({
+                "type": "goal_set",
+                "points": int(clamped),
+                "by": set_by,
+                "ts": datetime.now(TZ).isoformat()
+            })
+        else:
+            user_entry["pending_goal"] = clamped
+
+        save_data(data)
+        return {"success": True, "error": None}
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to set goal: {str(e)}"}
 
 
-def record_activity(week_key: str, user: str, kind: str, points: int, set_by: str, note: str = "") -> None:
+def record_activity(week_key: str, user: str, kind: str, points: int, set_by: str, note: str = "") -> Dict[str, Union[bool, str]]:
     """Erfasst Aktivität. Außerhalb des Fensters pending."""
-    assert kind in ("T1", "T2", "telefonie", "extra")
-    points = min(100, max(0, int(points)))
-    data = load_data()
-    ensure_user_week(data, week_key, user)
-    user_entry = data["weeks"][week_key]["users"][user]
-    entry = {
-        "kind": kind,
-        "points": points,
-        "note": note or "",
-        "by": set_by,
-        "ts": datetime.now(TZ).isoformat()
-    }
-    if is_in_commit_window():
-        user_entry["activities"].append(entry)
-        user_entry.setdefault("audit", []).append({
-            "type": "activity",
+    # Validation
+    if kind not in ("T1", "T2", "telefonie", "extra"):
+        return {"success": False, "error": f"Invalid activity kind '{kind}'. Must be one of: T1, T2, telefonie, extra"}
+
+    validation = validate_participant(user)
+    if not validation["valid"]:
+        return {"success": False, "error": validation["error"]}
+
+    # Check if user is on vacation
+    vacation_status = is_user_on_vacation(user)
+    if vacation_status["on_vacation"]:
+        return {"success": False, "error": f"Warning: User {user} is on vacation ({vacation_status['reason']}). Activity recorded but will not count toward goals."}
+
+    # Check for duplicates
+    duplicate_check = check_duplicate_activity(week_key, user, kind, points)
+    if duplicate_check["duplicate"]:
+        return {"success": False, "error": duplicate_check["error"]}
+
+    try:
+        points = min(100, max(0, int(points)))
+        data = load_data()
+        ensure_user_week(data, week_key, user)
+        user_entry = data["weeks"][week_key]["users"][user]
+
+        entry = {
             "kind": kind,
             "points": points,
             "note": note or "",
             "by": set_by,
-            "ts": entry["ts"]
-        })
-    else:
-        user_entry["pending_activities"].append(entry)
-    save_data(data)
+            "ts": datetime.now(TZ).isoformat()
+        }
+
+        if is_in_commit_window():
+            user_entry["activities"].append(entry)
+            user_entry.setdefault("audit", []).append({
+                "type": "activity",
+                "kind": kind,
+                "points": points,
+                "note": note or "",
+                "by": set_by,
+                "ts": entry["ts"]
+            })
+        else:
+            user_entry["pending_activities"].append(entry)
+
+        save_data(data)
+        return {"success": True, "error": None}
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to record activity: {str(e)}"}
 
 
 def apply_pending(week_key: str) -> Tuple[int, int]:
@@ -492,7 +570,7 @@ def get_user_vacation_periods(user: str) -> List[Dict]:
     """Gibt alle Urlaubszeiträume eines Users zurück."""
     data = load_data()
     all_periods = []
-    
+
     # Sammle Urlaubsperioden aus allen Wochen
     for week_key, week_data in data["weeks"].items():
         if user in week_data["users"]:
@@ -502,9 +580,429 @@ def get_user_vacation_periods(user: str) -> List[Dict]:
                 # Verhindere Duplikate (gleiche Periode kann in mehreren Wochen stehen)
                 if not any(p["start"] == period["start"] and p["end"] == period["end"] for p in all_periods):
                     all_periods.append(period)
-    
+
     # Sortiere nach Start-Datum
     all_periods.sort(key=lambda x: x["start"])
     return all_periods
 
+
+# Enhanced Audit & Reporting Functions
+def get_weekly_stats_summary(week_key: str) -> Dict:
+    """Quick overview of who's ahead/behind goals."""
+    stats = compute_week_stats(week_key)
+    behind = [u for u in stats["users"] if u["balance"] < 0 and not u["on_vacation"]]
+    ahead = [u for u in stats["users"] if u["balance"] > 0]
+
+    return {
+        "week": week_key,
+        "behind_goal": sorted(behind, key=lambda x: x["balance"]),
+        "ahead_of_goal": sorted(ahead, key=lambda x: x["balance"], reverse=True),
+        "on_vacation": [u["user"] for u in stats["users"] if u["on_vacation"]],
+        "pending_items": sum(u["pending_count"] for u in stats["users"])
+    }
+
+
+def export_audit_to_csv(week_key: str, filename: Optional[str] = None) -> str:
+    """Export audit log to CSV file."""
+    if filename is None:
+        filename = f"audit_{week_key}.csv"
+
+    audit_entries = get_week_audit(week_key)
+
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        if not audit_entries:
+            return filename
+
+        fieldnames = audit_entries[0].keys()
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(audit_entries)
+
+    return filename
+
+
+# UI/Admin Helper Functions
+def get_commit_window_status() -> Dict:
+    """Check current commit window status."""
+    now = datetime.now(TZ)
+    in_window = is_in_commit_window(now)
+
+    if in_window:
+        # Calculate time until window closes
+        end_time = now.replace(hour=22, minute=0, second=0, microsecond=0)
+        time_left = end_time - now
+        hours, remainder = divmod(time_left.seconds, 3600)
+        minutes = remainder // 60
+
+        return {
+            "in_window": True,
+            "message": f"Commit window OPEN - closes in {hours}h {minutes}m",
+            "time_left_minutes": time_left.seconds // 60
+        }
+    else:
+        # Calculate time until window opens
+        if now.hour < 10:
+            open_time = now.replace(hour=10, minute=0, second=0, microsecond=0)
+        else:
+            open_time = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        time_until = open_time - now
+        hours = time_until.seconds // 3600
+        minutes = (time_until.seconds % 3600) // 60
+
+        return {
+            "in_window": False,
+            "message": f"Commit window CLOSED - opens in {hours}h {minutes}m",
+            "opens_in_minutes": time_until.seconds // 60
+        }
+
+
+def get_pending_summary() -> Dict:
+    """Count pending items across all users."""
+    data = load_data()
+    current_week = get_week_key()
+    summary = {"total_pending_goals": 0, "total_pending_activities": 0, "users_with_pending": []}
+
+    if current_week not in data["weeks"]:
+        return summary
+
+    for user, user_data in data["weeks"][current_week]["users"].items():
+        pending_goal = user_data.get("pending_goal") is not None
+        pending_activities = len(user_data.get("pending_activities", []))
+
+        if pending_goal:
+            summary["total_pending_goals"] += 1
+        if pending_activities > 0:
+            summary["total_pending_activities"] += pending_activities
+
+        if pending_goal or pending_activities > 0:
+            summary["users_with_pending"].append({
+                "user": user,
+                "pending_goal": pending_goal,
+                "pending_activities": pending_activities
+            })
+
+    return summary
+
+
+# Data Management Utilities
+def archive_old_weeks(weeks_to_keep: int = 8) -> Dict:
+    """Archive weeks older than specified number to separate file."""
+    data = load_data()
+    current_week = get_week_key()
+    recent_weeks = set(list_recent_weeks(weeks_to_keep))
+
+    archived_weeks = {}
+    weeks_to_archive = []
+
+    for week_key in data["weeks"].keys():
+        if week_key not in recent_weeks and week_key != current_week:
+            archived_weeks[week_key] = data["weeks"][week_key]
+            weeks_to_archive.append(week_key)
+
+    if not archived_weeks:
+        return {"archived_count": 0, "message": "No weeks to archive"}
+
+    # Save archived data
+    archive_file = os.path.join(DATA_DIR, f"weekly_points_archive_{datetime.now(TZ).strftime('%Y%m%d')}.json")
+    try:
+        with open(archive_file, "w", encoding="utf-8") as f:
+            json.dump(archived_weeks, f, ensure_ascii=False, indent=2)
+
+        # Remove archived weeks from main data
+        for week_key in weeks_to_archive:
+            del data["weeks"][week_key]
+
+        save_data(data)
+
+        return {
+            "archived_count": len(weeks_to_archive),
+            "archived_weeks": weeks_to_archive,
+            "archive_file": archive_file,
+            "message": f"Archived {len(weeks_to_archive)} weeks to {archive_file}"
+        }
+    except Exception as e:
+        return {"archived_count": 0, "error": f"Failed to archive: {str(e)}"}
+
+
+def backup_weekly_data(backup_name: Optional[str] = None) -> str:
+    """Create backup of current weekly data."""
+    if backup_name is None:
+        backup_name = f"weekly_points_backup_{datetime.now(TZ).strftime('%Y%m%d_%H%M%S')}.json"
+
+    backup_file = os.path.join(DATA_DIR, backup_name)
+    data = load_data()
+
+    with open(backup_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    return backup_file
+
+
+def restore_from_backup(backup_file: str) -> Dict:
+    """Restore data from backup file."""
+    try:
+        if not os.path.exists(backup_file):
+            return {"success": False, "error": f"Backup file not found: {backup_file}"}
+
+        with open(backup_file, "r", encoding="utf-8") as f:
+            backup_data = json.load(f)
+
+        # Validate backup data structure
+        if "participants" not in backup_data or "weeks" not in backup_data:
+            return {"success": False, "error": "Invalid backup file structure"}
+
+        save_data(backup_data)
+        return {"success": True, "message": f"Data restored from {backup_file}"}
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to restore: {str(e)}"}
+
+
+def validate_data_integrity() -> Dict:
+    """Check data for corruption or inconsistencies."""
+    try:
+        data = load_data()
+        issues = []
+
+        # Check participants
+        if not data.get("participants"):
+            issues.append("No participants defined")
+
+        # Check weeks structure
+        for week_key, week_data in data.get("weeks", {}).items():
+            if not isinstance(week_data, dict):
+                issues.append(f"Week {week_key}: Invalid structure")
+                continue
+
+            # Check users in week
+            for user, user_data in week_data.get("users", {}).items():
+                if not isinstance(user_data, dict):
+                    issues.append(f"Week {week_key}, User {user}: Invalid user data structure")
+                    continue
+
+                # Check required fields
+                required_fields = ["goal_points", "on_vacation", "activities", "pending_activities", "audit"]
+                for field in required_fields:
+                    if field not in user_data:
+                        issues.append(f"Week {week_key}, User {user}: Missing field '{field}'")
+
+                # Check activities structure
+                for activity in user_data.get("activities", []):
+                    if not all(key in activity for key in ["kind", "points", "by", "ts"]):
+                        issues.append(f"Week {week_key}, User {user}: Invalid activity structure")
+
+        return {
+            "valid": len(issues) == 0,
+            "issues": issues,
+            "total_weeks": len(data.get("weeks", {})),
+            "total_participants": len(data.get("participants", []))
+        }
+
+    except Exception as e:
+        return {"valid": False, "issues": [f"Failed to validate: {str(e)}"]}
+
+
+def repair_data_structure() -> Dict:
+    """Fix common data structure issues."""
+    try:
+        data = load_data()
+        repairs = []
+
+        # Ensure participants exist
+        if not data.get("participants"):
+            data["participants"] = DEFAULT_PARTICIPANTS
+            repairs.append("Added default participants")
+
+        # Fix weeks structure
+        for week_key, week_data in data.get("weeks", {}).items():
+            if "users" not in week_data:
+                week_data["users"] = {}
+                repairs.append(f"Week {week_key}: Added users structure")
+
+            # Fix user structures
+            for user, user_data in week_data["users"].items():
+                defaults = {
+                    "goal_points": 0,
+                    "on_vacation": False,
+                    "activities": [],
+                    "pending_activities": [],
+                    "pending_goal": None,
+                    "audit": []
+                }
+
+                for field, default_value in defaults.items():
+                    if field not in user_data:
+                        user_data[field] = default_value
+                        repairs.append(f"Week {week_key}, User {user}: Added missing field '{field}'")
+
+        if repairs:
+            save_data(data)
+
+        return {
+            "success": True,
+            "repairs_made": len(repairs),
+            "repairs": repairs
+        }
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to repair: {str(e)}"}
+
+
+# Smart Defaults
+def suggest_goals_from_history(user: str, weeks_back: int = 4) -> Dict:
+    """Suggest goal based on historical performance."""
+    data = load_data()
+    current_week = get_week_key()
+    recent_weeks = list_recent_weeks(weeks_back + 1)
+
+    # Remove current week from analysis
+    analysis_weeks = [w for w in recent_weeks if w != current_week]
+
+    performances = []
+    for week_key in analysis_weeks:
+        if week_key in data["weeks"] and user in data["weeks"][week_key]["users"]:
+            user_data = data["weeks"][week_key]["users"][user]
+            if not user_data.get("on_vacation", False):
+                achieved = sum(a.get("points", 0) for a in user_data.get("activities", []))
+                performances.append(achieved)
+
+    if not performances:
+        return {"suggested_goal": 15, "reason": "No historical data, using default"}
+
+    avg_performance = sum(performances) / len(performances)
+    # Suggest slightly above average to encourage growth
+    suggested = max(5, min(50, int(avg_performance * 1.1)))
+
+    return {
+        "suggested_goal": suggested,
+        "reason": f"Based on {len(performances)} weeks avg ({avg_performance:.1f})",
+        "historical_performance": performances
+    }
+
+
+def detect_vacation_periods(user: str, consecutive_days: int = 3) -> List[Dict]:
+    """Auto-detect potential vacation periods based on zero activity."""
+    data = load_data()
+    potential_vacations = []
+
+    # Get last 8 weeks for analysis
+    recent_weeks = list_recent_weeks(8)
+    zero_activity_weeks = []
+
+    for week_key in recent_weeks:
+        if week_key in data["weeks"] and user in data["weeks"][week_key]["users"]:
+            user_data = data["weeks"][week_key]["users"][user]
+            total_points = sum(a.get("points", 0) for a in user_data.get("activities", []))
+
+            if total_points == 0 and not user_data.get("on_vacation", False):
+                zero_activity_weeks.append(week_key)
+
+    if len(zero_activity_weeks) >= 2:  # 2+ weeks of zero activity
+        potential_vacations.append({
+            "user": user,
+            "weeks_with_zero_activity": zero_activity_weeks,
+            "recommendation": "Consider marking as vacation periods",
+            "confidence": "medium" if len(zero_activity_weeks) < 3 else "high"
+        })
+
+    return potential_vacations
+
+
+def recommend_point_adjustments(week_key: str) -> Dict:
+    """Recommend point adjustments based on team performance."""
+    stats = compute_week_stats(week_key)
+    recommendations = []
+
+    team_avg_goal = stats["summary"]["total_goal"] / len(stats["users"]) if stats["users"] else 0
+    team_avg_achieved = stats["summary"]["total_achieved"] / len(stats["users"]) if stats["users"] else 0
+
+    for user_stat in stats["users"]:
+        if user_stat["on_vacation"]:
+            continue
+
+        user = user_stat["user"]
+        goal = user_stat["goal"]
+        achieved = user_stat["achieved"]
+
+        # Recommendations based on performance patterns
+        if goal == 0:
+            suggestions = suggest_goals_from_history(user)
+            recommendations.append({
+                "user": user,
+                "type": "set_goal",
+                "current": goal,
+                "suggested": suggestions["suggested_goal"],
+                "reason": f"No goal set. {suggestions['reason']}"
+            })
+        elif achieved > goal * 1.5:  # Consistently over-achieving
+            recommendations.append({
+                "user": user,
+                "type": "increase_goal",
+                "current": goal,
+                "suggested": min(50, int(goal * 1.2)),
+                "reason": "Consistently exceeding goals, consider increasing challenge"
+            })
+        elif achieved < goal * 0.5 and goal > team_avg_goal * 0.8:  # Under-achieving with high goal
+            recommendations.append({
+                "user": user,
+                "type": "reduce_goal",
+                "current": goal,
+                "suggested": max(5, int(goal * 0.8)),
+                "reason": "Goal may be too ambitious, consider reducing"
+            })
+
+    return {
+        "week": week_key,
+        "team_stats": {
+            "avg_goal": round(team_avg_goal, 1),
+            "avg_achieved": round(team_avg_achieved, 1)
+        },
+        "recommendations": recommendations
+    }
+
+
+def auto_set_reasonable_goals(week_key: Optional[str] = None) -> Dict:
+    """Auto-set reasonable goals for users with no goals."""
+    if week_key is None:
+        week_key = get_week_key()
+
+    if not is_in_commit_window():
+        return {"success": False, "error": "Can only auto-set goals during commit window"}
+
+    data = load_data()
+    participants = get_participants()
+    goals_set = []
+
+    for user in participants:
+        ensure_user_week(data, week_key, user)
+        user_data = data["weeks"][week_key]["users"][user]
+
+        # Only set if no goal exists and not on vacation
+        if user_data.get("goal_points", 0) == 0 and not user_data.get("on_vacation", False):
+            suggestion = suggest_goals_from_history(user)
+
+            user_data["goal_points"] = suggestion["suggested_goal"]
+            user_data.setdefault("audit", []).append({
+                "type": "goal_auto_set",
+                "points": suggestion["suggested_goal"],
+                "reason": suggestion["reason"],
+                "by": "auto_system",
+                "ts": datetime.now(TZ).isoformat()
+            })
+
+            goals_set.append({
+                "user": user,
+                "goal_set": suggestion["suggested_goal"],
+                "reason": suggestion["reason"]
+            })
+
+    if goals_set:
+        save_data(data)
+
+    return {
+        "success": True,
+        "goals_set": len(goals_set),
+        "details": goals_set
+    }
 
