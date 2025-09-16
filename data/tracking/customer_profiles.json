@@ -2,68 +2,68 @@
   "Roschke, Andrea ( Verschoben )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Wirth, Minza ( Verschoben )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Eifler , Niklas ( Verschoben )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Ghamgui, Youssef ( Abgesagt )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Muhammad, Rojin Akan ( Verschoben )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Nützl, Jaqueline ( Ghost )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Zogu, Arbenita ( erschienen )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 6,
+    "completed": 6,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -72,18 +72,18 @@
   "Mutschmann, Mary-Jane ( nicht erschienen )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
+    "total_appointments": 6,
     "completed": 0,
-    "no_shows": 2,
+    "no_shows": 6,
     "cancelled": 0,
     "reliability_score": 0.0,
-    "risk_level": "medium"
+    "risk_level": "high"
   },
   "Thomas Barth": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -92,8 +92,8 @@
   "Otterburg , Christin": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -102,8 +102,8 @@
   "Reimgen , Eduard": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -112,8 +112,8 @@
   "Wurzbacher, Barbara": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -122,8 +122,8 @@
   "Kohsar, Fatana": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -132,8 +132,8 @@
   "T1 Atanasov, Katerina (englisch)": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -142,8 +142,8 @@
   "Miggel, Monique": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -152,8 +152,8 @@
   "Holzer , Waldemar ": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -162,8 +162,8 @@
   "Patricia Schlusche": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -172,8 +172,8 @@
   "Weibert, Viktor": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
@@ -182,14 +182,214 @@
   "Hoegg, Anna": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
-    "total_appointments": 2,
-    "completed": 2,
+    "total_appointments": 4,
+    "completed": 4,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
     "risk_level": "low"
   },
   "Penzinger, Axel": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 4,
+    "completed": 4,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "Susanne Wittich ( verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Verena Störer (erschienen)": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 4,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "T1 Janina Lipponer ( Verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Springer, Jana ( Ghost )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Tiedemann, Urte ( Ghost )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Ehresmann, Leonie ( Abgesagt )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Buchberger, Magdalena ( Verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "T1 Lela Michalak ( erschienen )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 4,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "Struwe, Janice ( Abgesagt )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Lorenz, Max ( Ghost )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "T1, Megerle, Rick ( erschienen )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 4,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "Raisiyan, Hamid ( Ghost )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Barth, Thomas ( Verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Matousek , Rene ( Verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Scharinger, Christoph ( Verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Degenhardt, Moritz ( erschienen )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 4,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "Manla Sewar ( erschienen )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 4,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
+  },
+  "Seemann, Antje ( Verschoben )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Müller-Karg, Patricia ( Ghost )": {
+    "first_seen": "2025-09-15",
+    "last_seen": "2025-09-15",
+    "total_appointments": 4,
+    "completed": 0,
+    "no_shows": 4,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "high"
+  },
+  "Thomas Barth ( erschienen )": {
     "first_seen": "2025-09-16",
     "last_seen": "2025-09-16",
     "total_appointments": 2,
@@ -199,194 +399,114 @@
     "reliability_score": 100.0,
     "risk_level": "low"
   },
-  "Susanne Wittich ( verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
+  "Otterburg , Christin ( Verschoben )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
     "completed": 0,
-    "no_shows": 1,
+    "no_shows": 2,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "medium"
   },
-  "Verena Störer (erschienen)": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 1,
+  "Reimgen , Eduard ( nicht erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 0,
+    "no_shows": 2,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "medium"
+  },
+  "Wurzbacher, Barbara ( Ghost )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 0,
+    "no_shows": 2,
+    "cancelled": 0,
+    "reliability_score": 0.0,
+    "risk_level": "medium"
+  },
+  "Kohsar, Fatana ( erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 2,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
     "risk_level": "low"
   },
-  "T1 Janina Lipponer ( Verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Springer, Jana ( Ghost )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Tiedemann, Urte ( Ghost )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Ehresmann, Leonie ( Abgesagt )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Buchberger, Magdalena ( Verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "T1 Lela Michalak ( erschienen )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 1,
+  "T1 Atanasov, Katerina ( erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 2,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
     "risk_level": "low"
   },
-  "Struwe, Janice ( Abgesagt )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Lorenz, Max ( Ghost )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "T1, Megerle, Rick ( erschienen )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 1,
+  "Miggel, Monique ( erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 2,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
     "risk_level": "low"
   },
-  "Raisiyan, Hamid ( Ghost )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Barth, Thomas ( Verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Matousek , Rene ( Verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Scharinger, Christoph ( Verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 0,
-    "no_shows": 1,
-    "cancelled": 0,
-    "reliability_score": 0.0,
-    "risk_level": "medium"
-  },
-  "Degenhardt, Moritz ( erschienen )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 1,
+  "Holzer , Waldemar ( erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 2,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
     "risk_level": "low"
   },
-  "Manla Sewar ( erschienen )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
-    "completed": 1,
+  "Patricia Schlusche ( erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 2,
     "no_shows": 0,
     "cancelled": 0,
     "reliability_score": 100.0,
     "risk_level": "low"
   },
-  "Seemann, Antje ( Verschoben )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
+  "Weibert, Viktor ( Verschoben )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
     "completed": 0,
-    "no_shows": 1,
+    "no_shows": 2,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "medium"
   },
-  "Müller-Karg, Patricia ( Ghost )": {
-    "first_seen": "2025-09-15",
-    "last_seen": "2025-09-15",
-    "total_appointments": 1,
+  "Hoegg, Anna ( Verschoben )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
     "completed": 0,
-    "no_shows": 1,
+    "no_shows": 2,
     "cancelled": 0,
     "reliability_score": 0.0,
     "risk_level": "medium"
+  },
+  "Penzinger, Axel ( erschienen )": {
+    "first_seen": "2025-09-16",
+    "last_seen": "2025-09-16",
+    "total_appointments": 2,
+    "completed": 2,
+    "no_shows": 0,
+    "cancelled": 0,
+    "reliability_score": 100.0,
+    "risk_level": "low"
   }
 }
