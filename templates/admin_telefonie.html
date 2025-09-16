@@ -203,7 +203,7 @@
           <input type="number" name="goal_points" min="0" max="100" step="1" required>
           <button type="submit" class="action-btn success">Speichern</button>
         </form>
-        <p class="small">Außerhalb 18–21 Uhr werden Ziele als "wartend" gespeichert.</p>
+        <p class="small">Außerhalb 10–22 Uhr werden Ziele als "wartend" gespeichert.</p>
 
         <h3 class="mt">Aktivität erfassen</h3>
         <form method="post" class="row">
@@ -234,7 +234,7 @@
             <input type="hidden" name="week" value="{{ week }}">
             <button type="submit" class="action-btn warning">Wartende verbuchen</button>
           </form>
-          <span class="small">Zeitfenster aktuell: {{ 'offen (18–21 Uhr)' if in_window else 'geschlossen' }}</span>
+          <span class="small">Zeitfenster aktuell: {{ 'offen (10–22 Uhr)' if in_window else 'geschlossen' }}</span>
         </div>
       </div>
 

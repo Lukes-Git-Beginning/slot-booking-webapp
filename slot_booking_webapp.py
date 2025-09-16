@@ -2681,8 +2681,11 @@ def admin_telefonie():
                     flash("Ziel auf 100 begrenzt.", "warning")
                 if goal_points > 30:
                     flash("Warnung: Ziel über 30 Punkten.", "warning")
-                set_week_goal(target_week, target_user, goal_points, set_by=user)
-                flash("Ziel gespeichert (ggf. als wartend, wenn außerhalb 18–21 Uhr).", "success")
+                result = set_week_goal(target_week, target_user, goal_points, set_by=user)
+                if result["success"]:
+                    flash("Ziel gespeichert (ggf. als wartend, wenn außerhalb 10–22 Uhr).", "success")
+                else:
+                    flash(f"❌ Fehler: {result['error']}", "danger")
 
             elif action == "add_activity":
                 kind = request.form.get("kind", "").strip()  # T1/T2/telefonie/extra
@@ -2709,15 +2712,18 @@ def admin_telefonie():
                 if points > 30:
                     flash("Warnung: Punkte über 30.", "warning")
                 note = request.form.get("note", "")
-                record_activity(target_week, target_user, kind, points, set_by=user, note=note)
-                flash("Aktivität erfasst (ggf. als wartend, wenn außerhalb 18–21 Uhr).", "success")
+                result = record_activity(target_week, target_user, kind, points, set_by=user, note=note)
+                if result["success"]:
+                    flash("Aktivität erfasst (ggf. als wartend, wenn außerhalb 10–22 Uhr).", "success")
+                else:
+                    flash(f"❌ Fehler: {result['error']}", "danger")
 
             elif action == "apply_pending":
                 goals_applied, acts_applied = apply_pending(target_week)
                 if goals_applied or acts_applied:
                     flash(f"Verbucht: {goals_applied} Ziele, {acts_applied} Aktivitäten.", "success")
                 else:
-                    flash("Keine Pending-Einträge oder außerhalb des 18–21 Uhr Fensters.", "info")
+                    flash("Keine Pending-Einträge oder außerhalb des 10–22 Uhr Fensters.", "info")
 
             elif action == "add_participant":
                 name = request.form.get("name", "").strip()
