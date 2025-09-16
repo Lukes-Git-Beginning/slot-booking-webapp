@@ -1,0 +1,149 @@
+<!-- Admin Navigation Component -->
+<nav class="admin-nav">
+  <div class="admin-nav-container">
+    <!-- Logo/Title -->
+    <div class="admin-nav-brand">
+      <i class="ti ti-shield-check"></i>
+      <span class="admin-nav-title">Admin Panel</span>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="admin-nav-toggle" onclick="toggleAdminNav()">
+      <i class="ti ti-menu-2"></i>
+    </button>
+
+    <!-- Navigation Links -->
+    <div class="admin-nav-menu" id="adminNavMenu">
+      <!-- Dashboard -->
+      <div class="admin-nav-section">
+        <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}">
+          <i class="ti ti-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
+
+      <!-- Analytics & Reports -->
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">
+          <i class="ti ti-chart-line"></i>
+          <span>Analytics & Reports</span>
+        </div>
+        <div class="admin-nav-submenu">
+          <a href="{{ url_for('admin_insights') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_insights' }}">
+            <i class="ti ti-bulb"></i>
+            <span>Insights</span>
+          </a>
+          <a href="{{ url_for('admin_reports_weekly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_reports_weekly' }}">
+            <i class="ti ti-calendar-week"></i>
+            <span>Weekly Reports</span>
+          </a>
+          <a href="{{ url_for('admin_reports_monthly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_reports_monthly' }}">
+            <i class="ti ti-calendar-month"></i>
+            <span>Monthly Reports</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Data Management -->
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">
+          <i class="ti ti-database"></i>
+          <span>Data Export</span>
+        </div>
+        <div class="admin-nav-submenu">
+          <a href="{{ url_for('export_analytics') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'export_analytics' }}">
+            <i class="ti ti-download"></i>
+            <span>Export Analytics</span>
+          </a>
+          <a href="{{ url_for('export_csv') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'export_csv' }}">
+            <i class="ti ti-file-spreadsheet"></i>
+            <span>Export CSV</span>
+          </a>
+          <a href="{{ url_for('admin_export_pdf') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_export_pdf' }}">
+            <i class="ti ti-file-type-pdf"></i>
+            <span>Export PDF</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- User Management -->
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">
+          <i class="ti ti-users"></i>
+          <span>User Management</span>
+        </div>
+        <div class="admin-nav-submenu">
+          <a href="{{ url_for('admin_users') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_users' }}">
+            <i class="ti ti-user-circle"></i>
+            <span>All Users</span>
+          </a>
+          <a href="{{ url_for('admin_telefonie') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_telefonie' }}">
+            <i class="ti ti-phone"></i>
+            <span>Telefonie Points</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Admin Tools -->
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">
+          <i class="ti ti-tools"></i>
+          <span>Admin Tools</span>
+        </div>
+        <div class="admin-nav-submenu">
+          <a href="{{ url_for('admin_fix_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_fix_points' }}">
+            <i class="ti ti-refresh"></i>
+            <span>Fix Points</span>
+          </a>
+          <a href="{{ url_for('admin_debug_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_debug_points' }}">
+            <i class="ti ti-bug"></i>
+            <span>Debug Points</span>
+          </a>
+          <a href="{{ url_for('admin_badges_backfill') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_badges_backfill' }}">
+            <i class="ti ti-award"></i>
+            <span>Badge Backfill</span>
+          </a>
+          <a href="{{ url_for('admin_storage_optimize') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_storage_optimize' }}">
+            <i class="ti ti-database-cog"></i>
+            <span>Storage Optimize</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Back to Main App -->
+      <div class="admin-nav-section admin-nav-section-divider">
+        <a href="{{ url_for('index') }}" class="admin-nav-link admin-nav-back">
+          <i class="ti ti-arrow-left"></i>
+          <span>Back to App</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Navigation JavaScript -->
+<script>
+function toggleAdminNav() {
+  const menu = document.getElementById('adminNavMenu');
+  menu.classList.toggle('show');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+  const nav = document.querySelector('.admin-nav');
+  const toggle = document.querySelector('.admin-nav-toggle');
+  const menu = document.getElementById('adminNavMenu');
+
+  if (!nav.contains(event.target) && menu.classList.contains('show')) {
+    menu.classList.remove('show');
+  }
+});
+
+// Close mobile menu on window resize
+window.addEventListener('resize', function() {
+  const menu = document.getElementById('adminNavMenu');
+  if (window.innerWidth > 768) {
+    menu.classList.remove('show');
+  }
+});
+</script>
