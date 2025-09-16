@@ -165,9 +165,9 @@
     </style>
 </head>
 <body>
-    <a href="{{ url_for('index') }}" class="back-btn">← Zurück</a>
-    
     <div class="users-container">
+        <!-- Include Admin Navigation -->
+        {% include 'admin_nav.html' %}
         <div class="users-header">
             <h1>👥 User Management</h1>
             <p>Übersicht aller aktiven Telefonisten und ihrer Statistiken</p>
