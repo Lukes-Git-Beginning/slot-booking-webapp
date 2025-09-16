@@ -293,10 +293,10 @@
     <div class="dashboard-header">
       <h1 class="dashboard-title">
         📊 Admin Dashboard
-        <span class="historical-badge">📈 Mit Historischen Daten</span>
+        <span class="historical-badge">📈 Mit Aktuellen Daten</span>
       </h1>
       <p class="dashboard-subtitle">
-        Erweiterte Analytics mit Daten seit {{ dashboard.historical.date_range.start if dashboard.historical else 'N/A' }}
+        Erweiterte Analytics mit {{ dashboard.current_totals.days_tracked if dashboard.current_totals else 0 }} Tagen erfasster Daten
       </p>
       <div class="running-time">
         <i class="ti ti-clock"></i>
