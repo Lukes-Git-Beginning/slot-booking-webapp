@@ -1845,6 +1845,9 @@ def admin_dashboard():
     days_running = get_app_runtime_days()
     
     try:
+        # Initialisiere Tracking System (always needed)
+        tracker = BookingTracker()
+
         # Try to get cached dashboard data first (cache for 15 minutes)
         dashboard_cache_key = f"admin_dashboard_{datetime.now(TZ).strftime('%Y-%m-%d_%H_%M')[:-1]}0"
         cached_dashboard = cache_manager.get("admin_dashboard", dashboard_cache_key)
@@ -1852,9 +1855,6 @@ def admin_dashboard():
         if cached_dashboard:
             dashboard_data = cached_dashboard
         else:
-            # Initialisiere Tracking System
-            tracker = BookingTracker()
-
             # Hole Dashboard Daten mit Fallback
             try:
                 # Use regular dashboard instead of enhanced (no historical mixing)
@@ -1864,14 +1864,11 @@ def admin_dashboard():
             except Exception as e:
                 print(f"⚠️ Dashboard data error: {e}")
                 dashboard_data = {
-                    "current": {
-                        "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0},
-                        "last_30_days": {"success_rate": 0, "appearance_rate": 0}
-                    },
-                    "historical": {"by_weekday": {}},
-                    "combined_insights": {"recommendations": []}
+                    "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0},
+                    "last_30_days": {"success_rate": 0, "appearance_rate": 0},
+                    "current_totals": {"total_slots": 0, "total_appeared": 0, "total_not_appeared": 0, "appearance_rate": 0}
                 }
-        
+
         try:
             weekly_report = tracker.get_weekly_report()
         except Exception as e:

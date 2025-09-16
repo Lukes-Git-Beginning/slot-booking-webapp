@@ -343,22 +343,9 @@
       <div class="comparison-card">
         <h3 class="comparison-title">
           <i class="ti ti-trending-up"></i>
-          Auftauchquote Vergleich
+          Auftauchquote Vergleich (Disabled)
         </h3>
-        <div class="comparison-item">
-          <span class="comparison-label">Aktuell (30 Tage):</span>
-          <span class="comparison-value">{{ "%.1f"|format(dashboard.combined_insights.comparisons.appearance_rate.current * 100) }}%</span>
-        </div>
-        <div class="comparison-item">
-          <span class="comparison-label">Historisch:</span>
-          <span class="comparison-value">{{ "%.1f"|format(dashboard.combined_insights.comparisons.appearance_rate.historical * 100) }}%</span>
-        </div>
-        <div class="comparison-item">
-          <span class="comparison-label">Differenz:</span>
-          <span class="comparison-value {{ 'trend-improving' if dashboard.combined_insights.comparisons.appearance_rate.trend == 'improving' else 'trend-declining' }}">
-            {{ "%.1f"|format(dashboard.combined_insights.comparisons.appearance_rate.difference * 100) }}%
-          </span>
-        </div>
+        <p>Historical comparison disabled - using current tracking data only.</p>
       </div>
 
 
@@ -417,35 +404,30 @@
     </div>
     {% endif %}
 
-    <!-- Empfehlungen -->
-    {% if dashboard.combined_insights.recommendations %}
+    <!-- Empfehlungen (Disabled - Using current tracking only) -->
+    {% if false %}
     <div class="recommendations-section">
       <h3 class="recommendations-title">
         <i class="ti ti-lightbulb"></i>
-        Empfehlungen basierend auf historischen Daten
+        Empfehlungen (Disabled)
       </h3>
-      {% for recommendation in dashboard.combined_insights.recommendations %}
-      <div class="recommendation-item">
-        <i class="ti ti-check"></i>
-        {{ recommendation }}
-      </div>
-      {% endfor %}
+      <p>Historical recommendations disabled - using current tracking data only.</p>
     </div>
     {% endif %}
 
-    <!-- Aktuelle Dashboard-Daten (vereinfacht) -->
-    {% if dashboard.current %}
+    <!-- Aktuelle Dashboard-Daten -->
+    {% if dashboard.last_7_days or dashboard.last_30_days %}
     <div class="stats-overview">
       <div class="stat-card">
-        <div class="stat-value">{{ dashboard.current.last_7_days.total_bookings if dashboard.current.last_7_days and dashboard.current.last_7_days.total_bookings else 0 }}</div>
+        <div class="stat-value">{{ dashboard.last_7_days.total_bookings if dashboard.last_7_days else 0 }}</div>
         <div class="stat-label">Buchungen (7 Tage)</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.current.last_7_days.appearance_rate) if dashboard.current.last_7_days and dashboard.current.last_7_days.appearance_rate is not none else 0 }}%</div>
+        <div class="stat-value">{{ "%.1f"|format(dashboard.last_7_days.appearance_rate) if dashboard.last_7_days else 0 }}%</div>
         <div class="stat-label">Auftauchquote (7 Tage)</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.current.last_30_days.success_rate) if dashboard.current.last_30_days and dashboard.current.last_30_days.success_rate is not none else 0 }}%</div>
+        <div class="stat-value">{{ "%.1f"|format(dashboard.last_30_days.success_rate) if dashboard.last_30_days else 0 }}%</div>
         <div class="stat-label">Erfolgsquote (30 Tage)</div>
       </div>
     </div>
