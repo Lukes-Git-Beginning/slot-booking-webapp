@@ -50,6 +50,26 @@ jobs:
           python tracking_system.py || echo "⚠️ Tracking completed with warnings"
           echo "✅ Outcome check completed"
 
+          # Verify files were created
+          echo "📋 Verifying tracking files were created:"
+          if [ -f "data/tracking/daily_metrics.json" ]; then
+            echo "✅ daily_metrics.json created ($(wc -c < data/tracking/daily_metrics.json) bytes)"
+          else
+            echo "❌ daily_metrics.json missing"
+          fi
+
+          if [ -f "data/tracking/outcomes.jsonl" ]; then
+            echo "✅ outcomes.jsonl updated ($(wc -l < data/tracking/outcomes.jsonl) lines)"
+          else
+            echo "❌ outcomes.jsonl missing"
+          fi
+
+          if [ -f "data/tracking/customer_profiles.json" ]; then
+            echo "✅ customer_profiles.json updated ($(wc -c < data/tracking/customer_profiles.json) bytes)"
+          else
+            echo "❌ customer_profiles.json missing"
+          fi
+
       - name: 📊 Generate Daily Report
         run: |
           python -c "
@@ -89,26 +109,79 @@ jobs:
                   json.dump(empty_report, f, indent=2)
           "
 
+          # Verify report was created
+          echo "📊 Verifying weekly report creation:"
+          if [ -f "data/tracking/latest_weekly_report.json" ]; then
+            echo "✅ latest_weekly_report.json created ($(wc -c < data/tracking/latest_weekly_report.json) bytes)"
+          else
+            echo "❌ latest_weekly_report.json missing"
+          fi
+
       - name: 💾 Commit Tracking Data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Füge alle Tracking-Dateien hinzu
-          git add data/tracking/*.json data/tracking/*.jsonl 2>/dev/null || true
-          
+
+          # Debug: Check what files exist
+          echo "📁 Files in data/tracking directory:"
+          ls -la data/tracking/ || echo "❌ No tracking directory found"
+
+          echo "🔍 Git status before staging:"
+          git status --porcelain
+
+          # Add files explicitly with better error handling
+          echo "📝 Staging files..."
+
+          # Stage JSON files individually
+          if [ -f "data/tracking/daily_metrics.json" ]; then
+            git add data/tracking/daily_metrics.json
+            echo "✅ Added daily_metrics.json"
+          else
+            echo "⚠️ daily_metrics.json not found"
+          fi
+
+          if [ -f "data/tracking/latest_weekly_report.json" ]; then
+            git add data/tracking/latest_weekly_report.json
+            echo "✅ Added latest_weekly_report.json"
+          else
+            echo "⚠️ latest_weekly_report.json not found"
+          fi
+
+          if [ -f "data/tracking/customer_profiles.json" ]; then
+            git add data/tracking/customer_profiles.json
+            echo "✅ Added customer_profiles.json"
+          else
+            echo "⚠️ customer_profiles.json not found"
+          fi
+
+          # Stage JSONL files
+          for file in data/tracking/*.jsonl; do
+            if [ -f "$file" ]; then
+              git add "$file"
+              echo "✅ Added $(basename "$file")"
+            fi
+          done
+
+          echo "🔍 Git status after staging:"
+          git status --porcelain
+
+          echo "📋 Staged changes:"
+          git diff --staged --name-only || echo "No staged files"
+
           # Commit nur wenn es Änderungen gibt
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "❌ No changes to commit"
           else
+            echo "✅ Committing changes..."
             git commit -m "📊 Auto: Daily outcome check & tracking update [skip ci]
-            
+
             - No-Shows detected and tracked
             - Daily metrics calculated
             - Weekly report updated
             - Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
-            
+
             git push
+            echo "🚀 Changes pushed to repository"
           fi
 
       - name: 🚨 Check for High No-Show Rate
