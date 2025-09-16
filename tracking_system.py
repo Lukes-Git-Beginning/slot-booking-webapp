@@ -39,12 +39,20 @@ class BookingTracker:
     def __init__(self):
         self.data_dir = "data/tracking"
         os.makedirs(self.data_dir, exist_ok=True)
-        
-        # Files für verschiedene Tracking-Arten
+
+        # Persistent storage following dual-write pattern
+        self.persistent_dir = "data/persistent"
+        os.makedirs(self.persistent_dir, exist_ok=True)
+
+        # Files für verschiedene Tracking-Arten (primary storage)
         self.bookings_file = os.path.join(self.data_dir, "bookings.jsonl")
         self.outcomes_file = os.path.join(self.data_dir, "outcomes.jsonl")
         self.metrics_file = os.path.join(self.data_dir, "daily_metrics.json")
         self.customer_file = os.path.join(self.data_dir, "customer_profiles.json")
+
+        # Persistent files (secondary storage for compatibility)
+        self.persistent_metrics_file = os.path.join(self.persistent_dir, "tracking_metrics.json")
+        self.persistent_customer_file = os.path.join(self.persistent_dir, "customer_tracking.json")
         
         # Google Calendar Service
         creds = load_google_credentials(SCOPES)
@@ -237,18 +245,26 @@ class BookingTracker:
             metrics["completion_rate"] = 0
             metrics["cancellation_rate"] = 0
         
-        # Speichere Metriken
+        # Speichere Metriken (dual-write pattern)
         try:
             if os.path.exists(self.metrics_file):
                 with open(self.metrics_file, "r", encoding="utf-8") as f:
                     all_metrics = json.load(f)
             else:
                 all_metrics = {}
-            
+
             all_metrics[str(date)] = metrics
-            
+
+            # Primary storage
             with open(self.metrics_file, "w", encoding="utf-8") as f:
                 json.dump(all_metrics, f, ensure_ascii=False, indent=2)
+
+            # Secondary persistent storage
+            try:
+                with open(self.persistent_metrics_file, "w", encoding="utf-8") as f:
+                    json.dump(all_metrics, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                print(f"⚠️ Warning: Could not write to persistent metrics: {e}")
             
             print(f"📊 Daily metrics saved:")
             print(f"   - Completed: {metrics['completed']} ({metrics['completion_rate']}%)")
@@ -318,10 +334,17 @@ class BookingTracker:
                         print(f"Error processing outcome: {e}")
                         continue
         
-        # Speichere aktualisierte Profile
+        # Speichere aktualisierte Profile (dual-write pattern)
         with open(self.customer_file, "w", encoding="utf-8") as f:
             json.dump(profiles, f, ensure_ascii=False, indent=2)
-        
+
+        # Secondary persistent storage
+        try:
+            with open(self.persistent_customer_file, "w", encoding="utf-8") as f:
+                json.dump(profiles, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not write to persistent customers: {e}")
+
         print(f"📁 Updated {len(profiles)} customer profiles")
     
     def get_customer_history(self, customer_name):
@@ -535,6 +558,14 @@ class BookingTracker:
                 "success_rate": 0,
                 "no_show_rate": 0
             },
+            "current_totals": {
+                "total_slots": 0,
+                "total_appeared": 0,
+                "total_not_appeared": 0,
+                "total_cancelled": 0,
+                "appearance_rate": 0,
+                "days_tracked": 0
+            },
             "trends": {},
             "alerts": []
         }
@@ -612,6 +643,37 @@ class BookingTracker:
                             "appearance_rate": appearance_rate_30,
                             "success_rate": success_rate_30,
                             "no_show_rate": no_show_rate_30
+                        }
+
+                    # Calculate current totals from all available data
+                    all_total_slots = 0
+                    all_total_completed = 0
+                    all_total_no_shows = 0
+                    all_total_cancelled = 0
+                    days_tracked = 0
+
+                    for date_str, metrics in all_metrics.items():
+                        if isinstance(metrics, dict) and 'total_slots' in metrics:
+                            all_total_slots += metrics.get("total_slots", 0)
+                            all_total_completed += metrics.get("completed", 0)
+                            all_total_no_shows += metrics.get("no_shows", 0)
+                            all_total_cancelled += metrics.get("cancelled", 0)
+                            days_tracked += 1
+
+                    if all_total_slots > 0:
+                        all_appearance_base = all_total_completed + all_total_no_shows
+                        if all_appearance_base > 0:
+                            all_appearance_rate = round((all_total_completed / all_appearance_base) * 100, 2)
+                        else:
+                            all_appearance_rate = 0
+
+                        dashboard["current_totals"] = {
+                            "total_slots": all_total_slots,
+                            "total_appeared": all_total_completed,
+                            "total_not_appeared": all_total_no_shows,
+                            "total_cancelled": all_total_cancelled,
+                            "appearance_rate": all_appearance_rate,
+                            "days_tracked": days_tracked
                         }
                     
                     # Trend-Analyse

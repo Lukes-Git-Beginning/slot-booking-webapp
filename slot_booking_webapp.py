@@ -1857,7 +1857,8 @@ def admin_dashboard():
 
             # Hole Dashboard Daten mit Fallback
             try:
-                dashboard_data = tracker.get_enhanced_dashboard()
+                # Use regular dashboard instead of enhanced (no historical mixing)
+                dashboard_data = tracker.get_performance_dashboard()
                 # Cache the expensive dashboard data for 15 minutes
                 cache_manager.set("admin_dashboard", dashboard_cache_key, dashboard_data)
             except Exception as e:

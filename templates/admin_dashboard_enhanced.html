@@ -301,41 +301,41 @@
       </div>
     </div>
 
-    <!-- Historische Daten Übersicht -->
-    {% if dashboard.historical %}
+    <!-- Aktuelle Tracking Daten Übersicht -->
+    {% if dashboard.current_totals %}
     <div class="historical-section">
       <h2 class="historical-title">
         <i class="ti ti-database"></i>
-        Historische Daten Übersicht
+        Aktuelle Tracking Daten
       </h2>
-      
+
       <div class="historical-stats">
         <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.historical.total_days }}</div>
+          <div class="historical-stat-value">{{ dashboard.current_totals.days_tracked }}</div>
           <div class="historical-stat-label">Tage Daten</div>
         </div>
         <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.historical.total_slots }}</div>
+          <div class="historical-stat-value">{{ dashboard.current_totals.total_slots }}</div>
           <div class="historical-stat-label">Termine Gelegt</div>
         </div>
         <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.historical.total_appeared }}</div>
+          <div class="historical-stat-value">{{ dashboard.current_totals.total_appeared }}</div>
           <div class="historical-stat-label">Erschienen</div>
         </div>
         <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.historical.total_not_appeared }}</div>
+          <div class="historical-stat-value">{{ dashboard.current_totals.total_not_appeared }}</div>
           <div class="historical-stat-label">Nicht Erschienen</div>
         </div>
         <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ "%.1f"|format(dashboard.historical.appearance_rate * 100) }}%</div>
+          <div class="historical-stat-value">{{ "%.1f"|format(dashboard.current_totals.appearance_rate) }}%</div>
           <div class="historical-stat-label">Auftauchquote</div>
         </div>
       </div>
     </div>
     {% endif %}
 
-    <!-- Vergleich Aktuell vs. Historisch -->
-    {% if dashboard.combined_insights.comparisons %}
+    <!-- Vergleich Aktuell vs. Historisch (Disabled - Using current tracking only) -->
+    {% if false %}
     <div class="comparison-section">
       <div class="comparison-card">
         <h3 class="comparison-title">
@@ -362,8 +362,8 @@
     </div>
     {% endif %}
 
-    <!-- Beste Zeiten basierend auf historischen Daten -->
-    {% if dashboard.historical.by_time %}
+    <!-- Beste Zeiten basierend auf historischen Daten (Disabled - Using current tracking only) -->
+    {% if false %}
     <div class="best-times-section">
       <h3 class="best-times-title">
         <i class="ti ti-clock"></i>
@@ -385,8 +385,8 @@
     </div>
     {% endif %}
 
-    <!-- Wochentag Analyse -->
-    {% if dashboard.historical.by_weekday %}
+    <!-- Wochentag Analyse (Disabled - Using current tracking only) -->
+    {% if false %}
     <div class="weekday-analysis">
       <h3 class="weekday-title">
         <i class="ti ti-calendar"></i>
