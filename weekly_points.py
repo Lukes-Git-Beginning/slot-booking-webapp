@@ -20,8 +20,15 @@ import pytz
 
 TZ = pytz.timezone("Europe/Berlin")
 
-DATA_DIR = os.path.join("data", "persistent")
+# Use same persistence strategy as other data
+PERSIST_BASE = os.getenv("PERSIST_BASE", "/opt/render/project/src/persist")
+if not os.path.exists(PERSIST_BASE):
+    PERSIST_BASE = "data"
+
+DATA_DIR = os.path.join(PERSIST_BASE, "persistent")
 DATA_FILE = os.path.join(DATA_DIR, "weekly_points.json")
+STATIC_DIR = "static"
+STATIC_FILE = os.path.join(STATIC_DIR, "weekly_points.json")
 
 # Standard-Teilnehmer (kann im UI erweitert werden)
 DEFAULT_PARTICIPANTS = [
@@ -31,6 +38,7 @@ DEFAULT_PARTICIPANTS = [
 
 def _ensure_dirs() -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(STATIC_DIR, exist_ok=True)
 
 
 def get_week_key(dt: Optional[datetime] = None) -> str:
@@ -91,8 +99,16 @@ def load_data() -> Dict:
 
 def save_data(data: Dict) -> None:
     _ensure_dirs()
+    # Dual-write: persist disk + static fallback
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+    # Also write to static for compatibility/fallback
+    try:
+        with open(STATIC_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass  # Don't fail if static write fails
 
 
 def ensure_week(data: Dict, week_key: str) -> None:
