@@ -866,7 +866,7 @@ body.darkmode .achievement-notification {
   <div class="sidebar collapsed" id="sidebar">
     <p><strong>📊 Wochenauslastung</strong></p>
     {% for week in weekly_summary %}
-      <a href="{{ url_for('day_view', date_str=week.start_date) }}"
+      <a href="{{ url_for('main.day_view', date_str=week.start_date) }}"
          class="kw-link{% if week.current %} active{% endif %}">
         {{ week.label }} ({{ week.range }})
         <span style="float:right; font-size:0.95em; color:#999;">{{ week.usage_pct }}%</span>
@@ -963,7 +963,7 @@ body.darkmode .achievement-notification {
       <h2>📝 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
       <div class="nav">
         {% for d in days %}
-          <a href="{{ url_for('day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
+          <a href="{{ url_for('main.day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
             {{ d.strftime('%a, %d.%m') }}
           </a>
         {% endfor %}
@@ -1070,7 +1070,7 @@ body.darkmode .achievement-notification {
               {% if not slot.overbooked and slot.free_count > 0 %}
                 {% for s in slot.events %}
                   <div class="slot" style="margin-top: 15px;">
-                    <form method="POST" action="{{ url_for('book') }}" onsubmit="showLoading()">
+                    <form method="POST" action="{{ url_for('booking.book') }}" onsubmit="showLoading()">
                       <input type="hidden" name="slot_id" value="{{ s.id }}">
                       <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
                       <input type="hidden" name="hour" value="{{ hour }}">
