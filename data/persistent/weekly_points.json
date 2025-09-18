@@ -81,6 +81,13 @@
               "note": "Restored from screenshot",
               "by": "system_restore",
               "ts": "2025-09-10T19:54:26.819887+02:00"
+            },
+            {
+              "kind": "telefonie",
+              "points": 4,
+              "note": "Manual adjustment - missing points from system faults",
+              "by": "manual_correction",
+              "ts": "2025-09-18T00:00:00.000000+02:00"
             }
           ],
           "pending_activities": [],
@@ -99,6 +106,14 @@
               "note": "Restored from screenshot",
               "by": "system_restore",
               "ts": "2025-09-10T19:54:26.819887+02:00"
+            },
+            {
+              "type": "activity",
+              "kind": "telefonie",
+              "points": 4,
+              "note": "Manual adjustment - missing points from system faults",
+              "by": "manual_correction",
+              "ts": "2025-09-18T00:00:00.000000+02:00"
             }
           ]
         },
