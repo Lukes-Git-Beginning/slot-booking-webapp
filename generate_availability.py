@@ -114,40 +114,46 @@ def batch_fetch_events(consultant_calendars, start_date, end_date):
 
 def is_consultant_available(events, slot_start, slot_end):
     """Prüfe ob Berater verfügbar ist basierend auf Events"""
+    has_t1_bereit = False
+    has_blocking_event = False
+
     for event in events:
         # Parse Event-Zeit
         event_start_str = event.get('start', {}).get('dateTime')
         event_end_str = event.get('end', {}).get('dateTime')
-        
+
         if not event_start_str or not event_end_str:
             continue
-        
+
         try:
             event_start = datetime.fromisoformat(event_start_str)
             event_end = datetime.fromisoformat(event_end_str)
-            
+
             # Prüfe Überschneidung
             if event_start < slot_end and event_end > slot_start:
                 summary = event.get('summary', '').strip().lower()
                 color_id = event.get('colorId', '')
-                
-                # NEU: Termine mit Tomate(11) oder Mandarine(6) blockieren NICHT
+
+                # Termine mit non-blocking Farben ignorieren
                 if color_id in NON_BLOCKING_COLORS:
                     print(f"  🟠 Ignoriere Event (Farbe {color_id}): '{event.get('summary', '')}'")
-                    continue  # Diesen Termin ignorieren, weiter zum nächsten
-                
-                # Berater ist verfügbar wenn "t1-bereit" im Titel
+                    continue
+
+                # Prüfe auf T1-bereit Event
                 if 't1-bereit' in summary or 't1 bereit' in summary:
-                    return True
+                    has_t1_bereit = True
+                    print(f"  ✅ T1-bereit Event gefunden: '{event.get('summary', '')}'")
                 else:
-                    # Konflikt gefunden
-                    return False
+                    # Anderer Event = blockierend
+                    has_blocking_event = True
+                    print(f"  🚫 Blockierender Event: '{event.get('summary', '')}'")
+
         except Exception as e:
             print(f"⚠️ Fehler beim Parsen von Event: {e}")
             continue
-    
-    # Keine blockierenden Konflikte = nicht verfügbar (kein t1-bereit Event)
-    return False
+
+    # Verfügbar nur wenn T1-bereit Event vorhanden UND keine blockierenden Events
+    return has_t1_bereit and not has_blocking_event
 
 def backup_availability():
     """Erstelle tägliches Backup"""
