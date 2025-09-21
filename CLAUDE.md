@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Running the Application
 ```bash
-python slot_booking_webapp.py
+python run.py
 ```
 
 ### Testing
