@@ -132,19 +132,14 @@ def is_consultant_available(events, slot_start, slot_end):
             # Prüfe Überschneidung
             if event_start < slot_end and event_end > slot_start:
                 summary = event.get('summary', '').strip().lower()
-                color_id = event.get('colorId', '')
 
-                # Termine mit non-blocking Farben ignorieren
-                if color_id in NON_BLOCKING_COLORS:
-                    print(f"  🟠 Ignoriere Event (Farbe {color_id}): '{event.get('summary', '')}'")
-                    continue
-
-                # Prüfe auf T1-bereit Event
-                if 't1-bereit' in summary or 't1 bereit' in summary:
+                # Nur Titel prüfen - keine Farben berücksichtigen!
+                # Verfügbar NUR wenn explizit "T1" im Titel steht
+                if 't1' in summary and ('t1-bereit' in summary or 't1 bereit' in summary):
                     has_t1_bereit = True
                     print(f"  ✅ T1-bereit Event gefunden: '{event.get('summary', '')}'")
                 else:
-                    # Anderer Event = blockierend
+                    # Alles andere ist blockierend (T2, T2.5, T3, nach absprache, privat, etc.)
                     has_blocking_event = True
                     print(f"  🚫 Blockierender Event: '{event.get('summary', '')}'")
 
