@@ -930,6 +930,43 @@ def recalculate_all_outcomes():
     
     print("✅ Recalculation complete!")
 
+def backfill_september_data():
+    """
+    Backfill tracking data from September 2nd, 2025 to today
+    This will scan the Google Calendar and process all historical appointments
+    """
+    from slot_booking_webapp import service, CENTRAL_CALENDAR_ID
+
+    print("🔄 Starting September data backfill...")
+
+    tracker = BookingTracker()
+
+    # Set start date to September 2nd, 2025
+    start_date = datetime(2025, 9, 2).date()
+    today = datetime.now(TZ).date()
+
+    # Calculate total days
+    total_days = (today - start_date).days + 1
+    processed_days = 0
+
+    print(f"📅 Backfilling from {start_date} to {today} ({total_days} days)")
+
+    # Process each day
+    current_date = start_date
+    while current_date <= today:
+        try:
+            print(f"📊 Processing {current_date} ({processed_days + 1}/{total_days})")
+            tracker.check_daily_outcomes(current_date)
+            processed_days += 1
+
+        except Exception as e:
+            print(f"❌ Error processing {current_date}: {e}")
+
+        current_date += timedelta(days=1)
+
+    print(f"✅ Backfill complete! Processed {processed_days} days")
+    print("🎯 Dashboard will now show data from September 2nd onwards")
+
 # ----------------- Cron Job Function -----------------
 def run_daily_outcome_check():
     """

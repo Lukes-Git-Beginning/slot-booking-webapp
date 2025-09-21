@@ -227,9 +227,12 @@
             {% endfor %}
         </div>
         
-        <div style="margin-top: 30px; text-align: center;">
+        <div style="margin-top: 30px; text-align: center; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
             <a href="{{ url_for('admin.admin_fix_points') }}" class="btn-primary" style="padding: 15px 30px; font-size: 1.1em;">
                 🔧 Alle Punkte nachträglich vergeben
+            </a>
+            <a href="{{ url_for('admin.admin_backfill_september') }}" class="btn-secondary" style="padding: 15px 30px; font-size: 1.1em;" onclick="return confirm('Dies wird alle Kalenderdaten ab 2. September neu verarbeiten. Fortfahren?')">
+                📊 September Daten nachladen
             </a>
         </div>
     </div>
