@@ -10,7 +10,13 @@ from app.core.middleware import init_middleware
 
 def create_app(config_object='app.config.base.Config'):
     """Application factory pattern for Flask app creation"""
-    app = Flask(__name__)
+    import os
+
+    # Set template and static folders relative to project root
+    template_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+    static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
 
     # Load configuration
     app.config.from_object(config_object)
