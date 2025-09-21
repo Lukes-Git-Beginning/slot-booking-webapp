@@ -903,19 +903,19 @@ body.darkmode .achievement-notification {
         <a href="https://calendar.google.com/calendar/u/0/r?cid=emVudHJhbGthbGVuZGVyemZhQGdtYWlsLmNvbQ" target="_blank">
           📅 Zentralkalender öffnen
         </a>
-        <a href="{{ url_for('my_calendar') }}">
+        <a href="{{ url_for('calendar.my_calendar') }}">
           📋 Meine Buchungen
         </a>
-        <a href="{{ url_for('calendar_view') }}">
+        <a href="{{ url_for('calendar.calendar_view') }}">
           📅 Kalender-Ansicht
         </a>
-        <a href="{{ url_for('scoreboard') }}">
+        <a href="{{ url_for('scoreboard.scoreboard') }}">
           🏆 Scoreboard
         </a>
-        <a href="{{ url_for('badges') }}">
+        <a href="{{ url_for('scoreboard.badges') }}">
           🎖️ Badges
         </a>
-        <a href="{{ url_for('gamification_dashboard') }}">
+        <a href="{{ url_for('scoreboard.gamification_dashboard') }}">
           🎮 Gamification
         </a>
 
@@ -1513,10 +1513,10 @@ document.addEventListener('keydown', function(e) {
             setMode(!body.classList.contains('darkmode'));
             break;
           case 'my-calendar':
-            window.location.href = "{{ url_for('my_calendar') }}";
+            window.location.href = "{{ url_for('calendar.my_calendar') }}";
             break;
           case 'scoreboard':
-            window.location.href = "{{ url_for('scoreboard') }}";
+            window.location.href = "{{ url_for('scoreboard.scoreboard') }}";
             break;
 
           case 'next-day':
@@ -1588,11 +1588,11 @@ document.addEventListener('keydown', function(e) {
             break;
           case 'm':
             e.preventDefault();
-            window.location.href = "{{ url_for('my_calendar') }}";
+            window.location.href = "{{ url_for('calendar.my_calendar') }}";
             break;
           case 'p':
             e.preventDefault();
-            window.location.href = "{{ url_for('scoreboard') }}";
+            window.location.href = "{{ url_for('scoreboard.scoreboard') }}";
             break;
 
           case 'e':
