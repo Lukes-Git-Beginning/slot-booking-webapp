@@ -75,9 +75,27 @@ def calendar_view():
     prev_week = current_week - timedelta(weeks=1)
     next_week = current_week + timedelta(weeks=1)
 
+    # Generate week dates for template
+    week_start = current_week
+    week_end = current_week + timedelta(days=6)
+
+    # Generate weekdays data for calendar display
+    weekdays_data = []
+    for i in range(7):
+        day = current_week + timedelta(days=i)
+        weekdays_data.append({
+            'date': day,
+            'name': day.strftime('%A'),
+            'is_today': day == today,
+            'availability': []  # Would be populated from actual availability data
+        })
+
     return render_template("calendar_view.html",
                          today=today,
                          availability=availability,
                          prev_week=prev_week,
                          next_week=next_week,
-                         current_week=current_week)
+                         current_week=current_week,
+                         week_start=week_start,
+                         week_end=week_end,
+                         weekdays_data=weekdays_data)
