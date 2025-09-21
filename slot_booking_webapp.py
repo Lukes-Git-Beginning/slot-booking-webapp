@@ -65,6 +65,16 @@ except ImportError as e:
 except Exception as e:
     print(f"Error registering gamification blueprint: {e}")
 
+# Register admin blueprint
+try:
+    from app.routes.admin import admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    print("Admin Blueprint registered successfully")
+except ImportError as e:
+    print(f"Could not import admin blueprint: {e}")
+except Exception as e:
+    print(f"Error registering admin blueprint: {e}")
+
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = config.SCOPES
 creds = load_google_credentials(SCOPES)
