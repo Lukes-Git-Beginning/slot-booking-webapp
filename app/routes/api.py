@@ -41,8 +41,35 @@ def api_user_badges_by_username(username):
         import achievement_system
         user_badges = achievement_system.get_user_badges(username)
         return jsonify(user_badges)
+    except ImportError as e:
+        print(f"Achievement system import error: {e}")
+        return jsonify({"badges": [], "total_badges": 0, "error": "Achievement system not available"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Badge API error for {username}: {e}")
+        return jsonify({"badges": [], "total_badges": 0, "error": str(e)}), 200
+
+
+@api_bp.route("/user/<username>/avatar")
+@require_login
+def api_user_avatar(username):
+    """Get user's active avatar emoji"""
+    try:
+        from cosmetics_shop import CosmeticsShop
+        cosmetics_shop = CosmeticsShop()
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(username)
+
+        # Get active avatar or default
+        active_avatar = user_cosmetics.get('active', {}).get('avatar', None)
+        if active_avatar:
+            return jsonify({"avatar": active_avatar})
+        else:
+            # Return first letter as fallback
+            return jsonify({"avatar": username[0].upper() if username else "?"})
+
+    except Exception as e:
+        print(f"Avatar API error for {username}: {e}")
+        # Return first letter as fallback
+        return jsonify({"avatar": username[0].upper() if username else "?"})
 
 
 @api_bp.route("/user/badges/mark-seen", methods=["POST"])
