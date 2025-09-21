@@ -58,27 +58,43 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
 
 
 def extract_weekly_summary(availability, current_date=None):
-    """Extract weekly summary from availability data"""
-    if current_date is None:
-        current_date = datetime.now(TZ).date()
+    """Extract weekly summary from availability data - returns list for template compatibility"""
+    from collections import defaultdict
 
-    week_start = get_week_start(current_date)
-    week_dates = [week_start + timedelta(days=i) for i in range(7)]
+    week_possible = defaultdict(int)
+    week_dates = {}
 
-    weekly_summary = defaultdict(lambda: defaultdict(list))
+    # Only count slots from today forward
+    today = datetime.now(TZ).date()
 
-    # Group availability by weekday and hour
-    for date_obj in week_dates:
-        date_str = date_obj.strftime("%Y-%m-%d")
-        weekday = date_obj.strftime("%A")
+    # Calculate possible slots for next 4 weeks
+    for week_offset in range(4):
+        week_start = get_week_start(today) + timedelta(weeks=week_offset)
+        week_key = f"KW{week_start.isocalendar()[1]}"
+        week_dates[week_key] = week_start
 
-        for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
-            if date_str in availability and hour in availability[date_str]:
-                consultants = availability[date_str][hour]
-                if consultants:  # Only include if there are consultants available
-                    weekly_summary[weekday][hour] = consultants
+        # Count available slots for this week
+        for day_offset in range(7):  # Monday to Sunday
+            date_obj = week_start + timedelta(days=day_offset)
+            date_str = date_obj.strftime("%Y-%m-%d")
 
-    return dict(weekly_summary)
+            if date_obj >= today:  # Only future dates
+                for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
+                    if date_str in availability and hour in availability[date_str]:
+                        consultants = availability[date_str][hour]
+                        week_possible[week_key] += len(consultants) * 2  # 2 slots per consultant
+
+    # Create summary list for template
+    summary = []
+    for week_key in sorted(week_dates.keys()):
+        summary.append({
+            "label": week_key,
+            "start_date": week_dates[week_key],
+            "possible": week_possible[week_key],
+            "booked": 0  # TODO: Calculate actual bookings
+        })
+
+    return summary
 
 
 def extract_detailed_summary(availability):
