@@ -40,6 +40,7 @@ def api_user_badges_by_username(username):
     try:
         import achievement_system
         user_badges = achievement_system.get_user_badges(username)
+        print(f"DEBUG: Badge API for {username} returning: {user_badges}")
         return jsonify(user_badges)
     except ImportError as e:
         print(f"Achievement system import error: {e}")

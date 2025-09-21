@@ -56,8 +56,22 @@ def admin_dashboard():
         monthly_scores.sort(key=lambda x: x['score'], reverse=True)
 
         # Badge statistics
-        all_badges = data_persistence.load_all_user_badges()
-        total_badges_awarded = sum(len(badges) for badges in all_badges.values())
+        try:
+            import achievement_system
+            # Get all users and their badges
+            all_badges = {}
+            users = ["Dominik", "Ladislav", "Jose", "Ann-Kathrin", "Patrick", "Sonja", "Admin", "Christian", "Sara"]  # Could be loaded from somewhere
+            for user in users:
+                try:
+                    user_badges = achievement_system.get_user_badges(user)
+                    all_badges[user] = user_badges.get('badges', [])
+                except Exception:
+                    all_badges[user] = []
+            total_badges_awarded = sum(len(badges) for badges in all_badges.values())
+        except Exception as e:
+            print(f"Error loading badge statistics: {e}")
+            all_badges = {}
+            total_badges_awarded = 0
 
         return render_template("admin_dashboard_enhanced.html",
                              total_bookings=total_bookings,

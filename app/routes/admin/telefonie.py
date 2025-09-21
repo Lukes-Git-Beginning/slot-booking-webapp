@@ -84,7 +84,7 @@ def admin_telefonie():
 
     # GET request - show telefonie management interface
     recent_weeks = list_recent_weeks(8)  # Last 8 weeks
-    participants = get_participants(week_key)
+    participants = get_participants()
     stats = compute_week_stats(week_key)
     audit = get_week_audit(week_key)
 
@@ -112,7 +112,7 @@ def admin_telefonie_export():
 
     try:
         # Get week data
-        participants = get_participants(week_key)
+        participants = get_participants()
         stats = compute_week_stats(week_key)
         audit = get_week_audit(week_key)
 
