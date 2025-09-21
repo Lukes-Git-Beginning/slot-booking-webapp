@@ -16,7 +16,7 @@
     <div class="admin-nav-menu" id="adminNavMenu">
       <!-- Dashboard -->
       <div class="admin-nav-section">
-        <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_dashboard' }}">
           <i class="ti ti-dashboard"></i>
           <span>Dashboard</span>
         </a>
@@ -29,15 +29,15 @@
           <span>Analytics & Reports</span>
         </div>
         <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin_insights') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_insights' }}">
+          <a href="{{ url_for('admin.admin_insights') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_insights' }}">
             <i class="ti ti-bulb"></i>
             <span>Insights</span>
           </a>
-          <a href="{{ url_for('admin_reports_weekly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_reports_weekly' }}">
+          <a href="{{ url_for('admin.admin_reports_weekly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_reports_weekly' }}">
             <i class="ti ti-calendar-week"></i>
             <span>Weekly Reports</span>
           </a>
-          <a href="{{ url_for('admin_reports_monthly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_reports_monthly' }}">
+          <a href="{{ url_for('admin.admin_reports_monthly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_reports_monthly' }}">
             <i class="ti ti-calendar-month"></i>
             <span>Monthly Reports</span>
           </a>
@@ -51,15 +51,15 @@
           <span>Data Export</span>
         </div>
         <div class="admin-nav-submenu">
-          <a href="{{ url_for('export_analytics') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'export_analytics' }}">
+          <a href="{{ url_for('admin.export_analytics') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.export_analytics' }}">
             <i class="ti ti-download"></i>
             <span>Export Analytics</span>
           </a>
-          <a href="{{ url_for('export_csv') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'export_csv' }}">
+          <a href="{{ url_for('admin.export_csv') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.export_csv' }}">
             <i class="ti ti-file-spreadsheet"></i>
             <span>Export CSV</span>
           </a>
-          <a href="{{ url_for('admin_export_pdf') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_export_pdf' }}">
+          <a href="{{ url_for('admin.admin_export_pdf') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_export_pdf' }}">
             <i class="ti ti-file-type-pdf"></i>
             <span>Export PDF</span>
           </a>
@@ -73,11 +73,11 @@
           <span>User Management</span>
         </div>
         <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin_users') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_users' }}">
+          <a href="{{ url_for('admin.admin_users') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_users' }}">
             <i class="ti ti-user-circle"></i>
             <span>All Users</span>
           </a>
-          <a href="{{ url_for('admin_telefonie') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_telefonie' }}">
+          <a href="{{ url_for('admin.admin_telefonie') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_telefonie' }}">
             <i class="ti ti-phone"></i>
             <span>Telefonie Points</span>
           </a>
@@ -91,19 +91,19 @@
           <span>Admin Tools</span>
         </div>
         <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin_fix_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_fix_points' }}">
+          <a href="{{ url_for('admin.admin_fix_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_fix_points' }}">
             <i class="ti ti-refresh"></i>
             <span>Fix Points</span>
           </a>
-          <a href="{{ url_for('admin_debug_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_debug_points' }}">
+          <a href="{{ url_for('admin.admin_debug_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_debug_points' }}">
             <i class="ti ti-bug"></i>
             <span>Debug Points</span>
           </a>
-          <a href="{{ url_for('admin_badges_backfill') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_badges_backfill' }}">
+          <a href="{{ url_for('admin.admin_badges_backfill') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_badges_backfill' }}">
             <i class="ti ti-award"></i>
             <span>Badge Backfill</span>
           </a>
-          <a href="{{ url_for('admin_storage_optimize') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin_storage_optimize' }}">
+          <a href="{{ url_for('admin.admin_storage_optimize') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_storage_optimize' }}">
             <i class="ti ti-database-cog"></i>
             <span>Storage Optimize</span>
           </a>
