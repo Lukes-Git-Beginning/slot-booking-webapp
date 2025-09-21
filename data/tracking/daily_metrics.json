@@ -344,9 +344,23 @@
         "completed": 1
       }
     },
-    "calculated_at": "2025-09-20T21:15:09.119053+02:00",
+    "calculated_at": "2025-09-21T21:16:53.280643+02:00",
     "no_show_rate": 0.0,
     "completion_rate": 100.0,
     "cancellation_rate": 0.0
+  },
+  "2025-09-21": {
+    "date": "2025-09-21",
+    "total_slots": 0,
+    "no_shows": 0,
+    "completed": 0,
+    "cancelled": 0,
+    "by_hour": {},
+    "by_user": {},
+    "by_potential": {},
+    "calculated_at": "2025-09-21T21:16:53.026893+02:00",
+    "no_show_rate": 0,
+    "completion_rate": 0,
+    "cancellation_rate": 0
   }
 }
