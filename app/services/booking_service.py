@@ -89,7 +89,7 @@ def extract_weekly_summary(availability, current_date=None):
     # Old format needed: {"YYYY-MM-DD HH:MM": [consultants]}
 
     # First, also include availability from effective_availability (loaded + defaults)
-    for week_offset in range(4):
+    for week_offset in range(5):
         week_start = get_week_start(today) + timedelta(weeks=week_offset)
 
         for day_offset in range(7):  # Monday to Sunday

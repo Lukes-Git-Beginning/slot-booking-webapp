@@ -23,7 +23,20 @@ def admin_users():
     """User management interface"""
     userlist = get_userlist()
     scores = data_persistence.load_scores()
-    all_badges = data_persistence.load_all_user_badges()
+
+    # Load all user badges from achievement system
+    try:
+        import achievement_system
+        all_badges = {}
+        for username in userlist.keys():
+            try:
+                user_badges = achievement_system.get_user_badges(username)
+                all_badges[username] = user_badges.get('badges', [])
+            except Exception:
+                all_badges[username] = []
+    except Exception as e:
+        print(f"Error loading user badges: {e}")
+        all_badges = {}
 
     # Calculate user statistics
     user_stats = []
