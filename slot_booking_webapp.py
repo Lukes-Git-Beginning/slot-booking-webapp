@@ -65,15 +65,29 @@ except ImportError as e:
 except Exception as e:
     print(f"Error registering gamification blueprint: {e}")
 
-# Register admin blueprint
+# Register all blueprints from the new architecture
 try:
+    from app.routes.auth import auth_bp
+    from app.routes.main import main_bp
+    from app.routes.booking import booking_bp
+    from app.routes.calendar import calendar_bp
+    from app.routes.api import api_bp
     from app.routes.admin import admin_bp
+    from app.routes.scoreboard import scoreboard_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(booking_bp)
+    app.register_blueprint(calendar_bp)
+    app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp, url_prefix='/admin')
-    print("Admin Blueprint registered successfully")
+    app.register_blueprint(scoreboard_bp)
+
+    print("SUCCESS: All blueprints registered successfully")
 except ImportError as e:
-    print(f"Could not import admin blueprint: {e}")
+    print(f"Could not import blueprints: {e}")
 except Exception as e:
-    print(f"Error registering admin blueprint: {e}")
+    print(f"Error registering blueprints: {e}")
 
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = config.SCOPES
