@@ -33,8 +33,9 @@ def my_calendar():
         # Return empty calendar if Google Calendar is not available
         return render_template("my_calendar.html", events=[], user=user)
 
+    from app.config.base import config
     events_result = google_calendar_service.get_events(
-        calendar_id='primary',
+        calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{start_date}T00:00:00+01:00",
         time_max=f"{end_date}T23:59:59+01:00"
     )

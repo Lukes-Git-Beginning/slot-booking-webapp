@@ -110,8 +110,9 @@ def extract_weekly_summary(availability, current_date=None):
         calendar_service = get_google_calendar_service()
         if calendar_service:
             try:
+                from app.config.base import config
                 events_result = calendar_service.get_events(
-                    calendar_id='primary',
+                    calendar_id=config.CENTRAL_CALENDAR_ID,
                     time_min=min_start.isoformat(),
                     time_max=max_end.isoformat(),
                     max_results=2500
@@ -204,8 +205,9 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
     if not calendar_service:
         return [], 0, 0, 0, False
 
+    from app.config.base import config
     events_result = calendar_service.get_events(
-        calendar_id='primary',
+        calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{date_str}T{hour}:00+01:00",
         time_max=f"{date_str}T{hour}:59+01:00"
     )
