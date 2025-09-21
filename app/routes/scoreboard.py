@@ -182,8 +182,17 @@ def gamification_dashboard():
     except Exception as e:
         print(f"Gamification data error: {e}")
 
+    # Get user badges for template
+    try:
+        from achievement_system import achievement_system
+        user_badges = achievement_system.get_user_badges(user)
+    except Exception as e:
+        print(f"Error getting user badges for gamification: {e}")
+        user_badges = {"badges": [], "total_badges": 0}
+
     return render_template("gamification.html",
                          user=user,
                          gamification_data=gamification_data,
                          user_level=gamification_data.get('user_level', {}),
+                         user_badges=user_badges,
                          user_rank=0)  # Default rank until we implement ranking system

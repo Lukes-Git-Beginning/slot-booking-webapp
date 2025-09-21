@@ -65,19 +65,23 @@ class GoogleCalendarService:
 
         return None
 
-    def get_events(self, calendar_id: str, time_min: str = None, time_max: str = None):
+    def get_events(self, calendar_id: str, time_min: str = None, time_max: str = None, max_results: int = None):
         """Get events from calendar"""
         if not self.service:
             return None
 
         def _get_events():
-            return self.service.events().list(
-                calendarId=calendar_id,
-                timeMin=time_min,
-                timeMax=time_max,
-                singleEvents=True,
-                orderBy='startTime'
-            ).execute()
+            params = {
+                'calendarId': calendar_id,
+                'timeMin': time_min,
+                'timeMax': time_max,
+                'singleEvents': True,
+                'orderBy': 'startTime'
+            }
+            if max_results:
+                params['maxResults'] = max_results
+
+            return self.service.events().list(**params).execute()
 
         return self.safe_calendar_call(_get_events)
 
