@@ -182,6 +182,6 @@ def gamification_dashboard():
     except Exception as e:
         print(f"Gamification data error: {e}")
 
-    return render_template("gamification_dashboard.html",
+    return render_template("gamification.html",
                          user=user,
                          gamification_data=gamification_data)

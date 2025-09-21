@@ -10,7 +10,7 @@ import pytz
 
 from app.config.base import slot_config
 from app.core.extensions import data_persistence
-from app.core.google_calendar import google_calendar_service
+from app.core.google_calendar import get_google_calendar_service
 from app.utils.decorators import require_login
 
 calendar_bp = Blueprint('calendar', __name__)
@@ -28,8 +28,13 @@ def my_calendar():
     end_date = (datetime.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
 
     # Get events from Google Calendar
+    google_calendar_service = get_google_calendar_service()
+    if not google_calendar_service:
+        # Return empty calendar if Google Calendar is not available
+        return render_template("my_calendar.html", events=[], user=user)
+
     events_result = google_calendar_service.get_events(
-        calendar_id=google_calendar_service.service.calendarId if hasattr(google_calendar_service.service, 'calendarId') else 'primary',
+        calendar_id='primary',
         time_min=f"{start_date}T00:00:00+01:00",
         time_max=f"{end_date}T23:59:59+01:00"
     )
