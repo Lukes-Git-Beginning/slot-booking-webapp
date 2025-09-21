@@ -190,9 +190,17 @@ def gamification_dashboard():
         print(f"Error getting user badges for gamification: {e}")
         user_badges = {"badges": [], "total_badges": 0}
 
+    # Add missing streak info
+    streak_info = {
+        'work_streak': 0,
+        'current_streak': 0,
+        'best_streak': 0
+    }
+
     return render_template("gamification.html",
                          user=user,
                          gamification_data=gamification_data,
                          user_level=gamification_data.get('user_level', {}),
                          user_badges=user_badges,
+                         streak_info=streak_info,
                          user_rank=0)  # Default rank until we implement ranking system

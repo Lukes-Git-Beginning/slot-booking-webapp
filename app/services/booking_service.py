@@ -171,7 +171,7 @@ def extract_weekly_summary(availability, current_date=None):
         summary.append({
             "label": key.replace("-", " "),
             "range": f"{start.strftime('%d.%m.')} – {end.strftime('%d.%m.')}",
-            "start_date": start,
+            "start_date": start.strftime('%Y-%m-%d'),  # Format for URL
             "usage_pct": min(100, int(round(usage * 100))),  # Cap at 100%
             "usage": usage,
             "possible": possible,
