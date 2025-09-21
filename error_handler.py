@@ -171,7 +171,7 @@ class ErrorHandler:
         else:
             # Default redirect oder zurück zur vorherigen Seite
             from flask import request
-            return redirect(request.referrer or url_for("index"))
+            return redirect(request.referrer or url_for("main.index"))
     
     def handle_http_error(self, status_code: int, message: str) -> Response:
         """Handle HTTP-Errors"""
