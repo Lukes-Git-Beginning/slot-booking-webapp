@@ -32,9 +32,9 @@ def get_userlist() -> Dict[str, str]:
 
 
 def get_week_days(anchor_date):
-    """Get week days from anchor date"""
-    week_start = anchor_date - timedelta(days=anchor_date.weekday())
-    return [week_start + timedelta(days=i) for i in range(7)]
+    """Get week days centered around anchor date for better navigation"""
+    # Show 3 days before and 3 days after the current date for better navigation
+    return [anchor_date + timedelta(days=i-3) for i in range(7)]
 
 
 def get_week_start(d):
