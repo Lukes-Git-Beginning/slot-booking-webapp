@@ -102,14 +102,20 @@ QUEST_POOL = {
 
 # Wheel/Slot Machine Konfiguration
 WHEEL_PRIZES = {
-    "coins_small": {"name": "💰 Coins", "value": 25, "weight": 30, "color": "#fbbf24"},
-    "coins_medium": {"name": "💰💰 Coins", "value": 50, "weight": 20, "color": "#f59e0b"},
-    "coins_large": {"name": "💰💰💰 Coins", "value": 100, "weight": 10, "color": "#d97706"},
-    "xp_boost": {"name": "⚡ XP Boost", "value": 50, "weight": 15, "color": "#3b82f6"},
-    "streak_shield": {"name": "🛡️ Streak Schutz", "value": 1, "weight": 8, "color": "#10b981"},
-    "badge_token": {"name": "🎖️ Badge Token", "value": 1, "weight": 5, "color": "#8b5cf6"},
-    "jackpot": {"name": "🎰 JACKPOT!", "value": 1000, "weight": 1, "color": "#ec4899"},
-    "mystery_box": {"name": "📦 Mystery Box", "value": 1, "weight": 11, "color": "#6b7280"}
+    # Blank/Dud outcomes (50% total)
+    "niete_1": {"name": "💸 Niete!", "value": 0, "weight": 25, "color": "#6b7280"},
+    "niete_2": {"name": "😭 Pech gehabt!", "value": 0, "weight": 15, "color": "#6b7280"},
+    "niete_3": {"name": "🤷 Beim nächsten Mal!", "value": 0, "weight": 10, "color": "#6b7280"},
+
+    # Winning outcomes (50% total)
+    "coins_small": {"name": "💰 Coins", "value": 25, "weight": 15, "color": "#fbbf24"},
+    "coins_medium": {"name": "💰💰 Coins", "value": 50, "weight": 10, "color": "#f59e0b"},
+    "coins_large": {"name": "💰💰💰 Coins", "value": 100, "weight": 5, "color": "#d97706"},
+    "xp_boost": {"name": "⚡ XP Boost", "value": 50, "weight": 8, "color": "#3b82f6"},
+    "mystery_box": {"name": "📦 Mystery Box", "value": 1, "weight": 6, "color": "#6b7280"},
+    "streak_shield": {"name": "🛡️ Streak Schutz", "value": 1, "weight": 4, "color": "#10b981"},
+    "badge_token": {"name": "🎖️ Badge Token", "value": 1, "weight": 2, "color": "#8b5cf6"},
+    "jackpot": {"name": "🎰 JACKPOT!", "value": 1000, "weight": 1, "color": "#ec4899"}
 }
 
 class DailyQuestSystem:
@@ -439,7 +445,10 @@ class DailyQuestSystem:
         
         # Vergebe Preis
         reward = {}
-        if selected_prize.startswith("coins"):
+        if selected_prize.startswith("niete"):
+            # Blank/Dud outcome - no reward given
+            reward = {"type": "niete", "value": 0}
+        elif selected_prize.startswith("coins"):
             coins_data[user] = coins_data.get(user, 0) + prize_data["value"]
             self.save_user_coins(coins_data)
             reward = {"type": "coins", "value": prize_data["value"]}

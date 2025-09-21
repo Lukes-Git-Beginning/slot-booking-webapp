@@ -558,15 +558,25 @@
                     if (result.success) {
                         // Update coin display
                         document.getElementById('currentCoins').textContent = result.remaining_coins;
-                        
+
                         // Show result
                         const resultDiv = document.getElementById('spinResult');
-                        document.getElementById('resultTitle').textContent = '🎉 ' + result.prize.name;
-                        document.getElementById('resultDescription').textContent = 'Du hast ' + result.prize.value + ' gewonnen!';
+
+                        // Check if it's a losing outcome (niete)
+                        if (result.reward.type === 'niete') {
+                            document.getElementById('resultTitle').textContent = result.prize.name;
+                            document.getElementById('resultDescription').textContent = 'Versuche es noch einmal!';
+                            resultDiv.style.background = result.prize.color + '20';
+                            showNotification(result.prize.name, 'error');
+                        } else {
+                            // Winning outcome
+                            document.getElementById('resultTitle').textContent = '🎉 ' + result.prize.name;
+                            document.getElementById('resultDescription').textContent = 'Du hast ' + result.prize.value + ' gewonnen!';
+                            resultDiv.style.background = result.prize.color + '20';
+                            showNotification('Gewonnen: ' + result.prize.name, 'success');
+                        }
+
                         resultDiv.style.display = 'block';
-                        resultDiv.style.background = result.prize.color + '20';
-                        
-                        showNotification('Gewonnen: ' + result.prize.name, 'success');
                     } else {
                         showNotification(result.message, 'error');
                     }

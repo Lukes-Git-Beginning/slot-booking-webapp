@@ -9,7 +9,7 @@ services:
       mkdir -p static
       # Initiale availability.json generieren (mit Timeout)
       timeout 120s python generate_availability.py || echo "Initial generation skipped"
-    startCommand: gunicorn slot_booking_webapp:app --workers 2 --threads 2 --timeout 120
+    startCommand: gunicorn wsgi:application --workers 2 --threads 2 --timeout 120
     envVars:
       # Automatisch generierter Secret Key
       - key: SECRET_KEY
