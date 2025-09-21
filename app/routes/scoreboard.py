@@ -197,10 +197,33 @@ def gamification_dashboard():
         'best_streak': 0
     }
 
+    # Calculate badge statistics
+    badge_stats = {
+        'total': len(user_badges.get('badges', [])),
+        'by_rarity': {}
+    }
+
+    # Count badges by rarity
+    for badge in user_badges.get('badges', []):
+        rarity = badge.get('rarity', 'common')
+        badge_stats['by_rarity'][rarity] = badge_stats['by_rarity'].get(rarity, 0) + 1
+
+    # Add rarity colors for template
+    rarity_colors = {
+        'common': '#6b7280',
+        'uncommon': '#10b981',
+        'rare': '#3b82f6',
+        'epic': '#8b5cf6',
+        'legendary': '#f59e0b',
+        'mythic': '#ef4444'
+    }
+
     return render_template("gamification.html",
                          user=user,
                          gamification_data=gamification_data,
                          user_level=gamification_data.get('user_level', {}),
                          user_badges=user_badges,
+                         badge_stats=badge_stats,
+                         rarity_colors=rarity_colors,
                          streak_info=streak_info,
                          user_rank=0)  # Default rank until we implement ranking system

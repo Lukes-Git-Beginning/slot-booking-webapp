@@ -130,96 +130,89 @@ def admin_export_pdf():
 @admin_bp.route("/reports/weekly/<week_key>")
 @require_admin
 def admin_reports_weekly(week_key=None):
-    """Weekly reports overview"""
-    if not week_key:
-        week_key = get_week_key(datetime.now(TZ))
-
+    """Executive Weekly Report"""
     try:
-        # Get week data
-        recent_weeks = list_recent_weeks(12)  # Last 12 weeks
-        week_stats = compute_week_stats(week_key)
-
-        return render_template("admin_reports_weekly.html",
-                             current_week=week_key,
-                             recent_weeks=recent_weeks,
-                             week_stats=week_stats)
-
+        from executive_reports import ExecutiveReports
+        reports = ExecutiveReports()
+        report = reports.generate_weekly_executive_report(week_key)
+        return render_template("executive_weekly_report.html", report=report)
     except Exception as e:
-        flash(f"Error loading weekly report: {str(e)}", "danger")
-        return redirect(url_for("admin.admin_dashboard"))
+        flash(f"❌ Fehler beim Generieren des Wochenberichts: {e}", "danger")
+        return redirect(url_for("admin.admin_telefonie"))
 
 
 @admin_bp.route("/reports/monthly")
 @admin_bp.route("/reports/monthly/<int:year>/<int:month>")
 @require_admin
 def admin_reports_monthly(year=None, month=None):
-    """Monthly reports overview"""
-    if not year or not month:
-        now = datetime.now(TZ)
-        year = now.year
-        month = now.month
-
+    """Executive Monthly Report"""
     try:
-        # Generate monthly report data
-        month_key = f"{year}-{month:02d}"
-
-        # This would be enhanced with actual monthly statistics
-        monthly_data = {
-            'month': month_key,
-            'total_bookings': 0,
-            'unique_customers': 0,
-            'top_performers': []
-        }
-
-        return render_template("admin_reports_monthly.html",
-                             year=year,
-                             month=month,
-                             monthly_data=monthly_data)
-
+        from executive_reports import ExecutiveReports
+        reports = ExecutiveReports()
+        report = reports.generate_monthly_executive_report(year, month)
+        return render_template("executive_monthly_report.html", report=report)
     except Exception as e:
-        flash(f"Error loading monthly report: {str(e)}", "danger")
-        return redirect(url_for("admin.admin_dashboard"))
+        flash(f"❌ Fehler beim Generieren des Monatsberichts: {e}", "danger")
+        return redirect(url_for("admin.admin_telefonie"))
 
 
 @admin_bp.route("/reports/export/<report_type>")
 @require_admin
 def admin_telefonie_export_report(report_type):
-    """Export specific report type"""
+    """Export Executive Report as PDF"""
     try:
+        from executive_reports import ExecutiveReports
+        import io
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from flask import Response
+
+        reports = ExecutiveReports()
+
         if report_type == "weekly":
-            week_key = request.args.get("week", get_week_key(datetime.now(TZ)))
-            stats = compute_week_stats(week_key)
-
-            export_data = {
-                'report_type': 'weekly',
-                'week': week_key,
-                'data': stats,
-                'exported_at': datetime.now(TZ).isoformat()
-            }
-
+            week = request.args.get("week")
+            report = reports.generate_weekly_executive_report(week)
+            title = f"Weekly Executive Report - Week {report['meta']['week']}"
         elif report_type == "monthly":
-            year = int(request.args.get("year", datetime.now(TZ).year))
-            month = int(request.args.get("month", datetime.now(TZ).month))
-
-            export_data = {
-                'report_type': 'monthly',
-                'year': year,
-                'month': month,
-                'data': {},  # Would be filled with actual data
-                'exported_at': datetime.now(TZ).isoformat()
-            }
-
+            year = request.args.get("year", type=int)
+            month = request.args.get("month", type=int)
+            report = reports.generate_monthly_executive_report(year, month)
+            title = f"Monthly Executive Report - {report['meta']['month_name']}"
         else:
-            return jsonify({"error": "Invalid report type"}), 400
+            flash("❌ Ungültiger Report-Typ", "danger")
+            return redirect(url_for("admin.admin_telefonie"))
 
-        response = make_response(json.dumps(export_data, indent=2))
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Content-Disposition'] = f'attachment; filename={report_type}_report.json'
+        # Generate PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
 
-        return response
+        # Title
+        title_para = Paragraph(title, styles['Heading1'])
+        elements.append(title_para)
+        elements.append(Spacer(1, 20))
 
+        # Executive Summary
+        summary_title = Paragraph("Executive Summary", styles['Heading2'])
+        elements.append(summary_title)
+
+        summary_text = f"Achievement Rate: {report['executive_summary']['key_metrics'].get('achievement_rate', report['executive_summary']['key_metrics'].get('monthly_achievement_rate', 0))}%"
+        summary_para = Paragraph(summary_text, styles['Normal'])
+        elements.append(summary_para)
+        elements.append(Spacer(1, 10))
+
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+
+        return Response(pdf, mimetype='application/pdf', headers={
+            'Content-Disposition': f"attachment; filename={report_type}_executive_report_{datetime.now(TZ).strftime('%Y%m%d_%H%M')}.pdf"
+        })
     except Exception as e:
-        return jsonify({"error": f"Export failed: {str(e)}"}), 500
+        flash(f"❌ PDF Export Fehler: {e}", "danger")
+        return redirect(url_for("admin.admin_telefonie"))
 
 
 @admin_bp.route("/storage/optimize", methods=["GET", "POST"])
