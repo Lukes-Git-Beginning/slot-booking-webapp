@@ -283,7 +283,7 @@
     
     <!-- Report Header with Export Button -->
     <div class="report-header">
-      <a href="{{ url_for('admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="export-btn-header">
+      <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="export-btn-header">
         📄 PDF Exportieren
       </a>
       <div class="report-title">Monatliche Zusammenfassung</div>
@@ -384,13 +384,13 @@
     
     <!-- Bottom Actions -->
     <div class="bottom-actions">
-      <a href="{{ url_for('admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="btn btn-primary">
+      <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="btn btn-primary">
         <i class="ti ti-download"></i> PDF-Bericht exportieren
       </a>
-      <a href="{{ url_for('admin_reports_weekly') }}" class="btn btn-secondary">
+      <a href="{{ url_for('admin.admin_reports_weekly') }}" class="btn btn-secondary">
         <i class="ti ti-calendar"></i> Wochenbericht anzeigen
       </a>
-      <a href="{{ url_for('admin_telefonie') }}" class="btn btn-secondary">
+      <a href="{{ url_for('admin.admin_telefonie') }}" class="btn btn-secondary">
         <i class="ti ti-arrow-left"></i> Zurück zur Verwaltung
       </a>
     </div>

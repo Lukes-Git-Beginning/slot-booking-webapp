@@ -218,7 +218,7 @@
                 </div>
                 <div class="points">{{ user.current_month_points }} Punkte</div>
                 <div class="actions">
-                    <a href="{{ url_for('admin_fix_points') }}" class="btn-small btn-primary">Punkte Fix</a>
+                    <a href="{{ url_for('admin.admin_fix_points') }}" class="btn-small btn-primary">Punkte Fix</a>
                     {% if not user.in_userlist %}
                         <span class="btn-small btn-warning">Auto-Konto</span>
                     {% endif %}
@@ -228,7 +228,7 @@
         </div>
         
         <div style="margin-top: 30px; text-align: center;">
-            <a href="{{ url_for('admin_fix_points') }}" class="btn-primary" style="padding: 15px 30px; font-size: 1.1em;">
+            <a href="{{ url_for('admin.admin_fix_points') }}" class="btn-primary" style="padding: 15px 30px; font-size: 1.1em;">
                 🔧 Alle Punkte nachträglich vergeben
             </a>
         </div>
