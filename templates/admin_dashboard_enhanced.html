@@ -435,19 +435,19 @@
 
     <!-- Navigation -->
     <div class="quick-actions">
-      <a href="{{ url_for('index') }}" class="action-btn secondary">
+      <a href="{{ url_for('main.index') }}" class="action-btn secondary">
         <i class="ti ti-home"></i>
         Zurück zur Hauptseite
       </a>
-      <a href="{{ url_for('admin_dashboard') }}" class="action-btn primary">
+      <a href="{{ url_for('admin.admin_dashboard') }}" class="action-btn primary">
         <i class="ti ti-refresh"></i>
         Dashboard aktualisieren
       </a>
-      <a href="{{ url_for('admin_debug_points') }}" class="action-btn warning">
+      <a href="{{ url_for('admin.admin_debug_points') }}" class="action-btn warning">
         <i class="ti ti-bug"></i>
         Punkte Debug
       </a>
-      <a href="{{ url_for('admin_fix_points') }}" class="action-btn success">
+      <a href="{{ url_for('admin.admin_fix_points') }}" class="action-btn success">
         <i class="ti ti-trophy"></i>
         Punkte Fix
       </a>
