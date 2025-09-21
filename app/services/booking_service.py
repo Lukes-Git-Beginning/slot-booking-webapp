@@ -38,8 +38,12 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
     # Basic availability logic - can be enhanced
     weekday = datetime.strptime(date_str, '%Y-%m-%d').weekday()
 
-    # Weekend or evening hours get fewer consultants
-    if weekday >= 5 or hour in ["20:00"]:  # Weekend or late evening
+    # No Standard Verfügbarkeit on weekends (Saturday=5, Sunday=6)
+    if weekday >= 5:  # Weekend
+        return []
+
+    # Evening hours get fewer consultants
+    if hour in ["20:00"]:  # Late evening
         return consultant_config.DEFAULT_STANDARD_CONSULTANTS[:2]
     else:
         return consultant_config.DEFAULT_STANDARD_CONSULTANTS
@@ -58,74 +62,105 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
 
 
 def extract_weekly_summary(availability, current_date=None):
-    """Extract weekly summary from availability data - returns list for template compatibility"""
+    """Extract weekly summary using old working method - matches original calculation"""
     from collections import defaultdict
+    from color_mapping import blocks_availability
 
     week_possible = defaultdict(int)
+    week_booked = defaultdict(int)
     week_dates = {}
 
-    # Only count slots from today forward
+    # IMPORTANT FIX: Only count slots from today forward
     today = datetime.now(TZ).date()
 
-    # Calculate possible and booked slots for next 4 weeks
-    week_booked = defaultdict(int)
+    # Process availability data - need to convert from new nested structure to old format
+    # New structure: {"YYYY-MM-DD": {"HH:MM": [consultants]}}
+    # Old format needed: {"YYYY-MM-DD HH:MM": [consultants]}
 
+    # First, also include availability from effective_availability (loaded + defaults)
     for week_offset in range(4):
         week_start = get_week_start(today) + timedelta(weeks=week_offset)
-        week_key = f"KW{week_start.isocalendar()[1]}"
-        week_dates[week_key] = week_start
 
-        # Count available and booked slots for this week
         for day_offset in range(7):  # Monday to Sunday
             date_obj = week_start + timedelta(days=day_offset)
+            if date_obj < today:  # Skip past dates
+                continue
+
             date_str = date_obj.strftime("%Y-%m-%d")
 
-            if date_obj >= today:  # Only future dates
-                for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
-                    if date_str in availability and hour in availability[date_str]:
-                        consultants = availability[date_str][hour]
-                        week_possible[week_key] += len(consultants) * 2  # 2 slots per consultant
+            for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
+                # Get effective availability (includes defaults)
+                consultants = get_effective_availability(date_str, hour)
+                if consultants:  # Only process if we have consultants
+                    slot_time = f"{date_str} {hour}"
+                    dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
 
-                        # Get actual booking count for this slot
-                        try:
-                            _, booked, _, _, _ = get_slot_status(date_str, hour, len(consultants))
-                            week_booked[week_key] += booked
-                        except Exception as e:
-                            print(f"Error getting slot status for {date_str} {hour}: {e}")
-                            # Continue without adding to booked count
+                    key = week_key_from_date(dt)
+                    week_possible[key] += len(consultants) * slot_config.SLOTS_PER_BERATER
+                    monday = dt - timedelta(days=dt.weekday())
+                    friday = monday + timedelta(days=4)
+                    week_dates[key] = (monday, friday)
 
-    # Create summary list for template
-    summary = []
-    for week_key in sorted(week_dates.keys()):
-        week_start = week_dates[week_key]
-        week_end = week_start + timedelta(days=4)  # Friday
-        possible = week_possible[week_key]
-        booked = week_booked[week_key]
+    # Get booked appointments from Google Calendar with error handling and caching
+    if week_dates:
+        min_start = min(rng[0] for rng in week_dates.values())
+        max_end = max(rng[1] for rng in week_dates.values()) + timedelta(days=1)
 
-        # Calculate usage percentage
-        if possible > 0:
-            usage = booked / possible
-            usage_pct = round(usage * 100)
+        # Get calendar service
+        calendar_service = get_google_calendar_service()
+        if calendar_service:
+            try:
+                events_result = calendar_service.get_events(
+                    calendar_id='primary',
+                    time_min=min_start.isoformat(),
+                    time_max=max_end.isoformat(),
+                    max_results=2500
+                )
+                events = events_result.get('items', []) if events_result else []
+            except Exception as e:
+                print(f"Error fetching calendar events: {e}")
+                events = []
         else:
-            usage = 0.0
-            usage_pct = 0
+            events = []
 
-        # Check if this week is current
-        current_week_num = datetime.now(TZ).isocalendar()[1]
-        current_week_key = f"KW{current_week_num}"
-        is_current = (week_key == current_week_key)
+        # Process all events
+        for event in events:
+            if "start" in event and "dateTime" in event["start"]:
+                try:
+                    dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+                    # Only count future events
+                    if dt.date() >= today:
+                        # IMPORTANT: Check if event blocks availability
+                        color_id = event.get("colorId", "2")  # Default: Green
+                        if blocks_availability(color_id):  # Only count blocking events
+                            key = week_key_from_date(dt)
+                            week_booked[key] += 1
+                except Exception as e:
+                    print(f"Error parsing event time: {e}")
+                    continue
+
+    summary = []
+    for key, possible in week_possible.items():
+        booked = week_booked.get(key, 0)
+        start, end = week_dates[key]
+
+        # Prevent division by 0
+        usage = (booked / possible) if possible > 0 else 0
 
         summary.append({
-            "label": week_key,
-            "range": f"{week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')}",
-            "start_date": week_start,
+            "label": key.replace("-", " "),
+            "range": f"{start.strftime('%d.%m.')} – {end.strftime('%d.%m.')}",
+            "start_date": start,
+            "usage_pct": min(100, int(round(usage * 100))),  # Cap at 100%
+            "usage": usage,
             "possible": possible,
             "booked": booked,
-            "usage": usage,  # This is the missing attribute!
-            "usage_pct": usage_pct,
-            "current": is_current
+            "current": (
+                current_date is not None and start.date() <= current_date <= end.date()
+            )
         })
 
+    summary.sort(key=lambda s: s["start_date"])
     return summary
 
 
