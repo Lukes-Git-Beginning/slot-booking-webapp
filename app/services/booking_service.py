@@ -87,11 +87,32 @@ def extract_weekly_summary(availability, current_date=None):
     # Create summary list for template
     summary = []
     for week_key in sorted(week_dates.keys()):
+        week_start = week_dates[week_key]
+        week_end = week_start + timedelta(days=4)  # Friday
+        possible = week_possible[week_key]
+        booked = 0  # TODO: Calculate actual bookings from calendar
+
+        # Calculate usage percentage
+        if possible > 0:
+            usage = booked / possible
+            usage_pct = round(usage * 100)
+        else:
+            usage = 0.0
+            usage_pct = 0
+
+        # Check if this week is current
+        current_week_key = week_key_from_date(datetime.now(TZ))
+        is_current = (week_key == current_week_key)
+
         summary.append({
             "label": week_key,
-            "start_date": week_dates[week_key],
-            "possible": week_possible[week_key],
-            "booked": 0  # TODO: Calculate actual bookings
+            "range": f"{week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')}",
+            "start_date": week_start,
+            "possible": possible,
+            "booked": booked,
+            "usage": usage,  # This is the missing attribute!
+            "usage_pct": usage_pct,
+            "current": is_current
         })
 
     return summary
