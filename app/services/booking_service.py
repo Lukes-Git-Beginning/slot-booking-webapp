@@ -20,6 +20,12 @@ from app.utils.helpers import get_week_start, get_current_kw, week_key_from_date
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
 
+def is_t1_bereit_event(summary: str) -> bool:
+    """Check if an event is a T1-bereit event (should not count as booked)"""
+    summary_lower = summary.lower()
+    return 't1-bereit' in summary_lower or 't1 bereit' in summary_lower
+
+
 def load_availability() -> Dict[str, List[str]]:
     """Load availability data from static file"""
     availability_file = "static/availability.json"
@@ -111,6 +117,10 @@ def extract_weekly_summary(availability, current_date=None):
         min_start = min(rng[0] for rng in week_dates.values())
         max_end = max(rng[1] for rng in week_dates.values()) + timedelta(days=1)
 
+        # Convert to proper datetime objects with timezone
+        min_start_dt = TZ.localize(datetime.combine(min_start, datetime.min.time()))
+        max_end_dt = TZ.localize(datetime.combine(max_end, datetime.max.time()))
+
         # Get calendar service
         calendar_service = get_google_calendar_service()
         if calendar_service:
@@ -118,8 +128,8 @@ def extract_weekly_summary(availability, current_date=None):
                 from app.config.base import config
                 events_result = calendar_service.get_events(
                     calendar_id=config.CENTRAL_CALENDAR_ID,
-                    time_min=min_start.isoformat(),
-                    time_max=max_end.isoformat(),
+                    time_min=min_start_dt.isoformat(),
+                    time_max=max_end_dt.isoformat(),
                     max_results=2500
                 )
                 events = events_result.get('items', []) if events_result else []
@@ -136,11 +146,16 @@ def extract_weekly_summary(availability, current_date=None):
                     dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
                     # Only count future events
                     if dt.date() >= today:
-                        # IMPORTANT: Check if event blocks availability
-                        color_id = event.get("colorId", "2")  # Default: Green
-                        if blocks_availability(color_id):  # Only count blocking events
-                            key = week_key_from_date(dt)
-                            week_booked[key] += 1
+                        # Get event summary to check if it's T1-bereit
+                        summary = event.get("summary", "")
+
+                        # Don't count T1-bereit events as booked
+                        if not is_t1_bereit_event(summary):
+                            # IMPORTANT: Check if event blocks availability
+                            color_id = event.get("colorId", "2")  # Default: Green
+                            if blocks_availability(color_id):  # Only count blocking events
+                                key = week_key_from_date(dt)
+                                week_booked[key] += 1
                 except Exception as e:
                     print(f"Error parsing event time: {e}")
                     continue
@@ -221,6 +236,8 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
 
     # Process events
     slot_list = []
+    booked_count = 0
+
     for event in events:
         summary = event.get('summary', 'Unbekannt')
         color_id = event.get('colorId', '1')
@@ -231,7 +248,11 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
             'outcome': 'unknown'  # Will be enhanced later
         })
 
-    booked = len(slot_list)
+        # Only count as booked if it's NOT a T1-bereit event
+        if not is_t1_bereit_event(summary):
+            booked_count += 1
+
+    booked = booked_count
     total = max_slots
     freie_count = max(0, total - booked)
     overbooked = booked > total
