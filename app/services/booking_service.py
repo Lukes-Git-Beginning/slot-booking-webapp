@@ -53,7 +53,12 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
     """Get effective availability combining loaded and default data"""
     availability = load_availability()
 
-    # Try to get from loaded data first
+    # Try to get from loaded data first - handle old format "YYYY-MM-DD HH:MM"
+    slot_key = f"{date_str} {hour}"
+    if slot_key in availability:
+        return availability[slot_key]
+
+    # Also try new nested format for backwards compatibility
     if date_str in availability and hour in availability[date_str]:
         return availability[date_str][hour]
 
