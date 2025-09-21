@@ -61,9 +61,15 @@ def admin_users():
     # Sort by current month score
     user_stats.sort(key=lambda x: x['current_month_score'], reverse=True)
 
+    # Calculate statistics for template
+    total_users = len(user_stats)
+    base_users_count = len(userlist)
+
     return render_template("admin_users.html",
                          user_stats=user_stats,
-                         current_month=current_month)
+                         current_month=current_month,
+                         total_users=total_users,
+                         base_users_count=base_users_count)
 
 
 @admin_bp.route("/fix-points")

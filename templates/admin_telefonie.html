@@ -169,7 +169,7 @@
 
     <h1>📞 Telefonie Punkte – Admin</h1>
 
-    <form method="get" class="row" action="{{ url_for('admin_telefonie') }}">
+    <form method="get" class="row" action="{{ url_for('admin.admin_telefonie') }}">
       <label>Woche</label>
       <select name="week">
         {% for w in recent_weeks %}
