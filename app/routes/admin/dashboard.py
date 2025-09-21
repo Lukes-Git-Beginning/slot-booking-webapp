@@ -30,6 +30,7 @@ def admin_dashboard():
         total_customers = 0
         recent_activity = []
 
+        dashboard_data = None
         if tracker:
             # Get dashboard data from tracking system
             dashboard_data = tracker.get_performance_dashboard()
@@ -74,6 +75,7 @@ def admin_dashboard():
             total_badges_awarded = 0
 
         return render_template("admin_dashboard_enhanced.html",
+                             dashboard=dashboard_data,
                              total_bookings=total_bookings,
                              total_customers=total_customers,
                              recent_activity=recent_activity[:10],  # Last 10 activities
