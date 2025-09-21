@@ -68,6 +68,15 @@ def calendar_view():
     # Get weekly availability data
     availability = {}  # This would be loaded from your availability system
 
+    # Calculate week navigation
+    from app.utils.helpers import get_week_start
+    current_week = get_week_start(today)
+    prev_week = current_week - timedelta(weeks=1)
+    next_week = current_week + timedelta(weeks=1)
+
     return render_template("calendar_view.html",
                          today=today,
-                         availability=availability)
+                         availability=availability,
+                         prev_week=prev_week,
+                         next_week=next_week,
+                         current_week=current_week)
