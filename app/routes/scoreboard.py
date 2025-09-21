@@ -185,4 +185,5 @@ def gamification_dashboard():
     return render_template("gamification.html",
                          user=user,
                          gamification_data=gamification_data,
-                         user_level=gamification_data.get('user_level', {}))
+                         user_level=gamification_data.get('user_level', {}),
+                         user_rank=0)  # Default rank until we implement ranking system

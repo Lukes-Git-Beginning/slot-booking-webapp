@@ -67,13 +67,15 @@ def extract_weekly_summary(availability, current_date=None):
     # Only count slots from today forward
     today = datetime.now(TZ).date()
 
-    # Calculate possible slots for next 4 weeks
+    # Calculate possible and booked slots for next 4 weeks
+    week_booked = defaultdict(int)
+
     for week_offset in range(4):
         week_start = get_week_start(today) + timedelta(weeks=week_offset)
         week_key = f"KW{week_start.isocalendar()[1]}"
         week_dates[week_key] = week_start
 
-        # Count available slots for this week
+        # Count available and booked slots for this week
         for day_offset in range(7):  # Monday to Sunday
             date_obj = week_start + timedelta(days=day_offset)
             date_str = date_obj.strftime("%Y-%m-%d")
@@ -84,13 +86,21 @@ def extract_weekly_summary(availability, current_date=None):
                         consultants = availability[date_str][hour]
                         week_possible[week_key] += len(consultants) * 2  # 2 slots per consultant
 
+                        # Get actual booking count for this slot
+                        try:
+                            _, booked, _, _, _ = get_slot_status(date_str, hour, len(consultants))
+                            week_booked[week_key] += booked
+                        except Exception as e:
+                            print(f"Error getting slot status for {date_str} {hour}: {e}")
+                            # Continue without adding to booked count
+
     # Create summary list for template
     summary = []
     for week_key in sorted(week_dates.keys()):
         week_start = week_dates[week_key]
         week_end = week_start + timedelta(days=4)  # Friday
         possible = week_possible[week_key]
-        booked = 0  # TODO: Calculate actual bookings from calendar
+        booked = week_booked[week_key]
 
         # Calculate usage percentage
         if possible > 0:
@@ -101,7 +111,8 @@ def extract_weekly_summary(availability, current_date=None):
             usage_pct = 0
 
         # Check if this week is current
-        current_week_key = week_key_from_date(datetime.now(TZ))
+        current_week_num = datetime.now(TZ).isocalendar()[1]
+        current_week_key = f"KW{current_week_num}"
         is_current = (week_key == current_week_key)
 
         summary.append({

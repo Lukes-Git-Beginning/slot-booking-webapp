@@ -26,10 +26,11 @@ def api_user_badges():
 
     try:
         # Get user badges from achievement system
-        badges = data_persistence.load_user_badges(user)
-        return jsonify({"badges": badges})
+        import achievement_system
+        user_badges = achievement_system.get_user_badges(user)
+        return jsonify(user_badges)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "badges": []}), 200  # Return empty badges on error
 
 
 @api_bp.route("/user/<username>/badges")
@@ -37,8 +38,9 @@ def api_user_badges():
 def api_user_badges_by_username(username):
     """Get specific user's badges"""
     try:
-        badges = data_persistence.load_user_badges(username)
-        return jsonify({"badges": badges})
+        import achievement_system
+        user_badges = achievement_system.get_user_badges(username)
+        return jsonify(user_badges)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
