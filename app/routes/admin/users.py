@@ -170,3 +170,21 @@ def admin_badges_backfill():
     except Exception as e:
         flash(f"Error during badge backfill: {str(e)}", "danger")
         return redirect(url_for("admin.admin_users"))
+
+
+@admin_bp.route("/data/backfill-september")
+@require_admin
+def admin_backfill_september():
+    """Backfill tracking data from September 2nd"""
+    try:
+        from tracking_system import backfill_september_data
+
+        # Run the backfill process
+        backfill_september_data()
+
+        flash("✅ September data backfill completed successfully! Dashboard now shows complete data from September 2nd.", "success")
+
+    except Exception as e:
+        flash(f"❌ Error during September backfill: {str(e)}", "danger")
+
+    return redirect(url_for("admin.admin_users"))
