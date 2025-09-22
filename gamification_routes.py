@@ -14,7 +14,7 @@ try:
     from daily_quests import daily_quest_system  
     from analytics_system import analytics_system
     from personalization_system import personalization_system
-    from achievement_system import achievement_system
+    from app.services.achievement_system import achievement_system
     from level_system import LevelSystem
     from cosmetics_shop import cosmetics_shop
 except ImportError as e:

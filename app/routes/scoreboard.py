@@ -49,7 +49,7 @@ def scoreboard():
 
         # Get badge data for leaderboard (persistent)
         try:
-            from achievement_system import achievement_system
+            from app.services.achievement_system import achievement_system
             badge_leaderboard = achievement_system.get_badge_leaderboard()
         except Exception as e:
             print(f"Badge Leaderboard Error: {e}")
@@ -99,7 +99,7 @@ def badges():
 
     # Get badge data
     try:
-        from achievement_system import achievement_system, ACHIEVEMENT_DEFINITIONS
+        from app.services.achievement_system import achievement_system, ACHIEVEMENT_DEFINITIONS
         user_badges = achievement_system.get_user_badges(user)
         leaderboard = achievement_system.get_badge_leaderboard()
 
@@ -114,7 +114,7 @@ def badges():
         leaderboard = []
         total_badges = 0
         try:
-            from achievement_system import ACHIEVEMENT_DEFINITIONS
+            from app.services.achievement_system import ACHIEVEMENT_DEFINITIONS
             available_badges = ACHIEVEMENT_DEFINITIONS
         except ImportError:
             available_badges = {}
