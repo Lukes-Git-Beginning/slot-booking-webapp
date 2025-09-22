@@ -47,7 +47,7 @@ jobs:
       - name: 🔍 Run Daily Outcome Check
         run: |
           echo "🕐 Starting daily outcome check at $(date)"
-          python tracking_system.py || echo "⚠️ Tracking completed with warnings"
+          python run_tracking.py || echo "⚠️ Tracking completed with warnings"
           echo "✅ Outcome check completed"
 
           # Verify files were created

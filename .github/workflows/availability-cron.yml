@@ -27,7 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Generate availability.json
-        run: python generate_availability.py
+        run: python scripts/generate_availability.py
 
       - name: Commit and push changes
         run: |
