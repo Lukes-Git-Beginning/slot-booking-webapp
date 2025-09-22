@@ -58,7 +58,7 @@ def admin_dashboard():
 
         # Badge statistics
         try:
-            import achievement_system
+            from app.services.achievement_system import achievement_system
             # Get all users and their badges
             all_badges = {}
             users = ["Dominik", "Ladislav", "Jose", "Ann-Kathrin", "Patrick", "Sonja", "Admin", "Christian", "Sara"]  # Could be loaded from somewhere

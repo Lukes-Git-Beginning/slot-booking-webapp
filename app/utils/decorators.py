@@ -13,7 +13,7 @@ def require_login(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session or not session.get('user'):
-            return redirect(url_for('auth.login'))
+            return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function
 
@@ -25,7 +25,7 @@ def require_admin(f):
         user = session.get('user')
         if not user or user not in config.get_admin_users():
             flash("❌ Zugriff verweigert. Nur für Administratoren.", "danger")
-            return redirect(url_for('main.index'))
+            return redirect('/')
         return f(*args, **kwargs)
     return decorated_function
 
@@ -35,6 +35,6 @@ def require_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
-            return redirect(url_for('auth.login'))
+            return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function

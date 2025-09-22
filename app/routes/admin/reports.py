@@ -15,7 +15,7 @@ from app.config.base import slot_config
 from app.core.extensions import tracking_system
 from app.utils.decorators import require_admin
 from app.routes.admin import admin_bp
-from weekly_points import get_week_key, list_recent_weeks, compute_week_stats
+from app.services.weekly_points import get_week_key, list_recent_weeks, compute_week_stats
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
 

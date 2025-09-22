@@ -23,11 +23,11 @@ def init_middleware(app: Flask) -> None:
 
         # Check if user is logged in (compatible with old and new session format)
         if 'user' not in session or not session.get('user'):
-            return redirect(url_for('auth.login'))
+            return redirect('/login')
 
         # Also check logged_in flag for backward compatibility
         if not session.get("logged_in"):
-            return redirect(url_for('auth.login'))
+            return redirect('/login')
 
     print("SUCCESS: Middleware initialized successfully")
 
@@ -38,7 +38,7 @@ def require_admin(f):
     def decorated_function(*args, **kwargs):
         user = session.get('user')
         if not user or user not in config.get_admin_users():
-            return redirect(url_for('main.index'))
+            return redirect('/')
         return f(*args, **kwargs)
     return decorated_function
 
@@ -48,6 +48,6 @@ def require_login_decorator(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session or not session.get('user'):
-            return redirect(url_for('auth.login'))
+            return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function
