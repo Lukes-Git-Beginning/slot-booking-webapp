@@ -26,7 +26,7 @@ def admin_users():
 
     # Load all user badges from achievement system
     try:
-        import achievement_system
+        from app.services.achievement_system import achievement_system
         all_badges = {}
         for username in userlist.keys():
             try:
@@ -149,7 +149,7 @@ def admin_badges_backfill():
         processed_users = []
 
         try:
-            from achievement_system import achievement_system
+            from app.services.achievement_system import achievement_system
             if achievement_system:
                 userlist = get_userlist()
                 for username in userlist.keys():
@@ -177,7 +177,7 @@ def admin_badges_backfill():
 def admin_backfill_september():
     """Backfill tracking data from September 2nd"""
     try:
-        from tracking_system import backfill_september_data
+        from app.services.tracking_system import backfill_september_data
 
         # Run the backfill process
         backfill_september_data()
