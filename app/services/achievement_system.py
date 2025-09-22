@@ -263,7 +263,7 @@ class AchievementSystem:
     def load_badges(self):
         """Lade alle User-Badges über data_persistence"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             return data_persistence.load_badges()
         except Exception as e:
             print(f"Fehler beim Laden der Badges über data_persistence: {e}")
@@ -278,7 +278,7 @@ class AchievementSystem:
     def save_badges(self, badges_data):
         """Speichere User-Badges über data_persistence für Deployment-Sicherheit"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             data_persistence.save_user_badges(badges_data)
         except Exception as e:
             print(f"Fehler beim Speichern der Badges: {e}")
@@ -301,7 +301,7 @@ class AchievementSystem:
     def save_mvp_badges(self, mvp_data):
         """Speichere MVP-Badges über data_persistence für Deployment-Sicherheit"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             # MVP badges werden als Teil der normalen badges gespeichert
             # oder wir können eine separate MVP-Speicherfunktion hinzufügen
             with open(self.mvp_file, "w", encoding="utf-8") as f:
@@ -314,7 +314,7 @@ class AchievementSystem:
     def load_daily_stats(self):
         """Lade tägliche User-Statistiken über data_persistence"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             return data_persistence.load_daily_user_stats()
         except Exception as e:
             print(f"Fehler beim Laden der Daily Stats über data_persistence: {e}")
@@ -329,7 +329,7 @@ class AchievementSystem:
     def save_daily_stats(self, stats_data):
         """Speichere tägliche User-Statistiken über data_persistence"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             data_persistence.save_daily_user_stats(stats_data)
         except Exception as e:
             print(f"Fehler beim Speichern der Stats: {e}")
@@ -346,7 +346,7 @@ class AchievementSystem:
         (Punkte werden bereits vom aufrufenden System vergeben)
         """
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             
             # Lade aktuelle Daten (Punkte sind bereits gespeichert)
             scores = data_persistence.load_scores()
@@ -598,7 +598,7 @@ class AchievementSystem:
     def auto_check_mvp_badges(self):
         """Automatische MVP-Badge-Vergabe - sollte täglich laufen"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             scores = data_persistence.load_scores()
             mvp_data = self.load_mvp_badges()
             
@@ -880,7 +880,7 @@ class AchievementSystem:
         Gibt eine Zusammenfassung zurück: {users_processed, badges_awarded}.
         """
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
 
             scores = data_persistence.load_scores()
             daily_stats_all = data_persistence.load_daily_user_stats()
@@ -1005,7 +1005,7 @@ class AchievementSystem:
     def get_badge_progress(self, user):
         """Bekomme Fortschritt für alle verfügbaren Badges"""
         try:
-            from data_persistence import data_persistence
+            from app.core.extensions import data_persistence
             scores = data_persistence.load_scores()
             daily_stats = data_persistence.load_daily_user_stats()
         except (ImportError, AttributeError) as e:
