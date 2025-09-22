@@ -358,9 +358,77 @@
     "by_hour": {},
     "by_user": {},
     "by_potential": {},
-    "calculated_at": "2025-09-21T21:16:53.026893+02:00",
+    "calculated_at": "2025-09-22T21:18:20.093079+02:00",
     "no_show_rate": 0,
     "completion_rate": 0,
     "cancellation_rate": 0
+  },
+  "2025-09-22": {
+    "date": "2025-09-22",
+    "total_slots": 19,
+    "no_shows": 14,
+    "completed": 5,
+    "cancelled": 0,
+    "by_hour": {
+      "09:00": {
+        "total": 1,
+        "no_shows": 1,
+        "completed": 0,
+        "cancelled": 0
+      },
+      "11:00": {
+        "total": 4,
+        "no_shows": 3,
+        "completed": 1,
+        "cancelled": 0
+      },
+      "14:00": {
+        "total": 1,
+        "no_shows": 0,
+        "completed": 1,
+        "cancelled": 0
+      },
+      "16:00": {
+        "total": 2,
+        "no_shows": 2,
+        "completed": 0,
+        "cancelled": 0
+      },
+      "18:00": {
+        "total": 6,
+        "no_shows": 5,
+        "completed": 1,
+        "cancelled": 0
+      },
+      "20:00": {
+        "total": 5,
+        "no_shows": 3,
+        "completed": 2,
+        "cancelled": 0
+      }
+    },
+    "by_user": {},
+    "by_potential": {
+      "recall": {
+        "total": 2,
+        "completed": 2
+      },
+      "normal": {
+        "total": 1,
+        "completed": 1
+      },
+      "standard": {
+        "total": 1,
+        "completed": 1
+      },
+      "top": {
+        "total": 1,
+        "completed": 1
+      }
+    },
+    "calculated_at": "2025-09-22T21:18:19.721198+02:00",
+    "no_show_rate": 73.68,
+    "completion_rate": 26.32,
+    "cancellation_rate": 0.0
   }
 }
