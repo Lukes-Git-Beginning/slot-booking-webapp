@@ -4,9 +4,11 @@ Calendar routes
 Calendar view and personal calendar functionality
 """
 
-from flask import Blueprint, render_template, session, jsonify
+from flask import Blueprint, render_template, session, jsonify, request
 from datetime import datetime, timedelta
 import pytz
+import json
+import os
 
 from app.config.base import slot_config
 from app.core.extensions import data_persistence
@@ -62,16 +64,27 @@ def my_calendar():
 @calendar_bp.route("/calendar-view")
 @require_login
 def calendar_view():
-    """Display full calendar view"""
+    """Display full calendar view with actual availability data"""
     # Get data for calendar view
     today = datetime.now(TZ).date()
 
-    # Get weekly availability data
-    availability = {}  # This would be loaded from your availability system
+    # Get week parameter from request (for navigation)
+    week_param = request.args.get('week')
+    if week_param:
+        try:
+            # Parse week parameter (format: YYYY-MM-DD)
+            current_week = datetime.strptime(week_param, '%Y-%m-%d').date()
+            # Ensure it's a Monday
+            current_week = current_week - timedelta(days=current_week.weekday())
+        except ValueError:
+            # Fall back to current week if invalid date
+            from app.utils.helpers import get_week_start
+            current_week = get_week_start(today)
+    else:
+        # Calculate week navigation
+        from app.utils.helpers import get_week_start
+        current_week = get_week_start(today)
 
-    # Calculate week navigation
-    from app.utils.helpers import get_week_start
-    current_week = get_week_start(today)
     prev_week = current_week - timedelta(weeks=1)
     next_week = current_week + timedelta(weeks=1)
 
@@ -79,20 +92,57 @@ def calendar_view():
     week_start = current_week
     week_end = current_week + timedelta(days=6)
 
+    # Load availability data from static/availability.json
+    availability_data = {}
+    availability_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'availability.json')
+    try:
+        with open(availability_path, 'r', encoding='utf-8') as f:
+            availability_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        availability_data = {}
+
     # Generate weekdays data for calendar display
     weekdays_data = []
     for i in range(7):
         day = current_week + timedelta(days=i)
+        day_availability = []
+
+        # Process availability for this day
+        for time_slot, consultants in availability_data.items():
+            if time_slot.startswith(day.strftime('%Y-%m-%d')):
+                # Extract time from slot key (format: "2025-09-22 20:00")
+                time_part = time_slot.split(' ')[1]
+                start_time = datetime.strptime(f"{day.strftime('%Y-%m-%d')} {time_part}", '%Y-%m-%d %H:%M')
+                end_time = start_time + timedelta(hours=2)  # 2-hour blocks
+
+                # Determine availability level based on consultant count
+                slot_count = len(consultants)
+                if slot_count >= 4:
+                    availability_level = 'high'
+                elif slot_count >= 1:
+                    availability_level = 'medium'
+                else:
+                    availability_level = 'none'
+
+                day_availability.append({
+                    'time': time_part,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'slot_count': slot_count,
+                    'available_consultants': consultants,
+                    'availability_level': availability_level
+                })
+
         weekdays_data.append({
             'date': day,
             'name': day.strftime('%A'),
             'is_today': day == today,
-            'availability': []  # Would be populated from actual availability data
+            'availability': day_availability
         })
 
     return render_template("calendar_view.html",
                          today=today,
-                         availability=availability,
+                         availability=availability_data,
                          prev_week=prev_week,
                          next_week=next_week,
                          current_week=current_week,

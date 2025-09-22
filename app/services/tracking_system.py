@@ -935,7 +935,11 @@ def backfill_september_data():
     Backfill tracking data from September 2nd, 2025 to today
     This will scan the Google Calendar and process all historical appointments
     """
-    from slot_booking_webapp import service, CENTRAL_CALENDAR_ID
+    from app.config.base import config
+    from app.core.google_calendar import get_google_calendar_service
+
+    service = get_google_calendar_service()
+    CENTRAL_CALENDAR_ID = config.CENTRAL_CALENDAR_ID
 
     print("🔄 Starting September data backfill...")
 
