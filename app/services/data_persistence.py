@@ -8,7 +8,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-from json_utils import atomic_write_json, atomic_read_json, atomic_update_json
+from legacy.json_utils import atomic_write_json, atomic_read_json, atomic_update_json
 
 class DataPersistence:
     def __init__(self) -> None:

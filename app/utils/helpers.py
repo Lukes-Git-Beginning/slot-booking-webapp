@@ -58,46 +58,8 @@ def get_color_mapping_status():
     return {"status": "active", "mappings": 8}
 
 
-def load_availability() -> Dict[str, List[str]]:
-    """Load availability data from static file"""
-    import json
-    import os
-
-    availability_file = "static/availability.json"
-    if os.path.exists(availability_file):
-        try:
-            with open(availability_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error loading availability: {e}")
-            return {}
-    return {}
 
 
-def get_default_availability(date_str: str, hour: str) -> List[str]:
-    """Get default consultant availability for a time slot"""
-    from app.config.base import consultant_config
-
-    # Basic availability logic - can be enhanced
-    weekday = datetime.strptime(date_str, '%Y-%m-%d').weekday()
-
-    # Weekend or evening hours get fewer consultants
-    if weekday >= 5 or hour in ["20:00"]:  # Weekend or late evening
-        return consultant_config.DEFAULT_STANDARD_CONSULTANTS[:2]
-    else:
-        return consultant_config.DEFAULT_STANDARD_CONSULTANTS
-
-
-def get_effective_availability(date_str: str, hour: str) -> List[str]:
-    """Get effective availability combining loaded and default data"""
-    availability = load_availability()
-
-    # Try to get from loaded data first
-    if date_str in availability and hour in availability[date_str]:
-        return availability[date_str][hour]
-
-    # Fall back to default availability
-    return get_default_availability(date_str, hour)
 
 
 def week_key_from_date(dt):

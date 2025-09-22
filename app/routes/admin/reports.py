@@ -132,7 +132,7 @@ def admin_export_pdf():
 def admin_reports_weekly(week_key=None):
     """Executive Weekly Report"""
     try:
-        from executive_reports import ExecutiveReports
+        from legacy.executive_reports import ExecutiveReports
         reports = ExecutiveReports()
         report = reports.generate_weekly_executive_report(week_key)
         return render_template("executive_weekly_report.html", report=report)
@@ -147,7 +147,7 @@ def admin_reports_weekly(week_key=None):
 def admin_reports_monthly(year=None, month=None):
     """Executive Monthly Report"""
     try:
-        from executive_reports import ExecutiveReports
+        from legacy.executive_reports import ExecutiveReports
         reports = ExecutiveReports()
         report = reports.generate_monthly_executive_report(year, month)
         return render_template("executive_monthly_report.html", report=report)
@@ -161,7 +161,7 @@ def admin_reports_monthly(year=None, month=None):
 def admin_telefonie_export_report(report_type):
     """Export Executive Report as PDF"""
     try:
-        from executive_reports import ExecutiveReports
+        from legacy.executive_reports import ExecutiveReports
         import io
         from reportlab.lib.pagesizes import A4
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer

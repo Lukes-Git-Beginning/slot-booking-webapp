@@ -48,8 +48,8 @@ class SlotConfig:
     # Zeitzone
     TIMEZONE: str = os.getenv("TIMEZONE", "Europe/Berlin")
 
-    # Maximale Buchungszeit im Voraus (Tage)
-    MAX_BOOKING_DAYS_AHEAD: int = int(os.getenv("MAX_BOOKING_DAYS_AHEAD", "30"))
+    # Maximale Buchungszeit im Voraus (Tage) - 8 Wochen
+    MAX_BOOKING_DAYS_AHEAD: int = int(os.getenv("MAX_BOOKING_DAYS_AHEAD", "56"))
 
     # Buchungszeiten
     BOOKING_HOURS: List[str] = [

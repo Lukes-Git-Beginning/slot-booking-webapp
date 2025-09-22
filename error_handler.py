@@ -101,11 +101,18 @@ class ErrorHandler:
         
         @app.errorhandler(404)
         def handle_not_found(error):
-            return self.handle_http_error(404, "Seite nicht gefunden")
-        
+            from flask import render_template
+            return render_template('errors/404.html'), 404
+
         @app.errorhandler(500)
         def handle_internal_error(error):
-            return self.handle_http_error(500, "Interner Serverfehler")
+            from flask import render_template
+            return render_template('errors/500.html'), 500
+
+        @app.errorhandler(403)
+        def handle_forbidden(error):
+            from flask import render_template
+            return render_template('errors/403.html'), 403
     
     def handle_error(self, error: AppError) -> Union[Response, str]:
         """Behandle AppError"""
