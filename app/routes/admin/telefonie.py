@@ -11,7 +11,7 @@ import pytz
 from app.config.base import slot_config
 from app.utils.decorators import require_admin
 from app.routes.admin import admin_bp
-from weekly_points import (
+from app.services.weekly_points import (
     get_week_key,
     list_recent_weeks,
     is_in_commit_window,

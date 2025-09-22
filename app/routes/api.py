@@ -26,7 +26,7 @@ def api_user_badges():
 
     try:
         # Get user badges from achievement system
-        import achievement_system
+        from app.services.achievement_system import achievement_system
         user_badges = achievement_system.get_user_badges(user)
         return jsonify(user_badges)
     except Exception as e:
@@ -38,7 +38,7 @@ def api_user_badges():
 def api_user_badges_by_username(username):
     """Get specific user's badges"""
     try:
-        import achievement_system
+        from app.services.achievement_system import achievement_system
         user_badges = achievement_system.get_user_badges(username)
         print(f"DEBUG: Badge API for {username} returning: {user_badges}")
         return jsonify(user_badges)

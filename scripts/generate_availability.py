@@ -8,7 +8,10 @@ from datetime import datetime, timedelta
 import pytz
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from creds_loader import load_google_credentials
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from app.utils.credentials import load_google_credentials
 
 # ----------------- Google Calendar API Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]

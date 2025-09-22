@@ -13,7 +13,7 @@ import pytz
 from datetime import datetime, timedelta, time
 from collections import defaultdict
 from googleapiclient.discovery import build
-from creds_loader import load_google_credentials
+from app.utils.credentials import load_google_credentials
 
 # ----------------- Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
