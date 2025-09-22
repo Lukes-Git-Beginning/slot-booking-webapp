@@ -50,7 +50,8 @@ def day_view(date_str):
     availability = load_availability()
 
     # Try to get cached day view data (cache for 5 minutes to balance freshness vs performance)
-    day_cache_key = f"day_view_{date_str}_{datetime.now(TZ).strftime('%H_%M')[:-1]}5"
+    # v2: Fixed calendar API fallback logic for booking availability
+    day_cache_key = f"day_view_v2_{date_str}_{datetime.now(TZ).strftime('%H_%M')[:-1]}5"
     cached_slots = cache_manager.get("day_view", day_cache_key)
 
     if cached_slots:
