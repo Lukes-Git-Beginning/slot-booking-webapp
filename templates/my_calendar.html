@@ -25,7 +25,7 @@
   </style>
 </head>
 <body>
-  <button onclick="window.location.href='{{ url_for('main.index') }}'" style="position:fixed;top:24px;left:24px;z-index:30;background:var(--sidebar-bg);color:var(--accent);padding:8px 18px;border-radius:7px;border:none;font-size:1.07em;cursor:pointer;">⬅️ Zurück</button>
+  <button onclick="window.location.href='/'" style="position:fixed;top:24px;left:24px;z-index:30;background:var(--sidebar-bg);color:var(--accent);padding:8px 18px;border-radius:7px;border:none;font-size:1.07em;cursor:pointer;">⬅️ Zurück</button>
   <div class="main">
     <div class="mycal-cal-header">📆 Meine gebuchten Slots ({{ user }})</div>
     {% if my_events %}
