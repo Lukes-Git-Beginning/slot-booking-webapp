@@ -76,17 +76,24 @@
     }
     
     .historical-stat-card {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
       border-radius: var(--radius-md);
       padding: 20px;
       text-align: center;
     }
-    
+
+    /* Light mode override for better contrast */
+    body.lightmode .historical-stat-card {
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
     .historical-stat-value {
       font-size: 28px;
       font-weight: 700;
-      color: #8b5cf6;
+      color: var(--accent);
       margin-bottom: 5px;
     }
     

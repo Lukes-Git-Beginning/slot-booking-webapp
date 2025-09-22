@@ -45,14 +45,21 @@
     }
     
     .login-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-      border: 1px solid rgba(255,255,255,0.18);
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
       border-radius: 20px;
       padding: 40px 30px;
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       animation: fadeInScale 0.5s ease;
+    }
+
+    /* Light mode glass effect override */
+    body.lightmode .login-card {
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
     }
     
     @keyframes fadeInScale {
@@ -164,23 +171,39 @@
     .input-wrapper input {
       width: 100%;
       padding: 12px 15px 12px 40px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--input-bg, rgba(255,255,255,0.06));
+      border: 1px solid var(--input-border, rgba(255,255,255,0.12));
       border-radius: 12px;
       color: var(--text-color);
       font-size: 15px;
       transition: all 0.3s ease;
       outline: none;
     }
-    
+
     .input-wrapper input:focus {
-      background: rgba(255,255,255,0.08);
+      background: var(--input-focus-bg, rgba(255,255,255,0.08));
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(90,177,255,0.1);
+      box-shadow: 0 0 0 3px var(--accent-shadow, rgba(90,177,255,0.1));
     }
-    
+
     .input-wrapper input::placeholder {
-      color: rgba(255,255,255,0.3);
+      color: var(--placeholder-color, rgba(255,255,255,0.3));
+    }
+
+    /* Light mode input overrides */
+    body.lightmode .input-wrapper input {
+      background: rgba(0,0,0,0.03);
+      border: 1px solid rgba(0,0,0,0.15);
+      color: #1a1a1a;
+    }
+
+    body.lightmode .input-wrapper input:focus {
+      background: rgba(0,0,0,0.05);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    body.lightmode .input-wrapper input::placeholder {
+      color: rgba(0,0,0,0.5);
     }
     
     .input-icon {
