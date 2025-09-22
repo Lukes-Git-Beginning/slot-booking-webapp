@@ -11,14 +11,22 @@ import traceback
 # Import der neuen Systeme
 try:
     from prestige_system import prestige_system
-    from daily_quests import daily_quest_system  
+    from daily_quests import daily_quest_system
     from analytics_system import analytics_system
     from personalization_system import personalization_system
     from app.services.achievement_system import achievement_system
-    from level_system import LevelSystem
+    from app.services.level_system import LevelSystem
     from cosmetics_shop import cosmetics_shop
 except ImportError as e:
     print(f"Import Error in gamification_routes: {e}")
+    # Set fallback objects to prevent further errors
+    prestige_system = None
+    daily_quest_system = None
+    analytics_system = None
+    personalization_system = None
+    achievement_system = None
+    LevelSystem = None
+    cosmetics_shop = None
 
 # Blueprint erstellen
 gamification_bp = Blueprint('gamification', __name__)
@@ -28,7 +36,7 @@ def require_login(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session or not session.get('user'):
-            return redirect(url_for('login'))
+            return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function
 
@@ -41,8 +49,20 @@ def daily_quests():
     try:
         user = session.get('user')
         if not user:
-            return redirect(url_for('login'))
-        
+            return redirect('/login')
+
+        # Check if daily quest system is available
+        if not daily_quest_system:
+            return render_template('daily_quests.html',
+                current_user=user,
+                quests=[],
+                bonus_multiplier=1.0,
+                total_completed=0,
+                total_claimed=0,
+                user_coins=0,
+                system_error="Daily Quest System ist derzeit nicht verfügbar."
+            )
+
         # Hole User-Quests
         user_quests = daily_quest_system.get_user_daily_quests(user)
         user_coins = daily_quest_system.get_user_coins(user)

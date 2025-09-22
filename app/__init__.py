@@ -48,12 +48,13 @@ def create_app(config_object='app.config.base.Config'):
         print("SUCCESS: Blueprints registered successfully")
     except ImportError as e:
         print(f"WARNING: Error importing blueprints: {e}")
-        # For now, we'll import and register the old gamification blueprint for compatibility
-        try:
-            from gamification_routes import gamification_bp
-            app.register_blueprint(gamification_bp)
-            print("SUCCESS: Legacy gamification blueprint registered")
-        except ImportError:
-            print("WARNING: Could not import legacy gamification blueprint")
+
+    # Always register the gamification blueprint
+    try:
+        from gamification_routes import gamification_bp
+        app.register_blueprint(gamification_bp)
+        print("SUCCESS: Gamification blueprint registered")
+    except ImportError as e:
+        print(f"WARNING: Could not import gamification blueprint: {e}")
 
     return app
