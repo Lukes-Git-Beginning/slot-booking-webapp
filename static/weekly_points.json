@@ -1,0 +1,105 @@
+{
+  "participants": [
+    "Christian",
+    "Dominik",
+    "Sara",
+    "Patrick",
+    "Tim",
+    "Sonja"
+  ],
+  "weeks": {
+    "2025-39": {
+      "users": {
+        "Christian": {
+          "goal_points": 0,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": []
+        },
+        "Dominik": {
+          "goal_points": 15,
+          "on_vacation": true,
+          "activities": [
+            {
+              "kind": "telefonie",
+              "points": 2,
+              "note": "Test telefonie call",
+              "by": "test_admin",
+              "ts": "2025-09-22T11:08:22.663156+02:00"
+            }
+          ],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": [
+            {
+              "type": "activity",
+              "kind": "telefonie",
+              "points": 2,
+              "note": "Test telefonie call",
+              "by": "test_admin",
+              "ts": "2025-09-22T11:08:22.663156+02:00"
+            },
+            {
+              "type": "goal_set",
+              "points": 15,
+              "by": "test_admin",
+              "ts": "2025-09-22T11:08:28.327704+02:00"
+            },
+            {
+              "type": "vacation_set",
+              "start_date": "2025-09-25",
+              "end_date": "2025-09-27",
+              "reason": "Test vacation",
+              "by": "admin",
+              "ts": "2025-09-22T11:15:12.530408+02:00"
+            }
+          ],
+          "vacation_periods": [
+            {
+              "start": "2025-09-25",
+              "end": "2025-09-27",
+              "reason": "Test vacation",
+              "created_at": "2025-09-22T11:15:12.530382+02:00"
+            }
+          ]
+        },
+        "Sara": {
+          "goal_points": 0,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": []
+        },
+        "Patrick": {
+          "goal_points": 0,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": []
+        },
+        "Tim": {
+          "goal_points": 0,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": []
+        },
+        "Sonja": {
+          "goal_points": 0,
+          "on_vacation": false,
+          "activities": [],
+          "pending_activities": [],
+          "pending_goal": null,
+          "audit": []
+        }
+      },
+      "created_at": "2025-09-22T11:08:15.585692+02:00",
+      "frozen": false
+    }
+  }
+}

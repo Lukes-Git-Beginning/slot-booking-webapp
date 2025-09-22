@@ -181,12 +181,12 @@ def main():
             print(f"⚠️ Fehler beim Laden der alten availability.json: {e}")
             availability = {}
     
-    # Zeitraum für Batch-Fetch (30 Tage) - aber ab jetzt
+    # Zeitraum für Batch-Fetch (56 Tage = 8 Wochen) - aber ab jetzt
     start_date = TZ.localize(datetime.combine(now.date(), datetime.min.time()))
-    end_date = start_date + timedelta(days=30)
-    
+    end_date = start_date + timedelta(days=56)
+
     # PERFORMANCE-OPTIMIERUNG: Alle Events einmal holen
-    print(f"\n🚀 Hole alle Events für {len(consultants)} Berater (30 Tage ab jetzt)...")
+    print(f"\n🚀 Hole alle Events für {len(consultants)} Berater (56 Tage ab jetzt)...")
     all_consultant_events = batch_fetch_events(consultants, start_date, end_date)
     
     # Slots analysieren
@@ -199,7 +199,7 @@ def main():
     new_slots = 0
     skipped_past = 0
     
-    for day_offset in range(30):
+    for day_offset in range(56):
         day = now + timedelta(days=day_offset)
         weekday_en = day.strftime('%A')
         weekday = weekday_map.get(weekday_en, None)

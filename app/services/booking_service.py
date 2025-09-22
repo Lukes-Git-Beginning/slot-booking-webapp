@@ -34,25 +34,32 @@ def load_availability() -> Dict[str, List[str]]:
             with open(availability_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"Error loading availability: {e}")
+            from app.utils.logging import booking_logger
+            booking_logger.error(f"Error loading availability: {e}")
             return {}
     return {}
 
 
 def get_default_availability(date_str: str, hour: str) -> List[str]:
-    """Get default consultant availability for a time slot"""
-    # Basic availability logic - can be enhanced
+    """Get default consultant availability for a time slot
+
+    Only provides Standard-Verfügbarkeit for:
+    - Tuesday 9am
+    - Thursday 9am
+    - Friday 4pm, 6pm, 8pm
+    """
     weekday = datetime.strptime(date_str, '%Y-%m-%d').weekday()
 
-    # No Standard Verfügbarkeit on weekends (Saturday=5, Sunday=6)
-    if weekday >= 5:  # Weekend
-        return []
-
-    # Evening hours get fewer consultants
-    if hour in ["20:00"]:  # Late evening
-        return consultant_config.DEFAULT_STANDARD_CONSULTANTS[:2]
-    else:
+    # Standard-Verfügbarkeit only for specific slots
+    if weekday == 1 and hour == "09:00":  # Tuesday 9am
         return consultant_config.DEFAULT_STANDARD_CONSULTANTS
+    elif weekday == 3 and hour == "09:00":  # Thursday 9am
+        return consultant_config.DEFAULT_STANDARD_CONSULTANTS
+    elif weekday == 4 and hour in ["16:00", "18:00", "20:00"]:  # Friday 4pm, 6pm, 8pm
+        return consultant_config.DEFAULT_STANDARD_CONSULTANTS
+
+    # No Standard-Verfügbarkeit for all other times
+    return []
 
 
 def get_effective_availability(date_str: str, hour: str) -> List[str]:
@@ -134,7 +141,8 @@ def extract_weekly_summary(availability, current_date=None):
                 )
                 events = events_result.get('items', []) if events_result else []
             except Exception as e:
-                print(f"Error fetching calendar events: {e}")
+                from app.utils.logging import booking_logger
+                booking_logger.error(f"Error fetching calendar events: {e}")
                 events = []
         else:
             events = []

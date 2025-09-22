@@ -20,11 +20,11 @@ def init_extensions(app: Flask) -> None:
     global cache_manager, data_persistence, error_handler, level_system, tracking_system
 
     # Import and initialize cache manager
-    from cache_manager import cache_manager as cm
+    from legacy.cache_manager import cache_manager as cm
     cache_manager = cm
 
     # Import and initialize data persistence
-    from data_persistence import data_persistence as dp
+    from app.services.data_persistence import data_persistence as dp
     data_persistence = dp
 
     # Initialize data persistence from static if missing
@@ -40,12 +40,12 @@ def init_extensions(app: Flask) -> None:
     error_handler.init_app(app)
 
     # Import and initialize level system
-    from level_system import level_system as ls
+    from app.services.level_system import level_system as ls
     level_system = ls
 
     # Import and initialize tracking system
     try:
-        from tracking_system import BookingTracker
+        from app.services.tracking_system import BookingTracker
         tracking_system = BookingTracker()
     except Exception as e:
         print(f"WARNING: Could not initialize tracking system: {e}")

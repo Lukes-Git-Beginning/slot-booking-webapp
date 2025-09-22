@@ -51,16 +51,24 @@ def admin_telefonie():
                 flash(f"Teilnehmer für Woche {week_key} gesetzt", "success")
 
             elif action == "set_goal":
-                goal = int(request.form.get("goal", 0))
-                set_week_goal(week_key, goal)
-                flash(f"Ziel für Woche {week_key} auf {goal} gesetzt", "success")
+                user = request.form.get("user")
+                goal = int(request.form.get("goal_points", 0))
+                result = set_week_goal(week_key, user, goal, "admin")
+                if result["success"]:
+                    flash(f"Ziel für {user} in Woche {week_key} auf {goal} gesetzt", "success")
+                else:
+                    flash(f"Fehler: {result['error']}", "danger")
 
             elif action == "record_activity":
                 user = request.form.get("user")
+                kind = request.form.get("kind", "telefonie")
                 points = int(request.form.get("points", 0))
-                description = request.form.get("description", "")
-                record_activity(week_key, user, points, description)
-                flash(f"{points} Punkte für {user} in Woche {week_key} hinzugefügt", "success")
+                note = request.form.get("note", "")
+                result = record_activity(week_key, user, kind, points, "admin", note)
+                if result["success"]:
+                    flash(f"{points} {kind} Punkte für {user} in Woche {week_key} hinzugefügt", "success")
+                else:
+                    flash(f"Fehler: {result['error']}", "danger")
 
             elif action == "apply_pending":
                 if is_in_commit_window():
@@ -71,11 +79,38 @@ def admin_telefonie():
 
             elif action == "set_vacation":
                 user = request.form.get("user")
+                on_vacation = bool(int(request.form.get("on_vacation", 0)))
+                set_on_vacation(week_key, user, on_vacation)
+                status = "aktiviert" if on_vacation else "deaktiviert"
+                flash(f"Urlaub für {user} in Woche {week_key} {status}", "success")
+
+            elif action == "add_participant":
+                name = request.form.get("name", "").strip()
+                if name:
+                    add_participant(name)
+                    flash(f"Teilnehmer '{name}' hinzugefügt", "success")
+                else:
+                    flash("Name darf nicht leer sein", "danger")
+
+            elif action == "remove_participant":
+                name = request.form.get("name")
+                if name:
+                    remove_participant(name)
+                    flash(f"Teilnehmer '{name}' entfernt", "success")
+
+            elif action == "set_vacation_period":
+                user = request.form.get("user")
                 start_date = request.form.get("start_date")
                 end_date = request.form.get("end_date")
+                reason = request.form.get("reason", "Urlaub")
                 if user and start_date and end_date:
-                    set_vacation_period(user, start_date, end_date)
-                    flash(f"Urlaubszeit für {user} gesetzt: {start_date} bis {end_date}", "success")
+                    result = set_vacation_period(user, start_date, end_date, reason)
+                    if result["success"]:
+                        flash(result["message"], "success")
+                    else:
+                        flash(f"Fehler: {result['message']}", "danger")
+                else:
+                    flash("Alle Felder sind erforderlich", "danger")
 
         except Exception as e:
             flash(f"Fehler: {str(e)}", "danger")
@@ -100,7 +135,7 @@ def admin_telefonie():
                          stats=stats,
                          audit=audit,
                          vacation_periods=vacation_periods,
-                         is_commit_window=is_in_commit_window(),
+                         in_window=is_in_commit_window(),
                          current_time=now.strftime("%H:%M"))
 
 

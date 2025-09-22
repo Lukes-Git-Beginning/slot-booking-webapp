@@ -8,9 +8,9 @@ import pytz
 from typing import Callable, Any, Optional, Dict
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from creds_loader import load_google_credentials
+from app.utils.credentials import load_google_credentials
 from app.config.base import config, slot_config
-from structured_logger import calendar_logger
+from app.utils.logging import calendar_logger
 
 
 class GoogleCalendarService:

@@ -16,7 +16,7 @@ from app.utils.decorators import require_login
 from app.utils.helpers import is_admin
 from error_handler import raise_validation_error
 from request_deduplication import request_deduplicator, SlotLockContext
-from structured_logger import booking_logger, log_request
+from app.utils.logging import booking_logger, log_request
 
 booking_bp = Blueprint('booking', __name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -41,18 +41,18 @@ def add_points_to_user(user, points):
         # Achievement system integration
         new_badges = []
         try:
-            from achievement_system import achievement_system
+            from app.services.achievement_system import achievement_system
             if achievement_system:
                 new_badges = achievement_system.process_user_achievements(user)
         except ImportError:
             pass
         except Exception as e:
-            print(f"Warning: Could not process achievements: {e}")
+            booking_logger.warning(f"Could not process achievements for user {user}: {e}")
 
         return new_badges
 
     except Exception as e:
-        print(f"Error adding points to user: {e}")
+        booking_logger.error(f"Error adding points to user {user}: {e}")
         return []
 
 
@@ -116,6 +116,12 @@ def book():
         # Use effective availability (loaded data + fallback defaults)
         effective_beraters = get_effective_availability(date, hour)
         berater_count = len(effective_beraters)
+
+        # Block booking if no consultants available (no Standard-Verfügbarkeit for this slot)
+        if berater_count == 0:
+            flash("Für diesen Zeitslot ist keine Standard-Verfügbarkeit konfiguriert.", "warning")
+            return redirect(url_for("main.day_view", date_str=date))
+
         slot_list, booked, total, freie_count, overbooked = get_slot_status(date, hour, berater_count)
 
         try:
@@ -176,7 +182,7 @@ def book():
                         description=description
                     )
             except Exception as e:
-                print(f"Tracking error: {e}")
+                booking_logger.warning(f"Tracking error for booking {last}, {first} on {date} {hour}: {e}")
 
             # Achievement System Integration
             new_badges = []
@@ -204,7 +210,7 @@ def book():
                 except ImportError:
                     pass  # Enhanced features not available
                 except Exception as e:
-                    print(f"Warning: Could not update quest progress: {e}")
+                    booking_logger.warning(f"Could not update quest progress for user {user}: {e}")
 
             # Store special badge counters (evening/morning) persistently
             try:

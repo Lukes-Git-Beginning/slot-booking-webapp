@@ -210,7 +210,7 @@
 
         <h3 class="mt">Aktivität erfassen</h3>
         <form method="post" class="row">
-          <input type="hidden" name="action" value="add_activity">
+          <input type="hidden" name="action" value="record_activity">
           <input type="hidden" name="week" value="{{ week }}">
           <label>Person</label>
           <select name="user">
@@ -237,7 +237,7 @@
             <input type="hidden" name="week" value="{{ week }}">
             <button type="submit" class="action-btn warning">Wartende verbuchen</button>
           </form>
-          <span class="small">Zeitfenster aktuell: {{ 'offen (10–22 Uhr)' if in_window else 'geschlossen' }}</span>
+          <span class="small">Zeitfenster aktuell: {{ 'offen (10–22 Uhr)' if in_window else 'geschlossen (außerhalb 10–22 Uhr)' }}</span>
         </div>
       </div>
 
