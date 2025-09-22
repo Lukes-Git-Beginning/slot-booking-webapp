@@ -120,9 +120,9 @@
             <div class="error-message">{{ error_message or "Ein unerwarteter Fehler ist aufgetreten" }}</div>
             
             <div class="error-actions">
-                <a href="{{ url_for('main.index') }}" class="btn btn-primary">🏠 Zur Hauptseite</a>
+                <a href="/" class="btn btn-primary">🏠 Zur Hauptseite</a>
                 {% if current_user %}
-                <a href="{{ url_for('scoreboard.gamification') }}" class="btn btn-secondary">🎮 Gamification</a>
+                <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-secondary">🎮 Gamification</a>
                 {% endif %}
             </div>
         </div>

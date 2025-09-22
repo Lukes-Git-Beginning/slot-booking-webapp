@@ -903,7 +903,7 @@ body.darkmode .achievement-notification {
         <a href="https://calendar.google.com/calendar/u/0/r?cid=emVudHJhbGthbGVuZGVyemZhQGdtYWlsLmNvbQ" target="_blank">
           📅 Zentralkalender öffnen
         </a>
-        <a href="{{ url_for('calendar.my_calendar') }}">
+        <a href="/my-calendar">
           📋 Meine Buchungen
         </a>
         <a href="{{ url_for('calendar.calendar_view') }}">
@@ -1513,7 +1513,7 @@ document.addEventListener('keydown', function(e) {
             setMode(!body.classList.contains('darkmode'));
             break;
           case 'my-calendar':
-            window.location.href = "{{ url_for('calendar.my_calendar') }}";
+            window.location.href = "/my-calendar";
             break;
           case 'scoreboard':
             window.location.href = "{{ url_for('scoreboard.scoreboard') }}";
@@ -1588,7 +1588,7 @@ document.addEventListener('keydown', function(e) {
             break;
           case 'm':
             e.preventDefault();
-            window.location.href = "{{ url_for('calendar.my_calendar') }}";
+            window.location.href = "/my-calendar";
             break;
           case 'p':
             e.preventDefault();
