@@ -184,21 +184,38 @@
             display: inline-block;
         }
         
-        /* Availability Level Colors - Dark Theme Friendly */
-        .availability-high { 
-            background: #2e7d35; 
-            color: #e8f5e8; 
-            border: 1px solid #4caf50;
+        /* Availability Level Colors - Theme Adaptive */
+        .availability-high {
+            background: var(--success-color, #22c55e);
+            color: white;
+            border: 1px solid var(--success-border, #16a34a);
+            font-weight: 600;
         }
-        .availability-medium { 
-            background: #bf720b; 
-            color: #fff3e0; 
-            border: 1px solid #ff9800;
+        .availability-medium {
+            background: var(--warning-color, #f59e0b);
+            color: white;
+            border: 1px solid var(--warning-border, #d97706);
+            font-weight: 600;
         }
-        .availability-none { 
-            background: #c62828; 
-            color: #ffebee; 
-            border: 1px solid #f44336;
+        .availability-none {
+            background: var(--danger-color, #ef4444);
+            color: white;
+            border: 1px solid var(--danger-border, #dc2626);
+            font-weight: 600;
+        }
+
+        /* Light mode overrides for better contrast */
+        body.lightmode .availability-high {
+            background: #15803d;
+            border-color: #166534;
+        }
+        body.lightmode .availability-medium {
+            background: #c2410c;
+            border-color: #9a3412;
+        }
+        body.lightmode .availability-none {
+            background: #dc2626;
+            border-color: #b91c1c;
         }
         
         .color-legend {

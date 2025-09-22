@@ -29,8 +29,8 @@
   right: var(--spacing-lg);
   z-index: 2000;
   max-width: 400px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
-  border: 1px solid rgba(255,255,255,0.2);
+  background: var(--notification-bg, rgba(255,255,255,0.95));
+  border: 1px solid var(--notification-border, rgba(255,255,255,0.2));
   border-radius: 20px;
   padding: 0;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
@@ -49,10 +49,16 @@
   pointer-events: all;
 }
 
-/* Dark Mode Anpassungen */
+/* Theme Adaptive Notifications */
 body.darkmode .achievement-notification {
-  background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(30,41,59,0.85));
-  border-color: rgba(255,255,255,0.1);
+  --notification-bg: var(--box-bg);
+  --notification-border: var(--box-border);
+}
+
+body.lightmode .achievement-notification {
+  --notification-bg: rgba(255,255,255,0.98);
+  --notification-border: rgba(0,0,0,0.12);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 }
 
 /* Rarity Glow Effects */
@@ -121,13 +127,31 @@ body.darkmode .achievement-notification {
   animation: badgePulse 2s ease infinite;
 }
 
-/* Rarity Badge Backgrounds */
-.achievement-badge.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
-.achievement-badge.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.achievement-badge.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-.achievement-badge.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.achievement-badge.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
-.achievement-badge.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+/* Rarity Badge Backgrounds - Theme Adaptive */
+:root {
+  --badge-common: linear-gradient(135deg, #10b981, #059669);
+  --badge-uncommon: linear-gradient(135deg, #3b82f6, #2563eb);
+  --badge-rare: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  --badge-epic: linear-gradient(135deg, #f59e0b, #d97706);
+  --badge-legendary: linear-gradient(135deg, #eab308, #ca8a04);
+  --badge-mythic: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+body.lightmode {
+  --badge-common: linear-gradient(135deg, #059669, #047857);
+  --badge-uncommon: linear-gradient(135deg, #2563eb, #1d4ed8);
+  --badge-rare: linear-gradient(135deg, #7c3aed, #6d28d9);
+  --badge-epic: linear-gradient(135deg, #d97706, #b45309);
+  --badge-legendary: linear-gradient(135deg, #ca8a04, #a16207);
+  --badge-mythic: linear-gradient(135deg, #db2777, #be185d);
+}
+
+.achievement-badge.rarity-common { background: var(--badge-common); }
+.achievement-badge.rarity-uncommon { background: var(--badge-uncommon); }
+.achievement-badge.rarity-rare { background: var(--badge-rare); }
+.achievement-badge.rarity-epic { background: var(--badge-epic); }
+.achievement-badge.rarity-legendary { background: var(--badge-legendary); }
+.achievement-badge.rarity-mythic { background: var(--badge-mythic); }
 
 .achievement-badge::before {
   content: '';
