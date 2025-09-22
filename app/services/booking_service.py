@@ -231,7 +231,11 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
     # Get events from Google Calendar
     calendar_service = get_google_calendar_service()
     if not calendar_service:
-        return [], 0, 0, 0, False
+        # Calendar service unavailable - assume no bookings exist
+        # Calculate available slots based on consultant count
+        slots_per_consultant = getattr(slot_config, 'SLOTS_PER_BERATER', 4)
+        total_capacity = berater_count * slots_per_consultant
+        return [], 0, total_capacity, total_capacity, False
 
     from app.config.base import config
     events_result = calendar_service.get_events(
