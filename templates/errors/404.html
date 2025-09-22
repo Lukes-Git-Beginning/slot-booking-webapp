@@ -50,6 +50,7 @@
             display: inline-block;
             font-size: 1rem;
             transition: background 0.3s;
+            margin: 0 10px;
         }
         .btn:hover {
             background: #5a6fd8;
@@ -62,9 +63,9 @@
         <h2 class="error-title">Seite nicht gefunden</h2>
         <p class="error-message">
             Die angeforderte Seite konnte nicht gefunden werden.
-            Möglicherweise wurde sie verschoben oder der Link ist veraltet.
+            Möglicherweise wurde sie verschoben oder existiert nicht mehr.
         </p>
-        <a href="{{ url_for('main.index') }}" class="btn">Zurück zur Startseite</a>
+        <a href="/" class="btn">Zurück zur Startseite</a>
     </div>
 </body>
 </html>
