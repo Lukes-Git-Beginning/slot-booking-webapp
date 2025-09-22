@@ -41,19 +41,7 @@ jobs:
       - name: 🏆 Run Achievement Check
         run: |
           echo "🕐 Starting achievement check at $(date)"
-          python -c "
-          import sys
-          import os
-          sys.path.append('.')
-          
-          try:
-              from slot_booking_webapp import run_achievement_check
-              run_achievement_check()
-              print('✅ Achievement check completed successfully')
-          except Exception as e:
-              print(f'❌ Achievement check failed: {e}')
-              sys.exit(1)
-          "
+          python run_achievements.py
           echo "✅ Achievement check completed"
 
       - name: 💾 Commit Achievement Data
