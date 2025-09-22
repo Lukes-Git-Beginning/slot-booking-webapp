@@ -172,13 +172,13 @@ class ErrorHandler:
         
         # Redirect basierend auf Error-Typ
         if error.error_type == ErrorType.AUTHENTICATION:
-            return redirect(url_for("login"))
+            return redirect("/login")
         elif error.error_type == ErrorType.AUTHORIZATION:
-            return redirect(url_for("main.index"))
+            return redirect("/")
         else:
             # Default redirect oder zurück zur vorherigen Seite
             from flask import request
-            return redirect(request.referrer or url_for("main.index"))
+            return redirect(request.referrer or "/")
     
     def handle_http_error(self, status_code: int, message: str) -> Response:
         """Handle HTTP-Errors"""
