@@ -1,11 +1,4 @@
 {
-  "2025-09-22 20:00": [
-    "Simon",
-    "Ann-Kathrin",
-    "Sara",
-    "Patrick",
-    "Dominik"
-  ],
   "2025-09-23 11:00": [
     "Daniel",
     "Christian",
@@ -958,6 +951,37 @@
   "2025-11-14 14:00": [
     "Ann-Kathrin",
     "Sara",
+    "Dominik"
+  ],
+  "2025-11-17 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Christian",
+    "Tim",
+    "Sara",
+    "Patrick"
+  ],
+  "2025-11-17 14:00": [
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-11-17 16:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-11-17 18:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
+    "Dominik"
+  ],
+  "2025-11-17 20:00": [
+    "Ann-Kathrin",
+    "Sara",
+    "Patrick",
     "Dominik"
   ]
 }
