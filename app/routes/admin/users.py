@@ -182,9 +182,9 @@ def admin_backfill_september():
         # Run the backfill process
         backfill_september_data()
 
-        flash("✅ September data backfill completed successfully! Dashboard now shows complete data from September 2nd.", "success")
+        flash("September data backfill completed successfully! Dashboard now shows complete data from September 2nd.", "success")
 
     except Exception as e:
-        flash(f"❌ Error during September backfill: {str(e)}", "danger")
+        flash(f"Error during September backfill: {str(e)}", "danger")
 
     return redirect(url_for("admin.admin_users"))
