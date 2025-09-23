@@ -875,6 +875,31 @@ class AchievementSystem:
         
         return progress
 
+    def process_user_achievements(self, user):
+        """
+        Process achievements for a specific user and return new badges earned.
+        This method checks current user stats and awards any newly earned badges.
+        """
+        try:
+            from app.core.extensions import data_persistence
+
+            # Load current data
+            scores = data_persistence.load_scores()
+            daily_stats = data_persistence.load_daily_user_stats()
+            badges_data = self.load_badges()
+
+            # Check achievements for this user
+            new_badges = self.check_achievements(user, scores, daily_stats, badges_data)
+
+            # Also run MVP check
+            self.auto_check_mvp_badges()
+
+            return new_badges
+
+        except Exception as e:
+            print(f"❌ Error processing achievements for {user}: {e}")
+            return []
+
     def backfill_persistent_badges(self):
         """Reparaturroutine: Vergibt persistente Badges rückwirkend anhand gespeicherter Scores/Daily Stats.
         Gibt eine Zusammenfassung zurück: {users_processed, badges_awarded}.
