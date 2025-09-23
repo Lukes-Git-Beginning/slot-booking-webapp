@@ -423,7 +423,7 @@
     {% endif %}
 
     <!-- Aktuelle Dashboard-Daten -->
-    {% if dashboard.last_7_days or dashboard.last_30_days %}
+    {% if dashboard.last_7_days or dashboard.since_september %}
     <div class="stats-overview">
       <div class="stat-card">
         <div class="stat-value">{{ dashboard.last_7_days.total_bookings if dashboard.last_7_days else 0 }}</div>
@@ -434,8 +434,8 @@
         <div class="stat-label">Auftauchquote (7 Tage)</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.last_30_days.success_rate) if dashboard.last_30_days else 0 }}%</div>
-        <div class="stat-label">Erfolgsquote (30 Tage)</div>
+        <div class="stat-value">{{ "%.1f"|format(dashboard.since_september.success_rate) if dashboard.since_september else 0 }}%</div>
+        <div class="stat-label">Erfolgsquote (seit September)</div>
       </div>
     </div>
     {% endif %}
