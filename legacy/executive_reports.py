@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
-from weekly_points import (
-    load_data, compute_week_stats, get_participants, 
+from app.services.weekly_points import (
+    load_data, compute_week_stats, get_participants,
     get_week_key, list_recent_weeks, is_user_on_vacation
 )
 

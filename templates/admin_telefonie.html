@@ -190,6 +190,16 @@
       </a>
     </div>
 
+    <!-- Professional PDF Export Options -->
+    <div class="actions" style="margin-top: 10px;">
+      <a class="action-btn secondary" href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=week) }}" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
+        📄 Export Weekly PDF
+      </a>
+      <a class="action-btn secondary" href="{{ url_for('admin.admin_telefonie_export_report', report_type='monthly') }}" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
+        📄 Export Monthly PDF
+      </a>
+    </div>
+
     <div class="grid">
       <div class="box">
         <h3>Ziele setzen</h3>

@@ -1,0 +1,206 @@
+{
+  "meta": {
+    "report_type": "weekly_executive",
+    "week": "2025-39",
+    "year": 2025,
+    "week_number": 39,
+    "week_start": "29.09.2025",
+    "week_end": "05.10.2025",
+    "generated_at": "23.09.2025 15:08",
+    "total_participants": 6
+  },
+  "executive_summary": {
+    "overall_status": {
+      "color": "red",
+      "status": "Needs Attention",
+      "icon": "🔴"
+    },
+    "key_metrics": {
+      "achievement_rate": 0,
+      "total_points_goal": 0,
+      "total_points_achieved": 2,
+      "points_remaining": 0,
+      "team_performance": "Needs Attention"
+    },
+    "highlights": [
+      "Team achieved 2 of 0 points (0.0%)",
+      "Performance status: 🔴 Needs Attention",
+      "6 of 6 team members meeting/exceeding goals"
+    ]
+  },
+  "performance_overview": {
+    "team_distribution": {
+      "high_performers": 0,
+      "medium_performers": 6,
+      "low_performers": 0
+    },
+    "performers": {
+      "high": [],
+      "medium": [
+        {
+          "name": "Christian",
+          "goal": 0,
+          "achieved": 0,
+          "rate": 0,
+          "on_vacation": false
+        },
+        {
+          "name": "Dominik",
+          "goal": 0,
+          "achieved": 2,
+          "rate": 0,
+          "on_vacation": true
+        },
+        {
+          "name": "Sara",
+          "goal": 0,
+          "achieved": 0,
+          "rate": 0,
+          "on_vacation": false
+        },
+        {
+          "name": "Patrick",
+          "goal": 0,
+          "achieved": 0,
+          "rate": 0,
+          "on_vacation": false
+        },
+        {
+          "name": "Tim",
+          "goal": 0,
+          "achieved": 0,
+          "rate": 0,
+          "on_vacation": false
+        },
+        {
+          "name": "Sonja",
+          "goal": 0,
+          "achieved": 0,
+          "rate": 0,
+          "on_vacation": false
+        }
+      ],
+      "low": []
+    },
+    "team_health": "Excellent"
+  },
+  "absence_analysis": {
+    "total_absent": 1,
+    "absence_rate": 16.7,
+    "absent_users": [
+      {
+        "name": "Dominik",
+        "reason": "Urlaub",
+        "period": null
+      }
+    ],
+    "impact": "Low",
+    "operational_status": "Normal"
+  },
+  "trends_analysis": {
+    "trend_direction": "stable",
+    "trend_change": 0,
+    "weekly_data": [
+      {
+        "week": "2025-36",
+        "achievement_rate": 0,
+        "total_points": 0,
+        "goal_points": 0
+      },
+      {
+        "week": "2025-37",
+        "achievement_rate": 0,
+        "total_points": 0,
+        "goal_points": 0
+      },
+      {
+        "week": "2025-38",
+        "achievement_rate": 0,
+        "total_points": 0,
+        "goal_points": 0
+      },
+      {
+        "week": "2025-39",
+        "achievement_rate": 0,
+        "total_points": 2,
+        "goal_points": 0
+      }
+    ],
+    "average_performance": 0.0
+  },
+  "action_items": [
+    "🎯 Review team goals and adjust if necessary - current achievement rate below 70%",
+    "🗣️ Schedule individual performance discussions with underperforming team members",
+    "📋 Set goals for 5 team members currently without targets"
+  ],
+  "detailed_breakdown": {
+    "users": [
+      {
+        "user": "Christian",
+        "goal": 0,
+        "achieved": 0,
+        "remaining": 0,
+        "balance": 0,
+        "on_vacation": false,
+        "pending_goal": null,
+        "pending_count": 0
+      },
+      {
+        "user": "Dominik",
+        "goal": 0,
+        "achieved": 2,
+        "remaining": 0,
+        "balance": 2,
+        "on_vacation": true,
+        "pending_goal": null,
+        "pending_count": 0
+      },
+      {
+        "user": "Sara",
+        "goal": 0,
+        "achieved": 0,
+        "remaining": 0,
+        "balance": 0,
+        "on_vacation": false,
+        "pending_goal": null,
+        "pending_count": 0
+      },
+      {
+        "user": "Patrick",
+        "goal": 0,
+        "achieved": 0,
+        "remaining": 0,
+        "balance": 0,
+        "on_vacation": false,
+        "pending_goal": null,
+        "pending_count": 0
+      },
+      {
+        "user": "Tim",
+        "goal": 0,
+        "achieved": 0,
+        "remaining": 0,
+        "balance": 0,
+        "on_vacation": false,
+        "pending_goal": null,
+        "pending_count": 0
+      },
+      {
+        "user": "Sonja",
+        "goal": 0,
+        "achieved": 0,
+        "remaining": 0,
+        "balance": 0,
+        "on_vacation": false,
+        "pending_goal": null,
+        "pending_count": 0
+      }
+    ],
+    "summary": {
+      "total_goal": 0,
+      "total_achieved": 2,
+      "total_remaining": 0,
+      "total_balance": 2
+    }
+  }
+}
