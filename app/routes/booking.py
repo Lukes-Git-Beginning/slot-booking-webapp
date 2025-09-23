@@ -157,7 +157,7 @@ def book():
 
         calendar_service = get_google_calendar_service()
         if not calendar_service:
-            flash("Calendar service not available", "danger")
+            flash("Kalender-Service nicht verfügbar", "danger")
             return redirect(url_for("main.day_view", date_str=date))
 
         result = calendar_service.create_event(

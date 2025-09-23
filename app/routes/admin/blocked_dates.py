@@ -19,7 +19,7 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 @admin_bp.route("/blocked-dates")
 @require_admin
 def blocked_dates():
-    """Main blocked dates management page"""
+    """Hauptseite für die Verwaltung gesperrter Termine"""
     try:
         current_year = request.args.get('year', datetime.now(TZ).year, type=int)
 
@@ -42,14 +42,14 @@ def blocked_dates():
                              available_years=available_years)
 
     except Exception as e:
-        flash(f"Error loading blocked dates: {str(e)}", "danger")
+        flash(f"Fehler beim Laden der gesperrten Termine: {str(e)}", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
 
 @admin_bp.route("/blocked-dates/add", methods=["POST"])
 @require_admin
 def add_blocked_date():
-    """Add a custom blocked date"""
+    """Fügt ein benutzerdefiniertes gesperrtes Datum hinzu"""
     try:
         date_str = request.form.get('date')
         reason = request.form.get('reason', 'Gesperrt')
@@ -93,7 +93,7 @@ def add_blocked_date():
 @admin_bp.route("/blocked-dates/remove", methods=["POST"])
 @require_admin
 def remove_blocked_date():
-    """Remove a custom blocked date"""
+    """Entfernt ein benutzerdefiniertes gesperrtes Datum"""
     try:
         date_str = request.form.get('date')
 
@@ -134,7 +134,7 @@ def remove_blocked_date():
 @admin_bp.route("/blocked-dates/check", methods=["GET"])
 @require_admin
 def check_blocked_date():
-    """Check if a specific date is blocked and get reason"""
+    """Prüft ob ein bestimmtes Datum gesperrt ist und gibt den Grund zurück"""
     try:
         date_str = request.args.get('date')
 
@@ -166,7 +166,7 @@ def check_blocked_date():
 @admin_bp.route("/blocked-dates/upcoming", methods=["GET"])
 @require_admin
 def get_upcoming_holidays():
-    """Get upcoming holidays for AJAX requests"""
+    """Liefert kommende Feiertage für AJAX-Anfragen"""
     try:
         days_ahead = request.args.get('days', 30, type=int)
         upcoming = holiday_service.get_upcoming_holidays(days_ahead)
