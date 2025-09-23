@@ -46,6 +46,7 @@ reportlab==4.1.0
 # Utilities
 pytz==2025.2
 python-dotenv==1.1.0
+holidays==0.81
 six==1.17.0
 packaging==25.0
 pyparsing==3.2.3
