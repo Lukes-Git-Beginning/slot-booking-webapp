@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Admin routes for blocked dates management
-Holiday and custom date blocking interface
+Admin-Routes für gesperrte Termine-Verwaltung
+Feiertags- und benutzerdefinierte Datums-Sperrungsschnittstelle
 """
 
 from flask import render_template, request, jsonify, flash, redirect, url_for, session
