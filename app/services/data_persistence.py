@@ -463,5 +463,53 @@ class DataPersistence:
         except Exception as e:
             print(f"❌ Bootstrap-Fehler: {e}")
 
+    def load_data(self, filename: str, default: Any = None) -> Any:
+        """Generische Methode zum Laden von JSON-Daten"""
+        try:
+            if not filename.endswith('.json'):
+                filename += '.json'
+
+            # Versuche persistentes Verzeichnis
+            data_file = str(self.data_dir / filename)
+            data = atomic_read_json(data_file)
+            if data is not None:
+                return data
+
+            # Fallback auf static Verzeichnis
+            static_file = str(self.static_dir / filename)
+            data = atomic_read_json(static_file)
+            if data is not None:
+                return data
+
+            return default if default is not None else {}
+
+        except Exception as e:
+            print(f"❌ Fehler beim Laden von {filename}: {e}")
+            return default if default is not None else {}
+
+    def save_data(self, filename: str, data: Any) -> bool:
+        """Generische Methode zum Speichern von JSON-Daten"""
+        try:
+            if not filename.endswith('.json'):
+                filename += '.json'
+
+            # Speichere in persistentem Verzeichnis
+            data_file = str(self.data_dir / filename)
+            if not atomic_write_json(data_file, data):
+                return False
+
+            # Backup erstellen
+            self._create_backup(filename, data)
+
+            # Auch in static/ für Kompatibilität
+            static_file = str(self.static_dir / filename)
+            atomic_write_json(static_file, data)
+
+            return True
+
+        except Exception as e:
+            print(f"❌ Fehler beim Speichern von {filename}: {e}")
+            return False
+
 # Globale Instanz
 data_persistence = DataPersistence()
