@@ -91,6 +91,10 @@
           <span>Admin Tools</span>
         </div>
         <div class="admin-nav-submenu">
+          <a href="{{ url_for('admin.blocked_dates') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.blocked_dates' }}">
+            <i class="ti ti-calendar-off"></i>
+            <span>Blocked Dates</span>
+          </a>
           <a href="{{ url_for('admin.admin_fix_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_fix_points' }}">
             <i class="ti ti-refresh"></i>
             <span>Fix Points</span>

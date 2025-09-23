@@ -48,6 +48,18 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
     - Thursday 9am
     - Friday 4pm, 6pm, 8pm
     """
+    # Check if date is blocked (holidays or custom blocks) first
+    try:
+        check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        from app.services.holiday_service import holiday_service
+
+        if holiday_service.is_blocked_date(check_date):
+            return []  # No availability on blocked dates
+    except Exception as e:
+        # If there's any error checking holidays, log it but continue
+        from app.utils.logging import booking_logger
+        booking_logger.warning(f"Error checking holiday status for {date_str}: {e}")
+
     weekday = datetime.strptime(date_str, '%Y-%m-%d').weekday()
 
     # Standard-Verfügbarkeit only for specific slots
@@ -64,6 +76,19 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
 
 def get_effective_availability(date_str: str, hour: str) -> List[str]:
     """Get effective availability combining loaded and default data"""
+    # Check if date is blocked (holidays or custom blocks)
+    try:
+        from datetime import datetime
+        check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        from app.services.holiday_service import holiday_service
+
+        if holiday_service.is_blocked_date(check_date):
+            return []  # No availability on blocked dates
+    except Exception as e:
+        # If there's any error checking holidays, log it but continue
+        from app.utils.logging import booking_logger
+        booking_logger.warning(f"Error checking holiday status for {date_str}: {e}")
+
     availability = load_availability()
 
     # Try to get from loaded data first - handle old format "YYYY-MM-DD HH:MM"
