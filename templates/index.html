@@ -1144,35 +1144,167 @@ class AchievementSystem {
     this.notificationQueue = [];
     this.isShowingNotification = false;
     this.soundEnabled = true;
+
+    // Smart polling configuration
+    this.pollingInterval = 60000; // Start with 60 seconds (increased from 30)
+    this.maxPollingInterval = 300000; // Max 5 minutes for inactive users
+    this.backoffMultiplier = 1.5;
+    this.lastActivity = Date.now();
+    this.pollTimer = null;
+    this.isPageVisible = true;
+    this.consecutiveEmptyResponses = 0;
+
     this.init();
   }
-  
+
   init() {
-    // Event Listener für Badge-API Updates
+    // Initialize Page Visibility API
+    this.setupPageVisibilityAPI();
+
+    // Track user activity
+    this.setupActivityTracking();
+
+    // Initial badge check
     this.checkForNewBadges();
-    
-    // Alle 30 Sekunden auf neue Badges prüfen
-    setInterval(() => this.checkForNewBadges(), 30000);
+
+    // Start smart polling
+    this.startSmartPolling();
+  }
+
+  setupPageVisibilityAPI() {
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+      this.isPageVisible = !document.hidden;
+
+      if (this.isPageVisible) {
+        // Page became visible - reset to normal polling
+        this.resetPollingInterval();
+        console.log('🔄 Badge polling resumed (page visible)');
+      } else {
+        // Page hidden - reduce polling frequency
+        this.slowDownPolling();
+        console.log('⏸️ Badge polling slowed (page hidden)');
+      }
+    });
+  }
+
+  setupActivityTracking() {
+    // Track user activity to adjust polling
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+
+    const updateActivity = () => {
+      this.lastActivity = Date.now();
+      this.resetPollingInterval();
+    };
+
+    // Throttle activity updates to avoid excessive polling resets
+    let activityThrottle = null;
+    activityEvents.forEach(event => {
+      document.addEventListener(event, () => {
+        if (!activityThrottle) {
+          activityThrottle = setTimeout(() => {
+            updateActivity();
+            activityThrottle = null;
+          }, 5000); // Only reset polling once every 5 seconds max
+        }
+      }, { passive: true });
+    });
+  }
+
+  startSmartPolling() {
+    this.scheduleNextPoll();
+  }
+
+  scheduleNextPoll() {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+    }
+
+    // Calculate dynamic interval based on activity and page visibility
+    let interval = this.calculatePollingInterval();
+
+    this.pollTimer = setTimeout(() => {
+      this.checkForNewBadges().then(() => {
+        this.scheduleNextPoll(); // Schedule next poll
+      });
+    }, interval);
+  }
+
+  calculatePollingInterval() {
+    const now = Date.now();
+    const timeSinceActivity = now - this.lastActivity;
+
+    // If page is hidden, use longer intervals
+    if (!this.isPageVisible) {
+      return Math.min(this.maxPollingInterval, this.pollingInterval * 3);
+    }
+
+    // If user is active (activity within last 2 minutes), use normal interval
+    if (timeSinceActivity < 120000) {
+      return this.pollingInterval;
+    }
+
+    // If user is inactive, gradually increase interval (exponential backoff)
+    const inactiveMinutes = Math.floor(timeSinceActivity / 60000);
+    const backoffFactor = Math.min(Math.pow(this.backoffMultiplier, inactiveMinutes), 5);
+
+    return Math.min(this.maxPollingInterval, this.pollingInterval * backoffFactor);
+  }
+
+  resetPollingInterval() {
+    this.pollingInterval = 60000; // Reset to 60 seconds
+    this.consecutiveEmptyResponses = 0;
+  }
+
+  slowDownPolling() {
+    this.pollingInterval = Math.min(this.maxPollingInterval, this.pollingInterval * 2);
   }
   
   async checkForNewBadges() {
     try {
+      // Don't poll if page has been hidden for more than 10 minutes
+      if (!this.isPageVisible && (Date.now() - this.lastActivity) > 600000) {
+        console.log('⏸️ Skipping badge check - page hidden too long');
+        return;
+      }
+
       const response = await fetch('/api/user/badges');
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.new_badges && data.new_badges.length > 0) {
-          // Zeige neue Badges
+          // Reset polling to normal frequency when badges are found
+          this.resetPollingInterval();
+          this.consecutiveEmptyResponses = 0;
+
+          // Show new badges
           for (const badge of data.new_badges) {
             this.showAchievementNotification(badge);
           }
-          
-          // Markiere Badges als gesehen
+
+          // Mark badges as seen
           await fetch('/api/user/badges/mark-seen', { method: 'POST' });
+
+          console.log(`🎉 Found ${data.new_badges.length} new badges!`);
+        } else {
+          // Track consecutive empty responses for further optimization
+          this.consecutiveEmptyResponses++;
+
+          // After 5 consecutive empty responses, slow down polling slightly
+          if (this.consecutiveEmptyResponses >= 5) {
+            this.pollingInterval = Math.min(this.maxPollingInterval, this.pollingInterval * 1.2);
+            console.log(`🐌 Slowing polling after ${this.consecutiveEmptyResponses} empty responses`);
+          }
         }
+      } else {
+        // On error, slow down polling to avoid hammering the server
+        this.slowDownPolling();
+        console.warn('⚠️ Badge API error, slowing polling');
       }
     } catch (error) {
       console.error('Error checking for new badges:', error);
+      // On network error, increase interval to reduce server load
+      this.slowDownPolling();
     }
   }
   
