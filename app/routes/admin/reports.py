@@ -276,7 +276,7 @@ def admin_reports_weekly(week_key=None):
         report = reports.generate_weekly_executive_report(week_key)
         return render_template("executive_weekly_report.html", report=report)
     except Exception as e:
-        flash(f"❌ Fehler beim Generieren des Wochenberichts: {e}", "danger")
+        flash(f"Fehler beim Generieren des Wochenberichts: {e}", "danger")
         return redirect(url_for("admin.admin_telefonie"))
 
 
@@ -291,7 +291,7 @@ def admin_reports_monthly(year=None, month=None):
         report = reports.generate_monthly_executive_report(year, month)
         return render_template("executive_monthly_report.html", report=report)
     except Exception as e:
-        flash(f"❌ Fehler beim Generieren des Monatsberichts: {e}", "danger")
+        flash(f"Fehler beim Generieren des Monatsberichts: {e}", "danger")
         return redirect(url_for("admin.admin_telefonie"))
 
 
@@ -324,7 +324,7 @@ def admin_telefonie_export_report(report_type):
             title = f"Monthly Executive Report - {report['meta']['month_name']}"
             filename_prefix = "monthly_executive"
         else:
-            flash("❌ Ungültiger Report-Typ", "danger")
+            flash("Ungültiger Report-Typ", "danger")
             return redirect(url_for("admin.admin_telefonie"))
 
         # Generate Professional PDF
@@ -575,7 +575,7 @@ def admin_telefonie_export_report(report_type):
             'Content-Disposition': f"attachment; filename={filename_prefix}_report_{datetime.now(TZ).strftime('%Y%m%d_%H%M')}.pdf"
         })
     except Exception as e:
-        flash(f"❌ PDF Export Fehler: {e}", "danger")
+        flash(f"PDF Export Fehler: {e}", "danger")
         return redirect(url_for("admin.admin_telefonie"))
 
 
