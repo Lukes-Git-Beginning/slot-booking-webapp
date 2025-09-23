@@ -611,15 +611,17 @@ class BookingTracker:
                             "no_show_rate": no_show_rate
                         }
                     
-                    # Berechne 30-Tage Statistik
-                    last_30_days = [str(today - timedelta(days=i)) for i in range(30)]
+                    # Berechne Statistik ab 01.09.2025
+                    start_date = datetime(2025, 9, 1).date()
+                    days_since_start = (today - start_date).days + 1
+                    date_range = [str(start_date + timedelta(days=i)) for i in range(days_since_start) if start_date + timedelta(days=i) <= today]
                     
                     total_slots_30 = 0
                     total_no_shows_30 = 0
                     total_completed_30 = 0
                     total_cancelled_30 = 0
                     
-                    for date_str in last_30_days:
+                    for date_str in date_range:
                         if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
                             metrics = all_metrics[date_str]
                             total_slots_30 += metrics.get("total_slots", 0)
@@ -638,7 +640,7 @@ class BookingTracker:
                         success_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
                         no_show_rate_30 = min(100, round((total_no_shows_30 / total_slots_30) * 100, 2))
                         
-                        dashboard["last_30_days"] = {
+                        dashboard["since_september"] = {
                             "total_bookings": total_slots_30,
                             "appearance_rate": appearance_rate_30,
                             "success_rate": success_rate_30,
