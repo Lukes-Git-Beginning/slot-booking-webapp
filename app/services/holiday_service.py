@@ -3,7 +3,12 @@
 Holiday service for German NRW holidays and custom blocked dates
 """
 
-import holidays
+try:
+    import holidays
+    HOLIDAYS_AVAILABLE = True
+except ImportError:
+    HOLIDAYS_AVAILABLE = False
+    print("WARNING: holidays package not available - holiday blocking disabled")
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Set, Optional, Any
 import pytz
@@ -18,16 +23,23 @@ class HolidayService:
     """Service for managing German NRW holidays and custom blocked dates"""
 
     def __init__(self):
-        self.german_holidays = holidays.Germany(state='NW')  # Nordrhein-Westfalen
+        if HOLIDAYS_AVAILABLE:
+            self.german_holidays = holidays.Germany(state='NW')  # Nordrhein-Westfalen
+        else:
+            self.german_holidays = {}
         self._blocked_dates_cache = None
         self._cache_timestamp = None
 
     def is_holiday(self, check_date: date) -> bool:
         """Check if a date is a German NRW holiday"""
+        if not HOLIDAYS_AVAILABLE:
+            return False
         return check_date in self.german_holidays
 
     def get_holiday_name(self, check_date: date) -> Optional[str]:
         """Get the name of the holiday for a given date"""
+        if not HOLIDAYS_AVAILABLE:
+            return None
         return self.german_holidays.get(check_date)
 
     def is_blocked_date(self, check_date: date) -> bool:
