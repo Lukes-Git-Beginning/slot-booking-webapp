@@ -68,7 +68,7 @@ def export_csv():
     """Export booking data as CSV"""
     try:
         if not tracking_system:
-            flash("Tracking system not available", "warning")
+            flash("Tracking-System nicht verfügbar", "warning")
             return redirect(url_for("admin.admin_dashboard"))
 
         # Get all bookings
@@ -99,7 +99,7 @@ def export_csv():
         return response
 
     except Exception as e:
-        flash(f"CSV export failed: {str(e)}", "danger")
+        flash(f"CSV-Export fehlgeschlagen: {str(e)}", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
 
@@ -261,7 +261,7 @@ def admin_export_pdf():
         })
 
     except Exception as e:
-        flash(f"PDF export failed: {str(e)}", "danger")
+        flash(f"PDF-Export fehlgeschlagen: {str(e)}", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
 
@@ -596,12 +596,12 @@ def admin_storage_optimize():
             optimized_files.append("backup_cleanup")
 
             if optimized_files:
-                flash(f"Storage optimized: {', '.join(optimized_files)}", "success")
+                flash(f"Speicher optimiert: {', '.join(optimized_files)}", "success")
             else:
-                flash("No optimization needed", "info")
+                flash("Keine Optimierung erforderlich", "info")
 
         except Exception as e:
-            flash(f"Optimization error: {str(e)}", "danger")
+            flash(f"Optimierungsfehler: {str(e)}", "danger")
 
         return redirect(url_for("admin.admin_storage_optimize"))
 
@@ -618,5 +618,5 @@ def admin_storage_optimize():
                              storage_stats=storage_stats)
 
     except Exception as e:
-        flash(f"Error loading storage info: {str(e)}", "danger")
+        flash(f"Fehler beim Laden der Speicher-Informationen: {str(e)}", "danger")
         return redirect(url_for("admin.admin_dashboard"))

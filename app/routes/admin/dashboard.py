@@ -86,7 +86,7 @@ def admin_dashboard():
                              current_month=current_month)
 
     except Exception as e:
-        flash(f"Error loading dashboard: {str(e)}", "danger")
+        flash(f"Fehler beim Laden des Dashboards: {str(e)}", "danger")
         return redirect(url_for("main.index"))
 
 
@@ -112,5 +112,5 @@ def admin_insights():
                              insights=insights_data)
 
     except Exception as e:
-        flash(f"Error loading insights: {str(e)}", "danger")
+        flash(f"Fehler beim Laden der Insights: {str(e)}", "danger")
         return redirect(url_for("admin.admin_dashboard"))

@@ -93,14 +93,14 @@ def admin_fix_points():
         # Save fixed scores
         if fixed_users:
             data_persistence.save_scores(scores)
-            flash(f"Fixed negative scores for: {', '.join(fixed_users)}", "success")
+            flash(f"Negative Punkte korrigiert für: {', '.join(fixed_users)}", "success")
         else:
-            flash("No issues found with point system", "info")
+            flash("Keine Probleme im Punktesystem gefunden", "info")
 
         return redirect(url_for("admin.admin_users"))
 
     except Exception as e:
-        flash(f"Error fixing points: {str(e)}", "danger")
+        flash(f"Fehler beim Korrigieren der Punkte: {str(e)}", "danger")
         return redirect(url_for("admin.admin_users"))
 
 
@@ -157,18 +157,18 @@ def admin_badges_backfill():
                     if new_badges:
                         processed_users.append(f"{username} ({len(new_badges)} badges)")
         except ImportError:
-            flash("Achievement system not available", "warning")
+            flash("Achievement-System nicht verfügbar", "warning")
             return redirect(url_for("admin.admin_users"))
 
         if processed_users:
-            flash(f"Processed badges for: {', '.join(processed_users)}", "success")
+            flash(f"Badges verarbeitet für: {', '.join(processed_users)}", "success")
         else:
-            flash("No new badges awarded during backfill", "info")
+            flash("Keine neuen Badges während Backfill vergeben", "info")
 
         return redirect(url_for("admin.admin_users"))
 
     except Exception as e:
-        flash(f"Error during badge backfill: {str(e)}", "danger")
+        flash(f"Fehler beim Badge-Backfill: {str(e)}", "danger")
         return redirect(url_for("admin.admin_users"))
 
 
