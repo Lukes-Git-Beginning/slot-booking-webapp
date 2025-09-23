@@ -1,357 +1,406 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Diese Datei bietet Anleitungen für Claude Code (claude.ai/code) bei der Arbeit mit Code in diesem Repository.
 
-## Project Overview
+## Projektübersicht
 
-**Slot Booking Webapp** is a comprehensive, enterprise-grade appointment scheduling system with advanced gamification, analytics, and business intelligence features. This is not just a simple booking system - it's a full-featured business application with sophisticated user engagement and data analytics capabilities.
+**Slot Booking Webapp** ist ein umfassendes Terminbuchungssystem auf Enterprise-Niveau mit fortschrittlicher Gamification, Analytics und Business Intelligence-Features. Dies ist nicht nur ein einfaches Buchungssystem - es ist eine voll ausgestattete Geschäftsanwendung mit ausgeklügeltem Nutzerengagement und Datenanalyse-Fähigkeiten.
 
-### Key Capabilities
-- 🎯 **Complete Appointment Management** - Multi-consultant booking with Google Calendar integration
-- 🎮 **Advanced Gamification** - Achievement systems, badges, levels, prestige, daily quests, cosmetics shop
-- 📊 **Business Intelligence** - Comprehensive analytics, predictive insights, customer profiling
-- 🔧 **Admin Dashboard** - Full administrative control with reporting and user management
-- 🎨 **Customization System** - User personalization with themes, avatars, and custom goals
-- 📱 **Modern Architecture** - Production-ready Flask application with proper separation of concerns
+### Hauptfunktionen
+- 🎯 **Vollständige Terminverwaltung** - Multi-Berater-Buchung mit Google Calendar-Integration
+- 🎮 **Fortschrittliche Gamification** - Achievement-Systeme, Badges, Level, Prestige, tägliche Quests, Cosmetics Shop
+- 📊 **Business Intelligence** - Umfassende Analytics, Vorhersage-Einblicke, Kundenprofilerstellung
+- 🔧 **Admin-Dashboard** - Vollständige administrative Kontrolle mit Reporting und Benutzerverwaltung
+- 🎨 **Anpassungssystem** - Benutzer-Personalisierung mit Themes, Avataren und benutzerdefinierten Zielen
+- 📱 **Moderne Architektur** - Produktionsreife Flask-Anwendung mit ordnungsgemäßer Trennung der Belange
+- 🗓️ **Feiertags-Sperrung** - Automatische Sperrung deutscher Feiertage (NRW) mit Admin-Verwaltung
 
-## Development Commands
+## Entwicklungskommandos
 
-### Running the Application
+### Anwendung starten
 ```bash
-python run.py                    # Start the application (new structure)
-# OR
-python slot_booking_webapp.py    # Legacy startup method
+python run.py                    # Anwendung starten (neue Struktur)
+# ODER
+python slot_booking_webapp.py    # Legacy-Startmethode
 ```
 
-### Testing
+### Testen
 ```bash
-python test_integration.py       # Run comprehensive integration tests
+python test_integration.py       # Umfassende Integrationstests ausführen
 ```
 
-### Dependencies
+### Abhängigkeiten
 ```bash
-pip install -r requirements.txt  # Install all dependencies
+pip install -r requirements.txt  # Alle Abhängigkeiten installieren
 ```
 
-### Development Tools
+### Entwicklungstools
 ```bash
-python -c "from app.core.extensions import data_persistence; data_persistence.create_backup()"  # Manual backup
-python -c "from app.services.achievement_system import achievement_system; achievement_system.process_daily_achievements()"  # Process achievements
+python -c "from app.core.extensions import data_persistence; data_persistence.create_backup()"  # Manuelles Backup
+python -c "from app.services.achievement_system import achievement_system; achievement_system.process_daily_achievements()"  # Achievements verarbeiten
+python -c "from app.services.holiday_service import holiday_service; print(holiday_service.get_upcoming_holidays(30))"  # Kommende Feiertage
 ```
 
-## Application Architecture
+## Anwendungsarchitektur
 
-### Modern Flask Structure
-The application follows a professional Flask structure with:
+### Moderne Flask-Struktur
+Die Anwendung folgt einer professionellen Flask-Struktur mit:
 
 ```
 app/
-├── config/           # Environment-based configuration
-│   ├── base.py      # Base configuration classes
+├── config/           # Umgebungsbasierte Konfiguration
+│   ├── base.py      # Basis-Konfigurationsklassen
 │   ├── development.py
 │   └── production.py
-├── core/            # Core application components
-│   ├── extensions.py    # Flask extensions initialization
-│   ├── google_calendar.py  # Google Calendar service
-│   └── middleware.py    # Request/response middleware
-├── routes/          # HTTP route handlers (blueprints)
-│   ├── admin/       # Administrative functions
-│   ├── gamification/ # Gamification features
-│   ├── auth.py      # Authentication
-│   ├── booking.py   # Appointment booking
-│   ├── calendar.py  # Calendar views
-│   ├── main.py      # Main application routes
-│   └── api.py       # JSON API endpoints
-├── services/        # Business logic layer
-│   ├── achievement_system.py  # Gamification engine
-│   ├── booking_service.py     # Booking business logic
-│   ├── data_persistence.py    # Data storage abstraction
-│   ├── level_system.py        # User progression system
-│   ├── tracking_system.py     # Analytics and tracking
-│   └── weekly_points.py       # Points management
-├── models/          # Data models (if using ORM)
-└── utils/           # Utility functions and helpers
+├── core/            # Kern-Anwendungskomponenten
+│   ├── extensions.py    # Flask-Extensions-Initialisierung
+│   ├── google_calendar.py  # Google Calendar Service
+│   └── middleware.py    # Request/Response-Middleware
+├── routes/          # HTTP-Route-Handler (Blueprints)
+│   ├── admin/       # Administrative Funktionen
+│   │   ├── blocked_dates.py  # 🆕 Feiertags-/Sperrtermin-Verwaltung
+│   │   ├── dashboard.py      # Admin-Dashboard
+│   │   ├── reports.py        # Berichte
+│   │   ├── users.py          # Benutzerverwaltung
+│   │   └── telefonie.py      # Telefonie-Punkte
+│   ├── gamification/ # Gamification-Features
+│   ├── auth.py      # Authentifizierung
+│   ├── booking.py   # Terminbuchung
+│   ├── calendar.py  # Kalender-Ansichten
+│   ├── main.py      # Haupt-Anwendungs-Routes
+│   └── api.py       # JSON API-Endpoints
+├── services/        # Business-Logic-Layer
+│   ├── achievement_system.py  # Gamification-Engine
+│   ├── booking_service.py     # Buchungs-Business-Logic
+│   ├── data_persistence.py    # Datenspeicher-Abstraktion
+│   ├── holiday_service.py     # 🆕 Feiertags-Service (NRW)
+│   ├── level_system.py        # Benutzer-Progressions-System
+│   ├── tracking_system.py     # Analytics und Tracking
+│   └── weekly_points.py       # Punkte-Management
+├── models/          # Datenmodelle (falls ORM verwendet)
+└── utils/           # Hilfsfunktionen und Utilities
 ```
 
-### Core Application Components
-- **Flask Application Factory**: `app/__init__.py` - Modern Flask app creation pattern
-- **Configuration Management**: `app/config/` - Environment-specific settings
-- **Google Calendar Integration**: `app/core/google_calendar.py` - Robust calendar service
-- **Data Persistence Layer**: `app/services/data_persistence.py` - Dual-write system
-- **Gamification Engine**: `app/services/achievement_system.py` - Complete engagement system
-- **Analytics System**: `app/services/tracking_system.py` - Business intelligence
-- **Admin Dashboard**: `app/routes/admin/` - Comprehensive management interface
+### Kern-Anwendungskomponenten
+- **Flask Application Factory**: `app/__init__.py` - Modernes Flask App-Erstellungs-Pattern
+- **Konfigurationsverwaltung**: `app/config/` - Umgebungsspezifische Einstellungen
+- **Google Calendar-Integration**: `app/core/google_calendar.py` - Robuster Kalender-Service
+- **Datenpersistenz-Layer**: `app/services/data_persistence.py` - Dual-Write-System
+- **Gamification-Engine**: `app/services/achievement_system.py` - Vollständiges Engagement-System
+- **Analytics-System**: `app/services/tracking_system.py` - Business Intelligence
+- **Admin-Dashboard**: `app/routes/admin/` - Umfassende Verwaltungsschnittstelle
+- **Feiertags-Service**: `app/services/holiday_service.py` - Deutsche NRW-Feiertage mit benutzerdefinierten Sperren
 
-### Key Architectural Patterns
+### Wichtige Architektur-Patterns
 
-#### Data Storage Strategy
-The app uses a sophisticated dual-write persistence pattern:
-- **Primary**: `/opt/render/project/src/persist/persistent/` (Render disk) or `data/persistent/` (local)
-- **Fallback**: `static/` directory for compatibility with legacy systems
-- All JSON data is UTF-8 encoded with `ensure_ascii=False`
-- Automatic backup system with retention policies
-- Data integrity validation and migration support
+#### Datenspeicher-Strategie
+Das App verwendet ein ausgeklügeltes Dual-Write-Persistenz-Pattern:
+- **Primär**: `/opt/render/project/src/persist/persistent/` (Render Disk) oder `data/persistent/` (lokal)
+- **Fallback**: `static/` Verzeichnis für Kompatibilität mit Legacy-Systemen
+- Alle JSON-Daten sind UTF-8-kodiert mit `ensure_ascii=False`
+- Automatisches Backup-System mit Aufbewahrungsrichtlinien
+- Datenintegritäts-Validierung und Migrations-Support
 
-#### Google Calendar Integration
-- Central calendar: `zentralkalenderzfa@gmail.com`
-- Service account authentication via `GOOGLE_CREDS_BASE64` environment variable
-- Robust error handling with retry logic in `safe_calendar_call()` function
-- Color-coded events map to booking outcomes (see `color_mapping.py`)
-- Multi-consultant calendar support with availability scanning
+#### Google Calendar-Integration
+- Zentraler Kalender: `zentralkalenderzfa@gmail.com`
+- Service Account-Authentifizierung über `GOOGLE_CREDS_BASE64` Umgebungsvariable
+- Robuste Fehlerbehandlung mit Retry-Logic in `safe_calendar_call()` Funktion
+- Farbkodierte Events mappen zu Buchungsergebnissen (siehe `color_mapping.py`)
+- Multi-Berater-Kalender-Support mit Verfügbarkeits-Scanning
 
-#### Advanced Gamification System
-- **Badge System**: 6 rarity levels (common → mythic) with 50+ unique badges
-- **Level System**: XP-based progression with rewards and unlocks
-- **Prestige System**: 6 prestige levels with 5 mastery categories
-- **Daily Quests**: Rotating challenges with mini-games and rewards
-- **Cosmetics Shop**: Titles, themes, avatars, and special effects
-- **Achievement Engine**: Real-time progress tracking and automatic awards
-- **Personal Goals**: User-defined challenges with custom rewards
+#### Feiertags-/Sperrungssystem
+- **Automatische deutsche Feiertage**: NRW-spezifische Feiertage mit `holidays` Package
+- **Benutzerdefinierte Sperren**: Beliebige Termine mit Begründung sperren
+- **Admin-Verwaltung**: Vollständiges Interface für Feiertags- und Sperrtermin-Management
+- **Verfügbarkeits-Integration**: Automatische Filterung gesperrter Termine aus Buchungsoptionen
+- **Fallback-Mechanismen**: Graceful Degradation bei fehlenden Dependencies
+
+#### Fortschrittliche Gamification-System
+- **Badge-System**: 6 Seltenheitsstufen (häufig → mythisch) mit 50+ einzigartigen Badges
+- **Level-System**: XP-basierte Progression mit Belohnungen und Freischaltungen
+- **Prestige-System**: 6 Prestige-Level mit 5 Meisterschafts-Kategorien
+- **Tägliche Quests**: Rotierende Herausforderungen mit Mini-Games und Belohnungen
+- **Cosmetics Shop**: Titel, Themes, Avatare und Spezialeffekte
+- **Achievement-Engine**: Echtzeit-Fortschritts-Tracking und automatische Vergabe
+- **Persönliche Ziele**: Benutzerdefinierte Herausforderungen mit individuellen Belohnungen
 
 #### Business Intelligence & Analytics
-- **Customer Profiling**: Risk assessment and reliability scoring
-- **Behavioral Analytics**: Pattern detection and insights
-- **Predictive Modeling**: Success rate predictions and recommendations
-- **Performance Tracking**: Individual and team metrics
-- **Historical Analysis**: 269+ days of integrated booking data
-- **Export Capabilities**: JSON, CSV, PDF with customizable filters
+- **Kundenprofilerstellung**: Risikobewertung und Zuverlässigkeits-Scoring
+- **Verhaltensanalytics**: Mustererkennung und Einblicke
+- **Predictive Modeling**: Erfolgsraten-Vorhersagen und Empfehlungen
+- **Performance-Tracking**: Individuelle und Team-Metriken
+- **Historische Analyse**: 269+ Tage integrierter Buchungsdaten
+- **Export-Fähigkeiten**: JSON, CSV, PDF mit anpassbaren Filtern
 
-#### Time Window Logic & Points System
-- Telefonie points have commit windows (18-21h Europe/Berlin timezone)
-- Outside commit window, changes go to pending queues
-- Vacation flags override point calculations
-- Weekly point tracking with rollover and bonus systems
-- Achievement milestones tied to point accumulation
+#### Zeitfenster-Logic & Punkte-System
+- Telefonie-Punkte haben Commit-Fenster (18-21h Europe/Berlin Zeitzone)
+- Außerhalb des Commit-Fensters gehen Änderungen in Pending-Queues
+- Urlaubs-Flags überschreiben Punkte-Berechnungen
+- Wöchentliche Punkte-Verfolgung mit Übertrag und Bonus-Systemen
+- Achievement-Meilensteine verknüpft mit Punkte-Akkumulation
 
-### Advanced Data Flow
+### Erweiterte Datenflüsse
 
-#### 1. Booking Lifecycle
+#### 1. Buchungs-Lebenszyklus
 ```
-User Request → Validation → Calendar Check → Slot Creation → Tracking → Gamification Update → Notification
-```
-
-#### 2. Real-time Processing
-```
-Event Trigger → Data Update → Cache Invalidation → Achievement Check → UI Update → Analytics Log
+Benutzeranfrage → Validierung → Kalender-Check → Slot-Erstellung → Tracking → Gamification-Update → Benachrichtigung
 ```
 
-#### 3. Scheduled Operations
-- **Hourly**: Availability generation, cache refresh
-- **Daily**: Outcome processing, achievement awards, analytics aggregation
-- **Weekly**: Point rollover, leaderboard updates, backup creation
-- **Monthly**: Historical analysis, report generation, data archiving
-
-#### 4. Gamification Pipeline
+#### 2. Echtzeit-Verarbeitung
 ```
-User Action → Progress Tracking → Quest Update → Badge Evaluation → Level Check → Reward Distribution
+Event-Trigger → Daten-Update → Cache-Invalidierung → Achievement-Check → UI-Update → Analytics-Log
 ```
 
-## Complete Feature Catalog
+#### 3. Geplante Operationen
+- **Stündlich**: Verfügbarkeits-Generierung, Cache-Refresh
+- **Täglich**: Ergebnis-Verarbeitung, Achievement-Vergabe, Analytics-Aggregation
+- **Wöchentlich**: Punkte-Übertrag, Leaderboard-Updates, Backup-Erstellung
+- **Monatlich**: Historische Analyse, Report-Generierung, Daten-Archivierung
 
-### 🎯 Core Booking Features
-- **Multi-Consultant Scheduling**: Support for unlimited consultants with individual calendars
-- **Real-time Availability**: Hourly calendar scanning and slot generation
-- **Conflict Prevention**: Advanced booking validation and double-booking prevention
-- **Customer Management**: Complete customer profiles with history and preferences
-- **Outcome Tracking**: Automatic detection of appointments, no-shows, and cancellations
+#### 4. Gamification-Pipeline
+```
+Benutzeraktion → Fortschritts-Tracking → Quest-Update → Badge-Bewertung → Level-Check → Belohnungs-Verteilung
+```
 
-### 🎮 Gamification Features (Advanced)
-- **Achievement System**: 50+ badges across 6 rarity levels
-- **XP & Level System**: Progressive advancement with rewards
-- **Prestige System**: 6 prestige levels with specialized mastery tracks
-- **Daily Quests**: Rotating challenges with mini-games and rewards
-- **Leaderboards**: Multiple ranking categories and competitive elements
-- **Cosmetics Shop**: Full customization with titles, themes, avatars, effects
-- **Personal Goals**: User-defined challenges with custom rewards
-- **Behavioral Analytics**: Pattern recognition and performance insights
+#### 5. Feiertags-/Sperrungsflow
+```
+Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpassen → Antwort
+```
+
+## Vollständiger Feature-Katalog
+
+### 🎯 Kern-Buchungsfeatures
+- **Multi-Berater-Terminplanung**: Support für unbegrenzte Berater mit individuellen Kalendern
+- **Echtzeit-Verfügbarkeit**: Stündliche Kalender-Scanning und Slot-Generierung
+- **Konflikt-Prävention**: Erweiterte Buchungs-Validierung und Doppelbuchungs-Prävention
+- **Kundenverwaltung**: Vollständige Kundenprofile mit Historie und Präferenzen
+- **Ergebnis-Tracking**: Automatische Erkennung von Terminen, No-Shows und Stornierungen
+- **Feiertags-Sperrung**: Automatische Sperrung deutscher NRW-Feiertage mit Admin-Verwaltung
+
+### 🎮 Gamification-Features (Fortgeschritten)
+- **Achievement-System**: 50+ Badges in 6 Seltenheitsstufen
+- **XP & Level-System**: Progressive Weiterentwicklung mit Belohnungen
+- **Prestige-System**: 6 Prestige-Level mit spezialisierten Meisterschafts-Tracks
+- **Tägliche Quests**: Rotierende Herausforderungen mit Mini-Games und Belohnungen
+- **Leaderboards**: Multiple Ranking-Kategorien und kompetitive Elemente
+- **Cosmetics Shop**: Vollständige Anpassung mit Titeln, Themes, Avataren, Effekten
+- **Persönliche Ziele**: Benutzerdefinierte Herausforderungen mit individuellen Belohnungen
+- **Verhaltens-Analytics**: Mustererkennung und Performance-Einblicke
 
 ### 📊 Analytics & Business Intelligence
-- **Performance Dashboards**: Real-time metrics and KPIs
-- **Customer Profiling**: Risk assessment and reliability scoring
-- **Predictive Analytics**: Success rate predictions and recommendations
-- **Historical Analysis**: 269+ days of integrated booking data
-- **Export Functions**: JSON, CSV, PDF with advanced filtering
-- **Trend Analysis**: Pattern detection and insight generation
-- **Team Performance**: Comparative analysis and benchmarking
+- **Performance-Dashboards**: Echtzeit-Metriken und KPIs
+- **Kundenprofilerstellung**: Risikobewertung und Zuverlässigkeits-Scoring
+- **Predictive Analytics**: Erfolgsraten-Vorhersagen und Empfehlungen
+- **Historische Analyse**: 269+ Tage Buchungsdaten
+- **Export-Funktionen**: JSON, CSV, PDF mit erweiterten Filtern
+- **Trend-Analyse**: Mustererkennung und Einblicks-Generierung
+- **Team-Performance**: Vergleichende Analyse und Benchmarking
 
 ### 🔧 Administrative Features
-- **User Management**: Complete user lifecycle management
-- **Role-Based Access**: Admin/user permissions with granular controls
-- **Data Export**: Comprehensive reporting and data extraction
-- **System Monitoring**: Performance metrics and health checks
-- **Configuration Management**: Dynamic settings and feature toggles
-- **Backup & Recovery**: Automated backup with retention policies
+- **Benutzerverwaltung**: Vollständige Benutzer-Lebenszyklus-Verwaltung
+- **Rollenbasierter Zugriff**: Admin/Benutzer-Berechtigungen mit granularen Kontrollen
+- **Feiertags-Verwaltung**: Deutsche NRW-Feiertage mit benutzerdefinierten Sperren
+- **Datenexport**: Umfassende Berichterstattung und Datenextraktion
+- **System-Überwachung**: Performance-Metriken und Gesundheitschecks
+- **Konfigurations-Management**: Dynamische Einstellungen und Feature-Toggles
+- **Backup & Recovery**: Automatisierte Backups mit Aufbewahrungsrichtlinien
 
-### 🎨 Customization & Personalization
-- **Theme System**: Multiple visual themes and color schemes
-- **Avatar System**: Customizable user profiles with unlockable components
-- **Dashboard Customization**: Personalized layouts and widgets
-- **Notification Preferences**: Customizable alerts and updates
-- **Personal Analytics**: Individual insights and progress tracking
+### 🎨 Anpassung & Personalisierung
+- **Theme-System**: Multiple visuelle Themes und Farbschemata
+- **Avatar-System**: Anpassbare Benutzerprofile mit freischaltbaren Komponenten
+- **Dashboard-Anpassung**: Personalisierte Layouts und Widgets
+- **Benachrichtigungs-Präferenzen**: Anpassbare Alerts und Updates
+- **Persönliche Analytics**: Individuelle Einblicke und Fortschritts-Tracking
 
-### Environment Variables & Configuration
-- `GOOGLE_CREDS_BASE64`: Base64-encoded service account JSON
-- `CENTRAL_CALENDAR_ID`: Main calendar ID
-- `USERLIST`: User credentials (`user1:pass1,user2:pass2`)
-- `SECRET_KEY`: Flask session encryption key
-- `PERSIST_BASE`: Override for persistence directory
-- `FLASK_ENV`: Environment setting (development/production)
-- `ADMIN_USERS`: Comma-separated list of admin usernames
-- `CONSULTANTS`: Consultant mapping (name:email pairs)
-- `EXCLUDED_CHAMPION_USERS`: Users excluded from leaderboards
+### Umgebungsvariablen & Konfiguration
+- `GOOGLE_CREDS_BASE64`: Base64-kodierte Service Account JSON
+- `CENTRAL_CALENDAR_ID`: Haupt-Kalender-ID
+- `USERLIST`: Benutzer-Zugangsdaten (`user1:pass1,user2:pass2`)
+- `SECRET_KEY`: Flask Session-Verschlüsselungs-Schlüssel
+- `PERSIST_BASE`: Override für Persistenz-Verzeichnis
+- `FLASK_ENV`: Umgebungseinstellung (development/production)
+- `ADMIN_USERS`: Komma-getrennte Liste von Admin-Benutzernamen
+- `CONSULTANTS`: Berater-Mapping (name:email Paare)
+- `EXCLUDED_CHAMPION_USERS`: Benutzer ausgeschlossen von Leaderboards
 
-### Critical Files & Directories
-- `service_account.json`: Google service account credentials (never commit)
-- `data/persistent/`: Primary data storage with complete application state
-- `data/backups/`: Automated backup directory with retention
-- `static/availability.json`: Generated slot availability (legacy fallback)
-- `app/config/`: Environment-specific configuration files
-- `templates/`: Jinja2 HTML templates for all pages
-- `static/`: CSS, JavaScript, and static assets
+### Kritische Dateien & Verzeichnisse
+- `service_account.json`: Google Service Account-Zugangsdaten (niemals committen)
+- `data/persistent/`: Primäre Datenspeicherung mit vollständigem Anwendungszustand
+- `data/backups/`: Automatisiertes Backup-Verzeichnis mit Aufbewahrung
+- `static/availability.json`: Generierte Slot-Verfügbarkeit (Legacy-Fallback)
+- `app/config/`: Umgebungsspezifische Konfigurationsdateien
+- `templates/`: Jinja2 HTML-Templates für alle Seiten
+- `static/`: CSS, JavaScript und statische Assets
 
-## Development Workflow & Best Practices
+## Entwicklungsworkflow & Best Practices
 
-### Code Quality Standards
-- **Follow Flask best practices**: Use blueprints, application factory pattern
-- **Maintain separation of concerns**: Services for business logic, routes for HTTP handling
-- **Type hints encouraged**: Use Python type hints for better code clarity
-- **Error handling**: Always implement proper error handling with logging
-- **Testing**: Write tests for new features and critical functionality
+### Code-Qualitäts-Standards
+- **Flask Best Practices befolgen**: Blueprints, Application Factory Pattern verwenden
+- **Separation of Concerns beibehalten**: Services für Business Logic, Routes für HTTP-Handling
+- **Type Hints empfohlen**: Python Type Hints für bessere Code-Klarheit verwenden
+- **Fehlerbehandlung**: Immer ordnungsgemäße Fehlerbehandlung mit Logging implementieren
+- **Testen**: Tests für neue Features und kritische Funktionalität schreiben
 
-### Database & Data Management
-- **JSON-first approach**: All data stored in optimized JSON format
-- **Dual-write pattern**: Always write to both persistent and static directories
-- **Backup strategy**: Automated backups with manual backup capabilities
-- **Data integrity**: Validate data on read/write operations
-- **UTF-8 encoding**: Always use `ensure_ascii=False` for JSON files
+### Datenbank & Datenmanagement
+- **JSON-first Ansatz**: Alle Daten in optimiertem JSON-Format gespeichert
+- **Dual-Write-Pattern**: Immer in sowohl persistente als auch statische Verzeichnisse schreiben
+- **Backup-Strategie**: Automatisierte Backups mit manuellen Backup-Fähigkeiten
+- **Datenintegrität**: Daten bei Lese-/Schreiboperationen validieren
+- **UTF-8-Kodierung**: Immer `ensure_ascii=False` für JSON-Dateien verwenden
 
-### API Development
-- **RESTful principles**: Follow REST conventions for API endpoints
-- **JSON responses**: Consistent JSON structure for all API responses
-- **Error codes**: Use appropriate HTTP status codes
-- **Rate limiting**: Implement rate limiting for API endpoints
-- **Documentation**: Document all API endpoints with examples
+### API-Entwicklung
+- **RESTful Prinzipien**: REST-Konventionen für API-Endpoints befolgen
+- **JSON-Antworten**: Konsistente JSON-Struktur für alle API-Antworten
+- **Fehlercodes**: Angemessene HTTP-Statuscodes verwenden
+- **Rate Limiting**: Rate Limiting für API-Endpoints implementieren
+- **Dokumentation**: Alle API-Endpoints mit Beispielen dokumentieren
 
-### Troubleshooting & Debugging
+### Fehlerbehebung & Debugging
 
-#### Common Issues
-1. **Google Calendar API Errors**
+#### Häufige Probleme
+1. **Google Calendar API-Fehler**
    ```bash
-   # Check credentials
+   # Zugangsdaten prüfen
    python -c "from app.core.google_calendar import GoogleCalendarService; print('OK' if GoogleCalendarService().is_configured() else 'FAIL')"
    ```
 
-2. **Data Persistence Issues**
+2. **Datenpersistenz-Probleme**
    ```bash
-   # Verify data integrity
+   # Datenintegrität verifizieren
    python -c "from app.services.data_persistence import data_persistence; data_persistence.verify_integrity()"
    ```
 
-3. **Gamification System Issues**
+3. **Gamification-System-Probleme**
    ```bash
-   # Reset user achievements (admin only)
+   # Benutzer-Achievements zurücksetzen (nur Admin)
    python -c "from app.services.achievement_system import achievement_system; achievement_system.reset_user_progress('username')"
    ```
 
-4. **Performance Issues**
+4. **Performance-Probleme**
    ```bash
-   # Clear all caches
+   # Alle Caches leeren
    python -c "from app.core.extensions import cache_manager; cache_manager.clear_all()"
    ```
 
-### Testing Strategy
-- **Integration tests**: `test_integration.py` covers end-to-end workflows
-- **Unit tests**: Individual component testing
-- **Performance tests**: Load testing for critical paths
-- **Data tests**: Validate data integrity and migration
+5. **Feiertags-System-Probleme**
+   ```bash
+   # Holiday Service prüfen
+   python -c "from app.services.holiday_service import holiday_service; print('OK' if holiday_service.is_holiday(date(2024,12,25)) else 'FAIL')"
+   ```
 
-### Deployment Checklist
-- [ ] Environment variables configured
-- [ ] Google Calendar credentials valid
-- [ ] Database/persistence layer initialized
-- [ ] Static assets properly served
-- [ ] Scheduled tasks configured (GitHub Actions)
-- [ ] Monitoring and logging enabled
-- [ ] Backup system operational
+### Test-Strategie
+- **Integrationstests**: `test_integration.py` deckt End-to-End-Workflows ab
+- **Unit-Tests**: Individuelle Komponententests
+- **Performance-Tests**: Load-Testing für kritische Pfade
+- **Daten-Tests**: Datenintegrität und Migration validieren
 
-## Git Commit Guidelines
-- **NEVER** include Claude Code attribution in commit messages
-- **NEVER** add "🤖 Generated with [Claude Code]" or "Co-Authored-By: Claude"
-- Keep commit messages clean and professional without AI tool references
-- Use conventional commit format: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
-- Reference issue numbers when applicable
+### Deployment-Checkliste
+- [ ] Umgebungsvariablen konfiguriert
+- [ ] Google Calendar-Zugangsdaten gültig
+- [ ] Datenbank/Persistenz-Layer initialisiert
+- [ ] Statische Assets ordnungsgemäß bereitgestellt
+- [ ] Geplante Aufgaben konfiguriert (GitHub Actions)
+- [ ] Überwachung und Logging aktiviert
+- [ ] Backup-System operational
 
-## Project Status & Recent Updates
+## Git Commit-Richtlinien
+- **NIEMALS** Claude Code-Attribution in Commit-Nachrichten einschließen
+- **NIEMALS** "🤖 Generated with [Claude Code]" oder "Co-Authored-By: Claude" hinzufügen
+- Commit-Nachrichten sauber und professionell ohne AI-Tool-Referenzen halten
+- Konventionelles Commit-Format verwenden: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
+- Issue-Nummern referenzieren wenn anwendbar
 
-### Current Version: v3.0+ (Enterprise-Grade)
-The application has evolved into a sophisticated business platform with:
-- ✅ **Complete Gamification System**: Advanced engagement features
-- ✅ **Business Intelligence**: Comprehensive analytics and reporting
-- ✅ **Modern Architecture**: Production-ready Flask application
-- ✅ **Administrative Dashboard**: Full management capabilities
-- ✅ **Customization Platform**: User personalization features
-- ✅ **Performance Optimization**: Caching, deduplication, error handling
+## Projektstatus & Aktuelle Updates
 
-### Latest Feature Additions
-- ✅ **Daily Quest Updates**: Enhanced challenges and mini-games
-- ✅ **Cosmetics Shop System**: Complete customization platform
-- ✅ **Advanced Analytics**: Behavioral insights and predictions
-- ✅ **Performance Improvements**: Caching and optimization
-- ✅ **Modern Flask Structure**: Proper application organization
+### Aktuelle Version: v3.2+ (Enterprise-Grade mit Feiertags-System)
+Die Anwendung hat sich zu einer ausgeklügelten Geschäftsplattform entwickelt mit:
+- ✅ **Vollständiges Gamification-System**: Fortgeschrittene Engagement-Features
+- ✅ **Business Intelligence**: Umfassende Analytics und Berichterstattung
+- ✅ **Moderne Architektur**: Produktionsreife Flask-Anwendung
+- ✅ **Administrative Dashboard**: Vollständige Verwaltungsfähigkeiten
+- ✅ **Anpassungsplattform**: Benutzer-Personalisierungs-Features
+- ✅ **Performance-Optimierung**: Caching, Deduplizierung, Fehlerbehandlung
+- ✅ **Feiertags-Sperrung**: Deutsche NRW-Feiertage mit Admin-Verwaltung
 
-### Next Development Priorities
-- 🔄 **API Enhancement**: Comprehensive REST API for mobile/external apps
-- 🔄 **Real-time Features**: WebSocket integration for live updates
-- 🔄 **Machine Learning**: Predictive analytics and recommendation engine
-- 🔄 **Mobile PWA**: Progressive Web App capabilities
-- 🔄 **Advanced Security**: Enhanced authentication and authorization
+### Neueste Feature-Ergänzungen
+- ✅ **German NRW Holiday Blocking**: Automatische Sperrung deutscher Feiertage
+- ✅ **Admin Feiertags-Interface**: Vollständige Verwaltung gesperrter Termine
+- ✅ **Benutzerdefinierte Sperren**: Beliebige Termine mit Begründung sperren
+- ✅ **Deutsche Lokalisierung**: Vollständige deutsche Übersetzung
+- ✅ **Fallback-Mechanismen**: Robuste Fehlerbehandlung für fehlende Dependencies
+- ✅ **Moderne Flask-Struktur**: Ordnungsgemäße Anwendungsorganisation
 
-## Technical Implementation Guide
+### Nächste Entwicklungsprioritäten
+- 🔄 **API-Verbesserung**: Umfassende REST API für mobile/externe Apps
+- 🔄 **Echtzeit-Features**: WebSocket-Integration für Live-Updates
+- 🔄 **Machine Learning**: Predictive Analytics und Empfehlungs-Engine
+- 🔄 **Mobile PWA**: Progressive Web App-Fähigkeiten
+- 🔄 **Erweiterte Sicherheit**: Verbesserte Authentifizierung und Autorisierung
 
-### Working with the Codebase
+## Technische Implementierungs-Anleitung
 
-#### Key Service Classes
+### Arbeiten mit der Codebase
+
+#### Wichtige Service-Klassen
 ```python
-# Core services - always import these for major operations
+# Kern-Services - immer für größere Operationen importieren
 from app.services.data_persistence import data_persistence
 from app.services.achievement_system import achievement_system
 from app.services.booking_service import BookingService
 from app.services.tracking_system import tracking_system
+from app.services.holiday_service import holiday_service  # 🆕 Feiertags-Service
 from app.core.extensions import cache_manager, level_system
 ```
 
-#### Data Persistence Patterns
+#### Datenpersistenz-Patterns
 ```python
-# Always use the data persistence layer for data operations
+# Immer die Datenpersistenz-Layer für Datenoperationen verwenden
 data_persistence.save_data('user_badges', badge_data)
 user_data = data_persistence.load_data('user_stats', {})
-data_persistence.create_backup()  # Manual backup creation
+data_persistence.create_backup()  # Manuelle Backup-Erstellung
 ```
 
-#### Adding New Features
-1. **Create service class** in `app/services/` for business logic
-2. **Add route handlers** in appropriate `app/routes/` blueprint
-3. **Update configuration** in `app/config/base.py` if needed
-4. **Add tests** to `test_integration.py`
-5. **Update documentation** in both CLAUDE.md and README.md
-
-#### Gamification Integration
+#### Feiertags-Integration
 ```python
-# Award achievements for new features
+# Feiertags-Service für Sperrungen verwenden
+from app.services.holiday_service import holiday_service
+
+def check_booking_availability(date_str):
+    # Datum parsen
+    check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+    # Prüfen ob gesperrt
+    if holiday_service.is_blocked_date(check_date):
+        reason = holiday_service.get_blocked_reason(check_date)
+        return False, f"Datum gesperrt: {reason}"
+
+    return True, "Verfügbar"
+```
+
+#### Neue Features hinzufügen
+1. **Service-Klasse erstellen** in `app/services/` für Business Logic
+2. **Route-Handler hinzufügen** in entsprechendem `app/routes/` Blueprint
+3. **Konfiguration aktualisieren** in `app/config/base.py` falls nötig
+4. **Tests hinzufügen** zu `test_integration.py`
+5. **Dokumentation aktualisieren** sowohl in CLAUDE.md als auch README.md
+
+#### Gamification-Integration
+```python
+# Achievements für neue Features vergeben
 from app.services.achievement_system import achievement_system
 
 def handle_new_feature_action(user, action_data):
-    # Your feature logic here
+    # Deine Feature-Logic hier
     result = perform_action(action_data)
 
-    # Integrate with gamification
+    # Mit Gamification integrieren
     achievement_system.update_quest_progress(user, 'new_feature_quest', 1)
     achievement_system.check_and_award_badges(user)
 
     return result
 ```
 
-#### Error Handling Best Practices
+#### Fehlerbehandlungs-Best-Practices
 ```python
 import logging
 from app.utils.logging import get_logger
@@ -360,48 +409,50 @@ logger = get_logger(__name__)
 
 def safe_operation():
     try:
-        # Your operation here
+        # Deine Operation hier
         result = risky_operation()
-        logger.info("Operation completed successfully")
+        logger.info("Operation erfolgreich abgeschlossen")
         return result
     except Exception as e:
-        logger.error(f"Operation failed: {str(e)}", extra={'operation': 'safe_operation'})
+        logger.error(f"Operation fehlgeschlagen: {str(e)}", extra={'operation': 'safe_operation'})
         return None
 ```
 
-### Database Schema (JSON Collections)
+### Datenbank-Schema (JSON-Collections)
 
-#### Core Data Structure
+#### Kern-Datenstruktur
 ```
 data/persistent/
-├── user_badges.json          # Badge awards and timestamps
-├── user_levels.json          # XP and level progression
-├── daily_user_stats.json     # Daily performance metrics
-├── prestige_data.json        # Prestige system data
-├── cosmetic_purchases.json   # Shop purchases and equipped items
-├── daily_quests.json         # Quest progress and completions
-├── behavior_patterns.json    # User behavior analytics
-├── weekly_points.json        # Telefonie points system
-├── champions.json            # Leaderboard data
-└── scores.json               # Overall scoring system
+├── blocked_dates.json         # 🆕 Gesperrte Termine (Feiertage + Custom)
+├── user_badges.json          # Badge-Vergaben und Zeitstempel
+├── user_levels.json          # XP und Level-Progression
+├── daily_user_stats.json     # Tägliche Performance-Metriken
+├── prestige_data.json        # Prestige-System-Daten
+├── cosmetic_purchases.json   # Shop-Käufe und ausgerüstete Items
+├── daily_quests.json         # Quest-Fortschritt und Abschlüsse
+├── behavior_patterns.json    # Benutzer-Verhaltens-Analytics
+├── weekly_points.json        # Telefonie-Punkte-System
+├── champions.json            # Leaderboard-Daten
+└── scores.json               # Gesamt-Scoring-System
 ```
 
-#### Data Relationships
-- **Users** are identified by username strings
-- **Badges** link to users via username keys
-- **Quests** track progress per user per day
-- **Analytics** aggregate data across multiple timeframes
-- **Points** follow weekly cycles with rollover logic
+#### Datenbeziehungen
+- **Benutzer** werden durch Benutzername-Strings identifiziert
+- **Badges** verknüpfen zu Benutzern über Benutzername-Keys
+- **Quests** verfolgen Fortschritt pro Benutzer pro Tag
+- **Analytics** aggregieren Daten über mehrere Zeitrahmen
+- **Punkte** folgen wöchentlichen Zyklen mit Übertrag-Logic
+- **Gesperrte Termine** kombinieren automatische Feiertage mit benutzerdefinierten Sperren
 
-### API Development Guidelines
+### API-Entwicklungs-Richtlinien
 
-#### Creating New Endpoints
+#### Neue Endpoints erstellen
 ```python
 # In app/routes/api.py
 @api_bp.route("/feature/<parameter>")
 @require_login
 def api_new_feature(parameter):
-    """API endpoint for new feature"""
+    """API-Endpoint für neues Feature"""
     try:
         user = session.get("user")
         result = feature_service.process(user, parameter)
@@ -410,85 +461,100 @@ def api_new_feature(parameter):
         return jsonify({"error": str(e)}), 500
 ```
 
-#### Response Format Standards
+#### Antwortformat-Standards
 ```python
-# Success response
+# Erfolg-Antwort
 {
     "success": true,
     "data": {...},
-    "message": "Operation completed"
+    "message": "Operation abgeschlossen"
 }
 
-# Error response
+# Fehler-Antwort
 {
     "success": false,
-    "error": "Error description",
+    "error": "Fehlerbeschreibung",
     "code": "ERROR_CODE"
 }
 ```
 
-### Testing Guidelines
+### Test-Richtlinien
 
-#### Integration Test Structure
+#### Integrationstest-Struktur
 ```python
-# Add to test_integration.py
+# Zu test_integration.py hinzufügen
 def test_new_feature():
-    """Test new feature functionality"""
+    """Neue Feature-Funktionalität testen"""
     # Setup
     test_user = "test_user"
     test_data = {"param": "value"}
 
-    # Execute
+    # Ausführen
     result = new_feature_function(test_user, test_data)
 
-    # Verify
+    # Verifizieren
     assert result is not None
     assert result["success"] == True
 
-    # Cleanup if needed
+    # Aufräumen falls nötig
     cleanup_test_data()
+
+def test_holiday_blocking():
+    """Feiertags-Sperrung testen"""
+    from app.services.holiday_service import holiday_service
+    from datetime import date
+
+    # Weihnachten sollte gesperrt sein
+    christmas = date(2024, 12, 25)
+    assert holiday_service.is_holiday(christmas)
+    assert holiday_service.is_blocked_date(christmas)
+
+    # Normaler Tag sollte nicht gesperrt sein
+    normal_day = date(2024, 6, 15)
+    assert not holiday_service.is_holiday(normal_day)
 ```
 
-### Performance Considerations
+### Performance-Überlegungen
 
-#### Caching Guidelines
-- **Cache frequently accessed data** (user stats, availability)
-- **Use appropriate timeouts** (5min for dynamic, 1hr for semi-static)
-- **Implement cache invalidation** on data updates
-- **Monitor cache hit rates** for optimization
+#### Caching-Richtlinien
+- **Häufig aufgerufene Daten cachen** (Benutzer-Stats, Verfügbarkeit)
+- **Angemessene Timeouts verwenden** (5min für dynamisch, 1h für semi-statisch)
+- **Cache-Invalidierung implementieren** bei Daten-Updates
+- **Cache-Hit-Raten überwachen** für Optimierung
 
-#### Database Optimization
-- **Batch write operations** when possible
-- **Use data_persistence.save_multiple()** for bulk updates
-- **Implement data archiving** for historical records
-- **Monitor file sizes** and implement compression if needed
+#### Datenbank-Optimierung
+- **Batch-Schreiboperationen** wenn möglich
+- **data_persistence.save_multiple() verwenden** für Bulk-Updates
+- **Datenarchivierung implementieren** für historische Datensätze
+- **Dateigrößen überwachen** und Kompression implementieren falls nötig
 
-### Deployment Considerations
+### Deployment-Überlegungen
 
-#### Environment Configuration
+#### Umgebungskonfiguration
 ```bash
-# Required environment variables
-GOOGLE_CREDS_BASE64=<base64-encoded-credentials>
-CENTRAL_CALENDAR_ID=<calendar-email>
-SECRET_KEY=<strong-secret-key>
+# Erforderliche Umgebungsvariablen
+GOOGLE_CREDS_BASE64=<base64-kodierte-zugangsdaten>
+CENTRAL_CALENDAR_ID=<kalender-email>
+SECRET_KEY=<starker-secret-key>
 USERLIST=<user:pass,user2:pass2>
 
-# Optional configuration
-PERSIST_BASE=<custom-persistence-path>
+# Optionale Konfiguration
+PERSIST_BASE=<custom-persistenz-pfad>
 FLASK_ENV=<development|production>
 ADMIN_USERS=<admin1,admin2>
 ```
 
-#### Health Checks
+#### Gesundheitschecks
 ```python
-# Add health check endpoints
+# Gesundheitscheck-Endpoints hinzufügen
 @app.route('/health')
 def health_check():
-    """System health verification"""
+    """System-Gesundheits-Verifizierung"""
     checks = {
         'database': data_persistence.verify_integrity(),
         'calendar': google_calendar_service.test_connection(),
-        'cache': cache_manager.is_healthy()
+        'cache': cache_manager.is_healthy(),
+        'holidays': holiday_service.is_holiday(date(2024,12,25))  # 🆕 Holiday Service Check
     }
 
     all_healthy = all(checks.values())
@@ -500,27 +566,27 @@ def health_check():
     }), status_code
 ```
 
-## Important Notes for Development
+## Wichtige Notizen für Entwicklung
 
-### Code Quality Requirements
-- **Always use type hints** for function parameters and returns
-- **Follow PEP 8** for code formatting and style
-- **Add docstrings** for complex functions and classes
-- **Use meaningful variable names** that describe their purpose
-- **Implement proper error handling** with logging
+### Code-Qualitäts-Anforderungen
+- **Immer Type Hints verwenden** für Funktionsparameter und Returns
+- **PEP 8 befolgen** für Code-Formatierung und Stil
+- **Docstrings hinzufügen** für komplexe Funktionen und Klassen
+- **Bedeutungsvolle Variablennamen verwenden** die ihren Zweck beschreiben
+- **Ordnungsgemäße Fehlerbehandlung implementieren** mit Logging
 
-### Security Requirements
-- **Never commit credentials** or sensitive data
-- **Always validate user input** before processing
-- **Use parameterized queries** to prevent injection attacks
-- **Implement rate limiting** for API endpoints
-- **Log security-relevant events** for audit trails
+### Sicherheits-Anforderungen
+- **Niemals Zugangsdaten committen** oder sensible Daten
+- **Immer Benutzereingaben validieren** vor Verarbeitung
+- **Parametrisierte Queries verwenden** um Injection-Angriffe zu verhindern
+- **Rate Limiting implementieren** für API-Endpoints
+- **Sicherheitsrelevante Ereignisse protokollieren** für Audit-Trails
 
-### Performance Requirements
-- **Profile critical code paths** for bottlenecks
-- **Implement caching** for expensive operations
-- **Use background tasks** for heavy processing
-- **Monitor memory usage** and optimize data structures
-- **Test under load** to ensure scalability
+### Performance-Anforderungen
+- **Kritische Code-Pfade profilieren** für Engpässe
+- **Caching implementieren** für teure Operationen
+- **Background-Tasks verwenden** für schwere Verarbeitung
+- **Speicherverbrauch überwachen** und Datenstrukturen optimieren
+- **Unter Last testen** um Skalierbarkeit zu gewährleisten
 
-This comprehensive slot booking application represents a sophisticated business platform that can serve as the foundation for extensive enterprise applications and multi-program ecosystems.
+Diese umfassende Slot-Booking-Anwendung repräsentiert eine ausgeklügelte Geschäftsplattform, die als Grundlage für umfangreiche Enterprise-Anwendungen und Multi-Programm-Ökosysteme dienen kann.

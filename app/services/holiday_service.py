@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Holiday service for German NRW holidays and custom blocked dates
+Feiertags-Service für deutsche NRW-Feiertage und benutzerdefinierte gesperrte Termine
 """
 
 try:
@@ -8,7 +8,7 @@ try:
     HOLIDAYS_AVAILABLE = True
 except ImportError:
     HOLIDAYS_AVAILABLE = False
-    print("WARNING: holidays package not available - holiday blocking disabled")
+    print("WARNUNG: holidays Package nicht verfügbar - Feiertags-Sperrung deaktiviert")
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Set, Optional, Any
 import pytz
@@ -20,7 +20,7 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 
 
 class HolidayService:
-    """Service for managing German NRW holidays and custom blocked dates"""
+    """Service für Verwaltung deutscher NRW-Feiertage und benutzerdefinierter gesperrter Termine"""
 
     def __init__(self):
         if HOLIDAYS_AVAILABLE:
@@ -31,24 +31,24 @@ class HolidayService:
         self._cache_timestamp = None
 
     def is_holiday(self, check_date: date) -> bool:
-        """Check if a date is a German NRW holiday"""
+        """Prüft, ob ein Datum ein deutscher NRW-Feiertag ist"""
         if not HOLIDAYS_AVAILABLE:
             return False
         return check_date in self.german_holidays
 
     def get_holiday_name(self, check_date: date) -> Optional[str]:
-        """Get the name of the holiday for a given date"""
+        """Gibt den Namen des Feiertags für ein gegebenes Datum zurück"""
         if not HOLIDAYS_AVAILABLE:
             return None
         return self.german_holidays.get(check_date)
 
     def is_blocked_date(self, check_date: date) -> bool:
-        """Check if a date is blocked (holiday or custom block)"""
-        # Check if it's a German NRW holiday
+        """Prüft, ob ein Datum gesperrt ist (Feiertag oder benutzerdefinierte Sperrung)"""
+        # Prüfen ob es ein deutscher NRW-Feiertag ist
         if self.is_holiday(check_date):
             return True
 
-        # Check custom blocked dates
+        # Benutzerdefinierte gesperrte Termine prüfen
         blocked_dates = self._get_blocked_dates()
         date_str = check_date.strftime('%Y-%m-%d')
         return date_str in blocked_dates.get('custom_blocks', {})
