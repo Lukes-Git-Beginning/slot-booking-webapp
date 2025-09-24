@@ -87,6 +87,7 @@ def scoreboard():
 
     # Get level data for all users in ranking
     user_levels = {}
+    user_cosmetics = {}
     for username, _ in ranking:
         try:
             if level_system:
@@ -98,6 +99,20 @@ def scoreboard():
             print(f"Level calculation error for {username}: {e}")
             user_levels[username] = {"level": 1, "level_title": "Anfänger", "xp": 0}
 
+        # Get cosmetics data for each user
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            from cosmetics_shop import CosmeticsShop
+
+            shop = CosmeticsShop()
+            cosmetics_data = shop.get_user_cosmetics(username)
+            user_cosmetics[username] = cosmetics_data.get('active', {})
+        except Exception as e:
+            print(f"Cosmetics data error for {username}: {e}")
+            user_cosmetics[username] = {"title": None, "theme": "default", "avatar": "🧑‍💼", "effects": []}
+
     return render_template("scoreboard.html",
                          ranking=ranking,
                          user_score=user_score,
@@ -105,7 +120,8 @@ def scoreboard():
                          current_user=user,
                          champion=champion,
                          badge_leaderboard=badge_leaderboard,
-                         user_levels=user_levels)
+                         user_levels=user_levels,
+                         user_cosmetics=user_cosmetics)
 
 
 @scoreboard_bp.route("/badges")

@@ -109,11 +109,27 @@ def get_user_achievements(username):
 def get_user_cosmetics(username):
     """User Cosmetic Items"""
     try:
-        from cosmetics_shop import cosmetics_shop
-        return cosmetics_shop.get_user_cosmetics(username)
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        from cosmetics_shop import CosmeticsShop
+
+        shop = CosmeticsShop()
+        result = shop.get_user_cosmetics(username)
+
+        # Sicherstellen dass owned richtig strukturiert ist
+        if 'owned' not in result:
+            result['owned'] = {'titles': [], 'themes': [], 'avatars': [], 'effects': []}
+        elif not result['owned']:
+            result['owned'] = {'titles': [], 'themes': [], 'avatars': [], 'effects': []}
+
+        return result
     except Exception as e:
         print(f"Cosmetics data error for {username}: {e}")
-        return {'owned': {}, 'active': {}}
+        return {
+            'owned': {'titles': [], 'themes': [], 'avatars': [], 'effects': []},
+            'active': {'title': None, 'theme': 'default', 'avatar': '🧑‍💼', 'effects': []}
+        }
 
 
 def get_user_activity_timeline(username):

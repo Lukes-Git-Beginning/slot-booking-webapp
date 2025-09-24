@@ -635,10 +635,22 @@
               <td>
                 <div class="player-info">
                   <div class="player-avatar" data-user="{{ player[0] }}">
-                    {{ player[0][0].upper() }}
+                    {% set user_cosmetics_data = user_cosmetics.get(player[0], {}) %}
+                    {% if user_cosmetics_data.get('avatar') %}
+                      {{ user_cosmetics_data.get('avatar') }}
+                    {% else %}
+                      {{ player[0][0].upper() }}
+                    {% endif %}
                   </div>
                   <div>
-                    <div class="player-name">{{ player[0] }}</div>
+                    <div class="player-name">
+                      {% if user_cosmetics_data.get('title') %}
+                        <span class="player-title" style="color: #3b82f6; font-weight: 600; font-size: 12px;">
+                          {{ user_cosmetics_data.get('title') }}
+                        </span><br>
+                      {% endif %}
+                      {{ player[0] }}
+                    </div>
                   </div>
                 </div>
               </td>
@@ -674,10 +686,22 @@
         <div class="badge-leaderboard-item" onclick="openUserProfile('{{ player.user }}')" style="cursor: pointer;">
           <div class="player-info">
             <div class="player-avatar" data-user="{{ player.user }}">
-              {{ player.user[0].upper() }}
+              {% set user_cosmetics_data = user_cosmetics.get(player.user, {}) %}
+              {% if user_cosmetics_data.get('avatar') %}
+                {{ user_cosmetics_data.get('avatar') }}
+              {% else %}
+                {{ player.user[0].upper() }}
+              {% endif %}
             </div>
             <div>
-              <div class="player-name">{{ player.user }}</div>
+              <div class="player-name">
+                {% if user_cosmetics_data.get('title') %}
+                  <span class="player-title" style="color: #3b82f6; font-weight: 600; font-size: 12px;">
+                    {{ user_cosmetics_data.get('title') }}
+                  </span><br>
+                {% endif %}
+                {{ player.user }}
+              </div>
               <div class="player-badges">
                 {% for badge in player.badges[:5] %}
                   <span class="badge-mini rarity-{{ badge.rarity }}">
