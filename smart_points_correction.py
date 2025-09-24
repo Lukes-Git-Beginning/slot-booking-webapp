@@ -156,15 +156,28 @@ def analyze_recent_bookings_smart():
 
 def get_current_scores():
     """Load current user scores"""
-    scores_file = "data/persistent/persistent_data.json"
-    if os.path.exists(scores_file):
-        try:
-            with open(scores_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data.get('scores', {})
-        except Exception as e:
-            print(f"FEHLER beim Laden der Scores: {e}")
-            return {}
+    possible_paths = [
+        "data/persistent/persistent_data.json",
+        "src/data/persistent/persistent_data.json",
+        "/opt/render/project/src/data/persistent/persistent_data.json",
+        "static/persistent_data.json",
+        "persistent_data.json"
+    ]
+
+    print("Suche nach Scores-Datei:")
+    for scores_file in possible_paths:
+        print(f"  Prüfe: {scores_file} - {'EXISTS' if os.path.exists(scores_file) else 'NOT FOUND'}")
+        if os.path.exists(scores_file):
+            try:
+                with open(scores_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    scores = data.get('scores', {})
+                    print(f"  ✓ Scores geladen: {list(scores.keys())}")
+                    return scores
+            except Exception as e:
+                print(f"  ✗ FEHLER beim Laden {scores_file}: {e}")
+
+    print("  Keine Scores-Datei gefunden!")
     return {}
 
 def save_corrected_scores(scores):
@@ -201,6 +214,37 @@ def apply_smart_corrections():
 
     # Analyze recent bookings
     user_corrections, detailed_analysis = analyze_recent_bookings_smart()
+
+    if not user_corrections and detailed_analysis:
+        # Fallback: Equal distribution based on total excess points
+        print(f"\nKeine Benutzer-spezifischen Daten gefunden.")
+        print("FALLBACK: Gleichmäßige Verteilung basierend auf aktuellen Scores...")
+
+        total_excess = sum(analysis['total_excess'] for analysis in detailed_analysis)
+        print(f"Gesamt-Überschuss aus Buchungen: {total_excess} Punkte")
+
+        if current_scores:
+            current_month = datetime.now(TZ).strftime("%Y-%m")
+            active_users = []
+
+            for user, user_scores in current_scores.items():
+                if current_month in user_scores and user_scores[current_month] > 0:
+                    active_users.append(user)
+
+            print(f"Aktive Benutzer mit Punkten: {active_users}")
+
+            if active_users:
+                # Distribute excess based on current score proportion
+                total_current_points = sum(current_scores[user].get(current_month, 0) for user in active_users)
+
+                for user in active_users:
+                    user_current = current_scores[user].get(current_month, 0)
+                    if total_current_points > 0:
+                        proportion = user_current / total_current_points
+                        estimated_excess = int(total_excess * proportion)
+                        if estimated_excess > 0:
+                            user_corrections[user] = estimated_excess
+                            print(f"  {user}: {user_current} Punkte -> geschätzt {estimated_excess} Punkte-Überschuss")
 
     if not user_corrections:
         print("\nKeine automatischen Korrekturen identifiziert.")
