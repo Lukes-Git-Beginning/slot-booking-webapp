@@ -48,16 +48,39 @@ def load_tracking_data():
     ]
 
     tracking_data = {}
+    print("Suche nach Tracking-Dateien:")
+
     for file_path in tracking_files:
+        print(f"  Prüfe: {file_path} - {'EXISTS' if os.path.exists(file_path) else 'NOT FOUND'}")
         if os.path.exists(file_path):
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     tracking_data[os.path.basename(file_path)] = data
-                    print(f"Geladen: {file_path}")
+                    print(f"  ✓ Geladen: {file_path} ({len(data)} Einträge)")
             except Exception as e:
-                print(f"WARNUNG: Konnte {file_path} nicht laden: {e}")
+                print(f"  ✗ FEHLER beim Laden {file_path}: {e}")
+        else:
+            # Try alternative paths
+            alt_paths = [
+                file_path.replace("data/", ""),
+                file_path.replace("data/", "static/"),
+                f"src/{file_path}",
+                f"/opt/render/project/src/{file_path}"
+            ]
+            for alt_path in alt_paths:
+                if os.path.exists(alt_path):
+                    print(f"  ✓ Gefunden unter: {alt_path}")
+                    try:
+                        with open(alt_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            tracking_data[os.path.basename(file_path)] = data
+                            print(f"    Geladen: ({len(data)} Einträge)")
+                    except Exception as e:
+                        print(f"    FEHLER: {e}")
+                    break
 
+    print(f"Geladene Tracking-Dateien: {list(tracking_data.keys())}")
     return tracking_data
 
 def analyze_recent_bookings_smart():
@@ -182,7 +205,7 @@ def apply_smart_corrections():
     if not user_corrections:
         print("\nKeine automatischen Korrekturen identifiziert.")
         print("Möglicherweise sind bereits korrekte Punkte vergeben oder keine Tracking-Daten verfügbar.")
-        return
+        return {}, current_scores
 
     print("\n" + "=" * 50)
     print("IDENTIFIZIERTE KORREKTUREN:")
