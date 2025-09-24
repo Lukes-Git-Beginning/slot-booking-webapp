@@ -157,11 +157,12 @@ def analyze_recent_bookings_smart():
 def get_current_scores():
     """Load current user scores"""
     possible_paths = [
+        "persist/persistent/scores.json",
+        "./persist/persistent/scores.json",
+        "/opt/render/project/src/persist/persistent/scores.json",
         "data/persistent/persistent_data.json",
-        "src/data/persistent/persistent_data.json",
-        "/opt/render/project/src/data/persistent/persistent_data.json",
         "static/persistent_data.json",
-        "persistent_data.json"
+        "scores.json"
     ]
 
     print("Suche nach Scores-Datei:")
@@ -171,7 +172,11 @@ def get_current_scores():
             try:
                 with open(scores_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    scores = data.get('scores', {})
+                    # Handle both formats: direct scores or nested in 'scores' key
+                    if isinstance(data, dict) and 'scores' in data:
+                        scores = data['scores']
+                    else:
+                        scores = data
                     print(f"  ✓ Scores geladen: {list(scores.keys())}")
                     return scores
             except Exception as e:
@@ -182,25 +187,25 @@ def get_current_scores():
 
 def save_corrected_scores(scores):
     """Save corrected scores back to file"""
-    scores_file = "data/persistent/persistent_data.json"
-    try:
-        # Load existing data
-        data = {}
+    possible_paths = [
+        "persist/persistent/scores.json",
+        "./persist/persistent/scores.json",
+        "/opt/render/project/src/persist/persistent/scores.json"
+    ]
+
+    for scores_file in possible_paths:
         if os.path.exists(scores_file):
-            with open(scores_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            try:
+                # For scores.json, save directly as scores (not nested in data object)
+                with open(scores_file, 'w', encoding='utf-8') as f:
+                    json.dump(scores, f, indent=2, ensure_ascii=False)
+                print(f"Scores gespeichert in: {scores_file}")
+                return True
+            except Exception as e:
+                print(f"FEHLER beim Speichern {scores_file}: {e}")
 
-        # Update scores
-        data['scores'] = scores
-
-        # Save back
-        with open(scores_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-        return True
-    except Exception as e:
-        print(f"FEHLER beim Speichern: {e}")
-        return False
+    print("Konnte keine Scores-Datei zum Speichern finden!")
+    return False
 
 def apply_smart_corrections():
     """Apply smart corrections automatically"""
