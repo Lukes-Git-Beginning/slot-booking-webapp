@@ -40,7 +40,7 @@ def scoreboard():
     # Auto-unlock all cosmetics for admin users
     if user and user in config.get_admin_users():
         try:
-            from cosmetics_shop import cosmetics_shop
+            from app.services.cosmetics_shop import cosmetics_shop
             unlock_result = cosmetics_shop.unlock_all_for_admin(user)
             if unlock_result.get("success"):
                 print(f"Admin cosmetics unlocked for {user}")
@@ -104,7 +104,7 @@ def scoreboard():
             import sys
             import os
             sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            from cosmetics_shop import CosmeticsShop
+            from app.services.cosmetics_shop import CosmeticsShop
 
             shop = CosmeticsShop()
             cosmetics_data = shop.get_user_cosmetics(username)

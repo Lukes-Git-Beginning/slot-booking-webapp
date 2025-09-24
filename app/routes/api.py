@@ -55,7 +55,7 @@ def api_user_badges_by_username(username):
 def api_user_avatar(username):
     """Get user's active avatar emoji"""
     try:
-        from cosmetics_shop import CosmeticsShop
+        from app.services.cosmetics_shop import CosmeticsShop
         cosmetics_shop = CosmeticsShop()
         user_cosmetics = cosmetics_shop.get_user_cosmetics(username)
 

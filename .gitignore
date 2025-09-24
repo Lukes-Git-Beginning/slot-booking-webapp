@@ -38,6 +38,10 @@ Thumbs.db
 # Logs
 *.log
 
+# Sensitive credentials
+service_account.json
+.env
+
 # Temporary files
 *.tmp
 *.temp

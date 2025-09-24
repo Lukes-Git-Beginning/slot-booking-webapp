@@ -109,10 +109,7 @@ def get_user_achievements(username):
 def get_user_cosmetics(username):
     """User Cosmetic Items"""
     try:
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        from cosmetics_shop import CosmeticsShop
+        from app.services.cosmetics_shop import CosmeticsShop
 
         shop = CosmeticsShop()
         result = shop.get_user_cosmetics(username)

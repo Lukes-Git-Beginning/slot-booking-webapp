@@ -10,13 +10,13 @@ import traceback
 
 # Import der neuen Systeme
 try:
-    from prestige_system import prestige_system
-    from daily_quests import daily_quest_system
-    from analytics_system import analytics_system
-    from personalization_system import personalization_system
+    from app.services.prestige_system import prestige_system
+    from app.services.daily_quests import daily_quest_system
+    from app.services.legacy.analytics_system import analytics_system
+    from app.services.personalization_system import personalization_system
     from app.services.achievement_system import achievement_system
     from app.services.level_system import LevelSystem
-    from cosmetics_shop import cosmetics_shop
+    from app.services.cosmetics_shop import cosmetics_shop
 except ImportError as e:
     print(f"Import Error in gamification_routes: {e}")
     # Set fallback objects to prevent further errors
@@ -392,7 +392,7 @@ def api_user_avatar(username):
 def api_user_cosmetics(username):
     """API: Vollständige User-Cosmetics für Theme/Avatar-Anwendung"""
     try:
-        from cosmetics_shop import cosmetics_shop
+        from app.services.cosmetics_shop import cosmetics_shop
         cosmetics_data = cosmetics_shop.get_user_cosmetics(username)
         return jsonify({
             'success': True,

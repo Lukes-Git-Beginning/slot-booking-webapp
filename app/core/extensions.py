@@ -35,7 +35,7 @@ def init_extensions(app: Flask) -> None:
         print(f"WARNING: Persistenz-Init Hinweis: {e}")
 
     # Import and initialize error handler
-    from error_handler import error_handler as eh
+    from app.utils.error_handler import error_handler as eh
     error_handler = eh
     error_handler.init_app(app)
 

@@ -13,7 +13,7 @@ from typing import Dict, Any, Optional, Union, List
 from contextlib import contextmanager
 from functools import wraps
 import traceback
-from config import logging_config
+from app.config.legacy_config import logging_config
 
 class StructuredFormatter(logging.Formatter):
     """Custom Formatter für strukturierte Logs"""

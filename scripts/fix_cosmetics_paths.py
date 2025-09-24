@@ -91,9 +91,12 @@ def test_cosmetics_loading():
     try:
         # Import cosmetics shop
         import sys
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        import os
+        # Add the parent directory to Python path to access app modules
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.insert(0, parent_dir)
 
-        from cosmetics_shop import cosmetics_shop
+        from app.services.cosmetics_shop import cosmetics_shop
 
         # Test loading for a dummy user
         test_user = "test_user"
