@@ -73,10 +73,9 @@ def scoreboard():
 
     month = datetime.now(TZ).strftime("%Y-%m")
 
-    # Exclude admin users from scoreboard
-    admin_users = config.get_admin_users()
+    # Exclude only explicitly excluded users from scoreboard
     excluded_users = gamification_config.get_excluded_champion_users()
-    all_excluded = set(admin_users + excluded_users)
+    all_excluded = set(excluded_users)
 
     # Filter out excluded users
     filtered_scores = {u: v for u, v in scores.items() if u not in all_excluded}
