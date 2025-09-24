@@ -8,12 +8,16 @@ try:
     HOLIDAYS_AVAILABLE = True
 except ImportError:
     HOLIDAYS_AVAILABLE = False
-    print("WARNUNG: holidays Package nicht verfügbar - Feiertags-Sperrung deaktiviert")
+    logger.warning("holidays Package nicht verfügbar - Feiertags-Sperrung deaktiviert")
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Set, Optional, Any
 import pytz
+import logging
 
 from app.config.base import slot_config
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -88,7 +92,7 @@ class HolidayService:
             return self._save_blocked_dates(blocked_dates)
 
         except Exception as e:
-            print(f"Error adding custom block: {e}")
+            logger.error(f"Error adding custom block", extra={'error': str(e)})
             return False
 
     def remove_custom_block(self, block_date: date) -> bool:
@@ -107,7 +111,7 @@ class HolidayService:
             return True  # Already not present
 
         except Exception as e:
-            print(f"Error removing custom block: {e}")
+            logger.error(f"Error removing custom block", extra={'error': str(e)})
             return False
 
     def get_upcoming_holidays(self, days_ahead: int = 30) -> List[Dict[str, Any]]:

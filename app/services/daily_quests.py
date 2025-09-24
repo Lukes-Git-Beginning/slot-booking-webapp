@@ -8,8 +8,12 @@ import os
 import json
 import pytz
 import random
+import logging
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -400,7 +404,7 @@ class DailyQuestSystem:
                 from achievement_system import achievement_system
                 achievement_system.add_points_and_check_achievements(user, xp_reward)
             except Exception as e:
-                print(f"Warning: Could not add XP rewards via achievement system: {e}")
+                logger.warning(f"Could not add XP rewards via achievement system", extra={'error': str(e)})
         
         # Punkte (delegieren an Scoring-System)
         if "points" in rewards:
@@ -411,7 +415,7 @@ class DailyQuestSystem:
                 from achievement_system import achievement_system
                 achievement_system.add_points_and_check_achievements(user, points_reward)
             except Exception as e:
-                print(f"Warning: Could not add points rewards via achievement system: {e}")
+                logger.warning(f"Could not add points rewards via achievement system", extra={'error': str(e)})
         
         # Spezielle Rewards
         for reward_type in ["badge", "streak_protection", "spins"]:

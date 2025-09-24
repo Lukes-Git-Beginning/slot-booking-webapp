@@ -8,9 +8,13 @@ import os
 import json
 import pytz
 import numpy as np
+import logging
 from datetime import datetime, timedelta, time
 from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Optional
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -133,7 +137,7 @@ class AdvancedAnalytics:
                     stats["consistency_rating"] = "Verbesserungsfähig"
         
         except Exception as e:
-            print(f"Fehler bei Overview-Generierung für {user}: {e}")
+            logger.error(f"Fehler bei Overview-Generierung für {user}", extra={'error': str(e)})
         
         return stats
     
@@ -218,7 +222,7 @@ class AdvancedAnalytics:
                 patterns["consistency_score"] = max(0, 100 - (hour_entropy + day_entropy) * 10)
         
         except Exception as e:
-            print(f"Fehler bei Muster-Analyse für {user}: {e}")
+            logger.error(f"Fehler bei Muster-Analyse für {user}", extra={'error': str(e)})
         
         return patterns
     
@@ -289,7 +293,7 @@ class AdvancedAnalytics:
                 trends["strength_areas"].append("Aktive Buchungstätigkeit")
         
         except Exception as e:
-            print(f"Fehler bei Trend-Analyse für {user}: {e}")
+            logger.error(f"Fehler bei Trend-Analyse für {user}", extra={'error': str(e)})
         
         return trends
     
@@ -364,7 +368,7 @@ class AdvancedAnalytics:
                     insights["achievement_preference"] = "Competition Driven"
         
         except Exception as e:
-            print(f"Fehler bei Insights-Generierung für {user}: {e}")
+            logger.error(f"Fehler bei Insights-Generierung für {user}", extra={'error': str(e)})
         
         return insights
     
@@ -429,7 +433,7 @@ class AdvancedAnalytics:
                 })
         
         except Exception as e:
-            print(f"Fehler bei Achievement-Analyse für {user}: {e}")
+            logger.error(f"Fehler bei Achievement-Analyse für {user}", extra={'error': str(e)})
         
         return analysis
     
@@ -475,7 +479,7 @@ class AdvancedAnalytics:
                     days_needed = xp_needed / daily_avg_points
                     predictions["next_level_eta"] = f"{int(days_needed)} Tage"
             except (ImportError, AttributeError, ValueError, TypeError) as e:
-                print(f"Warning: Error calculating level predictions for {user}: {e}")
+                logger.warning(f"Error calculating level predictions for {user}", extra={'error': str(e)})
                 pass
             
             # Streak Survival Probability
@@ -513,7 +517,7 @@ class AdvancedAnalytics:
                 predictions["recommended_actions"].append("📈 Mehr tägliche Aktivitäten")
         
         except Exception as e:
-            print(f"Fehler bei Predictions für {user}: {e}")
+            logger.error(f"Fehler bei Predictions für {user}", extra={'error': str(e)})
         
         return predictions
     
@@ -571,7 +575,7 @@ class AdvancedAnalytics:
                 recommendations["gamification_focus"].append("🔥 Baue längere Streaks auf")
         
         except Exception as e:
-            print(f"Fehler bei Recommendations für {user}: {e}")
+            logger.error(f"Fehler bei Recommendations für {user}", extra={'error': str(e)})
         
         return recommendations
     
@@ -613,7 +617,7 @@ class AdvancedAnalytics:
                     comparisons["improvement_opportunities"].append("Punkte-Performance steigern")
         
         except Exception as e:
-            print(f"Fehler bei Peer-Comparisons für {user}: {e}")
+            logger.error(f"Fehler bei Peer-Comparisons für {user}", extra={'error': str(e)})
         
         return comparisons
     
@@ -639,7 +643,7 @@ class AdvancedAnalytics:
                 week_key = f"{iso_year}-W{iso_week:02d}"
                 weekly_data[week_key].append(stats)
             except (ValueError, TypeError, AttributeError) as e:
-                print(f"Warning: Invalid date format in weekly analytics: {date_str}, {e}")
+                logger.warning(f"Invalid date format in weekly analytics: {date_str}", extra={'error': str(e)})
                 continue
         return weekly_data
     
