@@ -7,8 +7,12 @@ Gamification mit Badges, Achievements und MVP-System
 import os
 import json
 import pytz
+import logging
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -266,13 +270,13 @@ class AchievementSystem:
             from app.core.extensions import data_persistence
             return data_persistence.load_badges()
         except Exception as e:
-            print(f"Fehler beim Laden der Badges über data_persistence: {e}")
+            logger.error(f"Fehler beim Laden der Badges über data_persistence: {e}")
             # Fallback: Direkt laden
             try:
                 with open(self.badges_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-                print(f"Warning: Could not load badges file: {e}")
+                logger.warning(f"Could not load badges file: {e}")
                 return {}
     
     def save_badges(self, badges_data):
@@ -281,13 +285,13 @@ class AchievementSystem:
             from app.core.extensions import data_persistence
             data_persistence.save_user_badges(badges_data)
         except Exception as e:
-            print(f"Fehler beim Speichern der Badges: {e}")
+            logger.error(f"Fehler beim Speichern der Badges: {e}")
             # Fallback: Direkt speichern falls data_persistence nicht verfügbar
             try:
                 with open(self.badges_file, "w", encoding="utf-8") as f:
                     json.dump(badges_data, f, ensure_ascii=False, indent=2)
             except Exception as e2:
-                print(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
+                logger.error(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
     
     def load_mvp_badges(self):
         """Lade MVP-Badges"""
@@ -295,7 +299,7 @@ class AchievementSystem:
             with open(self.mvp_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-            print(f"Warning: Could not load MVP file: {e}")
+            logger.warning(f"Could not load MVP file: {e}")
             return {}
     
     def save_mvp_badges(self, mvp_data):
@@ -309,7 +313,7 @@ class AchievementSystem:
             # Backup über data_persistence erstellen
             data_persistence._create_backup("mvp_badges.json", mvp_data)
         except Exception as e:
-            print(f"Fehler beim Speichern der MVP-Badges: {e}")
+            logger.error(f"Fehler beim Speichern der MVP-Badges: {e}")
     
     def load_daily_stats(self):
         """Lade tägliche User-Statistiken über data_persistence"""
@@ -317,13 +321,13 @@ class AchievementSystem:
             from app.core.extensions import data_persistence
             return data_persistence.load_daily_user_stats()
         except Exception as e:
-            print(f"Fehler beim Laden der Daily Stats über data_persistence: {e}")
+            logger.error(f"Fehler beim Laden der Daily Stats über data_persistence: {e}")
             # Fallback: Direkt laden
             try:
                 with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
                     return json.load(f)
             except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-                print(f"Warning: Could not load daily stats: {e}")
+                logger.warning(f"Could not load daily stats: {e}")
                 return {}
     
     def save_daily_stats(self, stats_data):
@@ -332,13 +336,13 @@ class AchievementSystem:
             from app.core.extensions import data_persistence
             data_persistence.save_daily_user_stats(stats_data)
         except Exception as e:
-            print(f"Fehler beim Speichern der Stats: {e}")
+            logger.error(f"Fehler beim Speichern der Stats: {e}")
             # Fallback: Direkt speichern
             try:
                 with open("static/daily_user_stats.json", "w", encoding="utf-8") as f:
                     json.dump(stats_data, f, ensure_ascii=False, indent=2)
             except Exception as e2:
-                print(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
+                logger.error(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
     
     def add_points_and_check_achievements(self, user, points):
         """
@@ -390,7 +394,7 @@ class AchievementSystem:
             return new_badges
             
         except Exception as e:
-            print(f"❌ Achievement System Fehler: {e}")
+            logger.error(f"Achievement System Fehler: {e}")
             return []
     
     def check_achievements(self, user, scores, daily_stats, badges_data):
@@ -511,7 +515,7 @@ class AchievementSystem:
         badges_data[user]["earned_dates"][badge_id] = badge["earned_date"]
         badges_data[user]["total_badges"] += 1
         
-        print(f"Badge verliehen: {user} erhaelt '{definition['name']}'")
+        logger.info(f"Badge verliehen: {user} erhaelt '{definition['name']}'")
         
         return badge
     
@@ -626,7 +630,7 @@ class AchievementSystem:
             self.save_mvp_badges(mvp_data)
             
         except Exception as e:
-            print(f"❌ MVP-Badge Fehler: {e}")
+            logger.error(f"MVP-Badge Fehler: {e}")
     
     def award_mvp_badge(self, user, badge_type, period, mvp_data):
         """Vergebe MVP-Badge an User"""
@@ -654,7 +658,7 @@ class AchievementSystem:
         mvp_data[user]["badges"].append(badge)
         mvp_data[user]["periods"][period] = badge["earned_date"]
         
-        print(f"MVP-Badge verliehen: {user} erhaelt '{definition['name']}' fuer {period}")
+        logger.info(f"MVP-Badge verliehen: {user} erhaelt '{definition['name']}' fuer {period}")
         
         return badge
     
@@ -701,7 +705,7 @@ class AchievementSystem:
                 "total_badges": len(enriched_badges)
             }
         except Exception as e:
-            print(f"Error getting user badges for {user}: {e}")
+            logger.error(f"Error getting user badges for {user}: {e}")
             return {"badges": [], "total_badges": 0}
     
     def calculate_badges_from_points(self, user, scores):
@@ -731,9 +735,9 @@ class AchievementSystem:
                 if date_obj >= week_start.date():
                     week_points += stats.get("points", 0)
             except (ValueError, TypeError) as e:
-                print(f"Warning: Invalid date format in user stats: {date_str}, {e}")
+                logger.warning(f"Invalid date format in user stats: {date_str}", extra={'error': str(e)})
                 continue
-        
+
         # Streak berechnen
         current_streak = self.calculate_streak(user_stats)
         
@@ -776,7 +780,7 @@ class AchievementSystem:
                             earned = True
                             earned_date = current_month
                     except (KeyError, TypeError, ValueError, AttributeError) as e:
-                        print(f"Warning: Error checking month champion for {user}: {e}")
+                        logger.warning(f"Error checking month champion for {user}", extra={'error': str(e)})
                         pass
                 elif badge_id == "mvp_year":
                     # Prüfe ob User Champion des aktuellen Jahres ist
@@ -787,7 +791,7 @@ class AchievementSystem:
                             earned = True
                             earned_date = str(current_year)
                     except (KeyError, TypeError, ValueError, AttributeError) as e:
-                        print(f"Warning: Error checking year champion for {user}: {e}")
+                        logger.warning(f"Error checking year champion for {user}", extra={'error': str(e)})
                         pass
             
             if earned:
@@ -864,9 +868,9 @@ class AchievementSystem:
                 if date_obj >= week_start.date():
                     week_points += stats.get("points", 0)
             except (ValueError, TypeError) as e:
-                print(f"Warning: Invalid date format in user stats: {date_str}, {e}")
+                logger.warning(f"Invalid date format in user stats: {date_str}", extra={'error': str(e)})
                 continue
-        
+
         # Berechne Streak
         current_streak = self.calculate_streak(user_stats)
         
@@ -930,7 +934,7 @@ class AchievementSystem:
             return new_badges
 
         except Exception as e:
-            print(f"❌ Error processing achievements for {user}: {e}")
+            logger.error(f"Error processing achievements for {user}", extra={'error': str(e)})
             return []
 
     def backfill_persistent_badges(self):
@@ -1037,7 +1041,7 @@ class AchievementSystem:
             return {"users_processed": len(users), "badges_awarded": total_awarded}
 
         except Exception as e:
-            print(f"Backfill-Fehler: {e}")
+            logger.error(f"Backfill-Fehler", extra={'error': str(e)})
             return {"users_processed": 0, "badges_awarded": 0, "error": str(e)}
 
     def calculate_streak(self, user_stats):
@@ -1067,14 +1071,14 @@ class AchievementSystem:
             scores = data_persistence.load_scores()
             daily_stats = data_persistence.load_daily_user_stats()
         except (ImportError, AttributeError) as e:
-            print(f"Warning: Could not import data_persistence, falling back to static files: {e}")
+            logger.warning(f"Could not import data_persistence, falling back to static files", extra={'error': str(e)})
             try:
                 with open("static/scores.json", "r", encoding="utf-8") as f:
                     scores = json.load(f)
                 with open("static/daily_user_stats.json", "r", encoding="utf-8") as f:
                     daily_stats = json.load(f)
             except (FileNotFoundError, json.JSONDecodeError, IOError) as e2:
-                print(f"Warning: Could not load static files either: {e2}")
+                logger.error(f"Could not load static files either", extra={'error': str(e2)})
                 scores = {}
                 daily_stats = {}
         

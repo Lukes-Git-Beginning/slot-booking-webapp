@@ -5,7 +5,11 @@ Flask middleware and request processing
 
 from flask import Flask, session, redirect, url_for, request
 from functools import wraps
+import logging
 from app.config.base import config
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 
 def init_middleware(app: Flask) -> None:
@@ -29,7 +33,7 @@ def init_middleware(app: Flask) -> None:
         if not session.get("logged_in"):
             return redirect('/login')
 
-    print("SUCCESS: Middleware initialized successfully")
+    logger.info("Middleware initialized successfully")
 
 
 def require_admin(f):

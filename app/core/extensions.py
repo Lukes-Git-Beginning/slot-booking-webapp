@@ -6,6 +6,10 @@ Centralizes all external integrations
 
 from flask import Flask
 from typing import Optional
+import logging
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 # Global instances that will be initialized in init_extensions
 cache_manager = None
@@ -32,7 +36,7 @@ def init_extensions(app: Flask) -> None:
         data_persistence.bootstrap_from_static_if_missing()
         data_persistence.auto_cleanup_backups()
     except Exception as e:
-        print(f"WARNING: Persistenz-Init Hinweis: {e}")
+        logger.warning(f"Persistenz-Init Hinweis", extra={'error': str(e)})
 
     # Import and initialize error handler
     from app.utils.error_handler import error_handler as eh
@@ -48,7 +52,7 @@ def init_extensions(app: Flask) -> None:
         from app.services.tracking_system import BookingTracker
         tracking_system = BookingTracker()
     except Exception as e:
-        print(f"WARNING: Could not initialize tracking system: {e}")
+        logger.warning(f"Could not initialize tracking system", extra={'error': str(e)})
         tracking_system = None
 
-    print("SUCCESS: All extensions initialized successfully")
+    logger.info("All extensions initialized successfully")
