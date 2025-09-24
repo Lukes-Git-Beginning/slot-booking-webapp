@@ -117,6 +117,14 @@ def get_user_cosmetics(username):
         shop = CosmeticsShop()
         result = shop.get_user_cosmetics(username)
 
+        # Debug-Output für Admin-User
+        admin_users = ["Luke", "admin", "Jose", "Simon", "Alex", "David"]
+        if username in admin_users:
+            print(f"DEBUG: Admin-User {username} Cosmetics-Daten:")
+            print(f"  - Result structure: {result.keys()}")
+            print(f"  - Owned: {result.get('owned', {})}")
+            print(f"  - Active: {result.get('active', {})}")
+
         # Sicherstellen dass owned richtig strukturiert ist
         if 'owned' not in result:
             result['owned'] = {'titles': [], 'themes': [], 'avatars': [], 'effects': []}
@@ -126,6 +134,8 @@ def get_user_cosmetics(username):
         return result
     except Exception as e:
         print(f"Cosmetics data error for {username}: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             'owned': {'titles': [], 'themes': [], 'avatars': [], 'effects': []},
             'active': {'title': None, 'theme': 'default', 'avatar': '🧑‍💼', 'effects': []}

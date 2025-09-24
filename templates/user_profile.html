@@ -531,21 +531,57 @@
         </div>
 
         <h4 style="margin-top: 20px;">Sammlung</h4>
+
+        <!-- Debug-Info für Admin-User -->
+        {% if current_user in ['Luke', 'admin', 'Jose', 'Simon', 'Alex', 'David'] %}
+        <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px;">
+          <strong>Debug (Admin):</strong><br>
+          Cosmetics structure: {{ profile.cosmetics.keys()|list }}<br>
+          Owned structure: {{ profile.cosmetics.owned.keys()|list if profile.cosmetics.owned else 'None' }}<br>
+          Titles: {{ profile.cosmetics.owned.titles|length if profile.cosmetics.owned.titles else 'No titles' }}<br>
+          Raw data: {{ profile.cosmetics.owned }}
+        </div>
+        {% endif %}
+
         <div style="display: flex; gap: 20px; text-align: center; margin-top: 10px;">
           <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.titles|length) if profile.cosmetics.owned.titles else 0 }}</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
+              {% if profile.cosmetics.owned and profile.cosmetics.owned.titles %}
+                {{ profile.cosmetics.owned.titles|length }}
+              {% else %}
+                0
+              {% endif %}
+            </div>
             <div style="font-size: 12px; color: var(--muted);">Titel</div>
           </div>
           <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.themes|length) if profile.cosmetics.owned.themes else 0 }}</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
+              {% if profile.cosmetics.owned and profile.cosmetics.owned.themes %}
+                {{ profile.cosmetics.owned.themes|length }}
+              {% else %}
+                0
+              {% endif %}
+            </div>
             <div style="font-size: 12px; color: var(--muted);">Themes</div>
           </div>
           <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.avatars|length) if profile.cosmetics.owned.avatars else 0 }}</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
+              {% if profile.cosmetics.owned and profile.cosmetics.owned.avatars %}
+                {{ profile.cosmetics.owned.avatars|length }}
+              {% else %}
+                0
+              {% endif %}
+            </div>
             <div style="font-size: 12px; color: var(--muted);">Avatare</div>
           </div>
           <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.effects|length) if profile.cosmetics.owned.effects else 0 }}</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
+              {% if profile.cosmetics.owned and profile.cosmetics.owned.effects %}
+                {{ profile.cosmetics.owned.effects|length }}
+              {% else %}
+                0
+              {% endif %}
+            </div>
             <div style="font-size: 12px; color: var(--muted);">Effekte</div>
           </div>
         </div>
