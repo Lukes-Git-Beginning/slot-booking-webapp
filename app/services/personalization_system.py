@@ -7,8 +7,12 @@ Custom Avatars, persönliche Ziele, Themes und individuelle Einstellungen
 import os
 import json
 import pytz
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -397,7 +401,7 @@ class PersonalizationSystem:
             }
         
         except Exception as e:
-            print(f"Fehler beim Unlock-Check für {user}: {e}")
+            logger.error(f"Fehler beim Unlock-Check für {user}", extra={'error': str(e)})
             return {"newly_unlocked": [], "total_unlocked": []}
     
     def get_personal_goals(self, user):
@@ -557,7 +561,7 @@ class PersonalizationSystem:
                 goal["expired"] = False
         
         except Exception as e:
-            print(f"Fehler beim Goal-Update für {user}: {e}")
+            logger.error(f"Fehler beim Goal-Update für {user}", extra={'error': str(e)})
         
         return goal
     

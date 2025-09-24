@@ -7,8 +7,12 @@ Integriert Punkte und Badges in ein ausgewogenes Level-System
 import os
 import json
 import pytz
+import logging
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -145,7 +149,7 @@ class LevelSystem:
                 "timestamp": now_ts
             }
             level_history[user]["level_ups"].append(level_up_info)
-            print(f"🎉 LEVEL UP! {user} ist von Level {old_level} auf Level {new_level} aufgestiegen!")
+            logger.info(f"LEVEL UP! {user} ist von Level {old_level} auf Level {new_level} aufgestiegen!")
 
         # Aktualisiere Snapshot immer
         level_history[user]["current_level"] = new_level

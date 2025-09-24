@@ -7,7 +7,11 @@ Lustige Titel, Themes und Personalisierungsoptionen mit Coins kaufen
 import os
 import json
 import pytz
+import logging
 from datetime import datetime, timedelta
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -284,7 +288,7 @@ class CosmeticsShop:
             with open(self.purchases_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-            print(f"Warning: Could not load purchases file: {e}")
+            logger.warning(f"Could not load purchases file", extra={'error': str(e)})
             return {}
     
     def save_purchases(self, data):
@@ -298,7 +302,7 @@ class CosmeticsShop:
             with open(self.active_cosmetics_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-            print(f"Warning: Could not load active cosmetics file: {e}")
+            logger.warning(f"Could not load active cosmetics file", extra={'error': str(e)})
             return {}
     
     def save_active_cosmetics(self, data):
