@@ -325,17 +325,38 @@ def get_slot_suggestions(availability, n=5):
     return suggestions
 
 
-def get_slot_points(hour, slot_date):
-    """Calculate points for a time slot"""
-    # Base points
-    points = 10
+def get_slot_points(hour, slot_date, date_str=None, berater_count=None):
+    """Calculate points for a time slot based on availability and demand"""
 
-    # Bonus for evening slots
-    if hour in ["18:00", "20:00"]:
-        points += 5
+    # If we have slot information, calculate dynamic points based on utilization
+    if date_str and berater_count:
+        try:
+            slot_list, booked, total, freie_count, overbooked = get_slot_status(date_str, hour, berater_count)
 
-    # Bonus for weekend
+            # Calculate utilization rate
+            utilization = booked / total if total > 0 else 0
+
+            # Base points based on utilization (incentivize booking less full slots)
+            if utilization <= 0.33:  # 0-33% full
+                points = 5
+            elif utilization <= 0.66:  # 34-66% full
+                points = 3
+            else:  # 67-100% full
+                points = 1
+
+        except Exception:
+            # Fallback to static points if dynamic calculation fails
+            points = 3
+    else:
+        # Fallback base points when no slot data available
+        points = 3
+
+    # Time-based bonus for less popular slots
+    if hour in ["11:00", "14:00"]:
+        points += 2
+
+    # Weekend bonus
     if slot_date.weekday() >= 5:
-        points += 3
+        points += 1
 
     return points
