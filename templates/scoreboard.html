@@ -48,6 +48,10 @@
       transition: all 0.2s ease;
       cursor: pointer;
     }
+
+    .player-row:hover .player-name {
+      color: var(--accent);
+    }
     
     .player-row:hover {
       background: rgba(90,177,255,.08);
@@ -450,27 +454,93 @@
     
     /* Mobile Responsive */
     @media (max-width: 768px) {
+      .wrap {
+        padding: 10px;
+      }
+
+      .scoreboard-table {
+        font-size: 14px;
+      }
+
       .scoreboard-table th,
       .scoreboard-table td {
-        padding: 10px 15px;
+        padding: 8px 12px;
       }
-      
+
       .player-info {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 6px;
       }
-      
+
+      .player-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+      }
+
       .player-badges {
         margin-left: 0;
+        flex-wrap: wrap;
       }
-      
+
+      .badge-mini {
+        font-size: 12px;
+        width: 20px;
+        height: 20px;
+      }
+
       .quick-actions-scoreboard {
         flex-direction: column;
+        gap: 10px;
       }
-      
+
+      .action-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        justify-content: center;
+      }
+
       .stats-grid {
         grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .stat-card {
+        padding: 15px;
+      }
+
+      .stat-icon {
+        font-size: 28px;
+      }
+
+      .stat-value {
+        font-size: 20px;
+      }
+
+      .champion-section {
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+
+      .champion-name {
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .scoreboard-table th:nth-child(4),
+      .scoreboard-table td:nth-child(4) {
+        display: none; /* Hide badges column on very small screens */
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .player-title {
+        bottom: -15px;
+        font-size: 9px;
       }
     }
   </style>
@@ -554,7 +624,7 @@
           </thead>
           <tbody>
             {% for player in ranking %}
-            <tr class="player-row {% if current_user and player[0] == current_user %}current-user{% endif %}">
+            <tr class="player-row {% if current_user and player[0] == current_user %}current-user{% endif %}" onclick="openUserProfile('{{ player[0] }}')">
               <td class="rank-cell rank-{{ loop.index if loop.index <= 3 else 'other' }}">
                 {% if loop.index == 1 %}🥇
                 {% elif loop.index == 2 %}🥈  
@@ -601,7 +671,7 @@
         <h2><i class="ti ti-award"></i> Badge-Ranking</h2>
         
         {% for player in badge_leaderboard %}
-        <div class="badge-leaderboard-item">
+        <div class="badge-leaderboard-item" onclick="openUserProfile('{{ player.user }}')" style="cursor: pointer;">
           <div class="player-info">
             <div class="player-avatar" data-user="{{ player.user }}">
               {{ player.user[0].upper() }}
@@ -652,9 +722,32 @@
     
     // Lade Badges und Avatar-Customizations für alle User
     document.addEventListener('DOMContentLoaded', function() {
-      loadUserBadges();
-      loadUserAvatars();
+      showLoadingState();
+      Promise.all([
+        loadUserBadges(),
+        loadUserAvatars(),
+        applyUserThemes()
+      ]).then(() => {
+        hideLoadingState();
+      }).catch((error) => {
+        console.error('Error loading cosmetics:', error);
+        hideLoadingState();
+      });
     });
+
+    function showLoadingState() {
+      // Add subtle loading indicators
+      document.querySelectorAll('.player-badges[data-user]').forEach(container => {
+        container.innerHTML = '<div class="loading-spinner"></div>';
+      });
+    }
+
+    function hideLoadingState() {
+      // Remove any remaining loading spinners
+      document.querySelectorAll('.loading-spinner').forEach(spinner => {
+        spinner.remove();
+      });
+    }
     
     async function loadUserBadges() {
       const badgeContainers = document.querySelectorAll('.player-badges[data-user]');
@@ -726,6 +819,11 @@
       }
     }
     
+    // Click handler für User-Profile
+    function openUserProfile(username) {
+      window.location.href = `/profile/${username}`;
+    }
+
     function applyAvatarCustomization(avatarElement, customization) {
       // Avatar-Komponenten aus personalization_system.py
       const components = {
@@ -752,31 +850,47 @@
           "master": { text: "👑 Meister", color: "#f59e0b" },
           "legend": { text: "🏆 Legende", color: "#ec4899" },
           "cosmic": { text: "💫 Kosmisch", color: "#8b5cf6" }
+        },
+        avatars: {
+          // Tiere
+          "cat_face": "🐱", "dog_face": "🐶", "panda_face": "🐼", "lion_face": "🦁", "unicorn_face": "🦄",
+          // Berufe
+          "office_worker": "🧑‍💼", "scientist": "🧑‍🔬", "astronaut": "🧑‍🚀", "ninja": "🥷",
+          // Fantasy
+          "wizard": "🧙‍♂️", "vampire": "🧛‍♂️", "robot": "🤖", "alien": "👽",
+          // Luxury
+          "crown": "👑", "crystal_ball": "🔮", "diamond": "💎"
         }
       };
-      
+
+      // Avatar-Emoji anwenden (falls gesetzt)
+      if (customization.avatar && customization.avatar !== '🧑‍💼' && components.avatars[customization.avatar]) {
+        avatarElement.textContent = components.avatars[customization.avatar];
+        avatarElement.style.fontSize = '24px';
+      }
+
       // Background anwenden
       const background = components.backgrounds[customization.background] || components.backgrounds["gradient_blue"];
       avatarElement.style.setProperty('--avatar-bg', background);
-      
+
       // Border anwenden
       const border = components.borders[customization.border] || components.borders["simple"];
       avatarElement.style.setProperty('--avatar-border', border.style);
       avatarElement.style.setProperty('--avatar-glow', border.glow || 'none');
-      
+
       if (border.background) {
         avatarElement.style.background = border.background;
         avatarElement.style.backgroundClip = 'padding-box';
       }
-      
+
       // Customized-Klasse hinzufügen
       avatarElement.classList.add('customized');
-      
+
       // Effekt anwenden
       if (customization.effect && customization.effect !== 'none') {
         avatarElement.classList.add(`avatar-effect-${customization.effect}`);
       }
-      
+
       // Titel hinzufügen
       if (customization.title && customization.title !== 'none') {
         const title = components.titles[customization.title];
@@ -790,6 +904,27 @@
           titleElement.textContent = title.text;
           titleElement.style.color = title.color;
         }
+      }
+    }
+
+    async function applyUserThemes() {
+      // Apply themes for current user if they have one active
+      const currentUser = '{{ current_user }}';
+      if (!currentUser) return;
+
+      try {
+        const response = await fetch(`/api/user/${currentUser}/cosmetics`);
+        if (response.ok) {
+          const data = await response.json();
+          const activeTheme = data.active?.theme;
+
+          if (activeTheme && activeTheme !== 'default') {
+            document.body.classList.add('themed');
+            document.body.classList.add(`theme-${activeTheme.replace('_', '-')}`);
+          }
+        }
+      } catch (error) {
+        console.log('Theme loading skipped:', error);
       }
     }
   </script>

@@ -382,9 +382,28 @@ def api_user_avatar(username):
         print(f"Error in api_user_avatar: {e}")
         return jsonify({
             "background": "gradient_blue",
-            "border": "simple", 
+            "border": "simple",
             "effect": "none",
             "title": "none"
+        })
+
+@gamification_bp.route('/api/user/<username>/cosmetics')
+@require_login
+def api_user_cosmetics(username):
+    """API: Vollständige User-Cosmetics für Theme/Avatar-Anwendung"""
+    try:
+        from cosmetics_shop import cosmetics_shop
+        cosmetics_data = cosmetics_shop.get_user_cosmetics(username)
+        return jsonify({
+            'success': True,
+            'data': cosmetics_data
+        })
+    except Exception as e:
+        print(f"Error in api_user_cosmetics: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': {'owned': {}, 'active': {'theme': 'default', 'avatar': '🧑‍💼'}}
         })
 
 # ===== QUEST PROGRESS UPDATES =====

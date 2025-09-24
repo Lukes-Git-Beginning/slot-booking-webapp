@@ -10,7 +10,7 @@ import pytz
 import json
 import time
 
-from app.config.base import slot_config
+from app.config.base import slot_config, config, gamification_config
 from app.core.extensions import cache_manager, data_persistence, level_system
 from app.utils.decorators import require_login
 
@@ -37,6 +37,16 @@ def scoreboard():
     """Display scoreboard with user rankings"""
     user = session.get("user")
 
+    # Auto-unlock all cosmetics for admin users
+    if user and user in config.get_admin_users():
+        try:
+            from cosmetics_shop import cosmetics_shop
+            unlock_result = cosmetics_shop.unlock_all_for_admin(user)
+            if unlock_result.get("success"):
+                print(f"Admin cosmetics unlocked for {user}")
+        except Exception as e:
+            print(f"Failed to unlock admin cosmetics for {user}: {e}")
+
     # Try to get cached scoreboard data first
     cache_key = f"scoreboard_{datetime.now(TZ).strftime('%Y-%m-%d_%H')}"
     cached_data = cache_manager.get("scoreboard", cache_key)
@@ -62,7 +72,16 @@ def scoreboard():
         })
 
     month = datetime.now(TZ).strftime("%Y-%m")
-    ranking = sorted([(u, v.get(month, 0)) for u, v in scores.items()], key=lambda x: x[1], reverse=True)
+
+    # Exclude admin users from scoreboard
+    admin_users = config.get_admin_users()
+    excluded_users = gamification_config.get_excluded_champion_users()
+    all_excluded = set(admin_users + excluded_users)
+
+    # Filter out excluded users
+    filtered_scores = {u: v for u, v in scores.items() if u not in all_excluded}
+
+    ranking = sorted([(u, v.get(month, 0)) for u, v in filtered_scores.items()], key=lambda x: x[1], reverse=True)
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
 
