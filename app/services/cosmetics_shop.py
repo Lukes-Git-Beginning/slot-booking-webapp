@@ -228,6 +228,26 @@ AVATAR_EMOJIS = {
     "diamond": {"emoji": "💎", "name": "Diamant", "price": 800, "category": "luxury"}
 }
 
+# Avatar Shop
+AVATAR_SHOP = {
+    # Basic Avatars (50-100 Coins)
+    "business": {"emoji": "🧑‍💼", "name": "Business", "price": 50, "category": "professional"},
+    "developer": {"emoji": "👨‍💻", "name": "Developer", "price": 75, "category": "tech"},
+    "manager": {"emoji": "👩‍💼", "name": "Manager", "price": 80, "category": "professional"},
+    "student": {"emoji": "👨‍🎓", "name": "Student", "price": 60, "category": "academic"},
+
+    # Fun Avatars (100-200 Coins)
+    "ninja": {"emoji": "🥷", "name": "Ninja", "price": 150, "category": "fun"},
+    "superhero": {"emoji": "🦸", "name": "Superhero", "price": 200, "category": "heroic"},
+    "wizard": {"emoji": "🧙‍♂️", "name": "Wizard", "price": 180, "category": "mystical"},
+    "pirate": {"emoji": "🏴‍☠️", "name": "Pirate", "price": 160, "category": "adventure"},
+
+    # Premium Avatars (250-500 Coins)
+    "robot": {"emoji": "🤖", "name": "Robot", "price": 300, "category": "tech"},
+    "alien": {"emoji": "👽", "name": "Alien", "price": 400, "category": "space"},
+    "crown": {"emoji": "👑", "name": "Royal", "price": 500, "category": "luxury"}
+}
+
 # Animations/Effekte Shop
 SPECIAL_EFFECTS = {
     "sparkle_trail": {
