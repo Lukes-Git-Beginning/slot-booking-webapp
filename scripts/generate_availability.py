@@ -23,6 +23,9 @@ CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
 TZ = pytz.timezone("Europe/Berlin")
 
 # Google Calendar Farben die NICHT blockieren sollen
+# Import vom Hauptverzeichnis (ein Level höher)
+project_root = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, project_root)
 from color_mapping import NON_BLOCKING_COLORS
 
 weekday_map = {
@@ -116,7 +119,7 @@ def batch_fetch_events(consultant_calendars, start_date, end_date):
     return all_events
 
 def is_consultant_available(events, slot_start, slot_end):
-    """Prüfe ob Berater verfügbar ist basierend auf Events"""
+    """Prüfe ob Berater verfügbar ist basierend auf Events und Farbcodes"""
     has_t1_bereit = False
     has_blocking_event = False
 
@@ -135,23 +138,35 @@ def is_consultant_available(events, slot_start, slot_end):
             # Prüfe Überschneidung
             if event_start < slot_end and event_end > slot_start:
                 summary = event.get('summary', '').strip().lower()
+                color_id = event.get('colorId', None)
 
-                # Nur Titel prüfen - keine Farben berücksichtigen!
-                # Verfügbar NUR wenn explizit "T1" im Titel steht
+                # NEUE LOGIK: Erst Farbe prüfen, dann Titel
+                # 1. Wenn Color ID in NON_BLOCKING_COLORS, dann ignorieren
+                if color_id and str(color_id) in NON_BLOCKING_COLORS:
+                    print(f"  ⚪ Non-blocking Event (Farbe {color_id}): '{event.get('summary', '')}'")
+                    continue
+
+                # 2. T1-bereit Events erkennen (sowohl Titel als auch ohne blockierende Farbe)
                 if 't1' in summary and ('t1-bereit' in summary or 't1 bereit' in summary):
                     has_t1_bereit = True
-                    print(f"  ✅ T1-bereit Event gefunden: '{event.get('summary', '')}'")
+                    print(f"  ✅ T1-bereit Event gefunden: '{event.get('summary', '')}' (Farbe: {color_id})")
                 else:
-                    # Alles andere ist blockierend (T2, T2.5, T3, nach absprache, privat, etc.)
+                    # 3. Alle anderen Events sind blockierend (T2, T2.5, T3, Privat, etc.)
                     has_blocking_event = True
-                    print(f"  🚫 Blockierender Event: '{event.get('summary', '')}'")
+                    print(f"  🚫 Blockierender Event: '{event.get('summary', '')}' (Farbe: {color_id})")
 
         except Exception as e:
             print(f"⚠️ Fehler beim Parsen von Event: {e}")
             continue
 
     # Verfügbar nur wenn T1-bereit Event vorhanden UND keine blockierenden Events
-    return has_t1_bereit and not has_blocking_event
+    is_available = has_t1_bereit and not has_blocking_event
+    if is_available:
+        print(f"  ✅ Berater verfügbar (T1-bereit: {has_t1_bereit}, Blockierende Events: {has_blocking_event})")
+    else:
+        print(f"  🚫 Berater NICHT verfügbar (T1-bereit: {has_t1_bereit}, Blockierende Events: {has_blocking_event})")
+
+    return is_available
 
 def backup_availability():
     """Erstelle tägliches Backup"""

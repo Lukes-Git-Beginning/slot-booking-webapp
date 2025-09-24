@@ -37,6 +37,22 @@ class Config:
             return [user.strip() for user in admin_users_env.split(",")]
         return cls.DEFAULT_ADMIN_USERS
 
+    @classmethod
+    def get_all_users(cls) -> List[str]:
+        """Hole alle Benutzer aus USERLIST Umgebungsvariable"""
+        userlist = cls.USERLIST
+        if not userlist:
+            return []
+
+        users = []
+        # Format: user1:pass1,user2:pass2,user3:pass3
+        for user_pass in userlist.split(","):
+            if ":" in user_pass:
+                username = user_pass.split(":")[0].strip()
+                if username:
+                    users.append(username)
+        return users
+
 
 # ========== SLOT-BUCHUNG KONFIGURATION ==========
 class SlotConfig:
