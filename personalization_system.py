@@ -285,22 +285,38 @@ class PersonalizationSystem:
     def check_unlock_progress(self, user):
         """Prüfe und schalte neue Customization-Items frei"""
         unlocked_items = []
-        
+
+        # Admin-Users bekommen automatisch alles freigeschaltet
+        admin_users = ["Luke", "admin", "Jose", "Simon", "Alex", "David"]
+        if user in admin_users:
+            # Sammle alle Item-IDs
+            all_items = []
+            for category, items in AVATAR_COMPONENTS.items():
+                all_items.extend(items.keys())
+            for theme_id in THEMES.keys():
+                all_items.append(theme_id)
+
+            return {
+                "total_unlocked": all_items,
+                "newly_unlocked": [],
+                "unlock_count": len(all_items)
+            }
+
         try:
             # Lade User-Daten für Unlock-Prüfung
             from level_system import LevelSystem
             from achievement_system import achievement_system
             from prestige_system import prestige_system
-            
+
             level_system = LevelSystem()
             user_level = level_system.calculate_user_level(user)
             user_badges = achievement_system.get_user_badges(user)
             user_prestige = prestige_system.calculate_user_prestige(user)
-            
+
             current_level = user_level["level"]
             badge_rarities = [b.get("rarity", "common") for b in user_badges.get("badges", [])]
             prestige_level = user_prestige["prestige_level"]
-            
+
             # Daily stats für Streak-Check
             daily_stats = achievement_system.load_daily_stats()
             user_stats = daily_stats.get(user, {})
