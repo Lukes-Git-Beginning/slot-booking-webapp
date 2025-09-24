@@ -664,11 +664,44 @@ class AchievementSystem:
             badges_data = self.load_badges()
             user_entry = badges_data.get(user, {"badges": [], "total_badges": 0})
             badges_list = user_entry.get("badges", [])
+
+            # Erweitere Badges um vollständige Informationen aus ACHIEVEMENT_DEFINITIONS
+            enriched_badges = []
+            for badge in badges_list:
+                if isinstance(badge, dict) and 'id' in badge:
+                    badge_id = badge['id']
+                    badge_definition = ACHIEVEMENT_DEFINITIONS.get(badge_id, {})
+
+                    enriched_badge = {
+                        'id': badge_id,
+                        'name': badge_definition.get('name', badge_id.replace('_', ' ').title()),
+                        'description': badge_definition.get('description', 'Unbekannte Beschreibung'),
+                        'emoji': badge_definition.get('emoji', '🏅'),
+                        'rarity': badge_definition.get('rarity', 'common'),
+                        'category': badge_definition.get('category', 'general'),
+                        'earned_at': badge.get('earned_at', ''),
+                    }
+                    enriched_badges.append(enriched_badge)
+                elif isinstance(badge, str):
+                    # Legacy: Badge als String gespeichert
+                    badge_definition = ACHIEVEMENT_DEFINITIONS.get(badge, {})
+                    enriched_badge = {
+                        'id': badge,
+                        'name': badge_definition.get('name', badge.replace('_', ' ').title()),
+                        'description': badge_definition.get('description', 'Unbekannte Beschreibung'),
+                        'emoji': badge_definition.get('emoji', '🏅'),
+                        'rarity': badge_definition.get('rarity', 'common'),
+                        'category': badge_definition.get('category', 'general'),
+                        'earned_at': '',
+                    }
+                    enriched_badges.append(enriched_badge)
+
             return {
-                "badges": badges_list,
-                "total_badges": len(badges_list)
+                "badges": enriched_badges,
+                "total_badges": len(enriched_badges)
             }
-        except Exception:
+        except Exception as e:
+            print(f"Error getting user badges for {user}: {e}")
             return {"badges": [], "total_badges": 0}
     
     def calculate_badges_from_points(self, user, scores):

@@ -310,22 +310,33 @@ class CosmeticsShop:
         """Hole alle Kosmetik-Daten für einen User"""
         purchases = self.load_purchases()
         active = self.load_active_cosmetics()
-        
+
         user_purchases = purchases.get(user, {
             "titles": [],
             "themes": [],
-            "avatars": [], 
+            "avatars": [],
             "effects": [],
             "purchase_history": []
         })
-        
+
+        # Admin-Users bekommen automatisch alle Items freigeschaltet
+        admin_users = ["Luke", "admin", "Jose", "Simon", "Alex", "David"]
+        if user in admin_users:
+            user_purchases = {
+                "titles": list(TITLE_SHOP.keys()),
+                "themes": list(COLOR_THEMES.keys()),
+                "avatars": list(AVATAR_SHOP.keys()),
+                "effects": list(SPECIAL_EFFECTS.keys()),
+                "purchase_history": user_purchases.get("purchase_history", [])
+            }
+
         user_active = active.get(user, {
             "title": None,
             "theme": "default",
             "avatar": "🧑‍💼",
             "effects": []
         })
-        
+
         return {
             "owned": user_purchases,
             "active": user_active,
