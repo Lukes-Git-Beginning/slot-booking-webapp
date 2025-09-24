@@ -12,7 +12,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Union
 import pickle
-from config import slot_config
+from app.config.legacy_config import slot_config
 
 class CacheManager:
     def __init__(self, cache_dir: str = "cache") -> None:

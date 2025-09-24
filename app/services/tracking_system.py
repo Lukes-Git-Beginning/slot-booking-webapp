@@ -21,7 +21,7 @@ TZ = pytz.timezone("Europe/Berlin")
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
 
 # ----------------- ZENTRALE COLOR-DEFINITION -----------------
-from color_mapping import get_outcome_from_color, get_potential_type
+from app.utils.color_mapping import get_outcome_from_color, get_potential_type
 
 # Potential-Typ Mapping (für Analyse-Zwecke) - jetzt über color_mapping.py
 POTENTIAL_TYPES = {

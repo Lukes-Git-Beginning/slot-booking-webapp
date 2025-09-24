@@ -26,7 +26,7 @@ TZ = pytz.timezone("Europe/Berlin")
 # Import vom Hauptverzeichnis (ein Level höher)
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
-from color_mapping import NON_BLOCKING_COLORS
+from app.utils.color_mapping import NON_BLOCKING_COLORS
 
 weekday_map = {
     'Monday': 'Mo',

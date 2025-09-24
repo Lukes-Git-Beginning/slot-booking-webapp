@@ -107,7 +107,7 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
 def extract_weekly_summary(availability, current_date=None):
     """Extract weekly summary using old working method - matches original calculation"""
     from collections import defaultdict
-    from color_mapping import blocks_availability
+    from app.utils.color_mapping import blocks_availability
 
     week_possible = defaultdict(int)
     week_booked = defaultdict(int)

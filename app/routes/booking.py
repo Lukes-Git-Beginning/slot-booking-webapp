@@ -14,8 +14,8 @@ from app.core.google_calendar import get_google_calendar_service
 from app.services.booking_service import get_effective_availability, get_slot_status, get_slot_points
 from app.utils.decorators import require_login
 from app.utils.helpers import is_admin
-from error_handler import raise_validation_error
-from request_deduplication import request_deduplicator, SlotLockContext
+from app.utils.error_handler import raise_validation_error
+from app.utils.request_deduplication import request_deduplicator, SlotLockContext
 from app.utils.logging import booking_logger, log_request
 
 booking_bp = Blueprint('booking', __name__)
@@ -198,7 +198,7 @@ def book():
             # Quest Progress Integration
             if user and user != "unknown":
                 try:
-                    from gamification_routes import update_quest_progress_for_booking
+                    from app.routes.gamification.legacy_routes import update_quest_progress_for_booking
                     booking_data = {
                         "has_description": bool(description),
                         "booking_time": int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0,

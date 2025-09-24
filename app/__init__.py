@@ -53,7 +53,7 @@ def create_app(config_object='app.config.base.Config'):
 
     # Always register the gamification blueprint
     try:
-        from gamification_routes import gamification_bp
+        from app.routes.gamification.legacy_routes import gamification_bp
         app.register_blueprint(gamification_bp)
         print("SUCCESS: Gamification blueprint registered")
     except ImportError as e:

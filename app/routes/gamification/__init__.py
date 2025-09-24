@@ -3,9 +3,7 @@
 Gamification route blueprints
 """
 
-from flask import Blueprint
+# Import the main gamification blueprint from legacy_routes
+from .legacy_routes import gamification_bp
 
-gamification_bp = Blueprint('gamification', __name__)
-
-# Import all gamification route modules to register them
-from . import badges, quests, shop, analytics
+__all__ = ['gamification_bp']
