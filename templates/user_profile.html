@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ profile.username }} - Profil</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+
+  <style>
+    .profile-wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .profile-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 30px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      margin-bottom: 30px;
+      align-items: center;
+    }
+
+    .profile-avatar-large {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 36px;
+      border: 4px solid var(--box-border);
+      position: relative;
+    }
+
+    .profile-info h1 {
+      margin: 0 0 10px 0;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+
+    .profile-subtitle {
+      color: var(--muted);
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .profile-quick-stats {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .quick-stat {
+      text-align: center;
+    }
+
+    .quick-stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      display: block;
+    }
+
+    .quick-stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .profile-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .profile-section {
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: 25px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .level-progression {
+      margin-bottom: 20px;
+    }
+
+    .level-bar {
+      background: rgba(255,255,255,0.1);
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .level-progress {
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+
+    .level-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .badges-showcase {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .badge-large {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border: 2px solid rgba(255,255,255,0.2);
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .badge-large:hover {
+      transform: scale(1.1);
+    }
+
+    .badge-large.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+    .badge-large.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .badge-large.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .badge-large.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .badge-large.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+    .badge-large.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+    .activity-timeline {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .timeline-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      border-left: 3px solid transparent;
+      margin-bottom: 10px;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+    }
+
+    .timeline-item:hover {
+      background: rgba(255,255,255,0.05);
+      border-left-color: var(--accent);
+    }
+
+    .timeline-date {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 80px;
+    }
+
+    .timeline-content {
+      flex: 1;
+    }
+
+    .timeline-stats {
+      display: flex;
+      gap: 15px;
+      font-size: 14px;
+    }
+
+    .timeline-stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .performance-chart {
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 15px;
+    }
+
+    .chart-bar {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .chart-label {
+      min-width: 100px;
+      font-size: 14px;
+    }
+
+    .chart-bar-bg {
+      flex: 1;
+      height: 20px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0 10px;
+    }
+
+    .chart-bar-fill {
+      height: 100%;
+      background: linear-gradient(135deg, var(--accent), #3d8bfd);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+
+    .chart-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .cosmetics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .cosmetic-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      padding: 15px;
+      text-align: center;
+    }
+
+    .cosmetic-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .cosmetic-name {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .rarity-breakdown {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .rarity-item {
+      text-align: center;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius-md);
+    }
+
+    .rarity-count {
+      font-size: 20px;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .rarity-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .back-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--box-bg);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      color: var(--text-color);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .back-button:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      background: rgba(90,177,255,.1);
+    }
+
+    @media (max-width: 768px) {
+      .profile-header {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .profile-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-quick-stats {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-wrap">
+
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <div class="profile-avatar-large" data-user="{{ profile.username }}">
+        {{ profile.username[0].upper() }}
+      </div>
+
+      <div class="profile-info">
+        <h1>{{ profile.username }}</h1>
+        <div class="profile-subtitle">
+          Level {{ profile.basic_stats.level }} {{ profile.basic_stats.level_title }}
+          {% if profile.is_own_profile %} • Dein Profil{% endif %}
+        </div>
+
+        <div class="profile-quick-stats">
+          <div class="quick-stat">
+            <span class="quick-stat-value">{{ profile.basic_stats.current_points }}</span>
+            <span class="quick-stat-label">Punkte</span>
+          </div>
+          <div class="quick-stat">
+            <span class="quick-stat-value">#{{ profile.basic_stats.current_rank }}</span>
+            <span class="quick-stat-label">Rang</span>
+          </div>
+          <div class="quick-stat">
+            <span class="quick-stat-value">{{ profile.achievements.total_badges }}</span>
+            <span class="quick-stat-label">Badges</span>
+          </div>
+          <div class="quick-stat">
+            <span class="quick-stat-value">{{ profile.basic_stats.active_months }}</span>
+            <span class="quick-stat-label">Monate</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <a href="{{ url_for('scoreboard.scoreboard') }}" class="back-button">
+          <i class="ti ti-arrow-left"></i> Zurück zum Scoreboard
+        </a>
+      </div>
+    </div>
+
+    <!-- Profile Content Grid -->
+    <div class="profile-grid">
+
+      <!-- Level & Progress -->
+      <div class="profile-section">
+        <h3 class="section-title">
+          <i class="ti ti-trending-up"></i> Level-Progression
+        </h3>
+
+        <div class="level-progression">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Level {{ profile.basic_stats.level }}</span>
+            <span>{{ profile.basic_stats.xp }} / {{ profile.basic_stats.next_level_xp }} XP</span>
+          </div>
+
+          <div class="level-bar">
+            <div class="level-progress" style="width: {{ (profile.basic_stats.xp / profile.basic_stats.next_level_xp * 100)|round }}%"></div>
+            <div class="level-text">{{ (profile.basic_stats.xp / profile.basic_stats.next_level_xp * 100)|round }}%</div>
+          </div>
+        </div>
+
+        <div class="performance-chart">
+          <h4>Performance-Metriken</h4>
+
+          {% if profile.performance_metrics.booking_patterns.by_day %}
+          {% for day, count in profile.performance_metrics.booking_patterns.by_day.items() %}
+          <div class="chart-bar">
+            <div class="chart-label">{{ day }}</div>
+            <div class="chart-bar-bg">
+              <div class="chart-bar-fill" style="width: {{ (count / profile.performance_metrics.booking_patterns.total_bookings * 100)|round if profile.performance_metrics.booking_patterns.total_bookings > 0 else 0 }}%"></div>
+            </div>
+            <div class="chart-value">{{ count }}</div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p style="color: var(--muted); text-align: center; margin: 20px 0;">Keine Buchungsdaten verfügbar</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Achievements & Badges -->
+      <div class="profile-section">
+        <h3 class="section-title">
+          <i class="ti ti-award"></i> Achievements & Badges
+        </h3>
+
+        <div class="rarity-breakdown">
+          {% for rarity, count in profile.achievements.rarity_breakdown.items() %}
+          <div class="rarity-item">
+            <span class="rarity-count" style="color: var(--rarity-{{ rarity }});">{{ count }}</span>
+            <span class="rarity-label">{{ rarity.title() }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="badges-showcase">
+          {% for badge in profile.achievements.badges[:12] %}
+          <div class="badge-large rarity-{{ badge.rarity }}" title="{{ badge.name }} - {{ badge.description }}">
+            {{ badge.emoji }}
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if profile.achievements.badges|length > 12 %}
+        <p style="text-align: center; color: var(--muted); margin-top: 15px;">
+          +{{ profile.achievements.badges|length - 12 }} weitere Badges
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="profile-section">
+        <h3 class="section-title">
+          <i class="ti ti-activity"></i> Aktivitäts-Timeline
+        </h3>
+
+        <div class="activity-timeline">
+          {% for activity in profile.activity_timeline[-10:] %}
+          <div class="timeline-item">
+            <div class="timeline-date">{{ activity.date }}</div>
+            <div class="timeline-content">
+              <div class="timeline-stats">
+                {% if activity.bookings > 0 %}
+                <div class="timeline-stat">
+                  <i class="ti ti-calendar"></i> {{ activity.bookings }} Buchungen
+                </div>
+                {% endif %}
+
+                {% if activity.points > 0 %}
+                <div class="timeline-stat">
+                  <i class="ti ti-star"></i> {{ activity.points }} Punkte
+                </div>
+                {% endif %}
+
+                {% if activity.badges_earned > 0 %}
+                <div class="timeline-stat">
+                  <i class="ti ti-award"></i> {{ activity.badges_earned }} Badges
+                </div>
+                {% endif %}
+
+                {% if activity.first_booking %}
+                <div class="timeline-stat">
+                  <i class="ti ti-zap"></i> Erste Buchung!
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+
+          {% if not profile.activity_timeline %}
+          <p style="color: var(--muted); text-align: center; margin: 20px 0;">Keine Aktivitätsdaten verfügbar</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Cosmetics & Customization -->
+      <div class="profile-section">
+        <h3 class="section-title">
+          <i class="ti ti-palette"></i> Cosmetics & Style
+        </h3>
+
+        <h4>Aktive Items</h4>
+        <div class="cosmetics-grid">
+          {% if profile.cosmetics.active.title %}
+          <div class="cosmetic-item">
+            <span class="cosmetic-icon">🏷️</span>
+            <div class="cosmetic-name">Titel aktiv</div>
+          </div>
+          {% endif %}
+
+          {% if profile.cosmetics.active.theme and profile.cosmetics.active.theme != 'default' %}
+          <div class="cosmetic-item">
+            <span class="cosmetic-icon">🎨</span>
+            <div class="cosmetic-name">Custom Theme</div>
+          </div>
+          {% endif %}
+
+          {% if profile.cosmetics.active.avatar and profile.cosmetics.active.avatar != '🧑‍💼' %}
+          <div class="cosmetic-item">
+            <span class="cosmetic-icon">{{ profile.cosmetics.active.avatar }}</span>
+            <div class="cosmetic-name">Avatar</div>
+          </div>
+          {% endif %}
+
+          {% for effect in profile.cosmetics.active.effects %}
+          <div class="cosmetic-item">
+            <span class="cosmetic-icon">✨</span>
+            <div class="cosmetic-name">{{ effect.title() }} Effekt</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <h4 style="margin-top: 20px;">Sammlung</h4>
+        <div style="display: flex; gap: 20px; text-align: center; margin-top: 10px;">
+          <div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.titles|length) if profile.cosmetics.owned.titles else 0 }}</div>
+            <div style="font-size: 12px; color: var(--muted);">Titel</div>
+          </div>
+          <div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.themes|length) if profile.cosmetics.owned.themes else 0 }}</div>
+            <div style="font-size: 12px; color: var(--muted);">Themes</div>
+          </div>
+          <div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.avatars|length) if profile.cosmetics.owned.avatars else 0 }}</div>
+            <div style="font-size: 12px; color: var(--muted);">Avatare</div>
+          </div>
+          <div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">{{ (profile.cosmetics.owned.effects|length) if profile.cosmetics.owned.effects else 0 }}</div>
+            <div style="font-size: 12px; color: var(--muted);">Effekte</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Apply avatar customization
+    document.addEventListener('DOMContentLoaded', function() {
+      const avatar = document.querySelector('.profile-avatar-large[data-user]');
+      if (avatar) {
+        const username = avatar.getAttribute('data-user');
+        loadAvatarCustomization(username);
+      }
+    });
+
+    async function loadAvatarCustomization(username) {
+      try {
+        const response = await fetch(`/api/user/${username}/avatar`);
+        if (response.ok) {
+          const data = await response.json();
+          applyAvatarCustomization(document.querySelector('.profile-avatar-large'), data);
+        }
+      } catch (error) {
+        console.error('Failed to load avatar customization:', error);
+      }
+    }
+
+    function applyAvatarCustomization(avatarElement, customization) {
+      // Same logic as scoreboard.html
+      // Apply background, border, effects, etc.
+
+      if (customization.background) {
+        const backgrounds = {
+          "gradient_blue": "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+          "gradient_green": "linear-gradient(135deg, #10b981, #059669)",
+          "gradient_purple": "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+          "gradient_gold": "linear-gradient(135deg, #f59e0b, #d97706)",
+          "gradient_rainbow": "linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6, #10b981)",
+        };
+
+        const bg = backgrounds[customization.background];
+        if (bg) {
+          avatarElement.style.background = bg;
+        }
+      }
+
+      if (customization.effect) {
+        avatarElement.classList.add(`avatar-effect-${customization.effect}`);
+      }
+    }
+  </script>
+</body>
+</html>

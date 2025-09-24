@@ -265,11 +265,12 @@ SPECIAL_EFFECTS = {
 
 class CosmeticsShop:
     def __init__(self):
-        self.purchases_file = "data/persistent/cosmetic_purchases.json"
-        self.active_cosmetics_file = "data/persistent/active_cosmetics.json"
-        
+        # Use correct server paths
+        self.purchases_file = "persist/persistent/cosmetic_purchases.json"
+        self.active_cosmetics_file = "persist/persistent/active_cosmetics.json"
+
         # Ensure directories exist
-        os.makedirs("data/persistent", exist_ok=True)
+        os.makedirs("persist/persistent", exist_ok=True)
         
         # Initialize files
         for file_path in [self.purchases_file, self.active_cosmetics_file]:
