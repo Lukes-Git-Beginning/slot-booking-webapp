@@ -137,6 +137,6 @@ def get_google_calendar_service():
         try:
             google_calendar_service = GoogleCalendarService()
         except Exception as e:
-            print(f"WARNING: Could not initialize Google Calendar service: {e}")
+            calendar_logger.error(f"Could not initialize Google Calendar service", extra={'error': str(e)})
             return None
     return google_calendar_service

@@ -6,6 +6,7 @@ Booking service - Business logic for slot booking and availability
 import json
 import os
 import pytz
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Any, Optional
 from collections import defaultdict
@@ -16,6 +17,8 @@ from app.core.google_calendar import get_google_calendar_service
 from app.utils.helpers import get_week_start, get_current_kw, week_key_from_date
 # from color_mapping import determine_outcome_from_color  # Will be fixed later
 
+# Logger setup
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
@@ -190,7 +193,7 @@ def extract_weekly_summary(availability, current_date=None):
                                 key = week_key_from_date(dt)
                                 week_booked[key] += 1
                 except Exception as e:
-                    print(f"Error parsing event time: {e}")
+                    logger.error(f"Error parsing event time", extra={'error': str(e)})
                     continue
 
     summary = []
