@@ -133,7 +133,7 @@ def book():
                 user_message="Das angegebene Datum ist ungültig."
             )
 
-        points = get_slot_points(hour, slot_date)
+        points = get_slot_points(hour, slot_date, date, berater_count)
 
         if overbooked or freie_count <= 0:
             flash("Slot ist bereits voll belegt.", "danger")
