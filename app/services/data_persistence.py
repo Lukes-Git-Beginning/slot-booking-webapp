@@ -5,10 +5,14 @@ Daten-Persistenz-System für robuste Speicherung von Scores und Badges
 import os
 import json
 import shutil
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from legacy.json_utils import atomic_write_json, atomic_read_json, atomic_update_json
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 class DataPersistence:
     def __init__(self) -> None:
@@ -46,10 +50,10 @@ class DataPersistence:
             static_scores = str(self.static_dir / "scores.json")
             atomic_write_json(static_scores, scores_data)
                 
-            print(f"✅ Scores gespeichert: {len(scores_data)} Benutzer")
+            logger.info(f"Scores gespeichert: {len(scores_data)} Benutzer")
             return True
         except Exception as e:
-            print(f"❌ Fehler beim Speichern der Scores: {e}")
+            logger.error(f"Fehler beim Speichern der Scores: {e}")
             return False
     
     def load_scores(self) -> Dict[str, Any]:
@@ -72,7 +76,7 @@ class DataPersistence:
             # Fallback: Leere Daten
             return {}
         except Exception as e:
-            print(f"❌ Fehler beim Laden der Scores: {e}")
+            logger.error(f"Fehler beim Laden der Scores: {e}")
             return {}
     
     def save_badges(self, badges_data):
@@ -91,10 +95,10 @@ class DataPersistence:
             with open(static_badges, "w", encoding="utf-8") as f:
                 json.dump(badges_data, f, indent=2, ensure_ascii=False)
                 
-            print(f"✅ Badges gespeichert: {len(badges_data)} Benutzer")
+            logger.info(f"Badges gespeichert: {len(badges_data)} Benutzer")
             return True
         except Exception as e:
-            print(f"❌ Fehler beim Speichern der Badges: {e}")
+            logger.error(f"Fehler beim Speichern der Badges: {e}")
             return False
     
     def load_badges(self):
@@ -118,7 +122,7 @@ class DataPersistence:
             # Fallback: Leere Daten
             return {}
         except Exception as e:
-            print(f"❌ Fehler beim Laden der Badges: {e}")
+            logger.error(f"Fehler beim Laden der Badges: {e}")
             return {}
     
     def save_champions(self, champions_data):
@@ -137,10 +141,10 @@ class DataPersistence:
             with open(static_champions, "w", encoding="utf-8") as f:
                 json.dump(champions_data, f, indent=2, ensure_ascii=False)
                 
-            print(f"✅ Champions gespeichert: {len(champions_data)} Monate")
+            logger.info(f"Champions gespeichert: {len(champions_data)} Monate")
             return True
         except Exception as e:
-            print(f"❌ Fehler beim Speichern der Champions: {e}")
+            logger.error(f"Fehler beim Speichern der Champions: {e}")
             return False
     
     def save_user_badges(self, badges_data):
@@ -159,10 +163,10 @@ class DataPersistence:
             with open(static_badges, "w", encoding="utf-8") as f:
                 json.dump(badges_data, f, indent=2, ensure_ascii=False)
                 
-            print(f"✅ User Badges gespeichert: {len(badges_data)} Benutzer")
+            logger.info(f"User Badges gespeichert: {len(badges_data)} Benutzer")
             return True
         except Exception as e:
-            print(f"❌ Fehler beim Speichern der User Badges: {e}")
+            logger.error(f"Fehler beim Speichern der User Badges: {e}")
             return False
     
     def load_daily_user_stats(self):
@@ -186,7 +190,7 @@ class DataPersistence:
             # Fallback: Leere Daten
             return {}
         except Exception as e:
-            print(f"❌ Fehler beim Laden der Daily User Stats: {e}")
+            logger.error(f"Fehler beim Laden der Daily User Stats: {e}")
             return {}
     
     def save_daily_user_stats(self, stats_data):
@@ -205,10 +209,10 @@ class DataPersistence:
             with open(static_stats, "w", encoding="utf-8") as f:
                 json.dump(stats_data, f, indent=2, ensure_ascii=False)
                 
-            print(f"✅ Daily User Stats gespeichert: {len(stats_data)} Tage")
+            logger.info(f"Daily User Stats gespeichert: {len(stats_data)} Tage")
             return True
         except Exception as e:
-            print(f"❌ Fehler beim Speichern der Daily User Stats: {e}")
+            logger.error(f"Fehler beim Speichern der Daily User Stats: {e}")
             return False
     
     def load_champions(self):
@@ -232,7 +236,7 @@ class DataPersistence:
             # Fallback: Leere Daten
             return {}
         except Exception as e:
-            print(f"❌ Fehler beim Laden der Champions: {e}")
+            logger.error(f"Fehler beim Laden der Champions: {e}")
             return {}
     
     def _create_backup(self, filename, data):
@@ -259,16 +263,16 @@ class DataPersistence:
             # Behalte nur die letzten 10 Backups
             self._cleanup_old_backups(filename)
         except Exception as e:
-            print(f"⚠️ Backup-Fehler für {filename}: {e}")
+            logger.warning(f"Backup-Fehler für {filename}: {e}")
     
     def auto_cleanup_backups(self):
         """Automatische Bereinigung alter Backups"""
         try:
             for filename in ["scores.json", "champions.json", "user_badges.json", "daily_user_stats.json"]:
                 self._cleanup_old_backups(filename)
-            print("✅ Backup-Cleanup abgeschlossen")
+            logger.info("Backup-Cleanup abgeschlossen")
         except Exception as e:
-            print(f"❌ Backup-Cleanup Fehler: {e}")
+            logger.error(f"Backup-Cleanup Fehler: {e}")
     
     def _cleanup_old_backups(self, filename):
         """Bereinige alte Backups für eine bestimmte Datei"""
@@ -288,9 +292,9 @@ class DataPersistence:
                 files_to_delete = backup_files[:-10]
                 for backup_file in files_to_delete:
                     backup_file.unlink()
-                    print(f"🗑️ Altes Backup gelöscht: {backup_file.name}")
+                    logger.debug(f"Altes Backup gelöscht: {backup_file.name}")
         except Exception as e:
-            print(f"❌ Fehler beim Bereinigen von {filename} Backups: {e}")
+            logger.error(f"Fehler beim Bereinigen von {filename} Backups: {e}")
     
     def get_backup_statistics(self):
         """Bekomme Backup-Statistiken"""
@@ -312,7 +316,7 @@ class DataPersistence:
             
             return stats
         except Exception as e:
-            print(f"❌ Fehler beim Abrufen der Backup-Statistiken: {e}")
+            logger.error(f"Fehler beim Abrufen der Backup-Statistiken: {e}")
             return {}
     
     def restore_from_latest_backup(self, filename):
@@ -337,11 +341,11 @@ class DataPersistence:
             with open(target_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
-            print(f"✅ {filename} aus Backup wiederhergestellt: {latest_backup.name}")
+            logger.info(f"{filename} aus Backup wiederhergestellt: {latest_backup.name}")
             return True, f"Wiederhergestellt aus {latest_backup.name}"
             
         except Exception as e:
-            print(f"❌ Fehler beim Wiederherstellen von {filename}: {e}")
+            logger.error(f"Fehler beim Wiederherstellen von {filename}: {e}")
             return False, str(e)
     
     def validate_data_integrity(self):
@@ -371,16 +375,16 @@ class DataPersistence:
                     issues.append(f"Fehler beim Lesen von {filename}.json: {e}")
             
             if issues:
-                print(f"⚠️ Datenintegritäts-Probleme gefunden: {len(issues)}")
+                logger.warning(f"Datenintegritäts-Probleme gefunden: {len(issues)}")
                 for issue in issues:
-                    print(f"  - {issue}")
+                    logger.warning(f"  - {issue}")
                 return False, issues
             else:
-                print("✅ Alle Daten validiert - keine Probleme gefunden")
+                logger.info("Alle Daten validiert - keine Probleme gefunden")
                 return True, []
                 
         except Exception as e:
-            print(f"❌ Fehler bei der Datenvalidierung: {e}")
+            logger.error(f"Fehler bei der Datenvalidierung: {e}")
             return False, [str(e)]
     
     def auto_backup_all(self):
@@ -396,17 +400,17 @@ class DataPersistence:
                         self._create_backup(filename, None)  # None = lade automatisch
                         backed_up.append(filename)
                 except Exception as e:
-                    print(f"❌ Backup-Fehler für {filename}: {e}")
+                    logger.error(f"Backup-Fehler für {filename}: {e}")
             
             if backed_up:
-                print(f"✅ Automatisches Backup erstellt für: {', '.join(backed_up)}")
+                logger.info(f"Automatisches Backup erstellt für: {', '.join(backed_up)}")
                 # Bereinige alte Backups
                 self.auto_cleanup_backups()
             
             return backed_up
             
         except Exception as e:
-            print(f"❌ Fehler beim automatischen Backup: {e}")
+            logger.error(f"Fehler beim automatischen Backup: {e}")
             return []
 
     def bootstrap_from_static_if_missing(self):
@@ -449,19 +453,19 @@ class DataPersistence:
                         if data:  # Nur migrieren wenn Daten vorhanden
                             save_fn(data)
                             migrated_files.append(f"{fname} ({reason})")
-                            print(f"✅ Migriert {fname} aus static/ → persist ({reason})")
+                            logger.info(f"Migriert {fname} aus static/ → persist ({reason})")
                     except Exception as e:
-                        print(f"⚠️ Konnte {fname} nicht aus static migrieren: {e}")
+                        logger.warning(f"Konnte {fname} nicht aus static migrieren: {e}")
             
             if migrated_files:
-                print(f"🔄 Bootstrap-Migration abgeschlossen: {len(migrated_files)} Dateien")
+                logger.info(f"Bootstrap-Migration abgeschlossen: {len(migrated_files)} Dateien")
                 # Erstelle Backup nach Migration
                 self.auto_backup_all()
             else:
-                print("ℹ️ Bootstrap: Keine Migration erforderlich")
+                logger.debug("Bootstrap: Keine Migration erforderlich")
                 
         except Exception as e:
-            print(f"❌ Bootstrap-Fehler: {e}")
+            logger.error(f"Bootstrap-Fehler: {e}")
 
     def load_data(self, filename: str, default: Any = None) -> Any:
         """Generische Methode zum Laden von JSON-Daten"""
@@ -484,7 +488,7 @@ class DataPersistence:
             return default if default is not None else {}
 
         except Exception as e:
-            print(f"❌ Fehler beim Laden von {filename}: {e}")
+            logger.error(f"Fehler beim Laden von {filename}: {e}")
             return default if default is not None else {}
 
     def save_data(self, filename: str, data: Any) -> bool:
@@ -508,7 +512,7 @@ class DataPersistence:
             return True
 
         except Exception as e:
-            print(f"❌ Fehler beim Speichern von {filename}: {e}")
+            logger.error(f"Fehler beim Speichern von {filename}: {e}")
             return False
 
 # Globale Instanz

@@ -10,6 +10,7 @@ Tracking System für Slot Booking Webapp
 import os
 import json
 import pytz
+import logging
 from datetime import datetime, timedelta, time
 from collections import defaultdict
 from googleapiclient.discovery import build
@@ -18,6 +19,9 @@ from app.utils.credentials import load_google_credentials
 # ----------------- Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 TZ = pytz.timezone("Europe/Berlin")
+
+# Logger setup
+logger = logging.getLogger(__name__)
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
 
 # ----------------- ZENTRALE COLOR-DEFINITION -----------------
@@ -86,11 +90,11 @@ class BookingTracker:
             with open(self.bookings_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
             
-            print(f"✅ Booking tracked: {customer_name} on {date} at {time_slot}")
+            logger.info(f"Booking tracked: {customer_name} on {date} at {time_slot}")
             return booking_data
             
         except Exception as e:
-            print(f"❌ Error tracking booking: {e}")
+            logger.error(f"Error tracking booking: {e}")
             return None
     
     def check_daily_outcomes(self, check_date=None):
@@ -104,7 +108,7 @@ class BookingTracker:
         else:
             check_date = datetime.strptime(check_date, "%Y-%m-%d").date() if isinstance(check_date, str) else check_date
         
-        print(f"🔍 Checking outcomes for {check_date}...")
+        logger.debug(f"Checking outcomes for {check_date}")
         
         # Hole alle Events des Tages
         start_time = TZ.localize(datetime.combine(check_date, time.min))
@@ -158,11 +162,11 @@ class BookingTracker:
                 # Spezielle Behandlung für No-Shows
                 if outcome == "no_show":
                     outcome_data["alert"] = "NO_SHOW_DETECTED"
-                    print(f"⚠️ No-Show detected: {customer_name} at {event_time}")
+                    logger.warning(f"No-Show detected: {customer_name} at {event_time}")
                 elif outcome == "cancelled":
-                    print(f"🟠 Cancelled: {customer_name} at {event_time}")
+                    logger.info(f"Cancelled: {customer_name} at {event_time}")
                 elif outcome == "completed":
-                    print(f"✅ Completed: {customer_name} at {event_time} (Color: {color_id})")
+                    logger.info(f"Completed: {customer_name} at {event_time} (Color: {color_id})")
                 
                 # Speichere Outcome
                 with open(self.outcomes_file, "a", encoding="utf-8") as f:
@@ -170,7 +174,7 @@ class BookingTracker:
                 
                 outcomes_tracked += 1
             
-            print(f"✅ Tracked {outcomes_tracked} outcomes for {check_date}")
+            logger.info(f"Tracked {outcomes_tracked} outcomes for {check_date}")
             
             # Berechne Tagesmetriken
             self._calculate_daily_metrics(check_date, events)
@@ -181,7 +185,7 @@ class BookingTracker:
             return outcomes_tracked
             
         except Exception as e:
-            print(f"❌ Error checking outcomes: {e}")
+            logger.error(f"Error checking outcomes: {e}")
             return 0
     
     def _calculate_daily_metrics(self, date, events):
@@ -264,15 +268,15 @@ class BookingTracker:
                 with open(self.persistent_metrics_file, "w", encoding="utf-8") as f:
                     json.dump(all_metrics, f, ensure_ascii=False, indent=2)
             except Exception as e:
-                print(f"⚠️ Warning: Could not write to persistent metrics: {e}")
+                logger.warning(f"Could not write to persistent metrics: {e}")
             
-            print(f"📊 Daily metrics saved:")
-            print(f"   - Completed: {metrics['completed']} ({metrics['completion_rate']}%)")
-            print(f"   - No-Shows: {metrics['no_shows']} ({metrics['no_show_rate']}%)")
-            print(f"   - Cancelled: {metrics['cancelled']} ({metrics['cancellation_rate']}%)")
+            logger.debug("Daily metrics saved")
+            logger.debug(f"Completed: {metrics['completed']} ({metrics['completion_rate']}%)")
+            logger.debug(f"No-Shows: {metrics['no_shows']} ({metrics['no_show_rate']}%)")
+            logger.debug(f"Cancelled: {metrics['cancelled']} ({metrics['cancellation_rate']}%)")
             
         except Exception as e:
-            print(f"❌ Error saving metrics: {e}")
+            logger.error(f"Error saving metrics: {e}")
     
     def _update_customer_profiles(self):
         """Aktualisiere Kundenprofile mit aggregierten Daten"""
@@ -331,7 +335,7 @@ class BookingTracker:
                             profile["risk_level"] = "low"
                     
                     except Exception as e:
-                        print(f"Error processing outcome: {e}")
+                        logger.error(f"Error processing outcome: {e}")
                         continue
         
         # Speichere aktualisierte Profile (dual-write pattern)
@@ -343,9 +347,9 @@ class BookingTracker:
             with open(self.persistent_customer_file, "w", encoding="utf-8") as f:
                 json.dump(profiles, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"⚠️ Warning: Could not write to persistent customers: {e}")
+            logger.warning(f"Could not write to persistent customers: {e}")
 
-        print(f"📁 Updated {len(profiles)} customer profiles")
+        logger.info(f"Updated {len(profiles)} customer profiles")
     
     def get_customer_history(self, customer_name):
         """Hole die komplette Historie eines Kunden"""
@@ -713,7 +717,7 @@ class BookingTracker:
                         })
                         
         except Exception as e:
-            print(f"❌ Fehler beim Laden der Dashboard-Daten: {e}")
+            logger.error(f"Fehler beim Laden der Dashboard-Daten: {e}")
             # Fallback-Werte beibehalten
         
         return dashboard
@@ -754,7 +758,7 @@ class BookingTracker:
             return bookings
             
         except Exception as e:
-            print(f"❌ Fehler beim Laden der User-Buchungen: {e}")
+            logger.error(f"Fehler beim Laden der User-Buchungen: {e}")
             return []
     
     def load_all_bookings(self):
@@ -779,7 +783,7 @@ class BookingTracker:
             return bookings
             
         except Exception as e:
-            print(f"❌ Fehler beim Laden aller Buchungen: {e}")
+            logger.error(f"Fehler beim Laden aller Buchungen: {e}")
             return []
     
     def load_historical_data(self):
@@ -825,7 +829,7 @@ class BookingTracker:
             return historical_data
             
         except Exception as e:
-            print(f"❌ Fehler beim Laden der historischen Daten: {e}")
+            logger.error(f"Fehler beim Laden der historischen Daten: {e}")
             return {"stats": {}, "bookings": [], "outcomes": []}
     
     def get_enhanced_dashboard(self):
@@ -847,7 +851,7 @@ class BookingTracker:
             return enhanced_dashboard
             
         except Exception as e:
-            print(f"❌ Fehler beim Erstellen des erweiterten Dashboards: {e}")
+            logger.error(f"Fehler beim Erstellen des erweiterten Dashboards: {e}")
             return self.get_performance_dashboard()
     
     def _generate_combined_insights(self, current_dashboard, historical_data):
@@ -903,7 +907,7 @@ class BookingTracker:
             return insights
             
         except Exception as e:
-            print(f"❌ Fehler bei der Generierung von Erkenntnissen: {e}")
+            logger.error(f"Fehler bei der Generierung von Erkenntnissen: {e}")
             return {"trends": {}, "comparisons": {}, "recommendations": []}
 
 # ----------------- Utility Funktionen -----------------
@@ -922,7 +926,7 @@ def recalculate_all_outcomes():
     if os.path.exists(tracker.metrics_file):
         os.rename(tracker.metrics_file, tracker.metrics_file + ".backup")
     
-    print("🔄 Recalculating all outcomes with new color mapping...")
+    logger.info("Recalculating all outcomes with new color mapping...")
     
     # Berechne die letzten 30 Tage neu
     today = datetime.now(TZ).date()
@@ -930,7 +934,7 @@ def recalculate_all_outcomes():
         check_date = today - timedelta(days=i)
         tracker.check_daily_outcomes(check_date)
     
-    print("✅ Recalculation complete!")
+    logger.info("Recalculation complete!")
 
 def backfill_september_data():
     """
@@ -943,7 +947,7 @@ def backfill_september_data():
     service = get_google_calendar_service()
     CENTRAL_CALENDAR_ID = config.CENTRAL_CALENDAR_ID
 
-    print("🔄 Starting September data backfill...")
+    logger.info("Starting September data backfill...")
 
     tracker = BookingTracker()
 
@@ -955,23 +959,23 @@ def backfill_september_data():
     total_days = (today - start_date).days + 1
     processed_days = 0
 
-    print(f"📅 Backfilling from {start_date} to {today} ({total_days} days)")
+    logger.info(f"Backfilling from {start_date} to {today} ({total_days} days)")
 
     # Process each day
     current_date = start_date
     while current_date <= today:
         try:
-            print(f"📊 Processing {current_date} ({processed_days + 1}/{total_days})")
+            logger.debug(f"Processing {current_date} ({processed_days + 1}/{total_days})")
             tracker.check_daily_outcomes(current_date)
             processed_days += 1
 
         except Exception as e:
-            print(f"❌ Error processing {current_date}: {e}")
+            logger.error(f"Error processing {current_date}: {e}")
 
         current_date += timedelta(days=1)
 
-    print(f"✅ Backfill complete! Processed {processed_days} days")
-    print("🎯 Dashboard will now show data from September 2nd onwards")
+    logger.info(f"Backfill complete! Processed {processed_days} days")
+    logger.info("Dashboard will now show data from September 2nd onwards")
 
 # ----------------- Cron Job Function -----------------
 def run_daily_outcome_check():
@@ -989,14 +993,14 @@ def run_daily_outcome_check():
     yesterday = today - timedelta(days=1)
     tracker.check_daily_outcomes(yesterday)
     
-    print(f"✅ Daily outcome check completed at {datetime.now(TZ).strftime('%H:%M')}")
+    logger.info(f"Daily outcome check completed at {datetime.now(TZ).strftime('%H:%M')}")
     
     # Generiere Dashboard
     dashboard = tracker.get_performance_dashboard()
     
     # Sende Alert bei vielen No-Shows
     if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
-        print(f"⚠️ ALERT: High no-show rate (7 days): {dashboard['last_7_days']['no_show_rate']}%")
+        logger.warning(f"ALERT: High no-show rate (7 days): {dashboard['last_7_days']['no_show_rate']}%")
         # Hier könnte eine Email/Slack Notification gesendet werden
     
     # Generiere Wochenbericht am Montag
@@ -1008,7 +1012,7 @@ def run_daily_outcome_check():
         with open(report_file, "w", encoding="utf-8") as f:
             json.dump(report, f, ensure_ascii=False, indent=2)
         
-        print(f"📊 Weekly report generated: {report_file}")
+        logger.info(f"Weekly report generated: {report_file}")
 
 if __name__ == "__main__":
     import sys
@@ -1025,5 +1029,5 @@ if __name__ == "__main__":
         
         # Beispiel: Dashboard anzeigen
         dashboard = tracker.get_performance_dashboard()
-        print("\n📊 Performance Dashboard:")
-        print(json.dumps(dashboard, indent=2, ensure_ascii=False))
+        logger.debug("Performance Dashboard:")
+        logger.debug(json.dumps(dashboard, indent=2, ensure_ascii=False))
