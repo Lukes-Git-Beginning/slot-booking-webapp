@@ -2,8 +2,10 @@ name: Generate Availability
 
 on:
   schedule:
-    # Mo–Fr von 07:00 bis 17:00 UTC (9am-7pm Berlin) → stündlich = 11 Läufe/Tag
-    - cron: '5 7-17 * * 1-5'  # 5 Minuten nach jeder vollen Stunde
+    # Mo–Fr stündlich von 07:00 bis 17:00 UTC (9am-7pm Berlin) → 11 Läufe/Tag
+    # Plus zusätzliche Läufe am frühen Morgen und Abend für bessere Abdeckung
+    - cron: '5 7-17 * * 1-5'  # 5 Minuten nach jeder vollen Stunde (Hauptzeit)
+    - cron: '10 6,18 * * 1-5'  # Zusätzlich um 06:10 und 18:10 UTC
   workflow_dispatch:
 
 jobs:

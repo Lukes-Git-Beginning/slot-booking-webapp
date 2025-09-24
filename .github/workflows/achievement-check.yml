@@ -3,7 +3,9 @@ name: Achievement System Check
 on:
   schedule:
     # Täglich um 22:00 Uhr Berlin Zeit (21:00 UTC im Sommer, 20:00 UTC im Winter)
-    - cron: '0 20 * * *'  # 20:00 UTC = 22:00 Berlin (Sommerzeit)
+    # Zusätzlicher Lauf zur Sicherheit am nächsten Morgen
+    - cron: '0 20 * * *'    # 20:00 UTC = 22:00 Berlin (Hauptlauf)
+    - cron: '30 6 * * *'    # 06:30 UTC = 08:30 Berlin (Backup-Lauf)
   workflow_dispatch:  # Manuell auslösbar
 
 jobs:

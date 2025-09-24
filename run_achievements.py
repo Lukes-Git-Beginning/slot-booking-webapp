@@ -23,8 +23,8 @@ def run_achievement_check():
 
         # Process achievements for all users
         print("⚡ Processing achievements...")
-        from app.config.base import config
-        users = config.get_all_users()
+        from app.config.base import Config
+        users = Config.get_all_users()
 
         for user in users:
             try:
