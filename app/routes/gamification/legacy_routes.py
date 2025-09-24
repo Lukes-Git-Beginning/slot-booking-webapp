@@ -7,6 +7,10 @@ Neue Routes für Prestige, Daily Quests, Analytics und Customization
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from functools import wraps
 import traceback
+import logging
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 # Import der neuen Systeme
 try:
@@ -18,7 +22,7 @@ try:
     from app.services.level_system import LevelSystem
     from app.services.cosmetics_shop import cosmetics_shop
 except ImportError as e:
-    print(f"Import Error in gamification_routes: {e}")
+    logger.error(f"Import Error in gamification_routes: {e}")
     # Set fallback objects to prevent further errors
     prestige_system = None
     daily_quest_system = None
@@ -76,7 +80,7 @@ def daily_quests():
             user_coins=user_coins
         )
     except Exception as e:
-        print(f"Error in daily_quests route: {e}")
+        logger.error(f"Error in daily_quests route: {e}")
         traceback.print_exc()
         return render_template('daily_quests.html', 
             current_user=session.get('user', ''),
@@ -102,7 +106,7 @@ def analytics_dashboard():
             analytics=analytics
         )
     except Exception as e:
-        print(f"Error in analytics_dashboard route: {e}")
+        logger.error(f"Error in analytics_dashboard route: {e}")
         traceback.print_exc()
         return render_template('analytics_dashboard.html',
             current_user=session.get('user', ''),
@@ -140,7 +144,7 @@ def prestige_dashboard():
             prestige_leaderboard=prestige_leaderboard
         )
     except Exception as e:
-        print(f"Error in prestige_dashboard route: {e}")
+        logger.error(f"Error in prestige_dashboard route: {e}")
         traceback.print_exc()
         return render_template('prestige_dashboard.html',
             current_user=session.get('user', ''),
@@ -181,7 +185,7 @@ def customization_shop():
             customization=customization
         )
     except Exception as e:
-        print(f"Error in customization_shop route: {e}")
+        logger.error(f"Error in customization_shop route: {e}")
         traceback.print_exc()
         return render_template('customization_shop.html',
             current_user=session.get('user', ''),
@@ -212,7 +216,7 @@ def api_claim_quest():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in api_claim_quest: {e}")
+        logger.error(f"Error in api_claim_quest: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Einlösen der Quest-Belohnung"})
 
 @gamification_bp.route('/api/spin-wheel', methods=['POST'])
@@ -227,7 +231,7 @@ def api_spin_wheel():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in api_spin_wheel: {e}")
+        logger.error(f"Error in api_spin_wheel: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Drehen des Glücksrads"})
 
 @gamification_bp.route('/api/perform-prestige', methods=['POST'])
@@ -242,7 +246,7 @@ def api_perform_prestige():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in api_perform_prestige: {e}")
+        logger.error(f"Error in api_perform_prestige: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Prestige-Upgrade"})
 
 @gamification_bp.route('/api/upgrade-mastery', methods=['POST'])
@@ -263,7 +267,7 @@ def api_upgrade_mastery():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in api_upgrade_mastery: {e}")
+        logger.error(f"Error in api_upgrade_mastery: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Mastery-Upgrade"})
 
 @gamification_bp.route('/api/update-customization', methods=['POST'])
@@ -290,7 +294,7 @@ def api_update_customization():
         return jsonify({"success": True, "message": "Anpassungen gespeichert"})
         
     except Exception as e:
-        print(f"Error in api_update_customization: {e}")
+        logger.error(f"Error in api_update_customization: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Speichern der Anpassungen"})
 
 @gamification_bp.route('/api/create-personal-goal', methods=['POST'])
@@ -313,7 +317,7 @@ def api_create_personal_goal():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in api_create_personal_goal: {e}")
+        logger.error(f"Error in api_create_personal_goal: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Erstellen des Ziels"})
 
 @gamification_bp.route('/api/claim-goal-reward', methods=['POST'])
@@ -334,7 +338,7 @@ def api_claim_goal_reward():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in api_claim_goal_reward: {e}")
+        logger.error(f"Error in api_claim_goal_reward: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Einlösen der Belohnung"})
 
 @gamification_bp.route('/api/refresh-analytics', methods=['POST'])
@@ -349,7 +353,7 @@ def api_refresh_analytics():
         return jsonify({"success": True, "analytics": analytics})
         
     except Exception as e:
-        print(f"Error in api_refresh_analytics: {e}")
+        logger.error(f"Error in api_refresh_analytics: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Aktualisieren der Analytics"})
 
 @gamification_bp.route('/api/user/<username>/badges')
@@ -361,7 +365,7 @@ def api_user_badges(username):
         return jsonify(user_badges)
         
     except Exception as e:
-        print(f"Error in api_user_badges: {e}")
+        logger.error(f"Error in api_user_badges: {e}")
         return jsonify({"badges": [], "total_badges": 0})
 
 @gamification_bp.route('/api/user/<username>/avatar')
@@ -379,7 +383,7 @@ def api_user_avatar(username):
         return jsonify(avatar_data)
         
     except Exception as e:
-        print(f"Error in api_user_avatar: {e}")
+        logger.error(f"Error in api_user_avatar: {e}")
         return jsonify({
             "background": "gradient_blue",
             "border": "simple",
@@ -399,7 +403,7 @@ def api_user_cosmetics(username):
             'data': cosmetics_data
         })
     except Exception as e:
-        print(f"Error in api_user_cosmetics: {e}")
+        logger.error(f"Error in api_user_cosmetics: {e}")
         return jsonify({
             'success': False,
             'error': str(e),
@@ -420,19 +424,19 @@ def update_quest_progress_for_booking(user, booking_data):
         # Streak-Quests (täglich ausgeführt)
         daily_quest_system.update_quest_progress(user, "streak", booking_data)
         
-        print(f"Quest progress updated for user {user}")
+        logger.info(f"Quest progress updated for user {user}")
         
     except Exception as e:
-        print(f"Error updating quest progress: {e}")
+        logger.error(f"Error updating quest progress: {e}")
 
 def update_quest_progress_for_minigame(user, game_data):
     """Update Quest-Fortschritt für Mini-Games"""
     try:
         daily_quest_system.update_quest_progress(user, "minigame", game_data)
-        print(f"Minigame quest progress updated for user {user}")
+        logger.info(f"Minigame quest progress updated for user {user}")
         
     except Exception as e:
-        print(f"Error updating minigame quest progress: {e}")
+        logger.error(f"Error updating minigame quest progress: {e}")
 
 # ===== INTEGRATION HELPERS =====
 
@@ -449,7 +453,7 @@ def get_enhanced_user_level(user):
         return user_level
         
     except Exception as e:
-        print(f"Error getting enhanced user level: {e}")
+        logger.error(f"Error getting enhanced user level: {e}")
         return {
             "user": user,
             "level": 1,
@@ -464,12 +468,12 @@ def check_and_unlock_customizations(user):
         unlock_result = personalization_system.check_unlock_progress(user)
         
         if unlock_result['newly_unlocked']:
-            print(f"New customization items unlocked for {user}: {unlock_result['newly_unlocked']}")
+            logger.info(f"New customization items unlocked for {user}: {unlock_result['newly_unlocked']}")
             
         return unlock_result
         
     except Exception as e:
-        print(f"Error checking customization unlocks: {e}")
+        logger.error(f"Error checking customization unlocks: {e}")
         return {"newly_unlocked": [], "total_unlocked": []}
 
 # ===== COSMETICS SHOP ROUTES =====
@@ -496,7 +500,7 @@ def cosmetics_shop_view():
         )
         
     except Exception as e:
-        print(f"Error in cosmetics_shop route: {e}")
+        logger.error(f"Error in cosmetics_shop route: {e}")
         traceback.print_exc()
         return render_template('cosmetics_shop.html', 
             current_user=user,
@@ -536,7 +540,7 @@ def purchase_cosmetic():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error purchasing cosmetic: {e}")
+        logger.error(f"Error purchasing cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Kauf"})
 
 @gamification_bp.route('/cosmetics/equip', methods=['POST'])
@@ -557,7 +561,7 @@ def equip_cosmetic():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error equipping cosmetic: {e}")
+        logger.error(f"Error equipping cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Ausrüsten"})
 
 @gamification_bp.route('/cosmetics/unequip', methods=['POST'])
@@ -578,7 +582,7 @@ def unequip_cosmetic():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error unequipping cosmetic: {e}")
+        logger.error(f"Error unequipping cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Entfernen"})
 
 @gamification_bp.route('/admin/unlock-all-cosmetics', methods=['POST'])
@@ -597,7 +601,7 @@ def admin_unlock_all_cosmetics():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in admin unlock all cosmetics: {e}")
+        logger.error(f"Error in admin unlock all cosmetics: {e}")
         return jsonify({"success": False, "message": "Fehler beim Admin-Unlock"})
 
 # ===== DAILY MAINTENANCE =====
@@ -605,7 +609,7 @@ def admin_unlock_all_cosmetics():
 def run_daily_maintenance():
     """Tägliche Wartungsroutinen für Gamification-Features"""
     try:
-        print("Running daily gamification maintenance...")
+        logger.info("Running daily gamification maintenance...")
         
         # Generiere neue Daily Quests
         daily_quest_system.generate_daily_quests()
@@ -616,10 +620,10 @@ def run_daily_maintenance():
         # Analytics-Cache leeren (wird bei nächstem Zugriff neu generiert)
         # analytics_system könnte hier Cache-Cleanup machen
         
-        print("Daily maintenance completed successfully")
+        logger.info("Daily maintenance completed successfully")
         
     except Exception as e:
-        print(f"Error in daily maintenance: {e}")
+        logger.error(f"Error in daily maintenance: {e}")
 
 # ===== ERROR HANDLERS =====
 
