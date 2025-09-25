@@ -17,6 +17,7 @@ from app.utils.helpers import is_admin
 from app.utils.error_handler import raise_validation_error
 from app.utils.request_deduplication import request_deduplicator, SlotLockContext
 from app.utils.logging import booking_logger, log_request
+from app.utils.memory_guard import memory_guard, safe_import, force_garbage_collection
 
 booking_bp = Blueprint('booking', __name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -26,6 +27,7 @@ def add_points_to_user(user, points):
     """
     Add points to user with Achievement System Integration
     Migrated from original slot_booking_webapp.py
+    Enhanced with memory-safe error handling to prevent SIGSEGV crashes
     """
     try:
         # Load scores with robust persistence system
@@ -38,26 +40,41 @@ def add_points_to_user(user, points):
         scores[user][month] = scores[user].get(month, 0) + points
         data_persistence.save_scores(scores)
 
-        # Achievement system integration
+        # Achievement system integration with memory-safe guards
         new_badges = []
         try:
-            from app.services.achievement_system import achievement_system
-            if achievement_system:
-                new_badges = achievement_system.process_user_achievements(user)
-        except ImportError:
+            # Safe import with memory protection
+            achievement_module = safe_import('app.services.achievement_system')
+
+            if achievement_module and hasattr(achievement_module, 'achievement_system'):
+                achievement_system = achievement_module.achievement_system
+
+                if achievement_system:
+                    # Process achievements with size limits to prevent memory overflow
+                    new_badges = achievement_system.process_user_achievements(user)
+                    # Limit badge list size to prevent memory issues
+                    if isinstance(new_badges, list) and len(new_badges) > 20:
+                        booking_logger.warning(f"Achievement system returned {len(new_badges)} badges, limiting to 20")
+                        new_badges = new_badges[:20]
+
+        except MemoryError:
+            booking_logger.error(f"Memory error in achievement system for user {user}")
+            force_garbage_collection()  # Versuche Speicher freizugeben
             pass
         except Exception as e:
-            booking_logger.warning(f"Could not process achievements for user {user}: {e}")
+            booking_logger.error(f"Could not process achievements for user {user}: {e}", exc_info=True)
+            pass
 
-        return new_badges
+        return new_badges if isinstance(new_badges, list) else []
 
     except Exception as e:
-        booking_logger.error(f"Error adding points to user {user}: {e}")
+        booking_logger.error(f"Error adding points to user {user}: {e}", exc_info=True)
         return []
 
 
 @booking_bp.route("/book", methods=["POST"])
 @require_login
+@memory_guard(max_retries=1, cleanup_on_error=True)
 def book():
     """Handle slot booking"""
     user = session.get("user")
@@ -184,13 +201,18 @@ def book():
             except Exception as e:
                 booking_logger.warning(f"Tracking error for booking {last}, {first} on {date} {hour}: {e}")
 
-            # Achievement System Integration
+            # Achievement System Integration with Enhanced Error Handling
             new_badges = []
             if user and user != "unknown":
-                new_badges = add_points_to_user(user, points)
-                if points > 0:
-                    flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
-                else:
+                try:
+                    new_badges = add_points_to_user(user, points)
+                    if points > 0:
+                        flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
+                    else:
+                        flash("Slot erfolgreich gebucht!", "success")
+                except Exception as e:
+                    booking_logger.error(f"Critical error in achievement system for user {user}: {e}", exc_info=True)
+                    # Continue with success message but without achievement processing
                     flash("Slot erfolgreich gebucht!", "success")
             else:
                 flash("Slot erfolgreich gebucht!", "success")
@@ -228,7 +250,7 @@ def book():
                         daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
                     data_persistence.save_daily_user_stats(daily_stats)
             except Exception as e:
-                print(f"Warning: Could not update special badge counters: {e}")
+                booking_logger.warning(f"Could not update special badge counters for user {user}: {e}", exc_info=True)
 
             # Show new badges
             if new_badges:
