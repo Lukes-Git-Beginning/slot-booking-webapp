@@ -8,8 +8,8 @@ itsdangerous==2.2.0
 click==8.2.1
 blinker==1.9.0
 
-# Google Calendar API
-google-api-python-client==2.170.0
+# Google Calendar API (Updated for stability and security)
+google-api-python-client==2.183.0
 google-auth==2.40.2
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.2
