@@ -9,8 +9,7 @@ import sys
 import os
 
 # Add the project root to Python path
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(script_dir)  # Go up one level from scripts/ to project root
+project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
 def run_achievement_check():

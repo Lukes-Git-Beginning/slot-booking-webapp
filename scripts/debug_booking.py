@@ -6,7 +6,7 @@ Debug script to test booking availability logic
 
 import sys
 import os
-sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from app.services.booking_service import get_effective_availability, get_slot_status, load_availability
 
