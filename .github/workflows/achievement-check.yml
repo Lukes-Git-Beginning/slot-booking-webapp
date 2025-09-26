@@ -43,7 +43,7 @@ jobs:
       - name: 🏆 Run Achievement Check
         run: |
           echo "🕐 Starting achievement check at $(date)"
-          python run_achievements.py
+          python scripts/run_achievements.py
           echo "✅ Achievement check completed"
 
       - name: 💾 Commit Achievement Data
