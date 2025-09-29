@@ -59,6 +59,28 @@ def create_app(config_object: Optional[str] = None) -> Flask:
     # Legacy-Redirects für Backwards-Compatibility
     register_legacy_redirects(app)
 
+    # Health-Check-Endpoint direkt registrieren (Fallback wenn Blueprint fehlt)
+    @app.route('/health')
+    def health_check():
+        """System-Health-Check für Monitoring"""
+        import json
+        from datetime import datetime
+
+        health_status = {
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'version': '1.0.0',
+            'tools': {
+                'slots': 'healthy',
+                't2': 'healthy',
+                'analytics': 'not_ready',
+            },
+            'database': 'healthy',
+            'memory': 'ok'
+        }
+
+        return json.dumps(health_status, indent=2), 200, {'Content-Type': 'application/json'}
+
     app.logger.info('Central Business Tool Hub started successfully')
 
     return app
@@ -420,26 +442,3 @@ def get_user_notifications():
             'read': False
         }
     ]
-
-
-# Health-Check-Endpoint für Monitoring
-@app.route('/health')
-def health_check():
-    """System-Health-Check für Monitoring"""
-    import json
-    from datetime import datetime
-
-    health_status = {
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'version': '1.0.0',
-        'tools': {
-            'slots': 'healthy',
-            't2': 'healthy',
-            'analytics': 'not_ready',
-        },
-        'database': 'healthy',
-        'memory': 'ok'
-    }
-
-    return json.dumps(health_status, indent=2), 200, {'Content-Type': 'application/json'}
