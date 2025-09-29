@@ -328,7 +328,7 @@ def get_slot_suggestions(availability, n=5):
     return suggestions
 
 
-def get_slot_points(hour, slot_date, date_str=None, berater_count=None):
+def get_slot_points(hour, slot_date, date_str=None, berater_count=None, color_id=None):
     """Calculate points for a time slot based on availability and demand"""
 
     # If we have slot information, calculate dynamic points based on utilization
@@ -361,5 +361,11 @@ def get_slot_points(hour, slot_date, date_str=None, berater_count=None):
     # Weekend bonus
     if slot_date.weekday() >= 5:
         points += 1
+
+    # Rückholungs-Modifikator: Halbe Punkte für Rückholungen (Color ID "3")
+    if color_id == "3":
+        points = int(points * 0.5)
+        # Mindestens 1 Punkt vergeben
+        points = max(1, points)
 
     return points
