@@ -1,0 +1,47 @@
+[Unit]
+Description=Business Tool Hub - Flask Application
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+After=network.target
+
+[Service]
+Type=notify
+User=business-hub
+Group=www-data
+WorkingDirectory=/home/business-hub/business-hub
+Environment="PATH=/home/business-hub/business-hub/venv/bin"
+Environment="FLASK_ENV=production"
+
+# Load environment variables from .env file
+EnvironmentFile=/home/business-hub/business-hub/.env
+
+# Gunicorn command with production settings
+ExecStart=/home/business-hub/business-hub/venv/bin/gunicorn \
+    --bind 127.0.0.1:5000 \
+    --workers 4 \
+    --threads 2 \
+    --worker-class sync \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
+    --log-level info \
+    --access-logfile /var/log/business-hub/access.log \
+    --error-logfile /var/log/business-hub/error.log \
+    --capture-output \
+    --enable-stdio-inheritance \
+    'app:create_app()'
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=business-hub
+
+[Install]
+WantedBy=multi-user.target
