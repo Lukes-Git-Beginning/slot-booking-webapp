@@ -209,7 +209,7 @@ def gamification_dashboard():
             gamification_data['user_level'] = level_system.calculate_user_level(user)
 
         # Get recent badges
-        from achievement_system import achievement_system
+        from app.services.achievement_system import achievement_system
         user_badges = achievement_system.get_user_badges(user)
         gamification_data['recent_badges'] = user_badges.get('badges', [])[-5:]  # Last 5 badges
 
@@ -218,7 +218,7 @@ def gamification_dashboard():
 
     # Get user badges for template
     try:
-        from achievement_system import achievement_system
+        from app.services.achievement_system import achievement_system
         user_badges = achievement_system.get_user_badges(user)
     except Exception as e:
         print(f"Error getting user badges for gamification: {e}")

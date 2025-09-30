@@ -326,6 +326,11 @@ def register_legacy_redirects(app: Flask) -> None:
     def legacy_calendar():
         return redirect('/slots/calendar', code=301)
 
+    @app.route('/my-calendar')
+    def legacy_my_calendar():
+        """Legacy /my-calendar Route zu /slots/my-calendar umleiten"""
+        return redirect('/slots/my-calendar', code=301)
+
     @app.route('/gamification')
     def legacy_gamification():
         return redirect('/slots/gamification', code=301)
@@ -337,6 +342,11 @@ def register_legacy_redirects(app: Flask) -> None:
     @app.route('/profile')
     def legacy_profile():
         return redirect('/slots/profile', code=301)
+
+    @app.route('/api/user/<username>/cosmetics')
+    def legacy_api_cosmetics(username):
+        """Legacy API cosmetics Route zu /slots/api/user/<username>/cosmetics umleiten"""
+        return redirect(f'/slots/api/user/{username}/cosmetics', code=301)
 
 
 def get_admin_users():
