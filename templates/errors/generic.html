@@ -1,0 +1,196 @@
+{% extends "errors/base.html" %}
+
+{% block title %}Fehler {{ error_code or 'Unbekannt' }} - Business Hub{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb-error">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('hub.dashboard') }}"><i class="fas fa-home"></i> Hub</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Fehler {{ error_code or 'Unbekannt' }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="error-container">
+    <div class="error-card {% if error_code in ['401', '403'] %}warning{% elif error_code in ['500', '502', '503', '504'] %}{% else %}info{% endif %}">
+        <div class="error-icon {% if error_code in ['401', '403'] %}warning{% elif error_code in ['500', '502', '503', '504'] %}{% else %}info{% endif %}">
+            {% if error_code == '401' %}
+                <i class="fas fa-lock"></i>
+            {% elif error_code == '403' %}
+                <i class="fas fa-shield-alt"></i>
+            {% elif error_code == '404' %}
+                <i class="fas fa-search"></i>
+            {% elif error_code in ['500', '502', '503', '504'] %}
+                <i class="fas fa-server"></i>
+            {% elif error_code == '429' %}
+                <i class="fas fa-clock"></i>
+            {% else %}
+                <i class="fas fa-exclamation-triangle"></i>
+            {% endif %}
+        </div>
+
+        <div class="error-code">{{ error_code or '???' }}</div>
+
+        <h1 class="error-title">
+            {% if error_code == '401' %}
+                Authentifizierung erforderlich
+            {% elif error_code == '403' %}
+                Zugriff verweigert
+            {% elif error_code == '404' %}
+                Seite nicht gefunden
+            {% elif error_code == '429' %}
+                Zu viele Anfragen
+            {% elif error_code == '500' %}
+                Interner Serverfehler
+            {% elif error_code == '502' %}
+                Bad Gateway
+            {% elif error_code == '503' %}
+                Service nicht verfügbar
+            {% elif error_code == '504' %}
+                Gateway Timeout
+            {% else %}
+                Ein Fehler ist aufgetreten
+            {% endif %}
+        </h1>
+
+        <p class="error-description">
+            {% if error_message %}
+                {{ error_message }}
+            {% elif error_code == '401' %}
+                Du musst dich anmelden, um auf diese Ressource zuzugreifen.
+            {% elif error_code == '403' %}
+                Du hast keine Berechtigung für diese Aktion oder Ressource.
+            {% elif error_code == '404' %}
+                Die angeforderte Seite oder Ressource konnte nicht gefunden werden.
+            {% elif error_code == '429' %}
+                Du hast zu viele Anfragen in kurzer Zeit gesendet. Bitte warte einen Moment.
+            {% elif error_code == '500' %}
+                Ein interner Serverfehler ist aufgetreten. Das Problem wurde gemeldet.
+            {% elif error_code == '502' %}
+                Der Server hat eine ungültige Antwort erhalten.
+            {% elif error_code == '503' %}
+                Der Service ist temporär nicht verfügbar. Bitte versuche es später erneut.
+            {% elif error_code == '504' %}
+                Der Server hat zu lange für eine Antwort gebraucht.
+            {% else %}
+                Es ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.
+            {% endif %}
+        </p>
+
+        <div class="error-suggestions">
+            <h6><i class="fas fa-lightbulb me-2"></i>Lösungsvorschläge</h6>
+            <ul>
+                {% if error_code == '401' %}
+                    <li>Melde dich mit deinen Zugangsdaten an</li>
+                    <li>Überprüfe, ob deine Session abgelaufen ist</li>
+                    <li>Kontaktiere den Support bei Login-Problemen</li>
+                {% elif error_code == '403' %}
+                    <li>Überprüfe deine Berechtigungen</li>
+                    <li>Melde dich ab und wieder an</li>
+                    <li>Kontaktiere einen Administrator</li>
+                {% elif error_code == '404' %}
+                    <li>Überprüfe die URL auf Tippfehler</li>
+                    <li>Verwende die Navigation der Website</li>
+                    <li>Gehe zurück zur Startseite</li>
+                {% elif error_code == '429' %}
+                    <li>Warte 1-2 Minuten und versuche es erneut</li>
+                    <li>Reduziere die Anzahl der Anfragen</li>
+                    <li>Kontaktiere den Support bei wiederholten Problemen</li>
+                {% elif error_code in ['500', '502', '503', '504'] %}
+                    <li>Lade die Seite in ein paar Minuten neu</li>
+                    <li>Überprüfe deine Internetverbindung</li>
+                    <li>Versuche es mit einer anderen Aktion</li>
+                    <li>Kontaktiere den Support bei anhaltenden Problemen</li>
+                {% else %}
+                    <li>Lade die Seite neu</li>
+                    <li>Überprüfe deine Internetverbindung</li>
+                    <li>Versuche es später erneut</li>
+                    <li>Kontaktiere den Support wenn das Problem weiterhin besteht</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="error-actions">
+            {% if error_code == '401' %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>Anmelden
+                </a>
+            {% elif error_code in ['500', '502', '503', '504'] %}
+                <button id="auto-refresh-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-sync me-2"></i>Neu laden
+                </button>
+            {% else %}
+                <button onclick="window.location.reload()" class="btn btn-primary btn-lg">
+                    <i class="fas fa-sync me-2"></i>Neu laden
+                </button>
+            {% endif %}
+
+            <a href="{{ url_for('hub.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-home me-2"></i>Zur Startseite
+            </a>
+
+            {% if error_code in ['500', '502', '503', '504'] %}
+            <button id="report-error-btn" class="btn btn-outline-danger btn-lg">
+                <i class="fas fa-bug me-2"></i>Fehler melden
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Tool Navigation -->
+        <div class="error-suggestions mt-4">
+            <h6><i class="fas fa-th me-2"></i>Verfügbare Tools</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('hub.dashboard') }}" class="text-decoration-none">
+                            <i class="fas fa-home me-2"></i>Business Hub
+                        </a></li>
+                        {% if session.get('user') %}
+                        <li><a href="{{ url_for('slots.index') }}" class="text-decoration-none">
+                            <i class="fas fa-calendar me-2"></i>Slot-Booking
+                        </a></li>
+                        <li><a href="{{ url_for('t2.dashboard') }}" class="text-decoration-none">
+                            <i class="fas fa-user-tie me-2"></i>T2-Closer
+                        </a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        {% if session.get('user') %}
+                        <li><a href="{{ url_for('slots.profile') }}" class="text-decoration-none">
+                            <i class="fas fa-user me-2"></i>Mein Profil
+                        </a></li>
+                        <li><a href="{{ url_for('slots.gamification') }}" class="text-decoration-none">
+                            <i class="fas fa-trophy me-2"></i>Gamification
+                        </a></li>
+                        {% else %}
+                        <li><a href="{{ url_for('auth.login') }}" class="text-decoration-none">
+                            <i class="fas fa-sign-in-alt me-2"></i>Anmelden
+                        </a></li>
+                        {% endif %}
+                        <li><a href="mailto:support@business-hub.de" class="text-decoration-none">
+                            <i class="fas fa-envelope me-2"></i>Support
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-details">
+            <strong>Technische Details:</strong><br>
+            <small>
+                Fehler-Code: {{ error_code or 'Unbekannt' }}<br>
+                {% if error_id %}Fehler-ID: {{ error_id }}<br>{% endif %}
+                URL: {{ request.url }}<br>
+                {% if request.endpoint %}Route: {{ request.endpoint }}<br>{% endif %}
+                {% if session.get('user') %}Benutzer: {{ session.get('user') }}<br>{% endif %}
+                Zeitpunkt: {{ moment().format('DD.MM.YYYY HH:mm:ss') }}<br>
+                User-Agent: {{ request.headers.get('User-Agent', '')[:50] }}...
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}

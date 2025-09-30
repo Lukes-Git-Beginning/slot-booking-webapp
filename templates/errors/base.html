@@ -1,0 +1,253 @@
+{% extends "hub/base.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    .error-container {
+        min-height: 60vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 0;
+    }
+
+    .error-card {
+        max-width: 600px;
+        width: 100%;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        padding: 3rem;
+        text-align: center;
+        border-top: 5px solid #dc3545;
+    }
+
+    .error-card.warning {
+        border-top-color: #ffc107;
+    }
+
+    .error-card.info {
+        border-top-color: #17a2b8;
+    }
+
+    .error-icon {
+        font-size: 4rem;
+        color: #dc3545;
+        margin-bottom: 2rem;
+        animation: pulse 2s infinite;
+    }
+
+    .error-icon.warning {
+        color: #ffc107;
+    }
+
+    .error-icon.info {
+        color: #17a2b8;
+    }
+
+    .error-code {
+        font-size: 6rem;
+        font-weight: bold;
+        color: #dc3545;
+        margin-bottom: 1rem;
+        font-family: 'Courier New', monospace;
+    }
+
+    .error-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: #333;
+    }
+
+    .error-description {
+        color: #666;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+
+    .error-actions {
+        margin-top: 2rem;
+    }
+
+    .error-actions .btn {
+        margin: 0.5rem;
+    }
+
+    .error-details {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+        text-align: left;
+        font-family: monospace;
+        font-size: 0.9rem;
+        color: #666;
+        border: 1px solid #dee2e6;
+    }
+
+    .error-suggestions {
+        background: #e7f3ff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+        text-align: left;
+        border-left: 4px solid #007bff;
+    }
+
+    .error-suggestions h6 {
+        color: #007bff;
+        margin-bottom: 1rem;
+    }
+
+    .error-suggestions ul {
+        margin-bottom: 0;
+        padding-left: 1.5rem;
+    }
+
+    .error-suggestions li {
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .breadcrumb-error {
+        background: rgba(220, 53, 69, 0.1);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .breadcrumb-error a {
+        color: #dc3545;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .breadcrumb-error a:hover {
+        text-decoration: underline;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    @media (max-width: 768px) {
+        .error-card {
+            padding: 2rem 1.5rem;
+            margin: 1rem;
+        }
+
+        .error-code {
+            font-size: 4rem;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+        }
+
+        .error-actions .btn {
+            display: block;
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+    }
+
+    .system-status-widget {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 2rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .status-item:last-child {
+        border-bottom: none;
+    }
+
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #28a745;
+        display: inline-block;
+        margin-right: 0.5rem;
+    }
+
+    .status-indicator.error {
+        background: #dc3545;
+    }
+
+    .status-indicator.warning {
+        background: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+// Auto-refresh für Error-Pages
+function startErrorPageRefresh() {
+    // Nur bei bestimmten Fehlern auto-refresh
+    const errorCode = document.querySelector('.error-code')?.textContent;
+
+    if (['500', '503', '502'].includes(errorCode)) {
+        let countdown = 30;
+        const refreshBtn = document.getElementById('auto-refresh-btn');
+
+        if (refreshBtn) {
+            const interval = setInterval(() => {
+                countdown--;
+                refreshBtn.innerHTML = `<i class="fas fa-sync me-2"></i>Auto-Refresh in ${countdown}s`;
+
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    window.location.reload();
+                }
+            }, 1000);
+
+            // User can cancel auto-refresh
+            refreshBtn.addEventListener('click', () => {
+                clearInterval(interval);
+                window.location.reload();
+            });
+        }
+    }
+}
+
+// Error reporting
+function reportError() {
+    const errorData = {
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        error_code: document.querySelector('.error-code')?.textContent
+    };
+
+    // Send error report (implement as needed)
+    console.log('Error reported:', errorData);
+    showNotification('Fehler wurde gemeldet. Danke für dein Feedback!', 'success');
+}
+
+// Initialize error page functionality
+document.addEventListener('DOMContentLoaded', function() {
+    startErrorPageRefresh();
+
+    // Add report error button functionality
+    const reportBtn = document.getElementById('report-error-btn');
+    if (reportBtn) {
+        reportBtn.addEventListener('click', reportError);
+    }
+});
+</script>
+{% endblock %}
