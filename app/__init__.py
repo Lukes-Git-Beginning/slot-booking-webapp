@@ -308,6 +308,16 @@ def register_request_hooks(app: Flask) -> None:
 def register_legacy_redirects(app: Flask) -> None:
     """Legacy-Redirects für Backwards-Compatibility"""
 
+    @app.route('/')
+    def root_redirect():
+        """Root-Path zu Slots-Dashboard umleiten"""
+        return redirect('/slots/', code=302)
+
+    @app.route('/day/<date_str>')
+    def legacy_day_view(date_str):
+        """Legacy /day/ Route zu /slots/day/ umleiten"""
+        return redirect(f'/slots/day/{date_str}', code=301)
+
     @app.route('/booking')
     def legacy_booking():
         return redirect('/slots/booking', code=301)
