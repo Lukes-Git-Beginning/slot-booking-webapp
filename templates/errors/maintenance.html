@@ -1,0 +1,188 @@
+{% extends "errors/base.html" %}
+
+{% block title %}Wartungsarbeiten - Business Hub{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb-error" style="background: rgba(23, 162, 184, 0.1);">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('hub.dashboard') }}" style="color: #17a2b8;"><i class="fas fa-home"></i> Hub</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Wartungsarbeiten</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="error-container">
+    <div class="error-card info">
+        <div class="error-icon info">
+            <i class="fas fa-tools"></i>
+        </div>
+
+        <div class="error-code" style="color: #17a2b8;">503</div>
+
+        <h1 class="error-title">Wartungsarbeiten</h1>
+
+        <p class="error-description">
+            Das Business Tool Hub wird gerade gewartet und ist temporär nicht verfügbar.
+            Wir arbeiten daran, alle Services schnellstmöglich wieder online zu bringen.
+        </p>
+
+        <div class="error-suggestions" style="background: #d1ecf1; border-left-color: #17a2b8;">
+            <h6 style="color: #0c5460;"><i class="fas fa-info-circle me-2"></i>Wartungsarbeiten im Gange</h6>
+            <ul>
+                <li>System-Updates und Sicherheitsupdates</li>
+                <li>Performance-Optimierungen</li>
+                <li>Neue Features werden eingespielt</li>
+                <li>Datenbank-Wartung und Optimierung</li>
+            </ul>
+        </div>
+
+        <!-- Maintenance Status -->
+        <div class="system-status-widget">
+            <h6><i class="fas fa-cog me-2"></i>Wartungsstatus</h6>
+            <div class="status-item">
+                <span>
+                    <span class="status-indicator warning"></span>
+                    Business Hub
+                </span>
+                <span class="text-warning">Wartung</span>
+            </div>
+            <div class="status-item">
+                <span>
+                    <span class="status-indicator warning"></span>
+                    Slot-Booking System
+                </span>
+                <span class="text-warning">Wartung</span>
+            </div>
+            <div class="status-item">
+                <span>
+                    <span class="status-indicator warning"></span>
+                    T2-Closer System
+                </span>
+                <span class="text-warning">Wartung</span>
+            </div>
+            <div class="status-item">
+                <span>
+                    <span class="status-indicator"></span>
+                    Datenbank
+                </span>
+                <span class="text-success">Sicher gesichert</span>
+            </div>
+        </div>
+
+        <div class="error-actions">
+            <button id="auto-refresh-btn" class="btn btn-info btn-lg">
+                <i class="fas fa-sync me-2"></i>
+                Status prüfen
+            </button>
+            <a href="mailto:support@business-hub.de" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-envelope me-2"></i>
+                Support kontaktieren
+            </a>
+        </div>
+
+        <!-- Expected completion -->
+        <div class="error-suggestions mt-4" style="background: #d4edda; border-left-color: #28a745;">
+            <h6 style="color: #155724;"><i class="fas fa-clock me-2"></i>Voraussichtliche Fertigstellung</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        <strong>Geschätzte Dauer:</strong><br>
+                        {{ maintenance_duration or '30-60 Minuten' }}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        <strong>Voraussichtlich online:</strong><br>
+                        {{ maintenance_end_time or 'In Kürze' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- What's new -->
+        <div class="error-suggestions mt-4">
+            <h6><i class="fas fa-star me-2"></i>Was ist neu nach der Wartung?</h6>
+            <ul>
+                <li>Verbesserte Performance und Ladezeiten</li>
+                <li>Neue Features im T2-Closer System</li>
+                <li>Enhanced Gamification-Elemente</li>
+                <li>Bugfixes und Stabilitätsverbesserungen</li>
+                <li>Erweiterte Analytics-Funktionen</li>
+            </ul>
+        </div>
+
+        <!-- Progress indicator -->
+        <div class="mt-4">
+            <h6><i class="fas fa-progress-bar me-2"></i>Wartungsfortschritt</h6>
+            <div class="progress mb-2" style="height: 20px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                     role="progressbar"
+                     style="width: {{ maintenance_progress or '75' }}%">
+                    {{ maintenance_progress or '75' }}%
+                </div>
+            </div>
+            <small class="text-muted">
+                Aktueller Schritt: {{ maintenance_step or 'System-Updates werden eingespielt' }}
+            </small>
+        </div>
+
+        <div class="error-details">
+            <strong>Wartungsdetails:</strong><br>
+            <small>
+                Wartung gestartet: {{ maintenance_start_time or moment().subtract(30, 'minutes').format('DD.MM.YYYY HH:mm') }}<br>
+                Wartungstyp: {{ maintenance_type or 'Geplante Wartung' }}<br>
+                Betroffene Services: Alle Hub-Services<br>
+                Verantwortlich: Entwicklungsteam<br>
+                Status-Updates: Alle 15 Minuten
+            </small>
+        </div>
+
+        <!-- Contact information -->
+        <div class="error-suggestions mt-4" style="background: #f8d7da; border-left-color: #dc3545;">
+            <h6 style="color: #721c24;"><i class="fas fa-phone me-2"></i>Dringender Support</h6>
+            <p class="mb-2">
+                Bei kritischen Problemen oder Notfällen während der Wartung:
+            </p>
+            <ul class="mb-0">
+                <li>E-Mail: <a href="mailto:emergency@business-hub.de">emergency@business-hub.de</a></li>
+                <li>Hotline: +49 (0) 123 456-7890</li>
+                <li>Status-Page: <a href="https://status.business-hub.de" target="_blank">status.business-hub.de</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh every 2 minutes during maintenance
+document.addEventListener('DOMContentLoaded', function() {
+    let countdown = 120; // 2 minutes
+    const refreshBtn = document.getElementById('auto-refresh-btn');
+
+    if (refreshBtn) {
+        const interval = setInterval(() => {
+            countdown--;
+            refreshBtn.innerHTML = `<i class="fas fa-sync me-2"></i>Status prüfen (${countdown}s)`;
+
+            if (countdown <= 0) {
+                clearInterval(interval);
+                window.location.reload();
+            }
+        }, 1000);
+
+        // Manual refresh
+        refreshBtn.addEventListener('click', () => {
+            clearInterval(interval);
+            window.location.reload();
+        });
+    }
+
+    // Update progress bar animation
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+        progressBar.style.animationDuration = '2s';
+    }
+});
+</script>
+{% endblock %}

@@ -199,34 +199,48 @@ def register_blueprints(app: Flask) -> None:
     except ImportError as e:
         print(f"WARNING: Health check blueprint error: {e}")
 
+    # Error Handlers Blueprint (zentrale Error-Behandlung)
+    try:
+        from app.routes.error_handlers import error_handlers_bp
+        app.register_blueprint(error_handlers_bp)
+        print("SUCCESS: Error handlers blueprint registered")
+    except ImportError as e:
+        print(f"WARNING: Error handlers blueprint error: {e}")
+
 
 def register_error_handlers(app: Flask) -> None:
-    """Error-Handler für alle HTTP-Status-Codes"""
+    """Error-Handler für alle HTTP-Status-Codes
 
-    @app.errorhandler(400)
-    def bad_request(error):
-        return render_template('errors/400.html', error=error), 400
+    HINWEIS: Error Handlers werden jetzt über den error_handlers_bp Blueprint registriert.
+    Diese Funktion bleibt als Fallback, falls der Blueprint nicht geladen werden kann.
+    """
+    pass
 
-    @app.errorhandler(401)
-    def unauthorized(error):
-        return redirect(url_for('auth.login', next=request.url))
+    # Fallback Error Handlers (nur wenn Blueprint fehlt)
+    # @app.errorhandler(400)
+    # def bad_request(error):
+    #     return render_template('errors/400.html', error=error), 400
 
-    @app.errorhandler(403)
-    def forbidden(error):
-        return render_template('errors/403.html', error=error), 403
+    # @app.errorhandler(401)
+    # def unauthorized(error):
+    #     return redirect(url_for('auth.login', next=request.url))
 
-    @app.errorhandler(404)
-    def not_found(error):
-        return render_template('errors/404.html', error=error), 404
+    # @app.errorhandler(403)
+    # def forbidden(error):
+    #     return render_template('errors/403.html', error=error), 403
 
-    @app.errorhandler(500)
-    def internal_error(error):
-        app.logger.error(f'Server Error: {error}')
-        return render_template('errors/500.html', error=error), 500
+    # @app.errorhandler(404)
+    # def not_found(error):
+    #     return render_template('errors/404.html', error=error), 404
 
-    @app.errorhandler(503)
-    def service_unavailable(error):
-        return render_template('errors/503.html', error=error), 503
+    # @app.errorhandler(500)
+    # def internal_error(error):
+    #     app.logger.error(f'Server Error: {error}')
+    #     return render_template('errors/500.html', error=error), 500
+
+    # @app.errorhandler(503)
+    # def service_unavailable(error):
+    #     return render_template('errors/503.html', error=error), 503
 
 
 def register_template_context(app: Flask) -> None:
