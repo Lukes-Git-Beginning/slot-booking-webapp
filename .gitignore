@@ -30,6 +30,7 @@ ENV/
 .idea/
 *.swp
 *.swo
+.claude/settings.local.json
 
 # OS
 .DS_Store
@@ -41,6 +42,17 @@ Thumbs.db
 # Sensitive credentials
 service_account.json
 .env
+
+# SSH Keys (NEVER commit private keys!)
+*.pem
+*_rsa
+id_rsa*
+vps_key
+deployment/vps_key
+*.pub
+deployment/*.pub
+*.key
+!*.key.example
 
 # Temporary files
 *.tmp

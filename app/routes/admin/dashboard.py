@@ -87,7 +87,7 @@ def admin_dashboard():
 
     except Exception as e:
         flash(f"Fehler beim Laden des Dashboards: {str(e)}", "danger")
-        return redirect(url_for("main.index"))
+        return redirect(url_for("hub.dashboard"))
 
 
 @admin_bp.route("/insights")

@@ -17,12 +17,33 @@ logger = logging.getLogger(__name__)
 class DataPersistence:
     def __init__(self) -> None:
         """
-        Primäre Persistenz auf Render Persist-Disk, Fallback lokal.
-        - Primär: /opt/render/project/src/persist/{persistent,backups}
-        - Fallback: data/{persistent,backups}
-        - Dual-Write: zusätzlich nach static/ für Kompatibilität
+        Primäre Persistenz mit provider-agnostischer Pfad-Logik.
+
+        Pfad-Priorität:
+        1. PERSIST_BASE Environment Variable (z.B. /opt/business-hub/data)
+        2. Render.com: /opt/render/project/src/persist
+        3. VPS Standard: /opt/business-hub/data
+        4. Fallback: ./data (lokale Entwicklung)
+
+        Dual-Write: zusätzlich nach static/ für Legacy-Kompatibilität
         """
-        persist_base = Path(os.getenv("PERSIST_BASE", "/opt/render/project/src/persist"))
+        persist_base_env = os.getenv("PERSIST_BASE", "")
+
+        # Pfad-Auswahl-Logik
+        if persist_base_env:
+            # 1. Explizit konfiguriert via Environment Variable
+            persist_base = Path(persist_base_env)
+        elif Path("/opt/render/project/src/persist").exists():
+            # 2. Render.com detected
+            persist_base = Path("/opt/render/project/src/persist")
+        elif Path("/opt/business-hub").exists():
+            # 3. VPS Standard-Path
+            persist_base = Path("/opt/business-hub/data")
+        else:
+            # 4. Fallback für lokale Entwicklung
+            persist_base = Path("data")
+
+        # Erstelle Verzeichnis falls nicht vorhanden
         if not persist_base.exists():
             persist_base = Path("data")
 

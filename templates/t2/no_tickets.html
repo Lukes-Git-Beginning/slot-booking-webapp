@@ -1,0 +1,150 @@
+{% extends "t2/base.html" %}
+
+{% block title %}Keine Tickets verfügbar{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="t2-header">
+    <h1 class="t2-title">
+        <i class="ti ti-ticket-off"></i> Keine Tickets verfügbar
+    </h1>
+    <p class="t2-subtitle">
+        Du hast diesen Monat alle Tickets aufgebraucht
+    </p>
+</div>
+
+<!-- No Tickets Message -->
+<div style="max-width: 600px; margin: 0 auto;">
+
+    <!-- Main Message Box -->
+    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-2xl); margin-bottom: var(--spacing-xl); text-align: center;">
+
+        <!-- Icon -->
+        <div style="font-size: 80px; margin-bottom: var(--spacing-lg);">🎫</div>
+
+        <!-- Message -->
+        <h2 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+            Alle Tickets aufgebraucht
+        </h2>
+
+        <p style="color: var(--muted); font-size: var(--text-base); line-height: var(--leading-relaxed); margin: 0 0 var(--spacing-lg);">
+            Du hast diesen Monat bereits alle {{ tickets_total }} T2-Tickets verwendet.
+        </p>
+
+        <!-- Ticket Counter -->
+        <div style="padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg);">
+            <div style="font-size: var(--text-4xl); font-weight: var(--font-bold); color: var(--muted); margin-bottom: var(--spacing-xs);">
+                {{ tickets_remaining }} / {{ tickets_total }}
+            </div>
+            <div style="color: var(--muted); font-size: var(--text-sm);">
+                Verfügbare Tickets
+            </div>
+        </div>
+
+        <!-- Reset Info -->
+        <div style="padding: var(--spacing-md); background: var(--info-bg); border: 1px solid var(--info-bd); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg);">
+            <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: var(--spacing-xs);">
+                <i class="ti ti-calendar-event"></i> Nächster Reset
+            </div>
+            <div style="color: var(--muted); font-size: var(--text-sm);">
+                {{ reset_date }}
+            </div>
+            <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">
+                Dann erhältst du wieder {{ tickets_total }} neue Tickets
+            </div>
+        </div>
+    </div>
+
+    <!-- What you can do -->
+    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+        <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+            Was du jetzt tun kannst
+        </h3>
+
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+            <!-- View Calendar -->
+            <a href="{{ url_for('t2.calendar_view') }}" style="display: flex; align-items: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-decoration: none; transition: all 0.2s;">
+                <div style="font-size: 24px; margin-right: var(--spacing-md);">📅</div>
+                <div style="flex: 1;">
+                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: 2px;">Deine Termine ansehen</div>
+                    <div style="color: var(--muted); font-size: var(--text-sm);">Überblick über gebuchte T2-Termine</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color: var(--muted);"></i>
+            </a>
+
+            <!-- View Stats -->
+            <a href="{{ url_for('t2.stats_page') }}" style="display: flex; align-items: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-decoration: none; transition: all 0.2s;">
+                <div style="font-size: 24px; margin-right: var(--spacing-md);">📊</div>
+                <div style="flex: 1;">
+                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: 2px;">Statistiken ansehen</div>
+                    <div style="color: var(--muted); font-size: var(--text-sm);">Deine T2-Performance im Überblick</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color: var(--muted);"></i>
+            </a>
+
+            <!-- Back to Dashboard -->
+            <a href="{{ url_for('t2.dashboard') }}" style="display: flex; align-items: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-decoration: none; transition: all 0.2s;">
+                <div style="font-size: 24px; margin-right: var(--spacing-md);">🏠</div>
+                <div style="flex: 1;">
+                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: 2px;">Zurück zum Dashboard</div>
+                    <div style="color: var(--muted); font-size: var(--text-sm);">T2-Hauptübersicht</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color: var(--muted);"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Countdown Timer (Optional) -->
+    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); text-align: center;">
+        <div style="color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--spacing-sm);">
+            Zeit bis zum nächsten Reset
+        </div>
+        <div id="countdown" style="font-size: var(--text-3xl); font-weight: var(--font-bold); color: var(--accent);">
+            <!-- Will be populated by JS -->
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Countdown to next month
+function updateCountdown() {
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+    const diff = nextMonth - now;
+
+    if (diff <= 0) {
+        document.getElementById('countdown').textContent = 'Tickets werden gerade zurückgesetzt...';
+        setTimeout(() => location.reload(), 5000);
+        return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    document.getElementById('countdown').textContent =
+        `${days}d ${hours}h ${minutes}m ${seconds}s`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+});
+
+// Hover effects for action cards
+document.querySelectorAll('a[style*="background: var(--input-bg)"]').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.borderColor = 'var(--accent)';
+        this.style.transform = 'translateX(4px)';
+    });
+    card.addEventListener('mouseleave', function() {
+        this.style.borderColor = 'var(--input-bd)';
+        this.style.transform = 'translateX(0)';
+    });
+});
+</script>
+{% endblock %}

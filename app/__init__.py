@@ -128,29 +128,29 @@ def register_blueprints(app: Flask) -> None:
     except ImportError as e:
         print(f"WARNING: Auth blueprint error: {e}")
 
-    # Slot-Booking Tool Blueprint (MIGRATION - bestehende Routes unter /slots)
+    # Slot-Booking Tool Blueprint - Use LEGACY blueprints (complete app from Render)
     try:
-        from app.routes.slots import slots_bp
-        app.register_blueprint(slots_bp, url_prefix='/slots')
-        print("SUCCESS: Slots blueprint registered")
-    except ImportError as e:
-        print(f"INFO: Migrating to slots blueprint: {e}")
-        # Fallback: Bestehende Blueprints verwenden
-        try:
-            from app.routes.main import main_bp
-            from app.routes.booking import booking_bp
-            from app.routes.calendar import calendar_bp
-            from app.routes.scoreboard import scoreboard_bp
-            from app.routes.user_profile import user_profile_bp
+        from app.routes.main import main_bp
+        from app.routes.booking import booking_bp
+        from app.routes.calendar import calendar_bp
+        from app.routes.scoreboard import scoreboard_bp
+        from app.routes.user_profile import user_profile_bp
 
-            app.register_blueprint(main_bp, url_prefix='/slots')
-            app.register_blueprint(booking_bp, url_prefix='/slots')
-            app.register_blueprint(calendar_bp, url_prefix='/slots')
-            app.register_blueprint(scoreboard_bp, url_prefix='/slots')
-            app.register_blueprint(user_profile_bp, url_prefix='/slots')
-            print("SUCCESS: Legacy slots blueprints migrated")
+        app.register_blueprint(main_bp, url_prefix='/slots')
+        app.register_blueprint(booking_bp, url_prefix='/slots')
+        app.register_blueprint(calendar_bp, url_prefix='/slots')
+        app.register_blueprint(scoreboard_bp, url_prefix='/slots')
+        app.register_blueprint(user_profile_bp, url_prefix='/slots')
+        print("SUCCESS: Legacy slots blueprints registered (complete Render app)")
+    except ImportError as e:
+        print(f"WARNING: Could not load legacy slots blueprints: {e}")
+        # Fallback to new slots blueprint if legacy fails
+        try:
+            from app.routes.slots import slots_bp
+            app.register_blueprint(slots_bp, url_prefix='/slots')
+            print("SUCCESS: New slots blueprint registered (fallback)")
         except ImportError as e2:
-            print(f"WARNING: Legacy blueprint migration error: {e2}")
+            print(f"ERROR: No slots blueprint available: {e2}")
 
     # T2-Closer-System Blueprint (NEU)
     try:

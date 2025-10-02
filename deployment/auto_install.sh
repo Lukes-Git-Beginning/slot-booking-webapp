@@ -99,10 +99,55 @@ check_os() {
 # KONFIGURATION
 # ========================================
 
-# Installation-Verzeichnis
+# VPS Provider Detection
+detect_vps_provider() {
+    local provider="unknown"
+
+    # Hetzner Cloud Detection
+    if grep -qi "hetzner" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+       grep -qi "hetzner" /sys/class/dmi/id/board_vendor 2>/dev/null; then
+        provider="hetzner"
+    # Strato Detection
+    elif grep -qi "strato" /etc/hostname 2>/dev/null || \
+         grep -qi "strato" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
+        provider="strato"
+    # Netcup Detection
+    elif grep -qi "netcup" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
+        provider="netcup"
+    # Contabo Detection
+    elif grep -qi "contabo" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
+        provider="contabo"
+    # Render.com Detection
+    elif [[ -d "/opt/render" ]]; then
+        provider="render"
+    # Generic VPS (KVM, etc.)
+    elif [[ -d "/sys/class/dmi/id" ]]; then
+        provider="generic-vps"
+    fi
+
+    echo "$provider"
+}
+
+VPS_PROVIDER=$(detect_vps_provider)
+
+# Installation-Verzeichnis (provider-abhängig)
 INSTALL_USER="${USER}"
-INSTALL_DIR="/home/${INSTALL_USER}/business-hub"
-APP_USER="business-hub"
+
+# VPS-Standard: /opt/business-hub
+# Legacy/Home-Server: /home/user/business-hub
+if [[ "$VPS_PROVIDER" == "render" ]]; then
+    # Render.com spezial
+    INSTALL_DIR="/opt/render/project/src"
+    APP_USER="render"
+elif [[ "$VPS_PROVIDER" != "unknown" ]] && [[ "$VPS_PROVIDER" != "generic-vps" ]]; then
+    # Dedizierte VPS (Hetzner, Strato, etc.)
+    INSTALL_DIR="/opt/business-hub"
+    APP_USER="business-hub"
+else
+    # Fallback: Home-Server oder unbekannt
+    INSTALL_DIR="/home/${INSTALL_USER}/business-hub"
+    APP_USER="business-hub"
+fi
 
 # Repository
 REPO_URL="https://github.com/Lukes-Git-Beginning/slot-booking-webapp.git"
@@ -118,6 +163,42 @@ echo ""
 check_root
 check_sudo
 check_os
+
+# VPS Provider anzeigen
+print_header "VPS Provider Detection"
+print_info "Erkannter Provider: $VPS_PROVIDER"
+print_info "Installation-Verzeichnis: $INSTALL_DIR"
+print_info "Application-User: $APP_USER"
+echo ""
+
+case "$VPS_PROVIDER" in
+    hetzner)
+        print_success "Hetzner Cloud detected - Optimierte Konfiguration wird verwendet"
+        ;;
+    strato)
+        print_success "Strato VPS detected - Optimierte Konfiguration wird verwendet"
+        ;;
+    netcup)
+        print_success "Netcup VPS detected - Optimierte Konfiguration wird verwendet"
+        ;;
+    contabo)
+        print_success "Contabo VPS detected - Optimierte Konfiguration wird verwendet"
+        ;;
+    render)
+        print_warning "Render.com detected - Dieses Script ist nicht für Render optimiert!"
+        read -p "Trotzdem fortfahren? (y/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+        ;;
+    generic-vps)
+        print_info "Generisches VPS detected - Standard-Konfiguration wird verwendet"
+        ;;
+    *)
+        print_warning "Provider konnte nicht erkannt werden - Standard-Konfiguration"
+        ;;
+esac
 
 # Prüfe Internet-Verbindung
 print_info "Prüfe Internet-Verbindung..."

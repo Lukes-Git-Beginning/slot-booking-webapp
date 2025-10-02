@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}T2-Closer System{% endblock %} • Business Tool Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+
+  <style>
+    /* T2-Specific Styles - Theme Adaptive */
+    .t2-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: var(--spacing-xl) var(--spacing-lg);
+    }
+
+    /* Theme Toggle Button */
+    #mode-toggle {
+      position: fixed;
+      top: var(--spacing-lg);
+      right: var(--spacing-lg);
+      z-index: 1000;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--box-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--box-border);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 24px;
+    }
+
+    #mode-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    /* Back Button */
+    .back-btn {
+      position: fixed;
+      top: var(--spacing-lg);
+      left: var(--spacing-lg);
+      z-index: 1000;
+      padding: var(--spacing-sm) var(--spacing-lg);
+      background: var(--box-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      color: var(--text-color);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    .back-btn:hover {
+      background: var(--accent);
+      color: white;
+      transform: translateX(-4px);
+    }
+
+    /* T2 Header */
+    .t2-header {
+      background: var(--box-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-xl);
+      margin-bottom: var(--spacing-2xl);
+      box-shadow: var(--shadow);
+    }
+
+    .t2-title {
+      font-size: var(--text-4xl);
+      font-weight: var(--font-bold);
+      color: var(--accent);
+      margin: 0 0 var(--spacing-sm);
+    }
+
+    .t2-subtitle {
+      color: var(--muted);
+      font-size: var(--text-lg);
+      margin: 0;
+    }
+
+    /* Closer Card - Glass Design */
+    .closer-card {
+      background: var(--box-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .closer-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border-color: var(--accent);
+    }
+
+    .closer-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--green);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .closer-card:hover::before {
+      opacity: 1;
+    }
+
+    /* Closer Avatar */
+    .closer-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: white;
+      margin-right: var(--spacing-md);
+      background: linear-gradient(135deg, var(--green), var(--accent));
+    }
+
+    /* Availability Indicator */
+    .availability-indicator {
+      position: absolute;
+      top: var(--spacing-md);
+      right: var(--spacing-md);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .availability-indicator.busy {
+      background: var(--red);
+    }
+
+    .availability-indicator.limited {
+      background: var(--yellow);
+    }
+
+    .availability-indicator.pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+      }
+    }
+
+    /* Time Slot Buttons */
+    .time-slot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-sm) var(--spacing-lg);
+      margin: var(--spacing-xs);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+      color: var(--text-color);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-weight: var(--font-medium);
+      cursor: pointer;
+    }
+
+    .time-slot.available:hover {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .time-slot.booked {
+      background: var(--box-bg);
+      color: var(--muted);
+      border-color: var(--box-border);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .time-slot.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* Stats Card */
+    .stats-card {
+      background: var(--box-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      text-align: center;
+    }
+
+    .stats-number {
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .stats-label {
+      color: var(--muted);
+      font-size: var(--text-sm);
+      margin-top: var(--spacing-xs);
+    }
+
+    /* Booking Status Badge */
+    .booking-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+    }
+
+    .status-confirmed {
+      background: var(--success-bg);
+      border: 1px solid var(--success-bd);
+      color: var(--green);
+    }
+
+    .status-pending {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-bd);
+      color: var(--yellow);
+    }
+
+    .status-cancelled {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-bd);
+      color: var(--red);
+    }
+
+    /* Grid Layouts */
+    .t2-grid {
+      display: grid;
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-2xl);
+    }
+
+    .t2-grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .t2-grid-3 {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    /* Action Buttons */
+    .btn-t2 {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      background: var(--box-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--box-border);
+      border-radius: var(--radius-md);
+      color: var(--text-color);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      cursor: pointer;
+    }
+
+    .btn-t2:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .btn-t2-success {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .btn-t2-success:hover {
+      background: #059669;
+      border-color: #059669;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .t2-container {
+        padding: var(--spacing-lg) var(--spacing-md);
+      }
+
+      #mode-toggle {
+        top: var(--spacing-md);
+        right: var(--spacing-md);
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+
+      .back-btn {
+        top: var(--spacing-md);
+        left: var(--spacing-md);
+        padding: var(--spacing-xs) var(--spacing-md);
+      }
+
+      .t2-title {
+        font-size: var(--text-2xl);
+      }
+
+      .closer-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: var(--text-lg);
+      }
+
+      .t2-grid-2,
+      .t2-grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    {% block extra_css %}{% endblock %}
+  </style>
+</head>
+<body class="darkmode">
+  <!-- Theme Toggle -->
+  <div id="mode-toggle">🌙</div>
+
+  <!-- Back to Hub Button -->
+  <a href="{{ url_for('hub.dashboard') }}" class="back-btn">
+    <i class="ti ti-arrow-left"></i>
+    <span>Hub</span>
+  </a>
+
+  <!-- Main Content -->
+  <div class="t2-container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Toast Container for Notifications -->
+  <div id="toast-container" style="position: fixed; top: 80px; right: 20px; z-index: 9999;"></div>
+
+  <script>
+    // Theme Toggle with LocalStorage
+    const body = document.body;
+    const modeToggle = document.getElementById("mode-toggle");
+
+    function setMode(dark, animate = true) {
+      if (animate) {
+        body.style.transition = 'background 0.3s ease';
+      }
+      body.classList.toggle('lightmode', !dark);
+      body.classList.toggle('darkmode', dark);
+      modeToggle.innerHTML = dark ? '🌙' : '☀️';
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      setMode(false, false);
+    }
+
+    modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+
+    // Toast Notification System
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast-notification ${type}`;
+      toast.style.cssText = `
+        background: var(--box-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--box-border);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+        min-width: 300px;
+        box-shadow: var(--shadow);
+        animation: slideInRight 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      `;
+
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
+      const color = type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
+
+      toast.innerHTML = `
+        <span style="color: ${color}; font-size: 20px;">${icon}</span>
+        <span style="color: var(--text-color);">${message}</span>
+      `;
+
+      document.getElementById('toast-container').appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Global Toast Functions
+    window.showSuccess = (msg) => showToast(msg, 'success');
+    window.showError = (msg) => showToast(msg, 'error');
+    window.showInfo = (msg) => showToast(msg, 'info');
+
+    // Animation Keyframes
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    {% block extra_js %}{% endblock %}
+  </script>
+</body>
+</html>

@@ -65,7 +65,12 @@ def login():
             session["is_champion"] = (champ == username)
             if champ == username:
                 flash("🏆 Glückwunsch! Du warst Top-Telefonist des letzten Monats!", "success")
-            return redirect(url_for("main.index"))
+
+            # Redirect to next page or hub dashboard
+            next_page = request.args.get('next')
+            if next_page:
+                return redirect(next_page)
+            return redirect(url_for("hub.dashboard"))
         flash("Falscher Benutzername oder Passwort.", "danger")
         return redirect(url_for("auth.login"))
     return render_template("login.html")

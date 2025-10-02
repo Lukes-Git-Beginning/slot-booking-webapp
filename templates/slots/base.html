@@ -1,0 +1,641 @@
+{% extends "hub/base.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    /* Slots-spezifische Styles */
+    .slots-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: var(--border-radius);
+    }
+
+    .berater-card {
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .berater-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    }
+
+    .berater-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: white;
+        margin-right: 1rem;
+    }
+
+    .berater-rating {
+        color: #FF9800;
+        font-size: 0.9rem;
+    }
+
+    .berater-specialty {
+        color: #666;
+        font-style: italic;
+        font-size: 0.9rem;
+    }
+
+    .availability-indicator {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #4CAF50;
+    }
+
+    .availability-indicator.busy {
+        background: #F44336;
+    }
+
+    .availability-indicator.limited {
+        background: #FF9800;
+    }
+
+    .time-slot {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        margin: 0.25rem;
+        border-radius: 20px;
+        border: 2px solid #667eea;
+        color: #667eea;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .time-slot.available:hover {
+        background: #667eea;
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .time-slot.booked {
+        background: #F5F5F5;
+        color: #999;
+        border-color: #DDD;
+        cursor: not-allowed;
+    }
+
+    .time-slot.selected {
+        background: #667eea;
+        color: white;
+    }
+
+    .duration-badge {
+        background: rgba(102, 126, 234, 0.1);
+        color: #4C63D2;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .urgency-high {
+        border-left-color: #F44336 !important;
+    }
+
+    .urgency-normal {
+        border-left-color: #667eea !important;
+    }
+
+    .urgency-low {
+        border-left-color: #4CAF50 !important;
+    }
+
+    .booking-form {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--card-shadow);
+    }
+
+    .calendar-widget {
+        background: white;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .calendar-header {
+        background: #667eea;
+        color: white;
+        padding: 1rem;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        background: #ddd;
+    }
+
+    .calendar-day {
+        background: white;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .calendar-day:hover {
+        background: #E3F2FD;
+    }
+
+    .calendar-day.selected {
+        background: #667eea;
+        color: white;
+    }
+
+    .calendar-day.has-slots::after {
+        content: '';
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 8px;
+        height: 8px;
+        background: #667eea;
+        border-radius: 50%;
+    }
+
+    .calendar-day.selected.has-slots::after {
+        background: white;
+    }
+
+    .stats-widget {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .booking-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-confirmed {
+        background: #E8F5E8;
+        color: #2E7D32;
+    }
+
+    .status-pending {
+        background: #FFF3E0;
+        color: #F57C00;
+    }
+
+    .status-cancelled {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+
+    .status-completed {
+        background: #E3F2FD;
+        color: #1976D2;
+    }
+
+    .slots-breadcrumb {
+        background: rgba(102, 126, 234, 0.1);
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+    }
+
+    .slots-breadcrumb a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .slots-breadcrumb a:hover {
+        text-decoration: underline;
+    }
+
+    .gamification-widget {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+    }
+
+    .xp-bar {
+        background: rgba(255,255,255,0.2);
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+
+    .xp-fill {
+        background: white;
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .achievement-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        margin: 0.25rem;
+        font-size: 0.85rem;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .level-display {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .level-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .berater-card {
+            margin-bottom: 1rem;
+        }
+
+        .berater-avatar {
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+        }
+
+        .time-slot {
+            display: block;
+            margin: 0.5rem 0;
+            text-align: center;
+        }
+
+        .calendar-grid {
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day {
+            min-height: 40px;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Animationen */
+    .fade-in-up {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+        }
+    }
+
+    /* Week navigation */
+    .week-nav {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+    }
+
+    .week-nav .btn {
+        margin: 0 0.5rem;
+    }
+
+    .current-week {
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    /* Summary cards */
+    .summary-card {
+        background: rgba(102, 126, 234, 0.05);
+        border-left: 4px solid #667eea;
+        padding: 1rem;
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        margin-bottom: 1rem;
+    }
+
+    .summary-title {
+        font-weight: bold;
+        color: #4C63D2;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-content {
+        color: #666;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+// Slots-spezifisches JavaScript
+
+// Berater-Karten-Animationen
+document.addEventListener('DOMContentLoaded', function() {
+    const beraterCards = document.querySelectorAll('.berater-card');
+    beraterCards.forEach((card, index) => {
+        setTimeout(() => {
+            card.classList.add('fade-in-up');
+        }, index * 100);
+    });
+});
+
+// Time-Slot-Auswahl
+function selectTimeSlot(element, time, berater) {
+    // Andere Slots deselektieren
+    document.querySelectorAll('.time-slot.selected').forEach(slot => {
+        slot.classList.remove('selected');
+    });
+
+    // Aktuellen Slot selektieren
+    element.classList.add('selected');
+
+    // Buchungsformular updaten
+    updateBookingForm(time, berater);
+}
+
+function updateBookingForm(time, berater) {
+    const timeInput = document.getElementById('selected-time');
+    const beraterInput = document.getElementById('selected-berater');
+
+    if (timeInput) timeInput.value = time;
+    if (beraterInput) beraterInput.value = berater;
+
+    // Buchungs-Button aktivieren
+    const bookButton = document.getElementById('book-button');
+    if (bookButton) {
+        bookButton.disabled = false;
+        bookButton.classList.remove('btn-secondary');
+        bookButton.classList.add('btn-primary');
+        bookButton.textContent = `${time} mit ${berater} buchen`;
+    }
+}
+
+// Kalender-Navigation
+let currentDate = new Date();
+
+function navigateCalendar(direction) {
+    if (direction === 'prev') {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+    } else {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    updateCalendar();
+}
+
+function selectCalendarDay(element, dateStr) {
+    // Andere Tage deselektieren
+    document.querySelectorAll('.calendar-day.selected').forEach(day => {
+        day.classList.remove('selected');
+    });
+
+    // Aktuellen Tag selektieren
+    element.classList.add('selected');
+
+    // Verfügbare Slots für den Tag laden
+    loadSlotsForDate(dateStr);
+}
+
+function loadSlotsForDate(dateStr) {
+    fetch(`/slots/api/availability/${dateStr}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateAvailabilityDisplay(data.availability);
+            }
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Verfügbarkeit:', error);
+        });
+}
+
+function updateAvailabilityDisplay(availability) {
+    // Verfügbarkeits-Display aktualisieren
+    const availabilityContainer = document.getElementById('availability-container');
+    if (availabilityContainer && availability) {
+        // Update logic basierend auf Template-Struktur
+        console.log('Updating availability:', availability);
+    }
+}
+
+// Buchungsformular
+function submitBooking() {
+    const form = document.getElementById('booking-form');
+    if (!form) return;
+
+    const formData = new FormData(form);
+    const bookingData = {
+        berater: formData.get('berater'),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        urgency: formData.get('urgency'),
+        duration: formData.get('duration') || 60
+    };
+
+    // Buchungs-Button deaktivieren
+    const bookButton = document.getElementById('book-button');
+    if (bookButton) {
+        bookButton.disabled = true;
+        bookButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buche...';
+    }
+
+    fetch('/slots/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage('Termin erfolgreich gebucht!');
+            // Seite neu laden oder zur Bestätigung weiterleiten
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showErrorMessage(data.error || 'Fehler beim Buchen');
+            if (bookButton) {
+                bookButton.disabled = false;
+                bookButton.innerHTML = 'Termin buchen';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Buchungsfehler:', error);
+        showErrorMessage('Unerwarteter Fehler beim Buchen');
+        if (bookButton) {
+            bookButton.disabled = false;
+            bookButton.innerHTML = 'Termin buchen';
+        }
+    });
+}
+
+// Week Navigation
+function navigateWeek(direction) {
+    const currentWeekDisplay = document.querySelector('.current-week');
+    if (currentWeekDisplay) {
+        // Update week display and reload data
+        fetch(`/slots/api/week-navigation?direction=${direction}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/slots/day/${data.new_date}`;
+                }
+            })
+            .catch(error => console.error('Week navigation error:', error));
+    }
+}
+
+// Live-Updates für Verfügbarkeit
+function startAvailabilityUpdates() {
+    setInterval(() => {
+        const selectedDate = document.querySelector('.calendar-day.selected');
+        if (selectedDate) {
+            const dateStr = selectedDate.dataset.date;
+            if (dateStr) {
+                loadSlotsForDate(dateStr);
+            }
+        }
+    }, 30000); // Alle 30 Sekunden
+}
+
+// Auto-refresh starten
+document.addEventListener('DOMContentLoaded', function() {
+    startAvailabilityUpdates();
+
+    // XP Bar Animation
+    const xpBar = document.querySelector('.xp-fill');
+    if (xpBar) {
+        const targetWidth = xpBar.style.width;
+        xpBar.style.width = '0%';
+        setTimeout(() => {
+            xpBar.style.width = targetWidth;
+        }, 1000);
+    }
+});
+
+// Keyboard-Shortcuts für Slots
+document.addEventListener('keydown', function(e) {
+    // Escape: Auswahl zurücksetzen
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+    }
+
+    // Ctrl+B: Schnellbuchung
+    if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        const bookButton = document.getElementById('book-button');
+        if (bookButton && !bookButton.disabled) {
+            bookButton.click();
+        }
+    }
+
+    // Pfeil-Tasten für Kalender-Navigation
+    if (e.key === 'ArrowLeft' && e.ctrlKey) {
+        e.preventDefault();
+        navigateWeek('prev');
+    } else if (e.key === 'ArrowRight' && e.ctrlKey) {
+        e.preventDefault();
+        navigateWeek('next');
+    }
+});
+
+// Quick booking functions
+function quickBookSlot(berater, date, time) {
+    const bookingData = {
+        berater: berater,
+        date: date,
+        time: time,
+        urgency: 'normal'
+    };
+
+    fetch('/slots/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage('Quick-Buchung erfolgreich!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showErrorMessage(data.error || 'Fehler bei Quick-Buchung');
+        }
+    })
+    .catch(error => {
+        console.error('Quick booking error:', error);
+        showErrorMessage('Unerwarteter Fehler');
+    });
+}
+</script>
+{% endblock %}

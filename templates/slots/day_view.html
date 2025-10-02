@@ -1,0 +1,470 @@
+{% extends "slots/base.html" %}
+
+{% block title %}{{ date_obj.strftime('%d.%m.%Y') }} - Slot-Booking{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="slots-breadcrumb">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('hub.dashboard') }}"><i class="fas fa-home"></i> Hub</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('slots.index') }}">Slot-Booking</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ date_obj.strftime('%d.%m.%Y') }}</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Header -->
+<div class="slots-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="fas fa-calendar-day me-3"></i>
+                    {{ date_obj.strftime('%A, %d. %B %Y') }}
+                </h1>
+                <p class="lead mb-0">
+                    Verfügbare Termine für heute anzeigen und buchen
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('slots.day_view', date_str=(date_obj - timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="btn btn-light">
+                        <i class="fas fa-chevron-left"></i> Gestern
+                    </a>
+                    <a href="{{ url_for('slots.day_view', date_str=datetime.now().strftime('%Y-%m-%d')) }}" class="btn btn-warning">
+                        Heute
+                    </a>
+                    <a href="{{ url_for('slots.day_view', date_str=(date_obj + timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="btn btn-light">
+                        Morgen <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Week Navigation -->
+<div class="week-nav">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <button class="btn btn-outline-primary" onclick="navigateWeek('prev')">
+                    <i class="fas fa-chevron-left me-2"></i>Vorherige Woche
+                </button>
+            </div>
+            <div class="current-week">
+                KW {{ current_kw }} - {{ current_week_start.strftime('%d.%m') }} bis {{ (current_week_start + timedelta(days=6)).strftime('%d.%m.%Y') }}
+            </div>
+            <div>
+                <button class="btn btn-outline-primary" onclick="navigateWeek('next')">
+                    Nächste Woche<i class="fas fa-chevron-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Week Overview -->
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-calendar-week me-2"></i>
+                        Wochenübersicht
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for day in week_days %}
+                        <div class="col">
+                            <div class="text-center mb-2">
+                                <div class="fw-bold small">{{ day.strftime('%a') }}</div>
+                                <div class="small text-muted">{{ day.strftime('%d.%m') }}</div>
+                            </div>
+                            <div class="text-center">
+                                {% if day.strftime('%Y-%m-%d') == date_str %}
+                                <a href="{{ url_for('slots.day_view', date_str=day.strftime('%Y-%m-%d')) }}"
+                                   class="btn btn-primary btn-sm">
+                                    Heute
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('slots.day_view', date_str=day.strftime('%Y-%m-%d')) }}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    {{ weekly_summary.get(day.strftime('%Y-%m-%d'), {}).get('available_slots', 0) }}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Slots -->
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-clock me-2"></i>
+                            Verfügbare Termine
+                        </h3>
+                        <div>
+                            <span class="badge bg-success me-2">
+                                {{ effective_availability.values()|sum(attribute='available_slots')|int }} Verfügbar
+                            </span>
+                            <span class="badge bg-warning">
+                                {{ effective_availability.values()|sum(attribute='total_slots')|int - effective_availability.values()|sum(attribute='available_slots')|int }} Belegt
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body" id="availability-container">
+                    {% for berater_name, berater_data in effective_availability.items() %}
+                    <div class="berater-section mb-4" id="berater-{{ berater_name }}">
+                        <h5 class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-user-tie me-2 text-primary"></i>
+                                {{ berater_name }}
+                            </span>
+                            <span class="badge bg-{{ 'success' if berater_data.available_slots > 0 else 'warning' }}">
+                                {{ berater_data.available_slots }} / {{ berater_data.total_slots }}
+                            </span>
+                        </h5>
+
+                        <div class="slots-container">
+                            {% if berater_data.slots %}
+                            {% for slot in berater_data.slots %}
+                            <div class="time-slot {{ 'available' if slot.status == 'available' else 'booked' }}"
+                                 {% if slot.status == 'available' %}
+                                 onclick="quickBookSlot('{{ berater_name }}', '{{ date_str }}', '{{ slot.time }}')"
+                                 {% endif %}>
+                                <div class="slot-time">{{ slot.time }}</div>
+                                <div class="slot-duration">{{ slot.duration }}min</div>
+                                {% if slot.status != 'available' %}
+                                <div class="slot-status">
+                                    {% if slot.status == 'booked' %}
+                                        <i class="fas fa-user me-1"></i>Belegt
+                                    {% elif slot.status == 'blocked' %}
+                                        <i class="fas fa-ban me-1"></i>Gesperrt
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-calendar-times me-2"></i>
+                                Keine Termine verfügbar
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Slot Suggestions -->
+            {% if suggestions %}
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Empfohlene Termine
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for suggestion in suggestions %}
+                        <div class="col-md-6 mb-3">
+                            <div class="suggestion-card p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">{{ suggestion.berater }}</h6>
+                                        <div class="text-muted small">{{ suggestion.date }} um {{ suggestion.time }}</div>
+                                    </div>
+                                    <span class="badge bg-info">{{ suggestion.reason }}</span>
+                                </div>
+                                <p class="small text-muted mb-2">{{ suggestion.description }}</p>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        onclick="quickBookSlot('{{ suggestion.berater }}', '{{ suggestion.date }}', '{{ suggestion.time }}')">
+                                    <i class="fas fa-calendar-plus me-1"></i>
+                                    Schnell buchen
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Booking Form -->
+            <div class="booking-form mb-4">
+                <h5 class="mb-3">
+                    <i class="fas fa-zap me-2"></i>
+                    Schnellbuchung
+                </h5>
+
+                <form id="quick-booking-form" onsubmit="event.preventDefault(); submitQuickBooking();">
+                    <div class="mb-3">
+                        <label class="form-label">Berater wählen</label>
+                        <select class="form-control" name="berater" required>
+                            <option value="">Berater auswählen...</option>
+                            {% for berater_name in effective_availability.keys() %}
+                            <option value="{{ berater_name }}">{{ berater_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Verfügbare Zeit</label>
+                        <select class="form-control" name="time" required disabled>
+                            <option value="">Erst Berater wählen</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Dringlichkeit</label>
+                        <select class="form-control" name="urgency">
+                            <option value="normal">Normal</option>
+                            <option value="high">Hoch</option>
+                            <option value="urgent">Dringend</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="date" value="{{ date_str }}">
+
+                    <div class="d-grid">
+                        <button type="submit" id="quick-book-button" class="btn btn-primary" disabled>
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            Schnell buchen
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Day Summary -->
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Tagesübersicht
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-number text-success">
+                                {{ effective_availability.values()|sum(attribute='available_slots')|int }}
+                            </span>
+                            <div class="stat-label">Verfügbare Slots</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-warning">
+                                {{ effective_availability.values()|sum(attribute='total_slots')|int - effective_availability.values()|sum(attribute='available_slots')|int }}
+                            </span>
+                            <div class="stat-label">Belegte Slots</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-info">{{ effective_availability|length }}</span>
+                            <div class="stat-label">Berater aktiv</div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6>Berater-Verfügbarkeit</h6>
+                    {% for berater_name, berater_data in effective_availability.items() %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>{{ berater_name }}</span>
+                        <div>
+                            <span class="badge bg-{{ 'success' if berater_data.available_slots > 0 else 'secondary' }}">
+                                {{ berater_data.available_slots }}/{{ berater_data.total_slots }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Weekly Summary -->
+            {% if weekly_summary %}
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-week me-2"></i>
+                        Wochenzusammenfassung
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="weekly-summary">
+                        {% for date_key, day_data in weekly_summary.items() %}
+                        <div class="week-day-summary">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold">{{ day_data.day_name }}</div>
+                                    <div class="small text-muted">{{ day_data.date_formatted }}</div>
+                                </div>
+                                <div>
+                                    {% if day_data.available_slots > 0 %}
+                                    <span class="badge bg-success">{{ day_data.available_slots }} frei</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Ausgebucht</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if not loop.last %}<hr class="my-2">{% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gamification Progress -->
+            {% if level and xp %}
+            <div class="gamification-widget">
+                <h6 class="text-white mb-3">
+                    <i class="fas fa-trophy me-2"></i>
+                    Dein Fortschritt heute
+                </h6>
+
+                <div class="level-display">
+                    <span class="level-number">{{ level }}</span>
+                    <small>Level</small>
+                </div>
+
+                <div class="xp-bar">
+                    <div class="xp-fill" style="width: {{ xp_percentage }}%"></div>
+                </div>
+
+                <div class="text-center">
+                    <small>{{ xp }} / {{ xp_next_level }} XP</small>
+                </div>
+
+                {% if badges %}
+                <div class="mt-3">
+                    <h6 class="text-white-50 mb-2">Aktuelle Badges</h6>
+                    {% for badge in badges[:3] %}
+                    <div class="achievement-badge">
+                        {{ badge.icon }} {{ badge.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+// Quick booking form handling
+document.addEventListener('DOMContentLoaded', function() {
+    const beraterSelect = document.querySelector('[name="berater"]');
+    const timeSelect = document.querySelector('[name="time"]');
+    const bookButton = document.getElementById('quick-book-button');
+
+    beraterSelect.addEventListener('change', function() {
+        const selectedBerater = this.value;
+        timeSelect.innerHTML = '<option value="">Zeit wählen...</option>';
+
+        if (selectedBerater) {
+            // Load available times for selected berater
+            const beraterData = {{ effective_availability|tojson }};
+            const slots = beraterData[selectedBerater]?.slots || [];
+
+            slots.forEach(slot => {
+                if (slot.status === 'available') {
+                    const option = document.createElement('option');
+                    option.value = slot.time;
+                    option.textContent = `${slot.time} (${slot.duration}min)`;
+                    timeSelect.appendChild(option);
+                }
+            });
+
+            timeSelect.disabled = false;
+        } else {
+            timeSelect.disabled = true;
+        }
+
+        updateBookButton();
+    });
+
+    timeSelect.addEventListener('change', updateBookButton);
+
+    function updateBookButton() {
+        const berater = beraterSelect.value;
+        const time = timeSelect.value;
+        bookButton.disabled = !(berater && time);
+    }
+});
+
+function submitQuickBooking() {
+    const form = document.getElementById('quick-booking-form');
+    const formData = new FormData(form);
+    const bookButton = document.getElementById('quick-book-button');
+
+    const bookingData = {
+        berater: formData.get('berater'),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        urgency: formData.get('urgency')
+    };
+
+    // Button state
+    bookButton.disabled = true;
+    bookButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Buche...';
+
+    fetch('/slots/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage('Termin erfolgreich gebucht!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showErrorMessage(data.error || 'Fehler beim Buchen');
+        }
+    })
+    .catch(error => {
+        console.error('Booking error:', error);
+        showErrorMessage('Unerwarteter Fehler beim Buchen');
+    })
+    .finally(() => {
+        bookButton.disabled = false;
+        bookButton.innerHTML = '<i class="fas fa-calendar-plus me-2"></i>Schnell buchen';
+    });
+}
+
+// Auto-refresh availability
+setInterval(() => {
+    fetch(`/slots/api/availability/{{ date_str }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update availability display
+                console.log('Updated availability:', data.availability);
+            }
+        })
+        .catch(error => console.error('Auto-refresh error:', error));
+}, 60000); // Every minute
+</script>
+{% endblock %}

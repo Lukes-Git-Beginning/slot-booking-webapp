@@ -94,9 +94,12 @@ app/
 ### Wichtige Architektur-Patterns
 
 #### Datenspeicher-Strategie
-Das App verwendet ein ausgeklügeltes Dual-Write-Persistenz-Pattern:
-- **Primär**: `/opt/render/project/src/persist/persistent/` (Render Disk) oder `data/persistent/` (lokal)
-- **Fallback**: `static/` Verzeichnis für Kompatibilität mit Legacy-Systemen
+Das App verwendet ein ausgeklügeltes Dual-Write-Persistenz-Pattern mit automatischer Provider-Erkennung:
+- **VPS**: `/opt/business-hub/data/persistent/` (Hetzner, Strato, etc.)
+- **Render.com**: `/opt/render/project/src/persist/persistent/`
+- **Lokal**: `data/persistent/` (Entwicklung)
+- **Fallback**: `static/` Verzeichnis für Legacy-Kompatibilität
+- Die Pfad-Auswahl erfolgt automatisch basierend auf `PERSIST_BASE` Env-Variable oder System-Detection
 - Alle JSON-Daten sind UTF-8-kodiert mit `ensure_ascii=False`
 - Automatisches Backup-System mit Aufbewahrungsrichtlinien
 - Datenintegritäts-Validierung und Migrations-Support

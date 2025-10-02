@@ -1,0 +1,725 @@
+{% extends "slots/base.html" %}
+
+{% block title %}Termin buchen - Slot-Booking{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="slots-breadcrumb">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('hub.dashboard') }}"><i class="fas fa-home"></i> Hub</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('slots.index') }}">Slot-Booking</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Termin buchen</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Header -->
+<div class="slots-header">
+    <div class="container">
+        <h1 class="display-6 fw-bold mb-0">
+            <i class="fas fa-calendar-plus me-3"></i>
+            Neuen Termin buchen
+        </h1>
+        <p class="lead mb-0">Wähle deinen bevorzugten Berater und buche deinen Termin</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Booking Form Column -->
+        <div class="col-lg-8">
+            <div class="booking-form fade-in-up">
+                <h3 class="mb-4">
+                    <i class="fas fa-user-tie me-2"></i>
+                    Schritt 1: Berater wählen
+                </h3>
+
+                <!-- Berater Selection -->
+                <div class="row mb-4" id="berater-selection">
+                    <!-- Mock berater data since we don't have the actual data structure -->
+                    {% set mock_berater = [
+                        {"name": "Sara", "specialty": "Allgemeine Beratung", "rating": 4.8, "available": true},
+                        {"name": "Marcus", "specialty": "Technische Beratung", "rating": 4.6, "available": true},
+                        {"name": "Lisa", "specialty": "Sales-Coaching", "rating": 4.9, "available": false},
+                        {"name": "Thomas", "specialty": "Prozessoptimierung", "rating": 4.7, "available": true}
+                    ] %}
+
+                    {% for berater in mock_berater %}
+                    <div class="col-md-6 mb-3">
+                        <div class="berater-card" data-berater="{{ berater.name }}" onclick="selectBerater(this, '{{ berater.name }}')">
+                            <div class="availability-indicator {% if berater.available %}available{% else %}busy{% endif %}"></div>
+
+                            <div class="d-flex align-items-center">
+                                <div class="berater-avatar">
+                                    {{ berater.name[0] }}{% if berater.name|length > 1 %}{{ berater.name[1] }}{% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1">{{ berater.name }}</h5>
+                                    <div class="berater-specialty">{{ berater.specialty }}</div>
+                                    <div class="berater-rating">
+                                        {% for i in range((berater.rating)|int) %}
+                                        <i class="fas fa-star"></i>
+                                        {% endfor %}
+                                        {% if berater.rating % 1 >= 0.5 %}
+                                        <i class="fas fa-star-half-alt"></i>
+                                        {% endif %}
+                                        {% for i in range(5 - (berater.rating|round)|int) %}
+                                        <i class="far fa-star"></i>
+                                        {% endfor %}
+                                        ({{ berater.rating }}/5)
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="duration-badge">60 Min Standard</span>
+                                        {% if berater.available %}
+                                        <span class="badge bg-success ms-2">
+                                            <i class="fas fa-check me-1"></i>Verfügbar
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning ms-2">
+                                            <i class="fas fa-clock me-1"></i>Beschäftigt
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Calendar Selection -->
+                <div id="calendar-section" style="display: none;">
+                    <h3 class="mb-4">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Schritt 2: Datum wählen
+                    </h3>
+
+                    <div class="calendar-widget mb-4">
+                        <div class="calendar-header">
+                            <button class="btn btn-link text-white" onclick="navigateBookingCalendar('prev')">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="booking-calendar-month-year">{{ moment().format('MMMM YYYY') }}</span>
+                            <button class="btn btn-link text-white" onclick="navigateBookingCalendar('next')">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="calendar-grid" id="booking-calendar-grid">
+                            <!-- Calendar days will be generated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Selection -->
+                <div id="time-section" style="display: none;">
+                    <h3 class="mb-4">
+                        <i class="fas fa-clock me-2"></i>
+                        Schritt 3: Zeit wählen
+                    </h3>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Verfügbare Zeiten für <span id="selected-date-display"></span>:
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="available-times" class="mb-4">
+                        <!-- Available time slots will be loaded via JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Booking Details -->
+                <div id="details-section" style="display: none;">
+                    <h3 class="mb-4">
+                        <i class="fas fa-edit me-2"></i>
+                        Schritt 4: Details angeben
+                    </h3>
+
+                    <form id="booking-form" onsubmit="submitSlotBooking(event)">
+                        <input type="hidden" id="selected-berater" name="berater">
+                        <input type="hidden" id="selected-date" name="date">
+                        <input type="hidden" id="selected-time" name="time">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dauer</label>
+                                <select class="form-control" name="duration">
+                                    <option value="60">60 Minuten (Standard)</option>
+                                    <option value="90">90 Minuten (Erweitert)</option>
+                                    <option value="120">120 Minuten (Intensiv)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dringlichkeit</label>
+                                <select class="form-control" name="urgency">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">Hoch</option>
+                                    <option value="urgent">Dringend</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Thema/Grund des Termins</label>
+                            <input type="text" class="form-control" name="topic"
+                                placeholder="z.B. Beratung zu Verkaufsstrategie, Problemlösung, etc.">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Zusätzliche Notizen</label>
+                            <textarea class="form-control" name="notes" rows="3"
+                                placeholder="Spezifische Fragen oder Vorbereitungen für den Termin..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirm-booking" required>
+                                <label class="form-check-label" for="confirm-booking">
+                                    Ich bestätige die Buchungsdetails und bin zum gewählten Zeitpunkt verfügbar
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" id="slot-book-button" class="btn btn-primary btn-lg" disabled>
+                                <i class="fas fa-calendar-check me-2"></i>
+                                Termin buchen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Sidebar -->
+        <div class="col-lg-4">
+            <!-- Booking Summary -->
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        Buchungsübersicht
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="booking-summary">
+                        <div class="text-muted text-center py-4">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Wähle einen Berater um zu beginnen
+                        </div>
+                    </div>
+
+                    <div id="booking-summary-content" style="display: none;">
+                        <div class="summary-item">
+                            <strong>Berater:</strong>
+                            <span id="summary-berater">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>Datum:</strong>
+                            <span id="summary-date">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>Zeit:</strong>
+                            <span id="summary-time">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>Dauer:</strong>
+                            <span id="summary-duration">60 Minuten</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>Thema:</strong>
+                            <span id="summary-topic">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Tips -->
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Tipps für deinen Termin
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Bereite spezifische Fragen vor
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Halte relevante Unterlagen bereit
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Sorge für eine ruhige Umgebung
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Notiere dir wichtige Punkte
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Sei pünktlich zum Termin
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Popular Times -->
+            <div class="hub-card mb-4">
+                <div class="hub-card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Beliebte Zeiten
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="popular-times">
+                        <div class="popular-time-item">
+                            <div class="time-range">09:00 - 11:00</div>
+                            <div class="popularity-bar">
+                                <div class="popularity-fill" style="width: 80%"></div>
+                            </div>
+                            <small class="text-muted">Sehr beliebt</small>
+                        </div>
+                        <div class="popular-time-item">
+                            <div class="time-range">14:00 - 16:00</div>
+                            <div class="popularity-bar">
+                                <div class="popularity-fill" style="width: 95%"></div>
+                            </div>
+                            <small class="text-muted">Am beliebtesten</small>
+                        </div>
+                        <div class="popular-time-item">
+                            <div class="time-range">16:00 - 18:00</div>
+                            <div class="popularity-bar">
+                                <div class="popularity-fill" style="width: 60%"></div>
+                            </div>
+                            <small class="text-muted">Verfügbar</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support -->
+            <div class="hub-card">
+                <div class="hub-card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-phone me-2"></i>
+                        Brauchen Sie Hilfe?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        Bei Fragen zur Buchung oder terminlichen Problemen:
+                    </p>
+                    <div class="d-grid">
+                        <a href="mailto:support@business-hub.de" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-envelope me-2"></i>
+                            Support kontaktieren
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="slotSuccessModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Buchung erfolgreich!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-check text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>Dein Termin ist gebucht!</h4>
+                    <p class="text-muted">Du erhältst eine Bestätigung per E-Mail mit allen Details.</p>
+                    <div class="booking-details mt-3">
+                        <div class="alert alert-info">
+                            <strong>Buchungs-ID:</strong> <span id="modal-booking-id">-</span><br>
+                            <strong>Berater:</strong> <span id="modal-berater">-</span><br>
+                            <strong>Termin:</strong> <span id="modal-datetime">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('slots.index') }}'">
+                    Zum Slot-Dashboard
+                </button>
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{{ url_for('hub.dashboard') }}'">
+                    Zum Hub
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+// Booking process state
+let slotBookingState = {
+    berater: null,
+    date: null,
+    time: null,
+    step: 1
+};
+
+// Calendar functionality for booking
+let bookingCurrentDate = new Date();
+
+function selectBerater(element, beraterName) {
+    // Remove previous selection
+    document.querySelectorAll('.berater-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+
+    // Select current card
+    element.classList.add('selected');
+
+    // Update state
+    slotBookingState.berater = beraterName;
+    slotBookingState.step = 2;
+
+    // Show calendar section
+    document.getElementById('calendar-section').style.display = 'block';
+    document.getElementById('calendar-section').scrollIntoView({ behavior: 'smooth' });
+
+    // Update summary
+    updateSlotBookingSummary();
+
+    // Generate calendar
+    generateBookingCalendar();
+}
+
+function generateBookingCalendar() {
+    const calendarGrid = document.getElementById('booking-calendar-grid');
+    const monthYear = document.getElementById('booking-calendar-month-year');
+
+    const year = bookingCurrentDate.getFullYear();
+    const month = bookingCurrentDate.getMonth();
+
+    monthYear.textContent = bookingCurrentDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+
+    // Clear calendar
+    calendarGrid.innerHTML = '';
+
+    // Add weekday headers
+    const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    weekdays.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'calendar-day-header';
+        dayHeader.textContent = day;
+        dayHeader.style.cssText = 'background: #f8f9fa; font-weight: bold; color: #666;';
+        calendarGrid.appendChild(dayHeader);
+    });
+
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+
+    // Get start day (Monday = 0)
+    let startDay = firstDay.getDay() - 1;
+    if (startDay === -1) startDay = 6;
+
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day empty';
+        emptyDay.style.opacity = '0.3';
+        calendarGrid.appendChild(emptyDay);
+    }
+
+    // Add days of the month
+    const today = new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('div');
+        const currentDay = new Date(year, month, day);
+
+        dayElement.className = 'calendar-day';
+        dayElement.textContent = day;
+        dayElement.dataset.date = currentDay.toISOString().split('T')[0];
+
+        // Disable past dates
+        if (currentDay < today) {
+            dayElement.classList.add('disabled');
+            dayElement.style.color = '#ccc';
+            dayElement.style.cursor = 'not-allowed';
+        } else {
+            dayElement.classList.add('has-slots');
+            dayElement.onclick = () => selectBookingDate(dayElement, dayElement.dataset.date);
+        }
+
+        calendarGrid.appendChild(dayElement);
+    }
+}
+
+function navigateBookingCalendar(direction) {
+    if (direction === 'prev') {
+        bookingCurrentDate.setMonth(bookingCurrentDate.getMonth() - 1);
+    } else {
+        bookingCurrentDate.setMonth(bookingCurrentDate.getMonth() + 1);
+    }
+    generateBookingCalendar();
+}
+
+function selectBookingDate(element, dateStr) {
+    if (element.classList.contains('disabled')) return;
+
+    // Remove previous selection
+    document.querySelectorAll('.calendar-day').forEach(day => {
+        day.classList.remove('selected');
+    });
+
+    // Select current day
+    element.classList.add('selected');
+
+    // Update state
+    slotBookingState.date = dateStr;
+    slotBookingState.step = 3;
+
+    // Show time section
+    document.getElementById('time-section').style.display = 'block';
+    document.getElementById('selected-date-display').textContent = new Date(dateStr).toLocaleDateString('de-DE');
+
+    // Load available times
+    loadAvailableTimesForBooking(dateStr);
+
+    // Update summary
+    updateSlotBookingSummary();
+
+    // Scroll to time section
+    document.getElementById('time-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function loadAvailableTimesForBooking(dateStr) {
+    const timesContainer = document.getElementById('available-times');
+    timesContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Verfügbare Zeiten werden geladen...</div>';
+
+    // Simulate API call to get available times
+    setTimeout(() => {
+        const availableTimes = [
+            { time: '09:00', available: true, duration: 60 },
+            { time: '10:30', available: true, duration: 60 },
+            { time: '13:00', available: false, duration: 60 },
+            { time: '14:30', available: true, duration: 60 },
+            { time: '16:00', available: true, duration: 60 }
+        ];
+
+        let timesHtml = '';
+        availableTimes.forEach(slot => {
+            const className = slot.available ? 'time-slot available' : 'time-slot booked';
+            const onclick = slot.available ? `selectBookingTime(this, '${slot.time}')` : '';
+
+            timesHtml += `
+                <div class="${className}" ${onclick ? `onclick="${onclick}"` : ''}>
+                    <div class="slot-time">${slot.time}</div>
+                    <div class="slot-duration">${slot.duration} Min</div>
+                    ${slot.available ? '' : '<div class="slot-status">Belegt</div>'}
+                </div>
+            `;
+        });
+
+        timesContainer.innerHTML = timesHtml;
+    }, 1000);
+}
+
+function selectBookingTime(element, timeStr) {
+    // Remove previous selection
+    document.querySelectorAll('.time-slot').forEach(slot => {
+        slot.classList.remove('selected');
+    });
+
+    // Select current time
+    element.classList.add('selected');
+
+    // Update state
+    slotBookingState.time = timeStr;
+    slotBookingState.step = 4;
+
+    // Show details section
+    document.getElementById('details-section').style.display = 'block';
+
+    // Update form hidden fields
+    document.getElementById('selected-berater').value = slotBookingState.berater;
+    document.getElementById('selected-date').value = slotBookingState.date;
+    document.getElementById('selected-time').value = slotBookingState.time;
+
+    // Update summary
+    updateSlotBookingSummary();
+
+    // Scroll to details section
+    document.getElementById('details-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateSlotBookingSummary() {
+    const summaryContainer = document.getElementById('booking-summary');
+    const summaryContent = document.getElementById('booking-summary-content');
+
+    if (slotBookingState.berater) {
+        summaryContainer.style.display = 'none';
+        summaryContent.style.display = 'block';
+
+        document.getElementById('summary-berater').textContent = slotBookingState.berater;
+
+        if (slotBookingState.date) {
+            document.getElementById('summary-date').textContent = new Date(slotBookingState.date).toLocaleDateString('de-DE');
+        }
+
+        if (slotBookingState.time) {
+            document.getElementById('summary-time').textContent = slotBookingState.time;
+        }
+    }
+}
+
+function submitSlotBooking(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('booking-form');
+    const formData = new FormData(form);
+    const bookButton = document.getElementById('slot-book-button');
+
+    // Disable button
+    bookButton.disabled = true;
+    bookButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Buche...';
+
+    // Get form data
+    const bookingData = {
+        berater: formData.get('berater'),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        duration: formData.get('duration'),
+        urgency: formData.get('urgency'),
+        topic: formData.get('topic'),
+        notes: formData.get('notes')
+    };
+
+    // Update summary with additional details
+    document.getElementById('summary-duration').textContent = formData.get('duration') + ' Minuten';
+    document.getElementById('summary-topic').textContent = formData.get('topic') || 'Allgemeine Beratung';
+
+    // Simulate booking API call
+    fetch('/slots/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update modal with booking details
+            document.getElementById('modal-booking-id').textContent = data.booking_id || 'SB-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+            document.getElementById('modal-berater').textContent = bookingData.berater;
+            document.getElementById('modal-datetime').textContent = `${new Date(bookingData.date).toLocaleDateString('de-DE')} um ${bookingData.time}`;
+
+            // Show success modal
+            const successModal = new bootstrap.Modal(document.getElementById('slotSuccessModal'));
+            successModal.show();
+        } else {
+            showErrorMessage(data.error || 'Fehler beim Buchen');
+        }
+    })
+    .catch(error => {
+        console.error('Booking error:', error);
+        showErrorMessage('Unerwarteter Fehler beim Buchen');
+    })
+    .finally(() => {
+        // Reset button
+        bookButton.disabled = false;
+        bookButton.innerHTML = '<i class="fas fa-calendar-check me-2"></i>Termin buchen';
+    });
+}
+
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('booking-form');
+    const bookButton = document.getElementById('slot-book-button');
+
+    if (form) {
+        form.addEventListener('input', function() {
+            const confirmBooking = form.querySelector('#confirm-booking').checked;
+            bookButton.disabled = !confirmBooking;
+        });
+
+        // Duration change handler
+        const durationSelect = form.querySelector('[name="duration"]');
+        durationSelect.addEventListener('change', function() {
+            document.getElementById('summary-duration').textContent = this.value + ' Minuten';
+        });
+
+        // Topic change handler
+        const topicInput = form.querySelector('[name="topic"]');
+        topicInput.addEventListener('input', function() {
+            document.getElementById('summary-topic').textContent = this.value || 'Allgemeine Beratung';
+        });
+    }
+});
+</script>
+
+<style>
+.summary-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.popular-times {
+    padding: 0;
+}
+
+.popular-time-item {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.popular-time-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.time-range {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.popularity-bar {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.popularity-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+</style>
+{% endblock %}

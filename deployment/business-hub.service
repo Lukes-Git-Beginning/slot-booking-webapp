@@ -1,5 +1,5 @@
 [Unit]
-Description=Business Tool Hub - Flask Application
+Description=Business Tool Hub - Flask Application (Multi-Tool Management System)
 Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
 After=network.target
 
@@ -7,15 +7,21 @@ After=network.target
 Type=notify
 User=business-hub
 Group=www-data
-WorkingDirectory=/home/business-hub/business-hub
-Environment="PATH=/home/business-hub/business-hub/venv/bin"
+
+# Working Directory - VPS Standard Path
+WorkingDirectory=/opt/business-hub
+
+# Python Virtual Environment Path
+Environment="PATH=/opt/business-hub/venv/bin"
 Environment="FLASK_ENV=production"
 
 # Load environment variables from .env file
-EnvironmentFile=/home/business-hub/business-hub/.env
+# Wichtig: .env muss alle benötigten Variablen enthalten!
+EnvironmentFile=/opt/business-hub/.env
 
 # Gunicorn command with production settings
-ExecStart=/home/business-hub/business-hub/venv/bin/gunicorn \
+# Workers: 2-4 (abhängig von CPU-Cores und RAM)
+ExecStart=/opt/business-hub/venv/bin/gunicorn \
     --bind 127.0.0.1:5000 \
     --workers 4 \
     --threads 2 \
@@ -28,7 +34,7 @@ ExecStart=/home/business-hub/business-hub/venv/bin/gunicorn \
     --error-logfile /var/log/business-hub/error.log \
     --capture-output \
     --enable-stdio-inheritance \
-    'app:create_app()'
+    'app:create_app("app.config.production.ProductionConfig")'
 
 # Restart policy
 Restart=always

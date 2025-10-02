@@ -1,0 +1,152 @@
+{% extends "t2/base.html" %}
+
+{% block title %}T2 Statistiken{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="t2-header">
+    <h1 class="t2-title">
+        <i class="ti ti-chart-bar"></i> T2-Statistiken
+    </h1>
+    <p class="t2-subtitle">
+        Deine Termine und System-Übersicht
+    </p>
+</div>
+
+<!-- Stats Container -->
+<div style="max-width: 1200px; margin: 0 auto;">
+
+    <!-- User Stats -->
+    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
+            <i class="ti ti-user"></i> Deine Statistiken
+        </h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg);">
+            <!-- Total Bookings -->
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div class="stats-number" style="color: var(--accent);">{{ user_stats.total_bookings }}</div>
+                <div class="stats-label">Gebuchte Termine</div>
+            </div>
+
+            <!-- This Month -->
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div class="stats-number" style="color: var(--green);">{{ user_stats.this_month }}</div>
+                <div class="stats-label">Diesen Monat</div>
+            </div>
+
+            <!-- Tickets Remaining -->
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div class="stats-number" style="color: var(--yellow);">{{ user_stats.tickets_remaining }}</div>
+                <div class="stats-label">Tickets übrig</div>
+            </div>
+
+            <!-- Upcoming Appointments -->
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div class="stats-number" style="color: var(--blue);">{{ user_stats.upcoming }}</div>
+                <div class="stats-label">Kommende Termine</div>
+            </div>
+        </div>
+
+        <!-- Closer Distribution for User -->
+        <div style="margin-top: var(--spacing-lg);">
+            <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+                Deine Closer-Verteilung
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-sm);">
+                {% for closer, count in user_stats.closer_distribution.items() %}
+                <div style="padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-align: center;">
+                    <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent);">{{ count }}</div>
+                    <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">{{ closer }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Overview -->
+    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
+            <i class="ti ti-calendar-stats"></i> Monatsübersicht
+        </h2>
+
+        <div id="monthly-chart" style="min-height: 200px;">
+            <!-- Chart will be rendered here -->
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-xs);">
+                {% for month_data in user_stats.monthly_history %}
+                <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                    <div style="min-width: 100px; color: var(--text-color); font-size: var(--text-sm);">{{ month_data.month }}</div>
+                    <div style="flex: 1; background: var(--input-bg); border-radius: var(--radius-md); height: 30px; position: relative; overflow: hidden;">
+                        <div style="background: var(--accent); height: 100%; width: {{ (month_data.count / 4 * 100) | int }}%; transition: width 0.3s;"></div>
+                    </div>
+                    <div style="min-width: 40px; text-align: right; color: var(--accent); font-weight: var(--font-semibold);">{{ month_data.count }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Stats - System-wide Closer Fairness -->
+    {% if is_admin %}
+    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
+            <i class="ti ti-shield-check"></i> Admin: System-Statistiken
+        </h2>
+
+        <!-- Current Month Closer Distribution -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+                Closer-Verteilung (aktueller Monat)
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-md);">
+                {% for closer, count in admin_stats.current_month_distribution.items() %}
+                <div style="padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: var(--spacing-sm);">👤</div>
+                    <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent); margin-bottom: var(--spacing-xs);">{{ count }}</div>
+                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: var(--spacing-xs);">{{ closer }}</div>
+                    <div style="color: var(--muted); font-size: var(--text-sm);">
+                        {{ ((count / admin_stats.total_this_month * 100) | round(1)) }}% der Termine
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Fairness Indicator -->
+        <div style="padding: var(--spacing-lg); background: {{ 'var(--success-bg)' if admin_stats.is_fair else 'var(--warning-bg)' }}; border: 1px solid {{ 'var(--success-bd)' if admin_stats.is_fair else 'var(--warning-bd)' }}; border-radius: var(--radius-md); text-align: center;">
+            <div style="font-size: 48px; margin-bottom: var(--spacing-sm);">{{ '✅' if admin_stats.is_fair else '⚠️' }}</div>
+            <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: var(--spacing-xs);">
+                {{ 'Fairness-System funktioniert' if admin_stats.is_fair else 'Leichte Ungleichverteilung' }}
+            </div>
+            <div style="color: var(--muted); font-size: var(--text-sm);">
+                Maximale Abweichung: {{ admin_stats.max_deviation }} Termine
+            </div>
+        </div>
+
+        <!-- Total System Stats -->
+        <div style="margin-top: var(--spacing-lg); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-md);">
+            <div style="text-align: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent);">{{ admin_stats.total_bookings }}</div>
+                <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">Gesamt-Termine</div>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--green);">{{ admin_stats.active_users }}</div>
+                <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">Aktive Nutzer</div>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--yellow);">{{ admin_stats.tickets_used }}</div>
+                <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">Tickets genutzt</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div style="text-align: center; margin-top: var(--spacing-lg);">
+        <a href="{{ url_for('t2.dashboard') }}" class="btn-t2">
+            <i class="ti ti-arrow-left"></i>
+            Zurück zum Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
