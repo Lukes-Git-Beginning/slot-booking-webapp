@@ -41,7 +41,7 @@ def export_all_data():
 
     try:
         # Get persistent data directory
-        persist_dir = data_persistence.get_persist_path()
+        persist_dir = str(data_persistence.data_dir)
 
         if not os.path.exists(persist_dir):
             return jsonify({
@@ -98,7 +98,7 @@ def export_info():
         }), 403
 
     try:
-        persist_dir = data_persistence.get_persist_path()
+        persist_dir = str(data_persistence.data_dir)
 
         if not os.path.exists(persist_dir):
             return jsonify({
