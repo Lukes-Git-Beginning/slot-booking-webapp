@@ -95,9 +95,12 @@
                         <span>{{ badge.progress.get('current', 0) }}/{{ badge.progress.get('required', 1) }}</span>
                     </div>
                     <div class="w-full bg-white/10 rounded-full h-2">
-                        {% set progress_percent = (badge.progress.get('current', 0) / badge.progress.get('required', 1) * 100) if badge.progress.get('required', 1) > 0 else 0 %}
+                        {% set current = badge.progress.get('current', 0)|int %}
+                        {% set required = badge.progress.get('required', 1)|int %}
+                        {% set progress_percent = ((current / required * 100)|round(0)|int) if required > 0 else 0 %}
+                        {% set capped_percent = [progress_percent, 100]|min %}
                         <div class="bg-primary h-2 rounded-full transition-all"
-                             style="width: {{ progress_percent|round }}%"></div>
+                             style="width: {{ capped_percent }}%"></div>
                     </div>
                 </div>
                 {% else %}
