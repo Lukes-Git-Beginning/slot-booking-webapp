@@ -176,6 +176,30 @@
           </div>
         </div>
 
+        <!-- 2FA Code (nur anzeigen wenn aktiviert) -->
+        {% if show_2fa %}
+        <div>
+          <label class="block text-white/90 font-semibold mb-2 flex items-center gap-2">
+            <i data-lucide="shield" class="w-4 h-4"></i>
+            2FA-Code
+          </label>
+          <input
+            type="text"
+            name="totp_code"
+            required
+            maxlength="6"
+            pattern="[0-9]{6}"
+            class="input-glow w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary transition-all text-center text-2xl tracking-widest"
+            placeholder="000000"
+            autocomplete="one-time-code">
+          <p class="text-xs text-white/50 mt-2">Code aus deiner Authenticator-App oder Backup-Code</p>
+          {% if username %}
+          <input type="hidden" name="username" value="{{ username }}">
+          <input type="hidden" name="password" value="{{ password }}">
+          {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Remember Me -->
         <div class="flex items-center">
           <input

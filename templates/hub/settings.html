@@ -121,7 +121,7 @@
                         <p class="font-semibold">Passwort ändern</p>
                         <p class="text-sm text-gray-400">Sicherheit erhöhen</p>
                     </div>
-                    <button class="btn btn-outline btn-primary" onclick="alert('Coming Soon: Passwort-Änderung')">
+                    <button class="btn btn-outline btn-primary" onclick="passwordModal.showModal()">
                         Ändern
                     </button>
                 </div>
@@ -129,14 +129,101 @@
                 <div class="flex items-center justify-between p-4 bg-base-300/30 rounded-xl">
                     <div>
                         <p class="font-semibold">Zwei-Faktor-Authentifizierung</p>
-                        <p class="text-sm text-gray-400">Extra Sicherheitsebene</p>
+                        <p class="text-sm text-gray-400" x-text="twofa_enabled ? 'Aktiviert ✓' : 'Extra Sicherheitsebene'"></p>
                     </div>
-                    <button class="btn btn-outline btn-primary" onclick="alert('Coming Soon: 2FA-Setup')">
-                        Einrichten
+                    <button class="btn btn-outline btn-primary"
+                            @click="twofa_enabled ? disable2FA() : setup2FA()">
+                        <span x-text="twofa_enabled ? 'Deaktivieren' : 'Einrichten'"></span>
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- Passwort-Änderungs-Modal -->
+        <dialog id="passwordModal" class="modal">
+            <div class="modal-box bg-base-200">
+                <h3 class="font-bold text-lg mb-4">Passwort ändern</h3>
+                <form @submit.prevent="changePassword()">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="label">Aktuelles Passwort</label>
+                            <input type="password" x-model="passwordForm.old" class="input input-bordered w-full" required>
+                        </div>
+                        <div>
+                            <label class="label">Neues Passwort</label>
+                            <input type="password" x-model="passwordForm.new" class="input input-bordered w-full" required minlength="6">
+                        </div>
+                        <div>
+                            <label class="label">Passwort bestätigen</label>
+                            <input type="password" x-model="passwordForm.confirm" class="input input-bordered w-full" required>
+                        </div>
+                    </div>
+                    <div class="modal-action">
+                        <button type="button" class="btn" onclick="passwordModal.close()">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary">Passwort ändern</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+
+        <!-- 2FA-Setup-Modal -->
+        <dialog id="tfaModal" class="modal">
+            <div class="modal-box bg-base-200 max-w-lg">
+                <h3 class="font-bold text-lg mb-4">Zwei-Faktor-Authentifizierung einrichten</h3>
+
+                <div x-show="!twofa_setup_done">
+                    <p class="mb-4 text-sm text-gray-400">Scanne den QR-Code mit deiner Authenticator-App (Google Authenticator, Authy, etc.)</p>
+
+                    <div class="flex justify-center mb-4">
+                        <img :src="'data:image/png;base64,' + qr_code" alt="QR Code" class="w-48 h-48" x-show="qr_code">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="label">Oder manuell eingeben:</label>
+                        <input type="text" :value="secret" readonly class="input input-bordered w-full font-mono text-sm" @click="$event.target.select()">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="label">Verifizierungs-Code (6 Ziffern)</label>
+                        <input type="text" x-model="verification_code" class="input input-bordered w-full text-center text-2xl tracking-widest" maxlength="6" placeholder="000000">
+                    </div>
+
+                    <div class="alert alert-info mb-4">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                        <span class="text-sm">Du erhältst 10 Backup-Codes für den Notfall</span>
+                    </div>
+                </div>
+
+                <div x-show="twofa_setup_done">
+                    <div class="alert alert-success mb-4">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        <span>2FA erfolgreich aktiviert!</span>
+                    </div>
+
+                    <p class="mb-2 font-semibold">Backup-Codes (sicher aufbewahren!):</p>
+                    <div class="bg-base-300 p-4 rounded-lg mb-4">
+                        <div class="grid grid-cols-2 gap-2 font-mono text-sm">
+                            <template x-for="code in backup_codes">
+                                <div x-text="code"></div>
+                            </template>
+                        </div>
+                    </div>
+                    <button @click="copyBackupCodes()" class="btn btn-sm btn-outline w-full mb-2">
+                        <i data-lucide="copy" class="w-4 h-4 mr-2"></i>
+                        Codes kopieren
+                    </button>
+                </div>
+
+                <div class="modal-action">
+                    <button type="button" class="btn" @click="close2FAModal()">
+                        <span x-text="twofa_setup_done ? 'Schließen' : 'Abbrechen'"></span>
+                    </button>
+                    <button type="button" class="btn btn-primary" @click="enable2FA()" x-show="!twofa_setup_done">
+                        Aktivieren
+                    </button>
+                </div>
+            </div>
+        </dialog>
 
         <!-- Save Indicator -->
         <div x-show="saveStatus"
@@ -155,33 +242,149 @@
         return {
             settings: {{ current_settings|tojson|safe }},
             saveStatus: false,
+            twofa_enabled: false,
+            passwordForm: { old: '', new: '', confirm: '' },
+            qr_code: '',
+            secret: '',
+            verification_code: '',
+            backup_codes: [],
+            twofa_setup_done: false,
+
+            async init() {
+                await this.check2FAStatus();
+            },
 
             async saveSettings() {
                 try {
                     const response = await fetch('{{ url_for("hub.update_settings") }}', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(this.settings)
                     });
-
                     const data = await response.json();
-
                     if (data.success) {
                         this.saveStatus = true;
-                        setTimeout(() => {
-                            this.saveStatus = false;
-                        }, 2000);
+                        setTimeout(() => { this.saveStatus = false; }, 2000);
                     }
                 } catch (error) {
                     console.error('Error saving settings:', error);
                 }
+            },
+
+            async changePassword() {
+                if (this.passwordForm.new !== this.passwordForm.confirm) {
+                    alert('Passwörter stimmen nicht überein!');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/security/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            old_password: this.passwordForm.old,
+                            new_password: this.passwordForm.new,
+                            confirm_password: this.passwordForm.confirm
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('✓ Passwort erfolgreich geändert!');
+                        passwordModal.close();
+                        this.passwordForm = { old: '', new: '', confirm: '' };
+                    } else {
+                        alert('✗ ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Fehler: ' + error);
+                }
+            },
+
+            async check2FAStatus() {
+                try {
+                    const response = await fetch('/security/2fa/status');
+                    const data = await response.json();
+                    this.twofa_enabled = data.enabled;
+                    this.backup_codes = data.backup_codes || [];
+                } catch (error) {
+                    console.error('Error checking 2FA status:', error);
+                }
+            },
+
+            async setup2FA() {
+                try {
+                    const response = await fetch('/security/2fa/setup', { method: 'POST' });
+                    const data = await response.json();
+                    this.qr_code = data.qr_code;
+                    this.secret = data.secret;
+                    this.backup_codes = data.backup_codes;
+                    this.twofa_setup_done = false;
+                    tfaModal.showModal();
+                    setTimeout(() => lucide.createIcons(), 100);
+                } catch (error) {
+                    alert('Fehler beim Setup: ' + error);
+                }
+            },
+
+            async enable2FA() {
+                try {
+                    const response = await fetch('/security/2fa/enable', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: this.verification_code })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.twofa_setup_done = true;
+                        this.twofa_enabled = true;
+                        setTimeout(() => lucide.createIcons(), 100);
+                    } else {
+                        alert('✗ ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Fehler: ' + error);
+                }
+            },
+
+            async disable2FA() {
+                const password = prompt('Passwort zur Bestätigung:');
+                if (!password) return;
+
+                try {
+                    const response = await fetch('/security/2fa/disable', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('✓ 2FA deaktiviert');
+                        this.twofa_enabled = false;
+                    } else {
+                        alert('✗ ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Fehler: ' + error);
+                }
+            },
+
+            close2FAModal() {
+                tfaModal.close();
+                this.verification_code = '';
+                this.twofa_setup_done = false;
+            },
+
+            copyBackupCodes() {
+                const text = this.backup_codes.join('\n');
+                navigator.clipboard.writeText(text);
+                alert('✓ Backup-Codes kopiert!');
             }
         }
     }
 
-    // Re-initialize Lucide icons
     document.addEventListener('DOMContentLoaded', function() {
         lucide.createIcons();
     });

@@ -128,6 +128,14 @@ def register_blueprints(app: Flask) -> None:
     except ImportError as e:
         print(f"WARNING: Auth blueprint error: {e}")
 
+    # Security Blueprint (Passwort & 2FA)
+    try:
+        from app.routes.security import security_bp
+        app.register_blueprint(security_bp, url_prefix='/security')
+        print("SUCCESS: Security blueprint registered")
+    except ImportError as e:
+        print(f"WARNING: Security blueprint error: {e}")
+
     # Slot-Booking Tool Blueprint - Use LEGACY blueprints (complete app from Render)
     try:
         from app.routes.main import main_bp

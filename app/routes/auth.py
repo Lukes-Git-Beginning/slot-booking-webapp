@@ -8,6 +8,7 @@ from flask import Blueprint, request, render_template, redirect, url_for, flash,
 from app.utils.helpers import get_userlist
 from app.core.extensions import data_persistence
 from app.config.base import gamification_config
+from app.services.security_service import security_service
 from datetime import datetime, timedelta
 import pytz
 from app.config.base import slot_config
@@ -45,10 +46,10 @@ def check_and_set_champion():
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     """Handle user login"""
-    userlist = get_userlist()
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+        totp_code = request.form.get("totp_code", "").strip()
 
         # Input validation
         if not username or not password:
@@ -59,7 +60,20 @@ def login():
             flash("Eingabe zu lang.", "danger")
             return redirect(url_for("auth.login"))
 
-        if username in userlist and password == userlist[username]:
+        # Verify password using security service
+        if security_service.verify_password(username, password):
+            # Check if 2FA is enabled
+            if security_service.is_2fa_enabled(username):
+                if not totp_code:
+                    # Show 2FA input
+                    return render_template("login.html", show_2fa=True, username=username)
+
+                # Verify 2FA code
+                if not security_service.verify_2fa(username, totp_code):
+                    flash("Ungültiger 2FA-Code.", "danger")
+                    return render_template("login.html", show_2fa=True, username=username)
+
+            # Login successful
             session.update({"logged_in": True, "user": username})
             champ = check_and_set_champion()
             session["is_champion"] = (champ == username)
@@ -71,8 +85,10 @@ def login():
             if next_page:
                 return redirect(next_page)
             return redirect(url_for("hub.dashboard"))
+
         flash("Falscher Benutzername oder Passwort.", "danger")
         return redirect(url_for("auth.login"))
+
     return render_template("login.html")
 
 
