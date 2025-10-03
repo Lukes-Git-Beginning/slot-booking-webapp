@@ -513,13 +513,44 @@ def cosmetics_shop_view():
 
         # Hole Kosmetik-Daten
         user_cosmetics = cosmetics_shop.get_user_cosmetics(user)
+        owned = user_cosmetics.get('owned', {})
+        active = user_cosmetics.get('active', {})
 
-        # Build shop_items structure for template
+        # Build shop_items structure for template - convert dicts to lists with all info
+        from app.services.cosmetics_shop import TITLE_SHOP, COLOR_THEMES, AVATAR_SHOP, SPECIAL_EFFECTS
+
+        def build_item_list(shop_dict, owned_list, active_item, item_type):
+            items = []
+            for item_id, item_data in shop_dict.items():
+                is_owned = item_id in owned_list
+                is_equipped = (active_item == item_id) if item_type == 'titles' else False
+
+                item = {
+                    'id': item_id,
+                    'name': item_data.get('name', item_id),
+                    'price': item_data.get('price', 0),
+                    'description': item_data.get('description', ''),
+                    'rarity': item_data.get('rarity', 'common'),
+                    'owned': is_owned,
+                    'equipped': is_equipped
+                }
+
+                # For themes/avatars/effects
+                if 'color' in item_data:
+                    item['color'] = item_data['color']
+                if 'emoji' in item_data:
+                    item['emoji'] = item_data['emoji']
+                if 'animation' in item_data:
+                    item['animation'] = item_data['animation']
+
+                items.append(item)
+            return items
+
         shop_items = {
-            'titles': user_cosmetics.get('available_titles', {}),
-            'themes': user_cosmetics.get('available_themes', {}),
-            'avatars': user_cosmetics.get('available_avatars', {}),
-            'effects': user_cosmetics.get('available_effects', {})
+            'titles': build_item_list(TITLE_SHOP, owned.get('titles', []), active.get('title'), 'titles'),
+            'themes': build_item_list(COLOR_THEMES, owned.get('themes', []), active.get('theme'), 'themes'),
+            'avatars': build_item_list(AVATAR_SHOP, owned.get('avatars', []), active.get('avatar'), 'avatars'),
+            'effects': build_item_list(SPECIAL_EFFECTS, owned.get('effects', []), None, 'effects')
         }
 
         return render_template('cosmetics_shop.html',
@@ -537,7 +568,7 @@ def cosmetics_shop_view():
             error="Fehler beim Laden des Cosmetics Shops",
             user_coins=0,
             cosmetics={"owned": {}, "active": {}, "available_titles": {}, "available_themes": {}, "available_avatars": {}, "available_effects": {}},
-            shop_items={"titles": {}, "themes": {}, "avatars": {}, "effects": {}}
+            shop_items={"titles": [], "themes": [], "avatars": [], "effects": []}
         )
 
 @gamification_bp.route('/cosmetics/purchase', methods=['POST'])

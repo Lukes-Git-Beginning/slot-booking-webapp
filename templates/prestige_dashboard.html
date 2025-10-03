@@ -23,21 +23,21 @@
 <!-- Current Prestige Status -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="100">
-        <div class="text-6xl font-bold text-purple-400 mb-2">{{ prestige_data.level }}</div>
+        <div class="text-6xl font-bold text-purple-400 mb-2">{{ prestige_data.get('prestige_level', 0) }}</div>
         <div class="text-white/70 mb-4">Prestige Level</div>
-        <div class="badge badge-lg badge-primary">{{ prestige_data.tier }}</div>
+        <div class="badge badge-lg badge-primary">{{ prestige_data.get('prestige_title', 'Neuling') }}</div>
     </div>
 
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="200">
-        <div class="text-6xl font-bold text-accent mb-2">{{ prestige_data.total_points }}</div>
+        <div class="text-6xl font-bold text-accent mb-2">{{ prestige_data.get('prestige_points', 0) }}</div>
         <div class="text-white/70 mb-4">Prestige Punkte</div>
         <div class="badge badge-lg badge-accent">Gesamt</div>
     </div>
 
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="300">
-        <div class="text-6xl font-bold text-secondary mb-2">{{ prestige_data.rank }}</div>
+        <div class="text-6xl font-bold text-secondary mb-2">-</div>
         <div class="text-white/70 mb-4">Globaler Rang</div>
-        <div class="badge badge-lg badge-success">Top {{ prestige_data.percentile }}%</div>
+        <div class="badge badge-lg badge-success">Top -%</div>
     </div>
 </div>
 
@@ -99,7 +99,12 @@
                 </div>
                 {% elif next_requirement and next_requirement > 0 %}
                 <div class="bg-white/5 rounded-lg p-2 text-center text-xs">
-                    Noch {{ (next_requirement - metric_value)|max(0) }} bis Level {{ data.get('next_level', current_level + 1) }}
+                    {% set remaining = next_requirement - metric_value %}
+                    {% if remaining > 0 %}
+                    Noch {{ remaining }} bis Level {{ data.get('next_level', current_level + 1) }}
+                    {% else %}
+                    Bereit für Upgrade!
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
