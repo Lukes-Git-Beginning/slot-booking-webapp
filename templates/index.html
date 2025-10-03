@@ -221,7 +221,7 @@
       </div>
 
       {% if is_admin %}
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='{{ url_for('admin.dashboard') }}'; document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='{{ url_for('admin.admin_dashboard') }}'; document.getElementById('quickActionsModal').close()">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="shield" class="w-5 h-5 text-error"></i>
