@@ -258,6 +258,62 @@ def tool_analytics(tool_name):
 
 # ========== GAMIFICATION API ==========
 
+@api_gateway_bp.route("/user/<username>/badges")
+@require_login
+def api_user_badges(username):
+    """Get user badges for scoreboard display"""
+    try:
+        from app.services.achievement_system import achievement_system
+        user_badges_data = achievement_system.get_user_badges(username)
+
+        # Format badges for frontend
+        badges = user_badges_data.get('badges', [])
+        formatted_badges = []
+        for badge in badges:
+            formatted_badges.append({
+                'name': badge.get('name', ''),
+                'emoji': badge.get('icon', '🏆'),
+                'rarity': badge.get('rarity', 'common')
+            })
+
+        return jsonify({
+            'success': True,
+            'badges': formatted_badges
+        })
+    except Exception as e:
+        logger.error(f"Error getting badges for {username}: {e}")
+        return jsonify({'success': False, 'badges': []}), 200
+
+
+@api_gateway_bp.route("/user/<username>/avatar")
+@require_login
+def api_user_avatar(username):
+    """Get user avatar cosmetics"""
+    try:
+        from app.services.cosmetics_shop import CosmeticsShop
+        cosmetics_shop = CosmeticsShop()
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(username)
+
+        active = user_cosmetics.get('active', {})
+
+        return jsonify({
+            'success': True,
+            'avatar': active.get('avatar', '🧑‍💼'),
+            'theme': active.get('theme', 'default'),
+            'title': active.get('title'),
+            'effects': active.get('effects', [])
+        })
+    except Exception as e:
+        logger.error(f"Error getting avatar for {username}: {e}")
+        return jsonify({
+            'success': False,
+            'avatar': '🧑‍💼',
+            'theme': 'default',
+            'title': None,
+            'effects': []
+        }), 200
+
+
 @api_gateway_bp.route("/gamification/status")
 @require_login
 def gamification_status():

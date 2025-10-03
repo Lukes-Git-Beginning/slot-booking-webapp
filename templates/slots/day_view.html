@@ -361,6 +361,22 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+
+                <!-- Gamification Links -->
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-trophy me-1"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-award me-1"></i> Badges
+                    </a>
+                    <a href="{{ url_for('gamification.daily_quests') }}" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-tasks me-1"></i> Quests
+                    </a>
+                    <a href="{{ url_for('gamification.prestige_dashboard') }}" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-crown me-1"></i> Prestige
+                    </a>
+                </div>
             </div>
             {% endif %}
         </div>

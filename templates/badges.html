@@ -88,15 +88,16 @@
                     Erhalten: {{ badge.earned_date }}
                 </div>
             {% else %}
-                {% if badge.progress %}
+                {% if badge.progress and badge.progress is mapping %}
                 <div class="mt-4">
                     <div class="flex justify-between text-xs text-white/60 mb-2">
                         <span>Fortschritt</span>
-                        <span>{{ badge.progress.current }}/{{ badge.progress.required }}</span>
+                        <span>{{ badge.progress.get('current', 0) }}/{{ badge.progress.get('required', 1) }}</span>
                     </div>
                     <div class="w-full bg-white/10 rounded-full h-2">
+                        {% set progress_percent = (badge.progress.get('current', 0) / badge.progress.get('required', 1) * 100) if badge.progress.get('required', 1) > 0 else 0 %}
                         <div class="bg-primary h-2 rounded-full transition-all"
-                             style="width: {{ (badge.progress.current / badge.progress.required * 100)|round }}%"></div>
+                             style="width: {{ progress_percent|round }}%"></div>
                     </div>
                 </div>
                 {% else %}

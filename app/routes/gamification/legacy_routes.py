@@ -70,14 +70,35 @@ def daily_quests():
         # Hole User-Quests
         user_quests = daily_quest_system.get_user_daily_quests(user)
         user_coins = daily_quest_system.get_user_coins(user)
-        
+
+        # Extract quests data
+        quests = user_quests.get('quests', [])
+        active_quests = [q for q in quests if not q.get('completed', False)]
+        completed_quests = [q for q in quests if q.get('completed', False)]
+
+        from datetime import datetime
+        import pytz
+        TZ = pytz.timezone('Europe/Berlin')
+        quest_date = datetime.now(TZ).strftime('%d.%m.%Y')
+
+        total_count = len(quests)
+        completed_count = len(completed_quests)
+        completion_percent = int((completed_count / total_count * 100) if total_count > 0 else 0)
+
         return render_template('daily_quests.html',
             current_user=user,
-            quests=user_quests['quests'],
-            bonus_multiplier=user_quests['bonus_multiplier'],
-            total_completed=user_quests['total_completed'],
-            total_claimed=user_quests['total_claimed'],
-            user_coins=user_coins
+            quests=quests,
+            active_quests=active_quests,
+            completed_quests=completed_quests,
+            quest_date=quest_date,
+            completed_count=completed_count,
+            total_count=total_count,
+            completion_percent=completion_percent,
+            bonus_multiplier=user_quests.get('bonus_multiplier', 1.0),
+            total_completed=user_quests.get('total_completed', 0),
+            total_claimed=user_quests.get('total_claimed', 0),
+            user_coins=user_coins,
+            daily_reward=None  # TODO: implement daily reward system
         )
     except Exception as e:
         logger.error(f"Error in daily_quests route: {e}")
@@ -486,27 +507,37 @@ def cosmetics_shop_view():
         user = session.get('user')
         if not user:
             return redirect(url_for('login'))
-        
+
         # Hole User-Coins aus Daily Quest System
         user_coins = daily_quest_system.get_user_coins(user)
-        
+
         # Hole Kosmetik-Daten
         user_cosmetics = cosmetics_shop.get_user_cosmetics(user)
-        
+
+        # Build shop_items structure for template
+        shop_items = {
+            'titles': user_cosmetics.get('available_titles', {}),
+            'themes': user_cosmetics.get('available_themes', {}),
+            'avatars': user_cosmetics.get('available_avatars', {}),
+            'effects': user_cosmetics.get('available_effects', {})
+        }
+
         return render_template('cosmetics_shop.html',
             current_user=user,
             user_coins=user_coins,
-            cosmetics=user_cosmetics
+            cosmetics=user_cosmetics,
+            shop_items=shop_items
         )
-        
+
     except Exception as e:
         logger.error(f"Error in cosmetics_shop route: {e}")
         traceback.print_exc()
-        return render_template('cosmetics_shop.html', 
+        return render_template('cosmetics_shop.html',
             current_user=user,
             error="Fehler beim Laden des Cosmetics Shops",
             user_coins=0,
-            cosmetics={"owned": {}, "active": {}, "available_titles": {}, "available_themes": {}, "available_avatars": {}, "available_effects": {}}
+            cosmetics={"owned": {}, "active": {}, "available_titles": {}, "available_themes": {}, "available_avatars": {}, "available_effects": {}},
+            shop_items={"titles": {}, "themes": {}, "avatars": {}, "effects": {}}
         )
 
 @gamification_bp.route('/cosmetics/purchase', methods=['POST'])

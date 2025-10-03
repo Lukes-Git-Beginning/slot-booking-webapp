@@ -137,30 +137,101 @@ def badges():
         user_badges = achievement_system.get_user_badges(user)
         leaderboard = achievement_system.get_badge_leaderboard()
 
-        # Prepare template variables
-        total_badges = user_badges.get("total_badges", 0)
+        # Get user's earned badges
+        earned_badges = user_badges.get("badges", [])
+        badges_earned = len(earned_badges)
+
+        # Get all available badges
         available_badges = ACHIEVEMENT_DEFINITIONS
+        total_badges = len(available_badges)
+
+        # Calculate completion rate
+        completion_rate = int((badges_earned / total_badges * 100) if total_badges > 0 else 0)
+
+        # Get badge progress for each badge
         badge_progress = achievement_system.get_badge_progress(user)
+
+        # Build all_badges list with earned status and progress
+        all_badges = []
+        for badge_id, badge_def in available_badges.items():
+            # Check if user has earned this badge
+            earned = any(b.get('badge_id') == badge_id for b in earned_badges)
+            earned_badge = next((b for b in earned_badges if b.get('badge_id') == badge_id), None)
+
+            # Only show progress for badges that are NOT earned
+            progress_data = None
+            if not earned:
+                prog = badge_progress.get(badge_id) if badge_progress else None
+                if prog and isinstance(prog, dict):
+                    # Normalize 'target' to 'required' for template compatibility
+                    progress_data = {
+                        'current': prog.get('current', 0),
+                        'required': prog.get('target', prog.get('required', 1)),
+                        'progress_percent': prog.get('progress_percent', 0)
+                    }
+
+            badge_info = {
+                'id': badge_id,
+                'name': badge_def.get('name', badge_id),
+                'description': badge_def.get('description', ''),
+                'icon': badge_def.get('icon', '🏆'),
+                'rarity': badge_def.get('rarity', 'häufig'),
+                'earned': earned,
+                'earned_date': earned_badge.get('earned_date') if earned_badge else None,
+                'progress': progress_data
+            }
+            all_badges.append(badge_info)
+
+        # Count rarest badges (legendary and mythic)
+        rarest_badge_count = sum(1 for b in earned_badges
+                                if b.get('rarity') in ['legendär', 'mythisch', 'legendary', 'mythic'])
+
+        # Count recent badges (this week)
+        from datetime import datetime, timedelta
+        week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        recent_badges_count = sum(1 for b in earned_badges
+                                 if b.get('earned_date', '1970-01-01') >= week_ago)
+
+        # Build badge categories
+        badge_categories = {}
+        for badge_id, badge_def in available_badges.items():
+            category = badge_def.get('category', 'Allgemein')
+            if category not in badge_categories:
+                badge_categories[category] = {'earned': 0, 'total': 0}
+            badge_categories[category]['total'] += 1
+            if any(b.get('badge_id') == badge_id for b in earned_badges):
+                badge_categories[category]['earned'] += 1
+
+        # Get recent achievements
+        recent_achievements = sorted(earned_badges,
+                                    key=lambda x: x.get('earned_date', ''),
+                                    reverse=True)[:5]
 
     except Exception as e:
         print(f"Badge System Error: {e}")
-        user_badges = {"badges": [], "total_badges": 0}
-        leaderboard = []
+        import traceback
+        traceback.print_exc()
+
+        # Fallback values
+        badges_earned = 0
         total_badges = 0
-        try:
-            from app.services.achievement_system import ACHIEVEMENT_DEFINITIONS
-            available_badges = ACHIEVEMENT_DEFINITIONS
-        except ImportError:
-            available_badges = {}
-        badge_progress = {}
+        completion_rate = 0
+        all_badges = []
+        rarest_badge_count = 0
+        recent_badges_count = 0
+        badge_categories = {}
+        recent_achievements = []
 
     return render_template("badges.html",
-                         user_badges=user_badges,
-                         leaderboard=leaderboard,
-                         current_user=user,
+                         user=user,
+                         badges_earned=badges_earned,
                          total_badges=total_badges,
-                         available_badges=available_badges,
-                         badge_progress=badge_progress)
+                         completion_rate=completion_rate,
+                         all_badges=all_badges,
+                         rarest_badge_count=rarest_badge_count,
+                         recent_badges_count=recent_badges_count,
+                         badge_categories=badge_categories,
+                         recent_achievements=recent_achievements)
 
 
 @scoreboard_bp.route("/stream/updates")
