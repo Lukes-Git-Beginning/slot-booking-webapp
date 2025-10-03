@@ -1,206 +1,169 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Tool Hub</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons-webfont@2.47.0.min.css" rel="stylesheet">
+{% extends "hub/base.html" %}
 
-    <style>
-        .hub-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: var(--spacing-xl);
-        }
+{% block content %}
 
-        .hub-header {
-            text-align: center;
-            margin-bottom: var(--spacing-2xl);
-        }
-
-        .hub-title {
-            font-size: var(--text-4xl);
-            font-weight: var(--font-bold);
-            color: var(--accent);
-            margin: 0 0 var(--spacing-sm);
-        }
-
-        .hub-subtitle {
-            color: var(--muted);
-            font-size: var(--text-lg);
-        }
-
-        /* Tool Grid - Minimalistisch */
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-2xl);
-        }
-
-        .tool-card {
-            background: var(--box-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--box-border);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-xl);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            text-decoration: none;
-            display: block;
-        }
-
-        .tool-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            border-color: var(--accent);
-        }
-
-        .tool-icon {
-            font-size: 48px;
-            margin-bottom: var(--spacing-md);
-            display: block;
-        }
-
-        .tool-name {
-            font-size: var(--text-xl);
-            font-weight: var(--font-semibold);
-            color: var(--text-color);
-            margin: 0 0 var(--spacing-sm);
-        }
-
-        .tool-desc {
-            color: var(--muted);
-            font-size: var(--text-sm);
-            margin: 0;
-        }
-
-        .tool-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: var(--text-xs);
-            font-weight: var(--font-medium);
-            margin-top: var(--spacing-md);
-            background: var(--success-bg);
-            border: 1px solid var(--success-bd);
-            color: var(--green);
-        }
-
-        /* Quick Stats - Kompakt */
-        .quick-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-2xl);
-        }
-
-        .stat-card {
-            background: var(--box-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--box-border);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-lg);
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: var(--text-3xl);
-            font-weight: var(--font-bold);
-            color: var(--accent);
-            margin: 0;
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: var(--text-sm);
-            margin-top: var(--spacing-xs);
-        }
-
-        /* Logout Button */
-        .logout-btn {
-            position: fixed;
-            top: var(--spacing-lg);
-            right: var(--spacing-lg);
-            padding: var(--spacing-sm) var(--spacing-lg);
-            background: var(--box-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--box-border);
-            border-radius: var(--radius-md);
-            color: var(--text-color);
-            text-decoration: none;
-            font-size: var(--text-sm);
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: var(--danger-bg);
-            border-color: var(--danger-bd);
-            color: var(--red);
-        }
-
-        /* Admin Badge */
-        .admin-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: linear-gradient(135deg, rgba(90,177,255,0.2), rgba(16,185,129,0.2));
-            border: 1px solid var(--accent);
-            border-radius: 12px;
-            font-size: var(--text-xs);
-            font-weight: var(--font-semibold);
-            color: var(--accent);
-            margin-left: var(--spacing-sm);
-        }
-    </style>
-</head>
-<body>
-    <!-- Logout Button -->
-    <a href="{{ url_for('auth.logout') }}" class="logout-btn">
-        <i class="ti ti-logout"></i> Abmelden
-    </a>
-
-    <div class="hub-container">
-        <!-- Header -->
-        <div class="hub-header">
-            <h1 class="hub-title">
-                {{ greeting }}, {{ user }}
-                {% if is_admin %}
-                <span class="admin-badge">Admin</span>
-                {% endif %}
-            </h1>
-            <p class="hub-subtitle">Wähle ein Tool aus, um zu starten</p>
+<!-- Welcome Header -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8" data-aos="fade-down">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center animate-float">
+                <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
+            </div>
+            <div>
+                <h2 class="text-3xl md:text-4xl font-bold text-white">
+                    {{ greeting }}, {{ user }}
+                    {% if is_admin %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/40 text-primary ml-2">
+                        <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i>
+                        Admin
+                    </span>
+                    {% endif %}
+                </h2>
+                <p class="text-white/70 mt-1">Wähle ein Tool aus, um zu starten</p>
+            </div>
         </div>
 
-        <!-- Quick Stats (Nur wenn wichtig) -->
-        {% if quick_stats.total_tools > 0 %}
-        <div class="quick-stats">
-            <div class="stat-card">
-                <div class="stat-value">{{ quick_stats.active_tools }}</div>
-                <div class="stat-label">Aktive Tools</div>
-            </div>
-            {% if quick_stats.unread_notifications > 0 %}
-            <div class="stat-card">
-                <div class="stat-value">{{ quick_stats.unread_notifications }}</div>
-                <div class="stat-label">Benachrichtigungen</div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Tools Grid -->
-        <div class="tools-grid">
-            {% for tool in tools %}
-            <a href="{{ tool.url }}" class="tool-card">
-                <span class="tool-icon">{{ tool.icon }}</span>
-                <h3 class="tool-name">{{ tool.name }}</h3>
-                <p class="tool-desc">{{ tool.description }}</p>
-                {% if tool.status == 'active' %}
-                <span class="tool-status">Verfügbar</span>
-                {% endif %}
-            </a>
-            {% endfor %}
+        <!-- Quick Actions -->
+        <div class="flex items-center gap-3">
+            <button class="btn btn-circle btn-ghost hover:bg-white/10 relative group" x-data="{ hasNotifications: {{ quick_stats.unread_notifications|default(0) }} > 0 }">
+                <i data-lucide="bell" class="w-5 h-5"></i>
+                <span x-show="hasNotifications" class="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs font-bold">
+                    {{ quick_stats.unread_notifications|default(0) }}
+                </span>
+            </button>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<!-- Quick Stats -->
+{% if quick_stats and quick_stats.total_tools > 0 %}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="100">
+    <!-- Active Tools -->
+    <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-3xl font-bold text-primary mb-1">{{ quick_stats.active_tools }}</div>
+        <div class="text-white/60 text-sm">Aktive Tools</div>
+    </div>
+
+    <!-- Total Tools -->
+    <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-3xl font-bold text-secondary mb-1">{{ quick_stats.total_tools }}</div>
+        <div class="text-white/60 text-sm">Gesamt Tools</div>
+    </div>
+
+    {% if quick_stats.unread_notifications > 0 %}
+    <!-- Notifications -->
+    <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-3xl font-bold text-accent mb-1">{{ quick_stats.unread_notifications }}</div>
+        <div class="text-white/60 text-sm">Benachrichtigungen</div>
+    </div>
+    {% endif %}
+
+    <!-- Last Login (if available) -->
+    {% if quick_stats.last_login %}
+    <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-lg font-semibold text-white/90 mb-1">{{ quick_stats.last_login }}</div>
+        <div class="text-white/60 text-sm">Letzter Login</div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Tools Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="200">
+    {% for tool in tools %}
+    <a href="{{ tool.url }}"
+       class="glass rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl group relative overflow-hidden"
+       data-aos="zoom-in"
+       data-aos-delay="{{ loop.index * 50 }}">
+
+        <!-- Gradient Overlay on Hover -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+
+        <!-- Content -->
+        <div class="relative z-10">
+            <!-- Icon -->
+            <div class="mb-6 inline-flex p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-600/20 group-hover:from-primary/30 group-hover:to-purple-600/30 transition-all">
+                <span class="text-5xl">{{ tool.icon }}</span>
+            </div>
+
+            <!-- Tool Name -->
+            <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-primary transition-colors">
+                {{ tool.name }}
+            </h3>
+
+            <!-- Description -->
+            <p class="text-white/70 text-sm mb-4">
+                {{ tool.description }}
+            </p>
+
+            <!-- Status Badge -->
+            {% if tool.status == 'active' %}
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/20 border border-success/40 text-success text-xs font-semibold">
+                <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
+                Verfügbar
+            </div>
+            {% elif tool.status == 'beta' %}
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/20 border border-warning/40 text-warning text-xs font-semibold">
+                <i data-lucide="flask-conical" class="w-3 h-3"></i>
+                Beta
+            </div>
+            {% else %}
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/60 text-xs font-semibold">
+                <i data-lucide="wrench" class="w-3 h-3"></i>
+                Wartung
+            </div>
+            {% endif %}
+
+            <!-- Arrow Icon -->
+            <div class="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
+                <i data-lucide="arrow-right" class="w-6 h-6 text-primary"></i>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Admin Quick Access (if admin) -->
+{% if is_admin %}
+<div class="glass rounded-2xl p-8 mt-8" data-aos="fade-up" data-aos-delay="300">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white">Admin Schnellzugriff</h3>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="/admin" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+            <i data-lucide="layout-dashboard" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
+            <span class="text-white/90 text-sm font-medium">Dashboard</span>
+        </a>
+
+        <a href="/admin/users" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+            <i data-lucide="users" class="w-5 h-5 text-secondary group-hover:scale-110 transition-transform"></i>
+            <span class="text-white/90 text-sm font-medium">Benutzer</span>
+        </a>
+
+        <a href="/admin/reports" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+            <i data-lucide="file-text" class="w-5 h-5 text-accent group-hover:scale-110 transition-transform"></i>
+            <span class="text-white/90 text-sm font-medium">Berichte</span>
+        </a>
+
+        <a href="/health" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+            <i data-lucide="activity" class="w-5 h-5 text-info group-hover:scale-110 transition-transform"></i>
+            <span class="text-white/90 text-sm font-medium">Status</span>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Refresh icons after dynamic content load
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+</script>
+{% endblock %}

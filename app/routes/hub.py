@@ -112,7 +112,9 @@ def get_dashboard_data(username):
         'user': username,
         'current_time': datetime.now(),
         'greeting': get_time_based_greeting(),
-        'is_admin': is_admin_user(username)
+        'is_admin': is_admin_user(username),
+        'app_version': '3.2',
+        'current_year': datetime.now().year
     }
 
     # Quick-Stats
@@ -461,4 +463,104 @@ def mark_notification_read(username, notification_id):
     """
     # Hier würde später echte Persistierung implementiert
     logger.info(f"Notification {notification_id} marked as read for user {username}")
+    return True
+
+
+@hub_bp.route('/profile')
+def profile():
+    """
+    Benutzerprofil-Seite
+    """
+    user = session.get('user')
+
+    if not user:
+        return redirect(url_for('auth.login', next=request.url))
+
+    # Profil-Daten sammeln
+    profile_data = {
+        'user': user,
+        'is_admin': is_admin_user(user),
+        'stats': get_user_profile_stats(user),
+        'tools_access': get_user_tools(user),
+        'recent_activities': get_recent_activities(user),
+        'app_version': '3.2',
+        'current_year': datetime.now().year
+    }
+
+    return render_template('hub/profile.html', **profile_data)
+
+
+@hub_bp.route('/settings')
+def settings():
+    """
+    Benutzer-Einstellungen
+    """
+    user = session.get('user')
+
+    if not user:
+        return redirect(url_for('auth.login', next=request.url))
+
+    settings_data = {
+        'user': user,
+        'is_admin': is_admin_user(user),
+        'current_settings': get_user_settings(user),
+        'app_version': '3.2',
+        'current_year': datetime.now().year
+    }
+
+    return render_template('hub/settings.html', **settings_data)
+
+
+@hub_bp.route('/settings/update', methods=['POST'])
+def update_settings():
+    """
+    Einstellungen aktualisieren
+    """
+    user = session.get('user')
+
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Settings aus Request
+    settings = request.json
+
+    # Settings speichern (später mit echtem Persistenz-Layer)
+    success = save_user_settings(user, settings)
+
+    return jsonify({'success': success})
+
+
+def get_user_profile_stats(username):
+    """
+    Statistiken für Benutzerprofil
+    """
+    return {
+        'total_logins': 127,
+        'account_created': '2024-01-15',
+        'last_login': datetime.now().isoformat(),
+        'tools_used': len(get_user_tools(username)),
+        'total_actions': 450
+    }
+
+
+def get_user_settings(username):
+    """
+    Benutzereinstellungen laden
+    """
+    # Default-Settings
+    return {
+        'theme': 'dark',
+        'notifications': True,
+        'email_notifications': True,
+        'dashboard_layout': 'grid',
+        'language': 'de'
+    }
+
+
+def save_user_settings(username, settings):
+    """
+    Benutzereinstellungen speichern
+    """
+    logger.info(f"Saving settings for user {username}: {settings}")
+    # Hier würde später echte Persistierung implementiert
     return True

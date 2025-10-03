@@ -1,131 +1,154 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Fehler {{ error_code }} - Slot Manager</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-    
-    <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        
-        /* Animated Background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 20% 80%, rgba(90,177,255,0.1), transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(16,185,129,0.1), transparent 50%),
-                        radial-gradient(circle at 40% 40%, rgba(249,115,22,0.05), transparent 50%);
-            animation: backgroundShift 20s ease infinite;
-        }
-        
-        @keyframes backgroundShift {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(-10px, -10px) rotate(120deg); }
-            66% { transform: translate(10px, -10px) rotate(240deg); }
-        }
-        
-        .error-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 500px;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .error-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-            border: 1px solid rgba(255,255,255,0.18);
-            border-radius: 20px;
-            padding: 40px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        
-        .error-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-            color: #ef4444;
-        }
-        
-        .error-code {
-            font-size: 3em;
-            font-weight: bold;
-            color: var(--accent);
-            margin-bottom: 10px;
-        }
-        
-        .error-message {
-            font-size: 1.2em;
-            color: var(--text);
-            margin-bottom: 30px;
-        }
-        
-        .error-actions {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), #3b82f6);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-        }
-        
-        .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: var(--text);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-2px);
-        }
-    </style>
-</head>
-<body>
-    <div class="error-container">
-        <div class="error-card">
-            <div class="error-icon">⚠️</div>
-            <div class="error-code">{{ error_code or 500 }}</div>
-            <div class="error-message">{{ error_message or "Ein unerwarteter Fehler ist aufgetreten" }}</div>
-            
-            <div class="error-actions">
-                <a href="/" class="btn btn-primary">🏠 Zur Hauptseite</a>
+{% extends "hub/base.html" %}
+
+{% block title %}Fehler {{ error_code }}{% endblock %}
+
+{% block content %}
+
+<!-- Error Display -->
+<div class="min-h-[80vh] flex items-center justify-center px-4">
+    <div class="glass rounded-3xl p-8 md:p-12 max-w-2xl w-full bg-gradient-to-br from-error/20 to-warning/20 relative overflow-hidden" data-aos="zoom-in">
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-10 left-10 w-40 h-40 bg-error rounded-full blur-3xl"></div>
+            <div class="absolute bottom-10 right-10 w-40 h-40 bg-warning rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="relative z-10 text-center">
+            <!-- Error Icon -->
+            <div class="inline-block p-6 rounded-full bg-error/20 mb-6" data-aos="fade-down" data-aos-delay="100">
+                <i data-lucide="alert-triangle" class="w-24 h-24 text-error"></i>
+            </div>
+
+            <!-- Error Code -->
+            <div class="text-7xl md:text-8xl font-bold text-error mb-4" data-aos="fade-up" data-aos-delay="200">
+                {{ error_code or 500 }}
+            </div>
+
+            <!-- Error Message -->
+            <h1 class="text-2xl md:text-3xl font-bold text-white mb-3" data-aos="fade-up" data-aos-delay="300">
+                Ups, da ist etwas schief gelaufen!
+            </h1>
+
+            <p class="text-lg text-white/80 mb-8" data-aos="fade-up" data-aos-delay="400">
+                {{ error_message or "Ein unerwarteter Fehler ist aufgetreten" }}
+            </p>
+
+            <!-- Error Details -->
+            {% if error_details %}
+            <div class="glass rounded-xl p-4 mb-8 text-left" data-aos="fade-up" data-aos-delay="500">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+                    <h3 class="font-semibold text-white">Details:</h3>
+                </div>
+                <p class="text-sm text-white/70 font-mono">{{ error_details }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-4 justify-center" data-aos="fade-up" data-aos-delay="600">
+                <a href="/" class="btn btn-primary gap-2">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                    <span>Zur Startseite</span>
+                </a>
+
                 {% if current_user %}
-                <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-secondary">🎮 Gamification</a>
+                <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-secondary gap-2">
+                    <i data-lucide="trophy" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
                 {% endif %}
+
+                <button onclick="window.history.back()" class="btn btn-ghost gap-2">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    <span>Zurück</span>
+                </button>
+            </div>
+
+            <!-- Error Code Reference -->
+            <div class="mt-8 pt-6 border-t border-white/10" data-aos="fade-up" data-aos-delay="700">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white/60">
+                    <div class="flex items-center justify-center gap-2">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>{{ current_time or 'Zeitstempel nicht verfügbar' }}</span>
+                    </div>
+                    <div class="flex items-center justify-center gap-2">
+                        <i data-lucide="code" class="w-4 h-4"></i>
+                        <span>Error {{ error_code or 'UNKNOWN' }}</span>
+                    </div>
+                    <div class="flex items-center justify-center gap-2">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        <a href="mailto:support@example.com" class="hover:text-primary transition-colors">Support</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<!-- Common Error Codes Reference (Optional) -->
+{% if show_error_guide %}
+<div class="glass rounded-3xl p-8 mt-8" data-aos="fade-up" data-aos-delay="800">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <i data-lucide="book-open" class="w-7 h-7 text-primary"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Häufige Fehlercodes</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="glass rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="badge badge-error">404</div>
+                <h3 class="font-semibold text-white">Nicht gefunden</h3>
+            </div>
+            <p class="text-sm text-white/60">Die angeforderte Seite existiert nicht.</p>
+        </div>
+
+        <div class="glass rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="badge badge-warning">403</div>
+                <h3 class="font-semibold text-white">Zugriff verweigert</h3>
+            </div>
+            <p class="text-sm text-white/60">Sie haben keine Berechtigung für diese Aktion.</p>
+        </div>
+
+        <div class="glass rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="badge badge-error">500</div>
+                <h3 class="font-semibold text-white">Serverfehler</h3>
+            </div>
+            <p class="text-sm text-white/60">Ein interner Serverfehler ist aufgetreten.</p>
+        </div>
+
+        <div class="glass rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="badge badge-info">503</div>
+                <h3 class="font-semibold text-white">Service nicht verfügbar</h3>
+            </div>
+            <p class="text-sm text-white/60">Der Dienst ist vorübergehend nicht verfügbar.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Refresh Lucide icons
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+
+    // Optional: Auto-redirect after timeout for certain errors
+    {% if auto_redirect_seconds %}
+    let countdown = {{ auto_redirect_seconds }};
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            window.location.href = '{{ auto_redirect_url or "/" }}';
+        }
+    }, 1000);
+    {% endif %}
+</script>
+{% endblock %}

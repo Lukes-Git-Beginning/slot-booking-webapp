@@ -1,0 +1,19 @@
+[Unit]
+Description=Business Hub - Availability Generator
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+After=network.target business-hub.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/business-hub
+ExecStart=/opt/business-hub/venv/bin/python /opt/business-hub/scripts/generate_availability.py
+StandardOutput=append:/var/log/business-hub/availability.log
+StandardError=append:/var/log/business-hub/availability.log
+
+# Env Variables
+Environment="GOOGLE_CREDS_BASE64=${GOOGLE_CREDS_BASE64}"
+EnvironmentFile=-/opt/business-hub/.env
+
+[Install]
+WantedBy=multi-user.target

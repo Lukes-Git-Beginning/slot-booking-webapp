@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-from legacy.json_utils import atomic_write_json, atomic_read_json, atomic_update_json
+from app.utils.json_utils import atomic_write_json, atomic_read_json, atomic_update_json
 
 # Logger setup
 logger = logging.getLogger(__name__)

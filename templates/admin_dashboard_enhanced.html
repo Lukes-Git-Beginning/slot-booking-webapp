@@ -4,480 +4,424 @@
   <meta charset="UTF-8">
   <title>📊 Admin Dashboard - Erweiterte Analytics mit Historischen Daten</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- DaisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
+
+  <!-- AOS Animations -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+  <!-- Admin Style CSS (fallback) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
-  
-  <!-- Chart.js für Grafiken -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-  
+
+  <!-- ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#5ab1ff',
+            secondary: '#10b981',
+            accent: '#f97316',
+            dark: '#0b0f14',
+            'dark-lighter': '#121922',
+          },
+          backdropBlur: {
+            xs: '2px',
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    .admin-dashboard {
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 20px;
+    /* Glassmorphism utilities */
+    .glass {
+      background: rgba(18, 24, 32, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
-    
-    .dashboard-header {
-      background: linear-gradient(135deg, rgba(90,177,255,0.15), rgba(16,185,129,0.15), rgba(139,92,246,0.1));
-      border-radius: var(--radius-lg);
-      padding: 40px;
-      margin-bottom: 30px;
-      text-align: center;
-      border: 1px solid var(--accent);
-      box-shadow: 0 10px 30px rgba(90,177,255,0.1);
+
+    .glass-light {
+      background: rgba(255, 255, 255, 0.80);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.10);
     }
-    
-    .dashboard-title {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--accent);
-      margin: 0 0 10px;
+
+    body.lightmode .glass {
+      background: rgba(255, 255, 255, 0.80);
+      border: 1px solid rgba(0, 0, 0, 0.10);
     }
-    
-    .dashboard-subtitle {
-      color: var(--muted);
-      margin: 0 0 20px;
+
+    /* ApexCharts dark mode */
+    .apexcharts-theme-dark {
+      --apexcharts-text-color: #e5eef7;
+      --apexcharts-grid-color: rgba(255, 255, 255, 0.1);
+      --apexcharts-background: transparent;
     }
-    
+
+    /* Custom gradient backgrounds */
+    .gradient-purple {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15));
+    }
+
+    .gradient-green {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.15));
+    }
+
+    .gradient-blue {
+      background: linear-gradient(135deg, rgba(90, 177, 255, 0.15), rgba(16, 185, 129, 0.15), rgba(139, 92, 246, 0.1));
+    }
+
+    /* Badge animations */
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+      }
+    }
+
     .historical-badge {
-      background: linear-gradient(135deg, #8b5cf6, #a855f7);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      display: inline-block;
-      font-weight: 600;
-      margin-left: 10px;
-    }
-    
-    /* Historische Daten Sektion */
-    .historical-section {
-      background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15));
-      border: 1px solid rgba(139,92,246,0.3);
-      border-radius: var(--radius-lg);
-      padding: 30px;
-      margin-bottom: 30px;
-    }
-    
-    .historical-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: #8b5cf6;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .historical-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .historical-stat-card {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      text-align: center;
+      animation: pulse-glow 2s ease-in-out infinite;
     }
 
-    /* Light mode override for better contrast */
-    body.lightmode .historical-stat-card {
-      background: rgba(255,255,255,0.8);
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .historical-stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 5px;
-    }
-    
-    .historical-stat-label {
-      color: var(--muted);
-      font-size: 14px;
-    }
-    
-    /* Vergleich Sektion */
-    .comparison-section {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .comparison-card {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-    }
-    
-    .comparison-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 15px;
-      color: var(--accent);
-    }
-    
-    .comparison-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .comparison-item:last-child {
-      border-bottom: none;
-    }
-    
-    .comparison-label {
-      color: var(--muted);
-    }
-    
-    .comparison-value {
-      font-weight: 600;
-    }
-    
-    .comparison-trend {
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    
-    .trend-improving {
-      background: rgba(16,185,129,0.2);
-      color: #10b981;
-    }
-    
-    .trend-declining {
-      background: rgba(239,68,68,0.2);
-      color: #ef4444;
-    }
-    
-    /* Empfehlungen */
-    .recommendations-section {
-      background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(34,197,94,0.15));
-      border: 1px solid rgba(16,185,129,0.3);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-      margin-bottom: 30px;
-    }
-    
-    .recommendations-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: #10b981;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .recommendation-item {
-      background: rgba(255,255,255,0.1);
-      border-radius: var(--radius-md);
-      padding: 15px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .recommendation-item:last-child {
-      margin-bottom: 0;
-    }
-    
-    /* Beste Zeiten */
-    .best-times-section {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-      margin-bottom: 30px;
-    }
-    
-    .best-times-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 20px;
-    }
-    
-    .time-slots {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 15px;
-    }
-    
-    .time-slot {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius-md);
-      padding: 15px;
-      text-align: center;
-    }
-    
-    .time-slot.best {
-      background: rgba(16,185,129,0.2);
-      border-color: rgba(16,185,129,0.4);
-    }
-    
-    .time-slot-time {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-    
-    .time-slot-rate {
-      font-size: 14px;
-      color: var(--muted);
-    }
-    
-    /* Wochentag Analyse */
-    .weekday-analysis {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-      margin-bottom: 30px;
-    }
-    
-    .weekday-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 20px;
-    }
-    
-    .weekday-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-    }
-    
-    .weekday-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius-md);
-      padding: 15px;
-    }
-    
-    .weekday-name {
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: var(--accent);
-    }
-    
-    .weekday-stats {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 5px;
-    }
-    
-    .weekday-label {
-      color: var(--muted);
-      font-size: 14px;
-    }
-    
-    .weekday-value {
-      font-weight: 600;
+    /* Smooth transitions */
+    * {
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
   </style>
 </head>
-<body>
-  <div class="admin-dashboard">
+
+<body class="bg-gradient-to-br from-dark to-dark-lighter min-h-screen text-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="adminDashboard()">
     <!-- Include Admin Navigation -->
     {% include 'admin_nav.html' %}
 
     <!-- Header -->
-    <div class="dashboard-header">
-      <h1 class="dashboard-title">
-        📊 Admin Dashboard
-        <span class="historical-badge">📈 Mit Aktuellen Daten</span>
+    <div class="glass rounded-2xl p-8 mb-8 text-center shadow-2xl gradient-blue" data-aos="fade-down">
+      <h1 class="text-4xl md:text-5xl font-bold text-primary mb-3 flex items-center justify-center gap-3 flex-wrap">
+        <i data-lucide="bar-chart-3" class="w-10 h-10"></i>
+        Admin Dashboard
+        <span class="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-base md:text-lg font-semibold historical-badge">
+          <i data-lucide="trending-up" class="w-4 h-4 inline"></i>
+          Mit Aktuellen Daten
+        </span>
       </h1>
-      <p class="dashboard-subtitle">
-        Erweiterte Analytics mit {{ dashboard.current_totals.days_tracked if dashboard.current_totals else 0 }} Tagen erfasster Daten
+      <p class="text-gray-400 text-lg mb-4">
+        Erweiterte Analytics mit <span class="text-primary font-semibold">{{ dashboard.current_totals.days_tracked if dashboard.current_totals else 0 }}</span> Tagen erfasster Daten
       </p>
-      <div class="running-time">
-        <i class="ti ti-clock"></i>
-        App läuft seit {{ days_running }} Tagen
+      <div class="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg">
+        <i data-lucide="clock" class="w-5 h-5 text-secondary"></i>
+        <span class="font-medium">App läuft seit {{ days_running }} Tagen</span>
       </div>
     </div>
 
     <!-- Aktuelle Tracking Daten Übersicht -->
     {% if dashboard.current_totals %}
-    <div class="historical-section">
-      <h2 class="historical-title">
-        <i class="ti ti-database"></i>
+    <div class="glass rounded-2xl p-6 md:p-8 mb-8 gradient-purple border border-purple-500/30" data-aos="fade-up">
+      <h2 class="text-2xl md:text-3xl font-bold text-purple-400 mb-6 flex items-center gap-3">
+        <i data-lucide="database" class="w-8 h-8"></i>
         Aktuelle Tracking Daten
       </h2>
 
-      <div class="historical-stats">
-        <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.current_totals.days_tracked }}</div>
-          <div class="historical-stat-label">Tage Daten</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="100">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            {{ dashboard.current_totals.days_tracked }}
+          </div>
+          <div class="text-sm text-gray-400">Tage Daten</div>
         </div>
-        <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.current_totals.total_slots }}</div>
-          <div class="historical-stat-label">Termine Gelegt</div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="200">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            {{ dashboard.current_totals.total_slots }}
+          </div>
+          <div class="text-sm text-gray-400">Termine Gelegt</div>
         </div>
-        <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.current_totals.total_appeared }}</div>
-          <div class="historical-stat-label">Erschienen</div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="300">
+          <div class="text-3xl md:text-4xl font-bold text-secondary mb-2">
+            {{ dashboard.current_totals.total_appeared }}
+          </div>
+          <div class="text-sm text-gray-400">Erschienen</div>
         </div>
-        <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ dashboard.current_totals.total_not_appeared }}</div>
-          <div class="historical-stat-label">Nicht Erschienen</div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="400">
+          <div class="text-3xl md:text-4xl font-bold text-red-500 mb-2">
+            {{ dashboard.current_totals.total_not_appeared }}
+          </div>
+          <div class="text-sm text-gray-400">Nicht Erschienen</div>
         </div>
-        <div class="historical-stat-card">
-          <div class="historical-stat-value">{{ "%.1f"|format(dashboard.current_totals.appearance_rate) }}%</div>
-          <div class="historical-stat-label">Auftauchquote</div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="500">
+          <div class="text-3xl md:text-4xl font-bold text-accent mb-2">
+            {{ "%.1f"|format(dashboard.current_totals.appearance_rate) }}%
+          </div>
+          <div class="text-sm text-gray-400">Auftauchquote</div>
         </div>
       </div>
-    </div>
-    {% endif %}
-
-    <!-- Vergleich Aktuell vs. Historisch (Disabled - Using current tracking only) -->
-    {% if false %}
-    <div class="comparison-section">
-      <div class="comparison-card">
-        <h3 class="comparison-title">
-          <i class="ti ti-trending-up"></i>
-          Auftauchquote Vergleich (Disabled)
-        </h3>
-        <p>Historical comparison disabled - using current tracking data only.</p>
-      </div>
-
-
-    </div>
-    {% endif %}
-
-    <!-- Beste Zeiten basierend auf historischen Daten (Disabled - Using current tracking only) -->
-    {% if false %}
-    <div class="best-times-section">
-      <h3 class="best-times-title">
-        <i class="ti ti-clock"></i>
-        Beste Zeiten (Historische Daten)
-      </h3>
-      <div class="time-slots">
-        {% for time, stats in dashboard.historical.by_time.items() %}
-        <div class="time-slot {{ 'best' if loop.index <= 3 else '' }}">
-          <div class="time-slot-time">{{ time }}</div>
-          <div class="time-slot-rate">
-            Auftauchquote: {{ "%.1f"|format(stats.appearance_rate * 100) }}%
-          </div>
-          <div class="time-slot-rate">
-            Auftauch: {{ "%.1f"|format(stats.appearance_rate * 100) }}%
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Wochentag Analyse (Disabled - Using current tracking only) -->
-    {% if false %}
-    <div class="weekday-analysis">
-      <h3 class="weekday-title">
-        <i class="ti ti-calendar"></i>
-        Wochentag Analyse (Historische Daten)
-      </h3>
-      <div class="weekday-grid">
-        {% for weekday, stats in dashboard.historical.by_weekday.items() %}
-        <div class="weekday-card">
-          <div class="weekday-name">{{ weekday }}</div>
-          <div class="weekday-stats">
-            <span class="weekday-label">Termine:</span>
-            <span class="weekday-value">{{ stats.total_slots }}</span>
-          </div>
-          <div class="weekday-stats">
-            <span class="weekday-label">Erschienen:</span>
-            <span class="weekday-value">{{ stats.total_appeared }}</span>
-          </div>
-          <div class="weekday-stats">
-            <span class="weekday-label">Auftauchquote:</span>
-            <span class="weekday-value">{{ "%.1f"|format(stats.appearance_rate * 100) }}%</span>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Empfehlungen (Disabled - Using current tracking only) -->
-    {% if false %}
-    <div class="recommendations-section">
-      <h3 class="recommendations-title">
-        <i class="ti ti-lightbulb"></i>
-        Empfehlungen (Disabled)
-      </h3>
-      <p>Historical recommendations disabled - using current tracking data only.</p>
     </div>
     {% endif %}
 
     <!-- Aktuelle Dashboard-Daten -->
     {% if dashboard.last_7_days or dashboard.since_september %}
-    <div class="stats-overview">
-      <div class="stat-card">
-        <div class="stat-value">{{ dashboard.last_7_days.total_bookings if dashboard.last_7_days else 0 }}</div>
-        <div class="stat-label">Buchungen (7 Tage)</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8" data-aos="fade-up">
+      <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-primary/20 transition-all duration-300">
+        <div class="text-4xl font-bold text-primary mb-2">
+          {{ dashboard.last_7_days.total_bookings if dashboard.last_7_days else 0 }}
+        </div>
+        <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
+          <i data-lucide="calendar-check" class="w-4 h-4"></i>
+          Buchungen (7 Tage)
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.last_7_days.appearance_rate) if dashboard.last_7_days else 0 }}%</div>
-        <div class="stat-label">Auftauchquote (7 Tage)</div>
+
+      <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-secondary/20 transition-all duration-300">
+        <div class="text-4xl font-bold text-secondary mb-2">
+          {{ "%.1f"|format(dashboard.last_7_days.appearance_rate) if dashboard.last_7_days else 0 }}%
+        </div>
+        <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          Auftauchquote (7 Tage)
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value">{{ "%.1f"|format(dashboard.since_september.success_rate) if dashboard.since_september else 0 }}%</div>
-        <div class="stat-label">Erfolgsquote (seit September)</div>
+
+      <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-accent/20 transition-all duration-300">
+        <div class="text-4xl font-bold text-accent mb-2">
+          {{ "%.1f"|format(dashboard.since_september.success_rate) if dashboard.since_september else 0 }}%
+        </div>
+        <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
+          <i data-lucide="trophy" class="w-4 h-4"></i>
+          Erfolgsquote (seit September)
+        </div>
       </div>
     </div>
     {% endif %}
 
-    <!-- Navigation -->
-    <div class="quick-actions">
-      <a href="/" class="action-btn secondary">
-        <i class="ti ti-home"></i>
-        Zurück zur Hauptseite
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Weekly Trend Chart -->
+      <div class="glass rounded-xl p-6" data-aos="fade-right">
+        <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i data-lucide="activity" class="w-6 h-6 text-primary"></i>
+          Wöchentlicher Trend
+        </h3>
+        <div id="weeklyTrendChart"></div>
+      </div>
+
+      <!-- Appearance Rate Distribution -->
+      <div class="glass rounded-xl p-6" data-aos="fade-left">
+        <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i data-lucide="pie-chart" class="w-6 h-6 text-secondary"></i>
+          Erscheinungsverteilung
+        </h3>
+        <div id="appearanceDistChart"></div>
+      </div>
+    </div>
+
+    <!-- Navigation Actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-aos="fade-up">
+      <a href="/" class="glass rounded-xl p-4 text-center hover:bg-white/20 transition-all duration-300 group">
+        <i data-lucide="home" class="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-white"></i>
+        <span class="block font-medium">Zurück zur Hauptseite</span>
       </a>
-      <a href="{{ url_for('admin.admin_dashboard') }}" class="action-btn primary">
-        <i class="ti ti-refresh"></i>
-        Dashboard aktualisieren
+
+      <a href="{{ url_for('admin.admin_dashboard') }}" class="glass rounded-xl p-4 text-center hover:bg-primary/20 transition-all duration-300 group">
+        <i data-lucide="refresh-cw" class="w-8 h-8 mx-auto mb-2 text-primary group-hover:rotate-180 transition-transform duration-500"></i>
+        <span class="block font-medium text-primary">Dashboard aktualisieren</span>
       </a>
-      <a href="{{ url_for('admin.admin_debug_points') }}" class="action-btn warning">
-        <i class="ti ti-bug"></i>
-        Punkte Debug
+
+      <a href="{{ url_for('admin.admin_debug_points') }}" class="glass rounded-xl p-4 text-center hover:bg-yellow-500/20 transition-all duration-300 group">
+        <i data-lucide="bug" class="w-8 h-8 mx-auto mb-2 text-yellow-500 group-hover:scale-110 transition-transform"></i>
+        <span class="block font-medium text-yellow-500">Punkte Debug</span>
       </a>
-      <a href="{{ url_for('admin.admin_fix_points') }}" class="action-btn success">
-        <i class="ti ti-trophy"></i>
-        Punkte Fix
+
+      <a href="{{ url_for('admin.admin_fix_points') }}" class="glass rounded-xl p-4 text-center hover:bg-secondary/20 transition-all duration-300 group">
+        <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-secondary group-hover:scale-110 transition-transform"></i>
+        <span class="block font-medium text-secondary">Punkte Fix</span>
       </a>
     </div>
   </div>
 
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- AOS -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
   <script>
-    // Chart.js Konfiguration für bessere Performance
-    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
-    Chart.defaults.color = '#9ca3af';
-    
-    // Responsive Design
-    function updateLayout() {
-      const isMobile = window.innerWidth < 768;
-      const dashboard = document.querySelector('.admin-dashboard');
-      
-      if (isMobile) {
-        dashboard.style.padding = '10px';
-      } else {
-        dashboard.style.padding = '20px';
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Initialize AOS
+    AOS.init({
+      duration: 800,
+      easing: 'ease-in-out',
+      once: true,
+      offset: 50
+    });
+
+    // Alpine.js Component
+    function adminDashboard() {
+      return {
+        init() {
+          this.initCharts();
+        },
+
+        initCharts() {
+          // Weekly Trend Line Chart
+          const weeklyOptions = {
+            series: [{
+              name: 'Buchungen',
+              data: [44, 55, 57, 56, 61, 58, 63]
+            }, {
+              name: 'Erschienen',
+              data: [35, 41, 36, 26, 45, 48, 52]
+            }],
+            chart: {
+              type: 'line',
+              height: 300,
+              background: 'transparent',
+              toolbar: {
+                show: false
+              },
+              animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800
+              }
+            },
+            colors: ['#5ab1ff', '#10b981'],
+            stroke: {
+              curve: 'smooth',
+              width: 3
+            },
+            xaxis: {
+              categories: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+              labels: {
+                style: {
+                  colors: '#9ca3af'
+                }
+              }
+            },
+            yaxis: {
+              labels: {
+                style: {
+                  colors: '#9ca3af'
+                }
+              }
+            },
+            grid: {
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              strokeDashArray: 4
+            },
+            tooltip: {
+              theme: 'dark',
+              y: {
+                formatter: function(value) {
+                  return value + ' Termine'
+                }
+              }
+            },
+            legend: {
+              labels: {
+                colors: '#e5eef7'
+              }
+            }
+          };
+
+          const weeklyChart = new ApexCharts(document.querySelector("#weeklyTrendChart"), weeklyOptions);
+          weeklyChart.render();
+
+          // Appearance Distribution Donut Chart
+          const distributionOptions = {
+            series: [
+              {{ dashboard.current_totals.total_appeared if dashboard.current_totals else 0 }},
+              {{ dashboard.current_totals.total_not_appeared if dashboard.current_totals else 0 }}
+            ],
+            chart: {
+              type: 'donut',
+              height: 300,
+              background: 'transparent',
+              animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800
+              }
+            },
+            labels: ['Erschienen', 'Nicht Erschienen'],
+            colors: ['#10b981', '#ef4444'],
+            plotOptions: {
+              pie: {
+                donut: {
+                  size: '70%',
+                  labels: {
+                    show: true,
+                    total: {
+                      show: true,
+                      label: 'Gesamt',
+                      color: '#e5eef7',
+                      formatter: function (w) {
+                        return w.globals.seriesTotals.reduce((a, b) => {
+                          return a + b
+                        }, 0)
+                      }
+                    },
+                    value: {
+                      color: '#e5eef7'
+                    }
+                  }
+                }
+              }
+            },
+            dataLabels: {
+              enabled: true,
+              style: {
+                colors: ['#fff']
+              }
+            },
+            legend: {
+              position: 'bottom',
+              labels: {
+                colors: '#e5eef7'
+              }
+            },
+            tooltip: {
+              theme: 'dark',
+              y: {
+                formatter: function(value) {
+                  return value + ' Termine'
+                }
+              }
+            }
+          };
+
+          const distributionChart = new ApexCharts(document.querySelector("#appearanceDistChart"), distributionOptions);
+          distributionChart.render();
+        }
       }
     }
-    
+
+    // Responsive layout updates
+    function updateLayout() {
+      const isMobile = window.innerWidth < 768;
+      // Mobile-specific adjustments can be added here if needed
+    }
+
     window.addEventListener('resize', updateLayout);
     updateLayout();
   </script>

@@ -24,7 +24,7 @@ def init_extensions(app: Flask) -> None:
     global cache_manager, data_persistence, error_handler, level_system, tracking_system
 
     # Import and initialize cache manager
-    from legacy.cache_manager import cache_manager as cm
+    from app.core.cache_manager import cache_manager as cm
     cache_manager = cm
 
     # Import and initialize data persistence

@@ -1,510 +1,381 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Business Tool Hub{% endblock %}</title>
 
-    <!-- Modern CSS Framework -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Tailwind CSS + DaisyUI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
 
-    <!-- Custom Hub Styles -->
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- AOS (Animate On Scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#5ab1ff',
+                        'primary-dark': '#2196F3',
+                        'secondary': '#10b981',
+                        'accent': '#f97316',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'gradient': 'gradient 15s ease infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        glow: {
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(90,177,255,0.3)' },
+                            '50%': { boxShadow: '0 0 40px rgba(90,177,255,0.6)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Custom Styles -->
     <style>
-        :root {
-            --primary-color: #2196F3;
-            --secondary-color: #4CAF50;
-            --accent-color: #FF9800;
-            --dark-color: #263238;
-            --light-color: #F8F9FA;
-            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            --border-radius: 12px;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background: var(--light-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
         }
 
-        /* Modern Navigation */
-        .hub-navbar {
-            background: var(--gradient-bg);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            padding: 1rem 0;
+        /* Glassmorphism Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: white !important;
+        [data-theme="dark"] .glass {
+            background: rgba(18, 24, 32, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        .navbar-brand i {
-            margin-right: 0.5rem;
-            font-size: 1.8rem;
+        /* Animated Gradient Background */
+        .gradient-bg {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
         }
 
-        /* User Menu */
-        .user-menu {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: var(--border-radius);
-            padding: 0.5rem 1rem;
-            color: white;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 0.75rem;
-        }
-
-        /* Notification Badge */
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #FF5722;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        /* Main Content Area */
-        .hub-content {
-            padding: 2rem 0;
-            min-height: calc(100vh - 100px);
-        }
-
-        /* Modern Cards */
-        .hub-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            border: none;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .hub-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-        }
-
-        .hub-card-header {
-            background: var(--gradient-bg);
-            color: white;
-            padding: 1.5rem;
-            border: none;
-        }
-
-        .hub-card-body {
-            padding: 2rem;
-        }
-
-        /* Tool Cards */
-        .tool-card {
+        /* Particle Container */
+        #particles-js {
+            position: fixed;
+            width: 100%;
             height: 100%;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .tool-card::before {
-            content: '';
-            position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary-color);
-            transition: all 0.3s ease;
-        }
-
-        .tool-card.t2::before { background: var(--secondary-color); }
-        .tool-card.analytics::before { background: var(--accent-color); }
-        .tool-card.coming-soon::before { background: #9E9E9E; }
-
-        .tool-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        .tool-status {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .status-active {
-            background: #E8F5E8;
-            color: #2E7D32;
-        }
-
-        .status-coming-soon {
-            background: #FFF3E0;
-            color: #F57C00;
-        }
-
-        .tool-users {
-            color: #666;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-
-        /* Stats Cards */
-        .stat-card {
-            text-align: center;
-            padding: 1.5rem;
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            display: block;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Activity Feed */
-        .activity-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
-            transition: background 0.2s ease;
-        }
-
-        .activity-item:hover {
-            background: #f8f9fa;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-size: 1.2rem;
-            background: var(--light-color);
-        }
-
-        .activity-content h6 {
-            margin: 0 0 0.25rem 0;
-            font-weight: 600;
-        }
-
-        .activity-time {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .hub-content {
-                padding: 1rem 0;
-            }
-
-            .tool-card .card-body {
-                padding: 1.5rem;
-            }
-
-            .stat-number {
-                font-size: 2rem;
-            }
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        /* Loading States */
-        .loading {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transform: translateX(-100%);
-            animation: loading 1.5s infinite;
-        }
-
-        @keyframes loading {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            z-index: 0;
+            pointer-events: none;
         }
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 10px;
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
+            background: transparent;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
+            background: rgba(90, 177, 255, 0.3);
             border-radius: 10px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
+            background: rgba(90, 177, 255, 0.6);
         }
 
-        /* Notification Styles */
-        .notification-item {
-            padding: 1rem;
-            border-left: 4px solid var(--primary-color);
-            background: white;
-            border-radius: 0 var(--border-radius) var(--border-radius) 0;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        /* Glow Effects */
+        .glow-primary {
+            box-shadow: 0 0 20px rgba(90, 177, 255, 0.4), 0 0 40px rgba(90, 177, 255, 0.2);
         }
 
-        .notification-item.unread {
-            background: #f8f9ff;
-            border-left-color: var(--accent-color);
-        }
-
-        .notification-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .notification-message {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .notification-time {
-            color: #999;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-        }
-
-        /* Footer */
-        .hub-footer {
-            background: var(--dark-color);
-            color: white;
-            padding: 2rem 0;
-            margin-top: 3rem;
+        .glow-success {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.2);
         }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg hub-navbar">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('hub.dashboard') }}">
-                <i class="fas fa-layer-group"></i>
-                Business Tool Hub
-            </a>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
 
-            <div class="navbar-nav ms-auto">
-                {% if current_user %}
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle user-menu d-flex align-items-center" href="#"
-                       data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="user-avatar">
-                            {{ current_user[0]|upper }}
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+
+    <!-- Main Container -->
+    <div class="relative z-10">
+
+        <!-- Modern Navbar -->
+        <nav class="glass sticky top-0 z-50 backdrop-blur-xl"
+             x-data="{ userMenuOpen: false, notificationsOpen: false }"
+             data-aos="fade-down">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+
+                    <!-- Brand -->
+                    <a href="{{ url_for('hub.dashboard') }}"
+                       class="flex items-center gap-3 text-white hover:text-primary transition-colors group">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="layers" class="w-6 h-6"></i>
                         </div>
                         <div>
-                            <div class="fw-bold">{{ current_user }}</div>
-                            <small class="opacity-75">
-                                {% if is_admin %}Admin{% else %}Benutzer{% endif %}
-                            </small>
+                            <h1 class="text-xl font-bold">Business Tool Hub</h1>
+                            <p class="text-xs text-gray-400">Zentrale Plattform</p>
                         </div>
-                        {% if notifications and notifications|length > 0 %}
-                        <div class="position-relative ms-2">
-                            <i class="fas fa-bell"></i>
-                            <span class="notification-badge">{{ notifications|length }}</span>
-                        </div>
-                        {% endif %}
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profil</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Einstellungen</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        {% if is_admin %}
-                        <li><a class="dropdown-item" href="/admin"><i class="fas fa-shield-alt me-2"></i>Administration</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        {% endif %}
-                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Abmelden</a></li>
-                    </ul>
+
+                    <!-- User Menu -->
+                    {% if user %}
+                    <div class="flex items-center gap-4">
+
+                        <!-- Notifications -->
+                        <div class="relative" @click.away="notificationsOpen = false">
+                            <button @click="notificationsOpen = !notificationsOpen"
+                                    class="btn btn-circle btn-ghost relative hover:bg-white/10">
+                                <i data-lucide="bell" class="w-5 h-5"></i>
+                                {% if notifications and notifications|length > 0 %}
+                                <span class="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs font-bold">
+                                    {{ notifications|length }}
+                                </span>
+                                {% endif %}
+                            </button>
+
+                            <!-- Notifications Dropdown -->
+                            <div x-show="notificationsOpen"
+                                 x-transition
+                                 class="absolute right-0 mt-2 w-80 glass rounded-2xl p-4 shadow-2xl">
+                                <h3 class="font-bold mb-3">Benachrichtigungen</h3>
+                                {% if notifications and notifications|length > 0 %}
+                                    {% for notif in notifications[:5] %}
+                                    <div class="p-3 hover:bg-white/5 rounded-lg cursor-pointer transition-colors mb-2">
+                                        <p class="text-sm">{{ notif.message }}</p>
+                                        <span class="text-xs text-gray-400">{{ notif.time }}</span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                <p class="text-sm text-gray-400">Keine neuen Benachrichtigungen</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- User Dropdown -->
+                        <div class="relative" @click.away="userMenuOpen = false">
+                            <button @click="userMenuOpen = !userMenuOpen"
+                                    class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center font-bold">
+                                    {{ user[0]|upper }}
+                                </div>
+                                <div class="text-left hidden md:block">
+                                    <p class="font-semibold">{{ user }}</p>
+                                    <p class="text-xs text-gray-400">
+                                        {% if is_admin %}Admin{% else %}Benutzer{% endif %}
+                                    </p>
+                                </div>
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+
+                            <!-- User Dropdown Menu -->
+                            <div x-show="userMenuOpen"
+                                 x-transition
+                                 class="absolute right-0 mt-2 w-56 glass rounded-2xl p-2 shadow-2xl">
+                                <a href="{{ url_for('hub.profile') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                    <span>Profil</span>
+                                </a>
+                                <a href="{{ url_for('hub.settings') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i data-lucide="settings" class="w-4 h-4"></i>
+                                    <span>Einstellungen</span>
+                                </a>
+                                {% if is_admin %}
+                                <div class="divider my-1"></div>
+                                <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i data-lucide="shield" class="w-4 h-4"></i>
+                                    <span>Administration</span>
+                                </a>
+                                {% endif %}
+                                <div class="divider my-1"></div>
+                                <a href="{{ url_for('auth.logout') }}"
+                                   class="flex items-center gap-3 px-4 py-2 hover:bg-error/20 text-error rounded-lg transition-colors">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                    <span>Abmelden</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <!-- Main Content -->
-    <main class="hub-content">
-        <div class="container">
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8 min-h-[calc(100vh-200px)]">
             {% block content %}{% endblock %}
-        </div>
-    </main>
+        </main>
 
-    <!-- Footer -->
-    <footer class="hub-footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-8">
-                    <h5>Business Tool Hub</h5>
-                    <p class="mb-0">Zentrale Plattform für alle Geschäfts-Tools</p>
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <p class="mb-0">
-                        <small>Version {{ app_version }} | {{ current_year }}</small>
-                    </p>
-                    <div class="mt-2">
-                        <a href="/health" class="text-white-50 me-3">
-                            <i class="fas fa-heartbeat"></i> Status
+        <!-- Footer -->
+        <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h5 class="font-bold text-lg mb-2">Business Tool Hub</h5>
+                        <p class="text-sm text-gray-400">Zentrale Plattform für alle Geschäfts-Tools</p>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <a href="/health" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                            <span>System Status</span>
                         </a>
-                        <a href="#" class="text-white-50">
-                            <i class="fas fa-question-circle"></i> Hilfe
+                        <a href="#" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
+                            <i data-lucide="help-circle" class="w-4 h-4"></i>
+                            <span>Hilfe</span>
                         </a>
+                        <div class="text-sm text-gray-400">
+                            <span>Version {{ app_version or '3.2' }}</span>
+                            <span class="mx-2">•</span>
+                            <span>{{ current_year or '2025' }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </footer>
+        </footer>
+    </div>
 
-    <!-- JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
-
-    <!-- Hub JavaScript -->
+    <!-- JavaScript Initialization -->
     <script>
-        // Dashboard Auto-Refresh
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-cubic',
+            once: true,
+            offset: 50
+        });
+
+        // Initialize Particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#5ab1ff' },
+                shape: { type: 'circle' },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#5ab1ff',
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'grab' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                    push: { particles_nb: 4 }
+                }
+            },
+            retina_detect: true
+        });
+
+        // Auto-refresh dashboard stats
         function updateDashboardStats() {
             if (typeof updateStats === 'function') {
                 updateStats();
             }
         }
 
-        // Auto-refresh every 30 seconds
         setInterval(updateDashboardStats, 30000);
 
-        // Smooth scrolling
+        // Smooth scroll
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-
-        // Card hover effects
-        document.querySelectorAll('.tool-card').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-5px)';
-            });
-
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-            });
-        });
-
-        // Notification handling
-        function markNotificationRead(notificationId) {
-            fetch(`/api/notifications/${notificationId}/read`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const notification = document.querySelector(`[data-notification-id="${notificationId}"]`);
-                    if (notification) {
-                        notification.classList.remove('unread');
-                    }
-                }
-            })
-            .catch(error => console.error('Error marking notification as read:', error));
-        }
-
-        // Initialize tooltips
-        document.addEventListener('DOMContentLoaded', function() {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
 
         // Live clock
         function updateClock() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('de-DE');
-            const dateString = now.toLocaleDateString('de-DE');
-
             const clockElement = document.getElementById('live-clock');
             if (clockElement) {
-                clockElement.innerHTML = `${timeString}<br><small>${dateString}</small>`;
+                clockElement.innerHTML = `
+                    <span class="font-bold">${now.toLocaleTimeString('de-DE')}</span>
+                    <br>
+                    <span class="text-sm text-gray-400">${now.toLocaleDateString('de-DE')}</span>
+                `;
             }
         }
 
         setInterval(updateClock, 1000);
-        updateClock(); // Initial call
-
-        // Loading states
-        function showLoading(element) {
-            element.classList.add('loading');
-        }
-
-        function hideLoading(element) {
-            element.classList.remove('loading');
-        }
+        updateClock();
     </script>
 
     {% block extra_js %}{% endblock %}

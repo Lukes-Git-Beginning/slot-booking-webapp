@@ -1,77 +1,330 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <title>Mein Kalender – Eigene Buchungen</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <style>
-    .mycal-table { width: 100%; border-collapse: collapse; margin-top: 2em; background: var(--box-bg); border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);}
-    .mycal-table th, .mycal-table td { padding: 12px 10px; border-bottom: 1px solid #4445; text-align: left;}
-    .mycal-table th { background: var(--sidebar-bg); color: var(--accent);}
-    .mycal-table tr:last-child td { border-bottom: none;}
-    .mycal-cal-header { font-size: 1.6em; font-weight: 600; margin-top: 0.7em;}
-    .mycal-color { width: 16px; height: 16px; display: inline-block; border-radius: 4px; margin-right: 7px; }
-    .c2 { background: #b3dc82;}      /* Sage */
-    .c7 { background: #1b887a;}      /* Peacock */
-    .c5 { background: #fad165;}      /* Banana */
-    .source-badge { 
-      padding: 2px 6px; 
-      border-radius: 4px; 
-      font-size: 0.8em; 
-      font-weight: bold;
-    }
-    .source-calendar { background: #4CAF50; color: white; }
-    .source-tracking { background: #2196F3; color: white; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mein Kalender - {{ user }} | Slot Booking</title>
+
+    <!-- Tailwind CSS + DaisyUI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- AOS (Animate On Scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#5ab1ff',
+                        'primary-dark': '#2196F3',
+                        'secondary': '#10b981',
+                        'accent': '#f97316',
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(18, 24, 32, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Color badges */
+        .color-sage { background-color: #b3dc82; }
+        .color-peacock { background-color: #1b887a; }
+        .color-banana { background-color: #fad165; }
+    </style>
 </head>
-<body>
-  <button onclick="window.location.href='/'" style="position:fixed;top:24px;left:24px;z-index:30;background:var(--sidebar-bg);color:var(--accent);padding:8px 18px;border-radius:7px;border:none;font-size:1.07em;cursor:pointer;">⬅️ Zurück</button>
-  <div class="main">
-    <div class="mycal-cal-header">📆 Meine gebuchten Slots ({{ user }})</div>
-    {% if my_events %}
-      <table class="mycal-table">
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th>Uhrzeit</th>
-            <th>Potential</th>
-            <th>Buchung</th>
-            <th>Punkte</th>
-            <th>Quelle</th>
-            <th>Beschreibung</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ev in my_events %}
-            <tr>
-              <td>{{ ev.date }}</td>
-              <td>{{ ev.hour }}</td>
-              <td>
-                <span class="mycal-color c{{ ev.color_id|int }}"></span>
-                {% if ev.color_id == '2' %}Normales Potential
-                {% elif ev.color_id == '7' %}Top Potential
-                {% elif ev.color_id == '5' %}Closer nötig
-                {% else %}Sonstiges{% endif %}
-              </td>
-              <td>{{ ev.summary }}</td>
-              <td style="font-weight:bold;">{{ ev.points }}</td>
-              <td>
-                {% if ev.source == 'calendar' %}
-                  <span class="source-badge source-calendar">📅 Calendar</span>
-                {% elif ev.source == 'tracking' %}
-                  <span class="source-badge source-tracking">📞 Tracking</span>
-                {% else %}
-                  <span class="source-badge source-calendar">📅 Calendar</span>
-                {% endif %}
-              </td>
-              <td>{{ ev.desc }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p style="color:var(--yellow);margin-top:2em;">Du hast aktuell keine gebuchten Slots in dieser Woche.</p>
-    {% endif %}
-  </div>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
+
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+
+    <!-- Main Container -->
+    <div class="relative z-10">
+        <!-- Header -->
+        <nav class="glass backdrop-blur-xl sticky top-0 z-50" data-aos="fade-down">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <a href="/" class="btn btn-ghost gap-2">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        Zurück
+                    </a>
+                    <h1 class="text-xl font-bold">Meine Buchungen</h1>
+                    <div></div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Page Header -->
+            <div class="mb-8" data-aos="fade-down" data-aos-delay="100">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                        <i data-lucide="calendar" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-4xl font-bold">Meine gebuchten Slots</h2>
+                        <p class="text-gray-400">Übersicht deiner Termine für {{ user }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if my_events %}
+            <!-- Events Table -->
+            <div class="glass rounded-3xl overflow-hidden" data-aos="fade-up">
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr class="border-b border-white/10">
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="calendar-days" class="w-4 h-4"></i>
+                                        Datum
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
+                                        Uhrzeit
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="target" class="w-4 h-4"></i>
+                                        Potential
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="user" class="w-4 h-4"></i>
+                                        Buchung
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="trophy" class="w-4 h-4"></i>
+                                        Punkte
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="database" class="w-4 h-4"></i>
+                                        Quelle
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                                        Beschreibung
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ev in my_events %}
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td>
+                                    <span class="font-semibold">{{ ev.date }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-ghost badge-lg">{{ ev.hour }}</span>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        {% if ev.color_id == '2' %}
+                                        <div class="w-4 h-4 rounded color-sage"></div>
+                                        <span class="badge badge-success">Normales Potential</span>
+                                        {% elif ev.color_id == '7' %}
+                                        <div class="w-4 h-4 rounded color-peacock"></div>
+                                        <span class="badge badge-info">Top Potential</span>
+                                        {% elif ev.color_id == '5' %}
+                                        <div class="w-4 h-4 rounded color-banana"></div>
+                                        <span class="badge badge-warning">Closer nötig</span>
+                                        {% else %}
+                                        <div class="w-4 h-4 rounded bg-gray-500"></div>
+                                        <span class="badge badge-ghost">Sonstiges</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="font-medium">{{ ev.summary }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-2xl font-bold text-primary">{{ ev.points }}</span>
+                                </td>
+                                <td>
+                                    {% if ev.source == 'calendar' %}
+                                    <span class="badge badge-success gap-2">
+                                        <i data-lucide="calendar-check" class="w-3 h-3"></i>
+                                        Calendar
+                                    </span>
+                                    {% elif ev.source == 'tracking' %}
+                                    <span class="badge badge-info gap-2">
+                                        <i data-lucide="phone" class="w-3 h-3"></i>
+                                        Tracking
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-ghost gap-2">
+                                        <i data-lucide="calendar" class="w-3 h-3"></i>
+                                        Calendar
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-sm text-gray-400">{{ ev.desc }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-base-300/30 border-t border-white/10">
+                    <div class="text-center">
+                        <p class="text-3xl font-bold text-primary">{{ my_events|length }}</p>
+                        <p class="text-sm text-gray-400">Gebuchte Slots</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-3xl font-bold text-success">
+                            {% set total_points = my_events|sum(attribute='points') %}
+                            {{ total_points or 0 }}
+                        </p>
+                        <p class="text-sm text-gray-400">Gesamt Punkte</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-3xl font-bold text-accent">
+                            {% set avg_points = (total_points / my_events|length)|round(1) if my_events|length > 0 else 0 %}
+                            {{ avg_points }}
+                        </p>
+                        <p class="text-sm text-gray-400">⌀ Punkte</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="glass rounded-3xl p-12 text-center" data-aos="fade-up">
+                <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-warning/20 flex items-center justify-center">
+                    <i data-lucide="calendar-x" class="w-12 h-12 text-warning"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-2">Keine Buchungen gefunden</h3>
+                <p class="text-gray-400 mb-6">Du hast aktuell keine gebuchten Slots in dieser Woche.</p>
+                <a href="/" class="btn btn-primary gap-2">
+                    <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                    Slot buchen
+                </a>
+            </div>
+            {% endif %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p class="text-sm text-gray-400">Slot Booking System v3.2</p>
+                    <div class="flex gap-4">
+                        <a href="/" class="text-gray-400 hover:text-primary transition-colors">Dashboard</a>
+                        <a href="/help" class="text-gray-400 hover:text-primary transition-colors">Hilfe</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-cubic',
+            once: true,
+            offset: 50
+        });
+
+        // Initialize Particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#5ab1ff' },
+                shape: { type: 'circle' },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#5ab1ff',
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'grab' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                    push: { particles_nb: 4 }
+                }
+            },
+            retina_detect: true
+        });
+    </script>
 </body>
 </html>

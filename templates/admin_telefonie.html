@@ -4,434 +4,737 @@
   <meta charset="UTF-8">
   <title>📞 Telefonie Punkte – Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Modern UI Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+  <!-- ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#5ab1ff',
+            secondary: '#10b981',
+            accent: '#f97316',
+            success: '#10b981',
+            warning: '#eab308',
+            error: '#ef4444',
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    .page { 
-      max-width: 1200px; 
-      margin: 0 auto; 
-      padding: var(--spacing-md); 
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
-    .grid { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: var(--spacing-md); 
-      margin-bottom: var(--spacing-lg);
+
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
-    
-    .box { 
-      background: var(--box-bg); 
-      border: 1px solid var(--box-border); 
-      border-radius: var(--radius-lg); 
-      padding: var(--spacing-lg);
-      margin-bottom: var(--spacing-lg);
+
+    .gradient-primary {
+      background: linear-gradient(135deg, #5ab1ff, #3d8bfd);
     }
-    
-    .actions { 
-      display: flex; 
-      gap: var(--spacing-sm); 
-      flex-wrap: wrap; 
-      margin-bottom: var(--spacing-md);
+
+    .gradient-accent {
+      background: linear-gradient(135deg, #f97316, #dc2626);
     }
-    
-    .row { 
-      display: flex; 
-      gap: var(--spacing-sm); 
-      align-items: center; 
-      margin-bottom: var(--spacing-md);
-      flex-wrap: wrap;
+
+    .gradient-success {
+      background: linear-gradient(135deg, #10b981, #059669);
     }
-    
-    .row label { 
-      min-width: 120px; 
-      font-weight: 600; 
-      margin-bottom: var(--spacing-xs);
+
+    .gradient-purple {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
     }
-    
-    .row input, .row select {
-      min-width: 150px;
-      padding: var(--spacing-xs) var(--spacing-sm);
+
+    .gradient-monthly {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
     }
-    
-    .table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      margin: var(--spacing-md) 0;
-    }
-    
-    .table th, .table td { 
-      border: 1px solid rgba(255,255,255,0.1); 
-      padding: var(--spacing-sm) var(--spacing-xs); 
-      text-align: center; 
-    }
-    
-    .table th { 
-      background: rgba(255,255,255,0.05); 
-      font-weight: 600;
-      padding: var(--spacing-md) var(--spacing-xs);
-    }
-    
-    .badge { 
-      padding: var(--spacing-xs) var(--spacing-sm); 
-      border-radius: 12px; 
-      font-size: 12px; 
+
+    .badge-custom {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.75rem;
+      font-size: 0.75rem;
       font-weight: 600;
       white-space: nowrap;
     }
-    
+
     .badge-green { background: rgba(16,185,129,0.2); color: #10b981; }
     .badge-yellow { background: rgba(234,179,8,0.2); color: #eab308; }
     .badge-red { background: rgba(239,68,68,0.2); color: #ef4444; }
-    
-    .small { 
-      font-size: 12px; 
-      color: var(--muted); 
-      margin-top: var(--spacing-xs);
-      margin-bottom: var(--spacing-sm);
-    }
-    
-    .mt { margin-top: var(--spacing-lg); }
-    
-    h1 {
-      margin-bottom: var(--spacing-xl);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 2px solid var(--box-border);
-    }
-    
-    h3 {
-      margin-bottom: var(--spacing-md);
-      color: var(--accent);
-    }
-    
-    /* Mobile Optimization */
-    @media (max-width: 768px) {
-      .page {
-        padding: var(--spacing-sm);
-      }
-      
-      .grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-sm);
-      }
-      
-      .box {
-        padding: var(--spacing-md);
-      }
-      
-      .row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .row label {
-        min-width: auto;
-        margin-bottom: var(--spacing-xs);
-      }
-      
-      .table-container {
-        overflow-x: auto;
-        margin: var(--spacing-sm) -var(--spacing-md);
-      }
-      
-      .table {
-        min-width: 600px;
-      }
-      
-      .table th, .table td {
-        padding: var(--spacing-xs);
-        font-size: 11px;
-      }
-      
-      .actions {
-        flex-direction: column;
-      }
-      
-      .action-btn {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .badge {
-        font-size: 10px;
-        padding: 2px var(--spacing-xs);
-      }
-    }
   </style>
-  </head>
-<body>
-  <div class="page">
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen text-gray-100">
+  <div class="container mx-auto px-4 py-6 max-w-7xl">
     <!-- Include Admin Navigation -->
     {% include 'admin_nav.html' %}
 
-    <h1>📞 Telefonie Punkte – Admin</h1>
+    <!-- Page Header -->
+    <div class="mb-8" data-aos="fade-down">
+      <h1 class="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent pb-4 border-b-2 border-gray-700 flex items-center gap-3">
+        <i data-lucide="phone" class="w-10 h-10 text-primary"></i>
+        Telefonie Punkte – Admin
+      </h1>
+    </div>
 
-    <form method="get" class="row" action="{{ url_for('admin.admin_telefonie') }}">
-      <label>Woche</label>
-      <select name="week">
-        {% for w in recent_weeks %}
-          <option value="{{ w }}" {{ 'selected' if w == week else '' }}>{{ w }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="action-btn primary">Wechseln</button>
-      <a class="action-btn secondary" href="{{ url_for('admin.admin_telefonie_export', week=week) }}">PDF Export</a>
-    </form>
-    
+    <!-- Week Selection Form -->
+    <div class="glass rounded-xl p-6 mb-6" data-aos="fade-up" data-aos-delay="100">
+      <form method="get" action="{{ url_for('admin.admin_telefonie') }}"
+            class="flex flex-wrap items-center gap-4"
+            x-data="{ week: '{{ week }}' }">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-gray-300 font-semibold flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+              Woche
+            </span>
+          </label>
+          <select name="week" x-model="week" class="select select-bordered bg-gray-800 border-gray-600 text-white">
+            {% for w in recent_weeks %}
+              <option value="{{ w }}" {{ 'selected' if w == week else '' }}>{{ w }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn gradient-primary text-white border-0 mt-8">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          Wechseln
+        </button>
+        <a href="{{ url_for('admin.admin_telefonie_export', week=week) }}"
+           class="btn btn-outline border-accent text-accent hover:bg-accent hover:text-white mt-8">
+          <i data-lucide="file-down" class="w-4 h-4"></i>
+          PDF Export
+        </a>
+      </form>
+    </div>
+
     <!-- Executive Reports Access -->
-    <div class="actions">
-      <a class="action-btn" href="{{ url_for('admin.admin_reports_weekly') }}" style="background: linear-gradient(135deg, var(--accent), #3d8bfd);">
-        📊 Weekly Executive Report
+    <div class="flex flex-wrap gap-4 mb-6" data-aos="fade-up" data-aos-delay="150">
+      <a href="{{ url_for('admin.admin_reports_weekly') }}"
+         class="btn gradient-accent text-white border-0 flex-1 min-w-[200px]">
+        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+        Weekly Executive Report
       </a>
-      <a class="action-btn" href="{{ url_for('admin.admin_reports_monthly') }}" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-        📈 Monthly Executive Report
+      <a href="{{ url_for('admin.admin_reports_monthly') }}"
+         class="btn gradient-purple text-white border-0 flex-1 min-w-[200px]">
+        <i data-lucide="trending-up" class="w-5 h-5"></i>
+        Monthly Executive Report
       </a>
     </div>
 
     <!-- Professional PDF Export Options -->
-    <div class="actions" style="margin-top: 10px;">
-      <a class="action-btn secondary" href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=week) }}" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
-        📄 Export Weekly PDF
+    <div class="flex flex-wrap gap-4 mb-6" data-aos="fade-up" data-aos-delay="200">
+      <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=week) }}"
+         class="btn bg-red-600 hover:bg-red-700 text-white border-0 flex-1 min-w-[200px]">
+        <i data-lucide="file-text" class="w-5 h-5"></i>
+        Export Weekly PDF
       </a>
-      <a class="action-btn secondary" href="{{ url_for('admin.admin_telefonie_export_report', report_type='monthly') }}" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
-        📄 Export Monthly PDF
+      <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='monthly') }}"
+         class="btn gradient-monthly text-white border-0 flex-1 min-w-[200px]">
+        <i data-lucide="file-text" class="w-5 h-5"></i>
+        Export Monthly PDF
       </a>
     </div>
 
-    <div class="grid">
-      <div class="box">
-        <h3>Ziele setzen</h3>
-        <form method="post" class="row">
+    <!-- Two Column Grid for Forms -->
+    <div class="grid lg:grid-cols-2 gap-6 mb-6">
+      <!-- Left Column: Goals & Activities -->
+      <div class="glass-strong rounded-xl p-6" data-aos="zoom-in" data-aos-delay="250">
+        <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+          <i data-lucide="target" class="w-6 h-6"></i>
+          Ziele setzen
+        </h3>
+        <form method="post" x-data="{ user: '{{ participants[0] if participants else '' }}', goal: '' }">
           <input type="hidden" name="action" value="set_goal">
           <input type="hidden" name="week" value="{{ week }}">
-          <label>Person</label>
-          <select name="user">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <label>Ziel</label>
-          <input type="number" name="goal_points" min="0" max="100" step="1" required>
-          <button type="submit" class="action-btn success">Speichern</button>
-        </form>
-        <p class="small">Außerhalb 10–22 Uhr werden Ziele als "wartend" gespeichert.</p>
 
-        <h3 class="mt">Aktivität erfassen</h3>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="record_activity">
-          <input type="hidden" name="week" value="{{ week }}">
-          <label>Person</label>
-          <select name="user">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <label>Typ</label>
-          <select name="kind">
-            <option value="T1">T1</option>
-            <option value="T2">T2</option>
-            <option value="telefonie">Telefonie</option>
-            <option value="extra">Extra</option>
-          </select>
-          <label>Punkte</label>
-          <input type="number" name="points" min="0" max="100" step="1" required>
-          <label>Notiz</label>
-          <input type="text" name="note" placeholder="z. B. Social Media">
-          <button type="submit" class="action-btn success">Erfassen</button>
-        </form>
-        <div class="row">
-          <form method="post">
-            <input type="hidden" name="action" value="apply_pending">
-            <input type="hidden" name="week" value="{{ week }}">
-            <button type="submit" class="action-btn warning">Wartende verbuchen</button>
-          </form>
-          <span class="small">Zeitfenster aktuell: {{ 'offen (10–22 Uhr)' if in_window else 'geschlossen (außerhalb 10–22 Uhr)' }}</span>
-        </div>
-      </div>
-
-      <div class="box">
-        <h3>Teilnehmer verwalten</h3>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="add_participant">
-          <label>Neu</label>
-          <input type="text" name="name" placeholder="Name">
-          <button type="submit" class="action-btn primary">Hinzufügen</button>
-        </form>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="remove_participant">
-          <label>Entfernen</label>
-          <select name="name">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <button type="submit" class="action-btn danger">Entfernen</button>
-        </form>
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="set_vacation">
-          <input type="hidden" name="week" value="{{ week }}">
-          <label>Legacy Urlaub</label>
-          <select name="user">
-            {% for p in participants %}
-              <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
-          <select name="on_vacation">
-            <option value="0">Nein</option>
-            <option value="1">Ja</option>
-          </select>
-          <button type="submit" class="action-btn secondary">Setzen</button>
-        </form>
-        
-        <h3 class="mt">🏖️ Urlaubszeitraum setzen</h3>
-        <form method="post">
-          <input type="hidden" name="action" value="set_vacation_period">
-          <div class="row">
-            <label>Person</label>
-            <select name="user" required>
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Person</span>
+            </label>
+            <select name="user" x-model="user" class="select select-bordered bg-gray-800 border-gray-600 text-white">
               {% for p in participants %}
                 <option value="{{ p }}">{{ p }}</option>
               {% endfor %}
             </select>
           </div>
-          <div class="row">
-            <label>Von (Datum)</label>
-            <input type="date" name="start_date" required>
-            <label>Bis (Datum)</label>
-            <input type="date" name="end_date" required>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Ziel</span>
+            </label>
+            <input type="number" name="goal_points" x-model="goal" min="0" max="100" step="1" required
+                   class="input input-bordered bg-gray-800 border-gray-600 text-white"
+                   placeholder="z.B. 20">
           </div>
-          <div class="row">
-            <label>Grund</label>
-            <select name="reason">
+
+          <button type="submit" class="btn gradient-success text-white border-0 w-full">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            Speichern
+          </button>
+        </form>
+        <p class="text-xs text-gray-400 mt-3 flex items-center gap-2">
+          <i data-lucide="info" class="w-3 h-3"></i>
+          Außerhalb 10–22 Uhr werden Ziele als "wartend" gespeichert.
+        </p>
+
+        <div class="divider"></div>
+
+        <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+          <i data-lucide="activity" class="w-6 h-6"></i>
+          Aktivität erfassen
+        </h3>
+        <form method="post" x-data="{ user: '{{ participants[0] if participants else '' }}', kind: 'T1', points: '', note: '' }">
+          <input type="hidden" name="action" value="record_activity">
+          <input type="hidden" name="week" value="{{ week }}">
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Person</span>
+            </label>
+            <select name="user" x-model="user" class="select select-bordered bg-gray-800 border-gray-600 text-white">
+              {% for p in participants %}
+                <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Typ</span>
+            </label>
+            <select name="kind" x-model="kind" class="select select-bordered bg-gray-800 border-gray-600 text-white">
+              <option value="T1">T1</option>
+              <option value="T2">T2</option>
+              <option value="telefonie">Telefonie</option>
+              <option value="extra">Extra</option>
+            </select>
+          </div>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Punkte</span>
+            </label>
+            <input type="number" name="points" x-model="points" min="0" max="100" step="1" required
+                   class="input input-bordered bg-gray-800 border-gray-600 text-white"
+                   placeholder="z.B. 5">
+          </div>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Notiz</span>
+            </label>
+            <input type="text" name="note" x-model="note"
+                   class="input input-bordered bg-gray-800 border-gray-600 text-white"
+                   placeholder="z. B. Social Media">
+          </div>
+
+          <button type="submit" class="btn gradient-success text-white border-0 w-full">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            Erfassen
+          </button>
+        </form>
+
+        <div class="flex items-center gap-4 mt-6">
+          <form method="post">
+            <input type="hidden" name="action" value="apply_pending">
+            <input type="hidden" name="week" value="{{ week }}">
+            <button type="submit" class="btn btn-warning text-white border-0">
+              <i data-lucide="clock" class="w-4 h-4"></i>
+              Wartende verbuchen
+            </button>
+          </form>
+          <span class="text-xs text-gray-400 flex items-center gap-2">
+            <i data-lucide="clock" class="w-3 h-3"></i>
+            Zeitfenster: {{ 'offen (10–22 Uhr)' if in_window else 'geschlossen (außerhalb 10–22 Uhr)' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Right Column: Participant Management -->
+      <div class="glass-strong rounded-xl p-6" data-aos="zoom-in" data-aos-delay="300">
+        <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+          <i data-lucide="users" class="w-6 h-6"></i>
+          Teilnehmer verwalten
+        </h3>
+
+        <form method="post" class="mb-4" x-data="{ name: '' }">
+          <input type="hidden" name="action" value="add_participant">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Neu</span>
+            </label>
+            <div class="flex gap-2">
+              <input type="text" name="name" x-model="name" placeholder="Name"
+                     class="input input-bordered bg-gray-800 border-gray-600 text-white flex-1">
+              <button type="submit" class="btn gradient-primary text-white border-0">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                Hinzufügen
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <form method="post" class="mb-4" x-data="{ name: '{{ participants[0] if participants else '' }}' }">
+          <input type="hidden" name="action" value="remove_participant">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Entfernen</span>
+            </label>
+            <div class="flex gap-2">
+              <select name="name" x-model="name" class="select select-bordered bg-gray-800 border-gray-600 text-white flex-1">
+                {% for p in participants %}
+                  <option value="{{ p }}">{{ p }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-error text-white border-0">
+                <i data-lucide="user-minus" class="w-4 h-4"></i>
+                Entfernen
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <form method="post" class="mb-6" x-data="{ user: '{{ participants[0] if participants else '' }}', vacation: '0' }">
+          <input type="hidden" name="action" value="set_vacation">
+          <input type="hidden" name="week" value="{{ week }}">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Legacy Urlaub</span>
+            </label>
+            <div class="flex gap-2">
+              <select name="user" x-model="user" class="select select-bordered bg-gray-800 border-gray-600 text-white flex-1">
+                {% for p in participants %}
+                  <option value="{{ p }}">{{ p }}</option>
+                {% endfor %}
+              </select>
+              <select name="on_vacation" x-model="vacation" class="select select-bordered bg-gray-800 border-gray-600 text-white w-24">
+                <option value="0">Nein</option>
+                <option value="1">Ja</option>
+              </select>
+              <button type="submit" class="btn btn-secondary text-white border-0">
+                <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                Setzen
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="divider"></div>
+
+        <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+          <i data-lucide="palm-tree" class="w-6 h-6"></i>
+          Urlaubszeitraum setzen
+        </h3>
+        <form method="post" x-data="{ user: '{{ participants[0] if participants else '' }}', start: '', end: '', reason: 'Urlaub' }">
+          <input type="hidden" name="action" value="set_vacation_period">
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Person</span>
+            </label>
+            <select name="user" x-model="user" class="select select-bordered bg-gray-800 border-gray-600 text-white" required>
+              {% for p in participants %}
+                <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-gray-300 font-semibold">Von (Datum)</span>
+              </label>
+              <input type="date" name="start_date" x-model="start" required
+                     class="input input-bordered bg-gray-800 border-gray-600 text-white">
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-gray-300 font-semibold">Bis (Datum)</span>
+              </label>
+              <input type="date" name="end_date" x-model="end" required
+                     class="input input-bordered bg-gray-800 border-gray-600 text-white">
+            </div>
+          </div>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-gray-300 font-semibold">Grund</span>
+            </label>
+            <select name="reason" x-model="reason" class="select select-bordered bg-gray-800 border-gray-600 text-white">
               <option value="Urlaub">🏖️ Urlaub</option>
               <option value="Arzt/Zahnarzt">🦷 Arzt/Zahnarzt</option>
               <option value="Krankheit">🤒 Krankheit</option>
               <option value="Diensttermin">🏢 Diensttermin</option>
               <option value="Sonstiges">📝 Sonstiges</option>
             </select>
-            <button type="submit" class="action-btn success">Zeitraum setzen</button>
           </div>
+
+          <button type="submit" class="btn gradient-success text-white border-0 w-full">
+            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+            Zeitraum setzen
+          </button>
         </form>
-        <p class="small">Setzt Urlaubszeitraum für alle betroffenen Wochen. Überschreibt Ziele automatisch auf 0.</p>
+        <p class="text-xs text-gray-400 mt-3 flex items-center gap-2">
+          <i data-lucide="info" class="w-3 h-3"></i>
+          Setzt Urlaubszeitraum für alle betroffenen Wochen. Überschreibt Ziele automatisch auf 0.
+        </p>
       </div>
     </div>
 
-    <div class="box">
-      <h3>Wochenübersicht – {{ week }}</h3>
-      <div class="table-container">
-        <table class="table">
-        <thead>
-          <tr>
-            <th>Person</th>
-            <th>Ziel</th>
-            <th>Erreicht</th>
-            <th>Offen</th>
-            <th>Bilanz</th>
-            <th>Urlaub</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in stats.users %}
-          <tr>
-            <td>{{ u.user }}</td>
-            <td><span class="badge badge-yellow">{{ u.goal }}</span></td>
-            <td><span class="badge badge-green">{{ u.achieved }}</span></td>
-            <td><span class="badge badge-red">{{ u.remaining }}</span></td>
-            <td>{{ u.balance }}</td>
-            <td>{{ 'Ja' if u.on_vacation else 'Nein' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
+    <!-- Weekly Overview Table -->
+    <div class="glass-strong rounded-xl p-6 mb-6" data-aos="fade-up" data-aos-delay="350">
+      <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+        <i data-lucide="list-checks" class="w-6 h-6"></i>
+        Wochenübersicht – {{ week }}
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr class="bg-gray-800 text-gray-300">
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="user" class="w-4 h-4"></i>
+                  Person
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="target" class="w-4 h-4"></i>
+                  Ziel
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="check-circle" class="w-4 h-4"></i>
+                  Erreicht
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="x-circle" class="w-4 h-4"></i>
+                  Offen
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="trending-up" class="w-4 h-4"></i>
+                  Bilanz
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="palm-tree" class="w-4 h-4"></i>
+                  Urlaub
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in stats.users %}
+            <tr class="hover:bg-gray-800/50 transition-colors">
+              <td class="text-center font-semibold">{{ u.user }}</td>
+              <td class="text-center">
+                <span class="badge-custom badge-yellow">{{ u.goal }}</span>
+              </td>
+              <td class="text-center">
+                <span class="badge-custom badge-green">{{ u.achieved }}</span>
+              </td>
+              <td class="text-center">
+                <span class="badge-custom badge-red">{{ u.remaining }}</span>
+              </td>
+              <td class="text-center font-mono">{{ u.balance }}</td>
+              <td class="text-center">
+                {% if u.on_vacation %}
+                  <span class="badge badge-info badge-sm">Ja</span>
+                {% else %}
+                  <span class="badge badge-ghost badge-sm">Nein</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
-      <p class="small">Gesamt: Ziel {{ stats.summary.total_goal }} | Erreicht {{ stats.summary.total_achieved }} | Offen {{ stats.summary.total_remaining }} | Bilanz {{ stats.summary.total_balance }}</p>
+      <div class="mt-4 p-4 bg-gray-800 rounded-lg">
+        <p class="text-sm text-gray-300 flex flex-wrap items-center gap-4">
+          <span class="font-semibold text-primary">Gesamt:</span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="target" class="w-3 h-3"></i>
+            Ziel <strong class="text-warning">{{ stats.summary.total_goal }}</strong>
+          </span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="check-circle" class="w-3 h-3"></i>
+            Erreicht <strong class="text-success">{{ stats.summary.total_achieved }}</strong>
+          </span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="x-circle" class="w-3 h-3"></i>
+            Offen <strong class="text-error">{{ stats.summary.total_remaining }}</strong>
+          </span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3 h-3"></i>
+            Bilanz <strong class="text-accent">{{ stats.summary.total_balance }}</strong>
+          </span>
+        </p>
+      </div>
     </div>
 
-    <div class="box">
-      <h3>Diagramm</h3>
-      <canvas id="weeklyChart" height="120"></canvas>
+    <!-- ApexCharts Diagram -->
+    <div class="glass-strong rounded-xl p-6 mb-6" data-aos="zoom-in" data-aos-delay="400">
+      <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+        Diagramm
+      </h3>
+      <div id="weeklyChart"></div>
     </div>
 
-    <div class="box">
-      <h3>Historie (Audit)</h3>
-      <div class="table-container">
-        <table class="table">
-        <thead>
-          <tr>
-            <th>Zeit</th>
-            <th>Person</th>
-            <th>Typ</th>
-            <th>Details</th>
-            <th>Von</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for a in audit %}
-          <tr>
-            <td>{{ a.ts }}</td>
-            <td>{{ a.user }}</td>
-            <td>{{ a.type }}</td>
-            <td>
-              {% if a.type in ['activity','activity_applied'] %}
-                {{ a.kind }}: {{ a.points }} {% if a.note %}- {{ a.note }}{% endif %}
-              {% elif a.type in ['goal_set','goal_applied'] %}
-                Ziel: {{ a.points }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
-            <td>{{ a.by }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
+    <!-- Audit History Table -->
+    <div class="glass-strong rounded-xl p-6 mb-6" data-aos="fade-up" data-aos-delay="450">
+      <h3 class="text-xl font-bold text-accent mb-4 flex items-center gap-2">
+        <i data-lucide="history" class="w-6 h-6"></i>
+        Historie (Audit)
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr class="bg-gray-800 text-gray-300">
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="clock" class="w-4 h-4"></i>
+                  Zeit
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="user" class="w-4 h-4"></i>
+                  Person
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="tag" class="w-4 h-4"></i>
+                  Typ
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                  Details
+                </div>
+              </th>
+              <th class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <i data-lucide="user-check" class="w-4 h-4"></i>
+                  Von
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in audit %}
+            <tr class="hover:bg-gray-800/50 transition-colors">
+              <td class="text-center text-sm text-gray-400">{{ a.ts }}</td>
+              <td class="text-center font-semibold">{{ a.user }}</td>
+              <td class="text-center">
+                <span class="badge badge-sm badge-outline">{{ a.type }}</span>
+              </td>
+              <td class="text-center text-sm">
+                {% if a.type in ['activity','activity_applied'] %}
+                  <span class="font-mono">{{ a.kind }}: {{ a.points }}</span>
+                  {% if a.note %}
+                    <span class="text-gray-400">- {{ a.note }}</span>
+                  {% endif %}
+                {% elif a.type in ['goal_set','goal_applied'] %}
+                  <span class="font-mono">Ziel: {{ a.points }}</span>
+                {% else %}
+                  <span class="text-gray-500">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center text-sm text-gray-400">{{ a.by }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
     </div>
 
   </div>
 
+  <!-- ApexCharts Initialization -->
   <script>
-    const data = {
-      labels: [{% for u in stats.users %}'{{ u.user }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-      datasets: [
-        {
-          label: 'Ziel',
-          backgroundColor: 'rgba(234,179,8,0.6)',
-          data: [{% for u in stats.users %}{{ u.goal }}{% if not loop.last %}, {% endif %}{% endfor %}],
-        },
-        {
-          label: 'Erreicht',
-          backgroundColor: 'rgba(16,185,129,0.6)',
-          data: [{% for u in stats.users %}{{ u.achieved }}{% if not loop.last %}, {% endif %}{% endfor %}],
-        },
-        {
-          label: 'Offen',
-          backgroundColor: 'rgba(239,68,68,0.6)',
-          data: [{% for u in stats.users %}{{ u.remaining }}{% if not loop.last %}, {% endif %}{% endfor %}],
-        }
-      ]
-    };
+    // Chart data from backend
+    const chartLabels = [{% for u in stats.users %}'{{ u.user }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+    const goalData = [{% for u in stats.users %}{{ u.goal }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    const achievedData = [{% for u in stats.users %}{{ u.achieved }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    const remainingData = [{% for u in stats.users %}{{ u.remaining }}{% if not loop.last %}, {% endif %}{% endfor %}];
 
-    const ctx = document.getElementById('weeklyChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: data,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'top' },
-          title: { display: false }
+    // ApexCharts options
+    const options = {
+      series: [
+        {
+          name: 'Ziel',
+          data: goalData,
+          color: '#eab308'
         },
-        scales: {
-          x: { stacked: true },
-          y: { stacked: true, beginAtZero: true }
+        {
+          name: 'Erreicht',
+          data: achievedData,
+          color: '#10b981'
+        },
+        {
+          name: 'Offen',
+          data: remainingData,
+          color: '#ef4444'
+        }
+      ],
+      chart: {
+        type: 'bar',
+        height: 400,
+        stacked: true,
+        background: 'transparent',
+        toolbar: {
+          show: true,
+          tools: {
+            download: true,
+            selection: false,
+            zoom: false,
+            zoomin: false,
+            zoomout: false,
+            pan: false,
+            reset: false
+          }
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800,
+          animateGradually: {
+            enabled: true,
+            delay: 150
+          },
+          dynamicAnimation: {
+            enabled: true,
+            speed: 350
+          }
+        }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          borderRadius: 8,
+          dataLabels: {
+            total: {
+              enabled: true,
+              style: {
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#fff'
+              }
+            }
+          }
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        width: 1,
+        colors: ['transparent']
+      },
+      xaxis: {
+        categories: chartLabels,
+        labels: {
+          style: {
+            colors: '#9ca3af',
+            fontSize: '12px'
+          }
+        }
+      },
+      yaxis: {
+        title: {
+          text: 'Punkte',
+          style: {
+            color: '#9ca3af',
+            fontSize: '14px'
+          }
+        },
+        labels: {
+          style: {
+            colors: '#9ca3af',
+            fontSize: '12px'
+          }
+        }
+      },
+      fill: {
+        opacity: 0.8
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'center',
+        labels: {
+          colors: '#e5e7eb'
+        },
+        markers: {
+          radius: 12
+        }
+      },
+      grid: {
+        borderColor: 'rgba(255,255,255,0.1)',
+        strokeDashArray: 3
+      },
+      tooltip: {
+        theme: 'dark',
+        y: {
+          formatter: function (val) {
+            return val + " Punkte"
+          }
+        },
+        style: {
+          fontSize: '12px'
         }
       }
+    };
+
+    // Render chart
+    const chart = new ApexCharts(document.querySelector("#weeklyChart"), options);
+    chart.render();
+  </script>
+
+  <!-- Initialize Lucide Icons -->
+  <script>
+    lucide.createIcons();
+  </script>
+
+  <!-- Initialize AOS -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      easing: 'ease-in-out',
+      once: true,
+      offset: 50
     });
   </script>
 </body>
 </html>
-
-

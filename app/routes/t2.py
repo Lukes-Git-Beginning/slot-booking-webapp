@@ -552,8 +552,18 @@ def get_stats_data(username: str, is_admin: bool) -> Dict:
         all_bookings = load_t2_bookings()
         monthly_closer_stats = get_monthly_closer_stats(current_month)
 
+        # Current month closer distribution
+        month_all_bookings = [b for b in all_bookings if b.get('date', '').startswith(current_month)]
+        current_month_distribution = defaultdict(int)
+        for booking in month_all_bookings:
+            closer = booking.get('closer')
+            if closer:
+                current_month_distribution[closer] += 1
+
         admin_stats = {
             'total_system_bookings': len(all_bookings),
+            'total_this_month': len(month_all_bookings),
+            'current_month_distribution': dict(current_month_distribution),
             'monthly_closer_stats': monthly_closer_stats,
             'all_bookings': all_bookings[:50]
         }

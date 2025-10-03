@@ -1,0 +1,14 @@
+[Unit]
+Description=Business Hub - Achievement Processor Timer
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+Requires=achievement-processor.service
+After=daily-outcome-check.timer
+
+[Timer]
+# Täglich um 20:00 UTC (22:00 Berlin)
+OnCalendar=*-*-* 20:00:00
+# Persistent falls Server offline war
+Persistent=true
+
+[Install]
+WantedBy=timers.target

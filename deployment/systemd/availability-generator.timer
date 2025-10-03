@@ -1,0 +1,13 @@
+[Unit]
+Description=Business Hub - Availability Generator Timer
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+Requires=availability-generator.service
+
+[Timer]
+# Stündlich von 07:00 bis 18:00 UTC (09:00-20:00 Berlin)
+OnCalendar=*-*-* 07..18:00:00
+# Persistent falls Server offline war
+Persistent=true
+
+[Install]
+WantedBy=timers.target

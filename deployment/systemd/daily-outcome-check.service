@@ -1,0 +1,19 @@
+[Unit]
+Description=Business Hub - Daily Outcome Check
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+After=network.target business-hub.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/business-hub
+ExecStart=/opt/business-hub/venv/bin/python /opt/business-hub/scripts/process_daily_outcomes.py
+StandardOutput=append:/var/log/business-hub/outcome-check.log
+StandardError=append:/var/log/business-hub/outcome-check.log
+
+# Env Variables
+Environment="GOOGLE_CREDS_BASE64=${GOOGLE_CREDS_BASE64}"
+EnvironmentFile=-/opt/business-hub/.env
+
+[Install]
+WantedBy=multi-user.target

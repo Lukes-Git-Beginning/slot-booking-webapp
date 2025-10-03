@@ -1,46 +1,20 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>Slot Buchung</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "hub/base.html" %}
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+{% block title %}Slot Buchung{% endblock %}
 
-  <style>
-    .panel { padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
-    .chip { display:inline-flex; align-items:center; gap: var(--spacing-xs); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm); border:1px solid var(--box-border); background: var(--box-bg); }
-    #sidebar-tab {
-      position: fixed; left: var(--spacing-md); top: var(--spacing-md); z-index: 60;
-      width: 40px; height: 40px; border-radius: 50%;
-      display:flex; align-items:center; justify-content:center;
-      border:1px solid var(--box-border); background: var(--box-bg);
-      backdrop-filter: blur(8px) saturate(120%);
-      transition: left 0.25s ease;
-    }
-    body.sidebar-open #sidebar-tab {
-      left: 306px;
-    }
-    /* Achievement Popup System */
+{% block extra_head %}
+<style>
+/* Achievement Notification System */
 .achievement-notification {
   position: fixed;
-  top: var(--spacing-lg);
-  right: var(--spacing-lg);
+  top: 20px;
+  right: 20px;
   z-index: 2000;
   max-width: 400px;
-  background: var(--notification-bg, rgba(255,255,255,0.95));
-  border: 1px solid var(--notification-border, rgba(255,255,255,0.2));
-  border-radius: 20px;
-  padding: 0;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
   transform: translateX(450px);
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   opacity: 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .achievement-notification.show {
@@ -49,69 +23,13 @@
   pointer-events: all;
 }
 
-/* Theme Adaptive Notifications */
-body.darkmode .achievement-notification {
-  --notification-bg: var(--box-bg);
-  --notification-border: var(--box-border);
-}
-
-body.lightmode .achievement-notification {
-  --notification-bg: rgba(255,255,255,0.98);
-  --notification-border: rgba(0,0,0,0.12);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-}
-
 /* Rarity Glow Effects */
-.achievement-notification.rarity-common { box-shadow: 0 20px 60px rgba(16,185,129,0.2), 0 0 40px rgba(16,185,129,0.1); }
-.achievement-notification.rarity-uncommon { box-shadow: 0 20px 60px rgba(59,130,246,0.2), 0 0 40px rgba(59,130,246,0.1); }
-.achievement-notification.rarity-rare { box-shadow: 0 20px 60px rgba(139,92,246,0.2), 0 0 40px rgba(139,92,246,0.1); }
-.achievement-notification.rarity-epic { box-shadow: 0 20px 60px rgba(245,158,11,0.2), 0 0 40px rgba(245,158,11,0.1); }
-.achievement-notification.rarity-legendary { box-shadow: 0 20px 60px rgba(234,179,8,0.3), 0 0 40px rgba(234,179,8,0.2); }
-.achievement-notification.rarity-mythic { box-shadow: 0 20px 60px rgba(236,72,153,0.3), 0 0 40px rgba(236,72,153,0.2); }
-
-.achievement-header {
-  background: linear-gradient(135deg, rgba(90,177,255,0.1), rgba(90,177,255,0.05));
-  padding: 15px 20px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.achievement-title {
-  color: var(--accent);
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin: 0;
-}
-
-.achievement-close {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.achievement-close:hover {
-  background: rgba(255,255,255,0.1);
-  transform: scale(1.1);
-}
-
-.achievement-content {
-  padding: 20px;
-  text-align: center;
-}
+.achievement-notification.rarity-common { box-shadow: 0 20px 60px rgba(16,185,129,0.3); }
+.achievement-notification.rarity-uncommon { box-shadow: 0 20px 60px rgba(59,130,246,0.3); }
+.achievement-notification.rarity-rare { box-shadow: 0 20px 60px rgba(139,92,246,0.3); }
+.achievement-notification.rarity-epic { box-shadow: 0 20px 60px rgba(245,158,11,0.3); }
+.achievement-notification.rarity-legendary { box-shadow: 0 20px 60px rgba(234,179,8,0.4); }
+.achievement-notification.rarity-mythic { box-shadow: 0 20px 60px rgba(236,72,153,0.4); }
 
 .achievement-badge {
   width: 80px;
@@ -121,118 +39,78 @@ body.lightmode .achievement-notification {
   align-items: center;
   justify-content: center;
   margin: 0 auto 15px;
-  position: relative;
   font-size: 40px;
-  transition: all 0.3s ease;
   animation: badgePulse 2s ease infinite;
 }
 
-/* Rarity Badge Backgrounds - Theme Adaptive */
-:root {
-  --badge-common: linear-gradient(135deg, #10b981, #059669);
-  --badge-uncommon: linear-gradient(135deg, #3b82f6, #2563eb);
-  --badge-rare: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  --badge-epic: linear-gradient(135deg, #f59e0b, #d97706);
-  --badge-legendary: linear-gradient(135deg, #eab308, #ca8a04);
-  --badge-mythic: linear-gradient(135deg, #ec4899, #db2777);
-}
+.achievement-badge.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+.achievement-badge.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.achievement-badge.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.achievement-badge.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.achievement-badge.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+.achievement-badge.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
 
-body.lightmode {
-  --badge-common: linear-gradient(135deg, #059669, #047857);
-  --badge-uncommon: linear-gradient(135deg, #2563eb, #1d4ed8);
-  --badge-rare: linear-gradient(135deg, #7c3aed, #6d28d9);
-  --badge-epic: linear-gradient(135deg, #d97706, #b45309);
-  --badge-legendary: linear-gradient(135deg, #ca8a04, #a16207);
-  --badge-mythic: linear-gradient(135deg, #db2777, #be185d);
-}
-
-.achievement-badge.rarity-common { background: var(--badge-common); }
-.achievement-badge.rarity-uncommon { background: var(--badge-uncommon); }
-.achievement-badge.rarity-rare { background: var(--badge-rare); }
-.achievement-badge.rarity-epic { background: var(--badge-epic); }
-.achievement-badge.rarity-legendary { background: var(--badge-legendary); }
-.achievement-badge.rarity-mythic { background: var(--badge-mythic); }
-
-.achievement-badge::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  right: -3px;
-  bottom: -3px;
-  border-radius: 50%;
-  background: inherit;
-  opacity: 0.3;
-  animation: ripple 1.5s ease infinite;
-}
-
-.achievement-name {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-color);
-  margin: 0 0 8px;
-  line-height: 1.2;
-}
-
-.achievement-description {
-  font-size: 14px;
-  color: var(--muted);
-  margin: 0 0 15px;
-  line-height: 1.4;
-}
-
-.achievement-rarity {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.achievement-rarity.rarity-common { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
-.achievement-rarity.rarity-uncommon { background: rgba(59,130,246,0.2); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
-.achievement-rarity.rarity-rare { background: rgba(139,92,246,0.2); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3); }
-.achievement-rarity.rarity-epic { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
-.achievement-rarity.rarity-legendary { background: rgba(234,179,8,0.2); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
-.achievement-rarity.rarity-mythic { background: rgba(236,72,153,0.2); color: #ec4899; border: 1px solid rgba(236,72,153,0.3); }
-
-/* Animations */
 @keyframes badgePulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
 }
 
-@keyframes ripple {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(1.4); opacity: 0; }
-}
-
-@keyframes celebrate {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.1) rotate(-5deg); }
-  75% { transform: scale(1.1) rotate(5deg); }
-}
-
 /* Confetti Animation */
 .confetti {
-  position: absolute;
+  position: fixed;
   width: 10px;
   height: 10px;
-  background: var(--accent);
-  animation: confettiFall 3s linear infinite;
+  z-index: 2999;
+  animation: confettiFall 3s linear;
 }
 
 @keyframes confettiFall {
-  to {
-    transform: translateY(100vh) rotate(360deg);
-  }
+  to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
 }
 
-/* Mobile Anpassungen */
+/* Slot Sections */
+.slot-section {
+  transition: all 0.3s ease;
+}
+
+.slot-header {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.slot-header:hover {
+  transform: translateY(-1px);
+}
+
+.slot-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.slot-content.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.slot-section.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Quick Actions Modal */
+.quick-actions-modal {
+  transition: all 0.2s ease;
+}
+
+.quick-actions-modal.show {
+  display: flex !important;
+}
+
+/* Mobile adjustments */
 @media (max-width: 768px) {
   .achievement-notification {
     top: 10px;
@@ -241,971 +119,507 @@ body.lightmode {
     max-width: none;
     transform: translateY(-100px);
   }
-  
+
   .achievement-notification.show {
     transform: translateY(0);
   }
-  
-  .achievement-content {
-    padding: 15px;
-  }
-  
-  .achievement-badge {
-    width: 60px;
-    height: 60px;
-    font-size: 30px;
-  }
 }
+</style>
+{% endblock %}
 
-/* Sound Wave Effect für besonders seltene Badges */
-.achievement-notification.rarity-legendary .achievement-badge,
-.achievement-notification.rarity-mythic .achievement-badge {
-  animation: badgePulse 2s ease infinite, celebrate 0.6s ease;
-}
+{% block content %}
 
-.achievement-notification.rarity-mythic {
-  animation: shake 0.5s ease;
-}
+<!-- Achievement Notification Container -->
+<div id="achievementContainer"></div>
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-    /* Enhanced Loading States */
-    .loading-indicator {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 25px;
-      display: none;
-      z-index: 1000;
-      font-weight: 500;
-      box-shadow: 0 4px 15px rgba(90,177,255,0.4);
-      animation: slideInRight 0.3s ease;
-    }
-    .loading-indicator.show { display: flex; align-items: center; gap: 10px; }
-    .loading-indicator::before {
-      content: '';
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    @keyframes slideInRight {
-      from { transform: translateX(100px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    
-    /* Button Loading State */
-    button.loading {
-      position: relative;
-      color: transparent !important;
-      pointer-events: none;
-    }
-    button.loading::after {
-      content: '';
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      top: 50%;
-      left: 50%;
-      margin-left: -8px;
-      margin-top: -8px;
-      border: 2px solid var(--accent);
-      border-radius: 50%;
-      border-top-color: transparent;
-      animation: spin 0.6s linear infinite;
-    }
-    
-    /* Success Animation */
-    .success-popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      padding: 30px 40px;
-      border-radius: 20px;
-      z-index: 2000;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(16,185,129,0.4);
-      animation: successPop 0.6s ease forwards;
-    }
-    
-    .success-popup .icon {
-      font-size: 48px;
-      margin-bottom: 10px;
-      animation: successCheck 0.8s ease 0.3s forwards;
-      opacity: 0;
-    }
-    
-    .success-popup .text {
-      font-size: 18px;
-      font-weight: 600;
-      animation: fadeInUp 0.5s ease 0.4s forwards;
-      opacity: 0;
-    }
-    
-    @keyframes successPop {
-      0% { transform: translate(-50%, -50%) scale(0); }
-      50% { transform: translate(-50%, -50%) scale(1.1); }
-      100% { transform: translate(-50%, -50%) scale(1); }
-    }
-    
-    @keyframes successCheck {
-      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-      50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
-      100% { transform: scale(1) rotate(0deg); opacity: 1; }
-    }
-    
-         @keyframes fadeInUp {
-       to { transform: translateY(0); opacity: 1; }
-       from { transform: translateY(10px); opacity: 0; }
-     }
-     
-     /* Level Up Popup */
-     .level-up-popup {
-       position: fixed;
-       top: 0;
-       left: 0;
-       width: 100%;
-       height: 100%;
-       background: rgba(0,0,0,0.8);
-       z-index: 3000;
-       display: flex;
-       align-items: center;
-       justify-content: center;
-       animation: fadeIn 0.3s ease;
-     }
-     
-     .level-up-content {
-       background: linear-gradient(135deg, #10b981, #059669);
-       color: white;
-       padding: 40px;
-       border-radius: 20px;
-       text-align: center;
-       box-shadow: 0 20px 60px rgba(16,185,129,0.4);
-       animation: levelUpPop 0.6s ease forwards;
-       max-width: 400px;
-       width: 90%;
-     }
-     
-     @keyframes levelUpPop {
-       0% { transform: scale(0); opacity: 0; }
-       50% { transform: scale(1.1); }
-       100% { transform: scale(1); opacity: 1; }
-     }
-     
-     .level-up-icon {
-       font-size: 64px;
-       margin-bottom: 20px;
-       animation: bounce 1s ease infinite;
-     }
-     
-     @keyframes bounce {
-       0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-       40% { transform: translateY(-10px); }
-       60% { transform: translateY(-5px); }
-     }
-     
-     .level-up-title {
-       font-size: 32px;
-       font-weight: bold;
-       margin-bottom: 15px;
-       text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-     }
-     
-     .level-up-details {
-       margin-bottom: 25px;
-     }
-     
-     .level-up-text {
-       font-size: 18px;
-       margin-bottom: 15px;
-       opacity: 0.9;
-     }
-     
-     .level-up-stats {
-       display: flex;
-       align-items: center;
-       justify-content: center;
-       gap: 15px;
-       margin-bottom: 15px;
-       font-size: 20px;
-       font-weight: bold;
-     }
-     
-     .old-level {
-       color: rgba(255,255,255,0.8);
-     }
-     
-     .arrow {
-       font-size: 24px;
-       animation: pulse 1s ease infinite;
-     }
-     
-     .new-level {
-       color: #fbbf24;
-       text-shadow: 0 0 10px rgba(251,191,36,0.5);
-     }
-     
-     .xp-gained {
-       font-size: 16px;
-       color: #fbbf24;
-       font-weight: bold;
-     }
-     
-     .level-up-close {
-       background: rgba(255,255,255,0.2);
-       border: 2px solid rgba(255,255,255,0.3);
-       color: white;
-       padding: 12px 24px;
-       border-radius: 25px;
-       font-size: 16px;
-       font-weight: bold;
-       cursor: pointer;
-       transition: all 0.3s ease;
-     }
-     
-     .level-up-close:hover {
-       background: rgba(255,255,255,0.3);
-       transform: translateY(-2px);
-     }
-    
-    /* Kollabierbare Slot-Styles */
-    .time-section {
-      transition: all 0.3s ease;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-    
-    .time-section.collapsible {
-      padding: 0;
-    }
-    
-    /* Farbcodierte Header basierend auf Verfügbarkeit */
-    .slot-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 16px;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.2s ease;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--box-border);
-      background: var(--box-bg);
-    }
-    
-    /* Farbcodierung für Header */
-    .time-section.green .slot-header {
-      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
-      border-color: rgba(16,185,129,0.25);
-    }
-    
-    .time-section.yellow .slot-header {
-      background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(234,179,8,0.03));
-      border-color: rgba(234,179,8,0.25);
-    }
-    
-    .time-section.orange .slot-header {
-      background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(249,115,22,0.03));
-      border-color: rgba(249,115,22,0.25);
-    }
-    
-    .time-section.red .slot-header {
-      background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.03));
-      border-color: rgba(239,68,68,0.25);
-    }
-    
-    .slot-header:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .slot-header-info {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-    
-    .slot-time {
-      font-size: 16px;
-      min-width: 120px;
-      font-weight: 600;
-    }
-    
-    .slot-stats {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-    
-    .stat-item {
-      white-space: nowrap;
-    }
-    
-    .stat-divider {
-      opacity: 0.3;
-    }
-    
-    /* Status-Badges */
-    .status-badge {
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .status-badge.available {
-      background: rgba(16,185,129,0.15);
-      color: #10b981;
-      border: 1px solid rgba(16,185,129,0.3);
-    }
-    
-    .status-badge.limited {
-      background: rgba(234,179,8,0.15);
-      color: #eab308;
-      border: 1px solid rgba(234,179,8,0.3);
-    }
-    
-    .status-badge.full {
-      background: rgba(239,68,68,0.15);
-      color: #ef4444;
-      border: 1px solid rgba(239,68,68,0.3);
-    }
-    
-    .slot-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.05);
-      transition: all 0.3s ease;
-    }
-    
-    .toggle-icon {
-      font-size: 12px;
-      transition: transform 0.3s ease;
-      color: var(--muted);
-    }
-    
-    .time-section.expanded .toggle-icon {
-      transform: rotate(180deg);
-    }
-    
-    .slot-content {
-      padding: 16px;
-      border-top: 1px solid var(--box-border);
-      animation: slideDown 0.3s ease;
-    }
-    
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    /* Form Submit Animation */
-    .slot form.submitting {
-      animation: pulse 1s ease infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-    
-    /* Keyboard Shortcut Hints */
-    .kbd-hint {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      color: var(--muted);
-      display: none;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-    }
-    .kbd-hint.show { display: block; animation: fadeIn 0.3s ease; }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    .kbd {
-      background: rgba(255,255,255,0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.2);
-      font-family: monospace;
-      margin: 0 2px;
-    }
-    
-    /* Quick Actions Panel */
-    .quick-actions {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.95);
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: 16px;
-      padding: 20px;
-      width: 90%;
-      max-width: 500px;
-      z-index: 1500;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(20px);
-    }
-    
-    .quick-actions.show {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-      pointer-events: all;
-    }
-    
-    .quick-actions h3 {
-      margin: 0 0 15px;
-      color: var(--accent);
-    }
-    
-    .quick-actions .action-item {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .quick-actions .action-item:hover {
-      background: rgba(90,177,255,0.1);
-      transform: translateX(5px);
-    }
-    
-    .quick-actions .shortcut {
-      margin-left: auto;
-      opacity: 0.6;
-    }
-    
-    /* Overlay for modals */
-    .overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1400;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    
-    .overlay.show {
-      opacity: 1;
-      pointer-events: all;
-    }
-    
-    /* External Links Button Style */
-    .external-links {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-    
-    .external-links a {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: 10px;
-      color: var(--text-color);
-      text-decoration: none;
-      transition: all 0.2s ease;
-      font-size: 14px;
-    }
-    
-    .external-links a:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-      background: rgba(90,177,255,0.1);
-    }
-    
+<!-- Level Up Modal -->
+<dialog id="levelUpModal" class="modal">
+  <div class="modal-box glass bg-gradient-to-br from-success/20 to-primary/20 max-w-md">
+    <div class="text-center">
+      <div class="text-6xl mb-4 animate-bounce">🎉</div>
+      <h3 class="text-3xl font-bold text-white mb-2">LEVEL UP!</h3>
+      <p class="text-lg text-white/80 mb-4">Du bist aufgestiegen!</p>
 
-    
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-      .slot-header-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      
-      .slot-stats {
-        font-size: 12px;
-      }
-    }
-    
-    /* Visueller Indikator für Abendtermine */
-    .time-section[data-hour="18:00"],
-    .time-section[data-hour="20:00"] {
-      position: relative;
-    }
-    
-    .time-section[data-hour="18:00"]::before {
-      content: "";
-      position: absolute;
-      top: -10px;
-      left: 16px;
-      font-size: 11px;
-      color: var(--muted);
-      background: var(--box-bg);
-      padding: 2px 8px;
-      border-radius: 6px;
-      z-index: 1;
-    }
-    
-    /* Highlight Animation */
-    @keyframes highlight {
-      0% { box-shadow: 0 0 0 0 rgba(90,177,255,0.5); }
-      50% { box-shadow: 0 0 20px 10px rgba(90,177,255,0.3); }
-      100% { box-shadow: 0 0 0 0 rgba(90,177,255,0); }
-    }
-  </style>
-</head>
-<body>
+      <div class="flex items-center justify-center gap-4 text-2xl font-bold mb-4">
+        <span class="text-white/70">Level <span id="oldLevel">1</span></span>
+        <span class="text-3xl text-warning">→</span>
+        <span class="text-warning">Level <span id="newLevel">2</span></span>
+      </div>
 
-  
-  <!-- Loading Indicator (Enhanced) -->
-  <div class="loading-indicator" id="loadingIndicator">Lädt...</div>
-  
-  <!-- Success Popup -->
-  <div class="success-popup" id="successPopup" style="display:none;">
-    <div class="icon">✅</div>
-    <div class="text">Erfolgreich gebucht!</div>
+      <div class="text-warning font-bold mb-6">
+        +<span id="xpGained">0</span> XP gewonnen!
+      </div>
+
+      <button onclick="document.getElementById('levelUpModal').close()" class="btn btn-primary">
+        <i data-lucide="check" class="w-5 h-5 mr-2"></i>
+        Schließen
+      </button>
+    </div>
   </div>
-  
-  <!-- Level Up Popup -->
-  <div class="level-up-popup" id="levelUpPopup" style="display:none;">
-    <div class="level-up-content">
-      <div class="level-up-icon">🎉</div>
-      <div class="level-up-title">LEVEL UP!</div>
-      <div class="level-up-details">
-        <div class="level-up-text">Du bist aufgestiegen!</div>
-        <div class="level-up-stats">
-          <span class="old-level">Level <span id="oldLevel">1</span></span>
-          <span class="arrow">→</span>
-          <span class="new-level">Level <span id="newLevel">2</span></span>
+  <form method="dialog" class="modal-backdrop">
+    <button>Schließen</button>
+  </form>
+</dialog>
+
+<!-- Quick Actions Modal -->
+<dialog id="quickActionsModal" class="modal">
+  <div class="modal-box glass max-w-lg">
+    <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+      <i data-lucide="zap" class="w-6 h-6 text-primary"></i>
+      Quick Actions
+    </h3>
+
+    <div class="space-y-2">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="toggleSidebar(); document.getElementById('quickActionsModal').close()">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i data-lucide="sidebar" class="w-5 h-5 text-primary"></i>
+            <span class="text-white">Sidebar toggle</span>
+          </div>
+          <kbd class="kbd kbd-sm">S</kbd>
         </div>
-        <div class="xp-gained">+<span id="xpGained">0</span> XP gewonnen!</div>
       </div>
-      <button class="level-up-close" onclick="closeLevelUpPopup()">Schließen</button>
-    </div>
-  </div>
-  
-  <!-- Keyboard Hints -->
-  <div class="kbd-hint" id="kbdHint">
-    Drücke <kbd>?</kbd> für Tastaturkürzel
-  </div>
-  
-  <!-- Quick Actions Panel (Command Palette) -->
-  <div class="overlay" id="overlay"></div>
-  <div class="quick-actions" id="quickActions">
-    <h3>⚡ Quick Actions</h3>
-    <div class="action-item" data-action="toggle-sidebar">
-      <span>📊 Sidebar toggle</span>
-      <span class="shortcut"><kbd>S</kbd></span>
-    </div>
-    <div class="action-item" data-action="toggle-theme">
-      <span>🌙 Theme wechseln</span>
-      <span class="shortcut"><kbd>T</kbd></span>
-    </div>
-    <div class="action-item" data-action="my-calendar">
-      <span>👤 Meine Buchungen</span>
-      <span class="shortcut"><kbd>M</kbd></span>
-    </div>
-    <div class="action-item" data-action="scoreboard">
-      <span>🏆 Scoreboard</span>
-      <span class="shortcut"><kbd>P</kbd></span>
+
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='/my-calendar'; document.getElementById('quickActionsModal').close()">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i data-lucide="user" class="w-5 h-5 text-secondary"></i>
+            <span class="text-white">Meine Buchungen</span>
+          </div>
+          <kbd class="kbd kbd-sm">M</kbd>
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='{{ url_for('scoreboard.scoreboard') }}'; document.getElementById('quickActionsModal').close()">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i data-lucide="trophy" class="w-5 h-5 text-warning"></i>
+            <span class="text-white">Scoreboard</span>
+          </div>
+          <kbd class="kbd kbd-sm">P</kbd>
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="navigateDay(1); document.getElementById('quickActionsModal').close()">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i data-lucide="arrow-right" class="w-5 h-5 text-accent"></i>
+            <span class="text-white">Nächster Tag</span>
+          </div>
+          <kbd class="kbd kbd-sm">→</kbd>
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="navigateDay(-1); document.getElementById('quickActionsModal').close()">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i data-lucide="arrow-left" class="w-5 h-5 text-accent"></i>
+            <span class="text-white">Vorheriger Tag</span>
+          </div>
+          <kbd class="kbd kbd-sm">←</kbd>
+        </div>
+      </div>
+
+      {% if is_admin %}
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='{{ url_for('admin.dashboard') }}'; document.getElementById('quickActionsModal').close()">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i data-lucide="shield" class="w-5 h-5 text-error"></i>
+            <span class="text-white">Admin Dashboard</span>
+          </div>
+          <kbd class="kbd kbd-sm">A</kbd>
+        </div>
+      </div>
+      {% endif %}
     </div>
 
-    <div class="action-item" data-action="next-day">
-      <span>➡️ Nächster Tag</span>
-      <span class="shortcut"><kbd>→</kbd></span>
-    </div>
-    <div class="action-item" data-action="prev-day">
-      <span>⬅️ Vorheriger Tag</span>
-      <span class="shortcut"><kbd>←</kbd></span>
-    </div>
-    <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--box-border); color:var(--muted); font-size:12px;">
-      <kbd>ESC</kbd> zum Schließen • <kbd>Ctrl+K</kbd> oder <kbd>Cmd+K</kbd> öffnet diese Ansicht
+    <div class="mt-6 pt-4 border-t border-white/10 text-center text-sm text-white/60">
+      <kbd class="kbd kbd-sm">ESC</kbd> zum Schließen •
+      <kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">K</kbd> öffnet Quick Actions
     </div>
   </div>
-  
-  <!-- Light/Dark Toggle -->
-  <button id="mode-toggle" aria-label="Modus wechseln">🌙</button>
-  <!-- Sidebar Toggle -->
-  <button id="sidebar-tab" title="Menü">≡</button>
+  <form method="dialog" class="modal-backdrop">
+    <button>Schließen</button>
+  </form>
+</dialog>
 
-  <!-- Sidebar -->
-  <div class="sidebar collapsed" id="sidebar">
-    <p><strong>📊 Wochenauslastung</strong></p>
+<!-- Sidebar -->
+<div id="sidebar" class="fixed left-0 top-20 h-[calc(100vh-5rem)] w-80 glass z-30 transform -translate-x-full transition-transform duration-300 overflow-y-auto">
+  <div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-bold text-white flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-6 h-6 text-primary"></i>
+        Wochenauslastung
+      </h3>
+      <button onclick="toggleSidebar()" class="btn btn-ghost btn-sm btn-circle">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
     {% for week in weekly_summary %}
-      <a href="{{ url_for('main.day_view', date_str=week.start_date) }}"
-         class="kw-link{% if week.current %} active{% endif %}">
-        {{ week.label }} ({{ week.range }})
-        <span style="float:right; font-size:0.95em; color:#999;">{{ week.usage_pct }}%</span>
-      </a>
-      <div style="background-color:#444; height:8px; border-radius:4px; overflow:hidden; margin-bottom:10px;">
-        <div style="background-color:
-          {% if week.usage < 0.5 %}var(--green)
-          {% elif week.usage < 0.8 %}var(--yellow)
-          {% elif week.usage < 0.95 %}var(--orange)
-          {% else %}var(--red){% endif %};
-          width: {{ week.usage_pct }}%; height:100%; transition: width 0.3s ease;"></div>
+    <a href="{{ url_for('main.day_view', date_str=week.start_date) }}"
+       class="block glass rounded-xl p-4 mb-3 hover:bg-white/10 transition-all {% if week.current %}ring-2 ring-primary{% endif %}">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-semibold text-white">{{ week.label }}</span>
+        <span class="text-sm text-white/70">{{ week.usage_pct }}%</span>
       </div>
-      <div class="text-sm text-muted">{{ week.booked }}/{{ week.possible }} gebucht</div>
+
+      <div class="w-full bg-white/10 rounded-full h-2 mb-2">
+        <div class="h-2 rounded-full transition-all duration-300
+          {% if week.usage < 0.5 %}bg-success
+          {% elif week.usage < 0.8 %}bg-warning
+          {% elif week.usage < 0.95 %}bg-orange-500
+          {% else %}bg-error{% endif %}"
+          style="width: {{ week.usage_pct }}%"></div>
+      </div>
+
+      <div class="text-xs text-white/60">
+        {{ week.booked }}/{{ week.possible }} gebucht • {{ week.range }}
+      </div>
+    </a>
     {% endfor %}
 
     <!-- Level Display in Sidebar -->
     {% if user_level %}
-    {% include 'level_display.html' %}
+    <div class="mt-6">
+      {% include 'level_display.html' %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sidebar Toggle Button -->
+<button id="sidebarToggle" onclick="toggleSidebar()"
+        class="fixed left-4 top-24 z-40 btn btn-circle glass hover:scale-110 transition-transform"
+        title="Menü">
+  <i data-lucide="menu" class="w-5 h-5"></i>
+</button>
+
+<!-- Main Content -->
+<div id="mainContent" class="transition-all duration-300">
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ 'success' if category == 'success' else 'error' if category == 'error' else 'info' }} mb-6" data-aos="fade-down">
+        <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}" class="w-5 h-5"></i>
+        <span>{{ message }}</span>
+      </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Quick Links -->
+  <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-down">
+    <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+      <i data-lucide="link" class="w-6 h-6 text-primary"></i>
+      Quick Links
+    </h2>
+
+    <div class="flex flex-wrap gap-3">
+      <a href="https://calendar.google.com/calendar/u/0/r?cid=emVudHJhbGthbGVuZGVyemZhQGdtYWlsLmNvbQ"
+         target="_blank" class="btn btn-primary btn-sm gap-2">
+        <i data-lucide="calendar" class="w-4 h-4"></i>
+        Zentralkalender
+      </a>
+      <a href="/my-calendar" class="btn btn-secondary btn-sm gap-2">
+        <i data-lucide="list" class="w-4 h-4"></i>
+        Meine Buchungen
+      </a>
+      <a href="{{ url_for('calendar.calendar_view') }}" class="btn btn-accent btn-sm gap-2">
+        <i data-lucide="calendar-days" class="w-4 h-4"></i>
+        Kalender-Ansicht
+      </a>
+      <a href="{{ url_for('scoreboard.scoreboard') }}" class="btn btn-warning btn-sm gap-2">
+        <i data-lucide="trophy" class="w-4 h-4"></i>
+        Scoreboard
+      </a>
+      <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-info btn-sm gap-2">
+        <i data-lucide="award" class="w-4 h-4"></i>
+        Badges
+      </a>
+      <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn gap-2 bg-purple-600 hover:bg-purple-700 border-0 text-white btn-sm">
+        <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+        Gamification
+      </a>
+    </div>
+  </div>
+
+  <!-- 4-Wochen Auslastung -->
+  <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="100">
+    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+      <i data-lucide="bar-chart-2" class="w-6 h-6 text-primary"></i>
+      Wochenauslastung (nächste 4 Wochen)
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {% for w in weekly_summary[:4] %}
+        {% set ratio = (w.booked / (w.possible + 0.001)) if w.possible > 0 else 0 %}
+        {% set color_class = 'success' if ratio < 0.5 else 'warning' if ratio < 0.8 else 'orange-500' if ratio < 1 else 'error' %}
+
+        <div class="glass rounded-2xl p-6 text-center hover:scale-105 transition-transform">
+          <div class="text-sm text-white/70 mb-2">{{ w.label }}</div>
+          <div class="text-4xl font-bold text-{{ color_class }} mb-2">{{ w.usage_pct }}%</div>
+          <div class="text-sm text-white/80 mb-1">{{ w.booked }} / {{ w.possible }} gebucht</div>
+          <div class="text-xs text-white/60">{{ w.range }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if slot_suggestions %}
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 text-sm text-white/70 mb-3">
+        <i data-lucide="target" class="w-4 h-4 text-primary"></i>
+        Empfohlene Slots (mit Punkten)
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {% for s in slot_suggestions[:5] %}
+        <div class="badge badge-lg gap-2">
+          <span>{{ s.date }}</span> •
+          <span>{{ s.hour }}</span> •
+          <span class="text-success">{{ s.punkte }} Pkt</span> •
+          <span class="text-accent">{{ s.freie }} frei</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
   </div>
 
-  <!-- Main -->
-  <div class="main" id="main">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="flash-{{ category }}">{{ message }}</div>
+  <!-- Slot-Buchung -->
+  <div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="200">
+    <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+      <i data-lucide="calendar-check" class="w-6 h-6 text-primary"></i>
+      Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}
+    </h2>
+
+    <!-- Day Navigation -->
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+      {% for d in days %}
+      <a href="{{ url_for('main.day_view', date_str=d.strftime('%Y-%m-%d')) }}"
+         class="btn btn-sm {% if d == date %}btn-primary{% else %}btn-ghost{% endif %} whitespace-nowrap">
+        {{ d.strftime('%a, %d.%m') }}
+      </a>
       {% endfor %}
-    {% endwith %}
+    </div>
 
-    <!-- Quick Links -->
-    <section class="glass panel">
-      <h2>🔗 Quick Links</h2>
-      <div class="external-links">
-        <a href="https://calendar.google.com/calendar/u/0/r?cid=emVudHJhbGthbGVuZGVyemZhQGdtYWlsLmNvbQ" target="_blank">
-          📅 Zentralkalender öffnen
-        </a>
-        <a href="/my-calendar">
-          📋 Meine Buchungen
-        </a>
-        <a href="{{ url_for('calendar.calendar_view') }}">
-          📅 Kalender-Ansicht
-        </a>
-        <a href="{{ url_for('scoreboard.scoreboard') }}">
-          🏆 Scoreboard
-        </a>
-        <a href="{{ url_for('scoreboard.badges') }}">
-          🎖️ Badges
-        </a>
-        <a href="{{ url_for('scoreboard.gamification_dashboard') }}">
-          🎮 Gamification
-        </a>
+    <!-- Quick Actions -->
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button onclick="expandAll()" class="btn btn-sm btn-ghost gap-2">
+        <i data-lucide="chevrons-down" class="w-4 h-4"></i>
+        Alle aufklappen
+      </button>
+      <button onclick="collapseAll()" class="btn btn-sm btn-ghost gap-2">
+        <i data-lucide="chevrons-up" class="w-4 h-4"></i>
+        Alle zuklappen
+      </button>
+      <button onclick="jumpToEvening()" class="btn btn-sm btn-ghost gap-2">
+        <i data-lucide="moon" class="w-4 h-4"></i>
+        Zu Abendterminen
+      </button>
+    </div>
 
-      </div>
-    </section>
-
-    <!-- 4‑Wochen Auslastung -->
-    <section id="auslastung" class="glass panel">
-      <h2>📊 Wochenauslastung (nächste 4 Wochen)</h2>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-        {% for w in weekly_summary[:4] %}
-          {% set ratio = (w.booked / (w.possible + 0.001)) if w.possible > 0 else 0 %}
-          {% set cls = "background:rgba(16,185,129,.20); border-color:rgba(16,185,129,.35);" if ratio < 0.5 else
-                       "background:rgba(234,179,8,.20); border-color:rgba(234,179,8,.35);" if ratio < 0.8 else
-                       "background:rgba(249,115,22,.20); border-color:rgba(249,115,22,.35);" if ratio < 1 else
-                       "background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.35);" %}
-          <div class="glass-soft" style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); {{ cls }}">
-            <div style="font-size:.9em; color:#cbd5e1">{{ w.label }}</div>
-            <div style="font-size:1.6em; font-weight:700">{{ w.usage_pct }}%</div>
-            <div style="font-size:.85em; color:#94a3b8">{{ w.booked }} / {{ w.possible }} gebucht</div>
-            <div style="font-size:.8em; color:#94a3b8">{{ w.range }}</div>
-          </div>
-        {% endfor %}
-      </div>
-
-      {% if slot_suggestions %}
-      <div class="glass-soft" style="padding:12px; margin-top:12px;">
-        <div class="text-sm" style="color:#cbd5e1; margin-bottom:6px;">🎯 Empfohlene Slots (mit Punkten)</div>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          {% for s in slot_suggestions[:5] %}
-            <div class="chip">
-              <span>{{ s.date }}</span> • 
-              <span>{{ s.hour }}</span> • 
-              <span style="color:var(--green);">{{ s.punkte }} Pkt</span> • 
-              <span style="color:var(--accent);">{{ s.freie }} frei</span>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-    </section>
-
-    <!-- Buchung mit kollabierbaren Slots -->
-    <section id="buchung" class="glass panel">
-      <h2>📝 Slot-Buchung für {{ date.strftime('%A, %d.%m.%Y') }}</h2>
-      <div class="nav">
-        {% for d in days %}
-          <a href="{{ url_for('main.day_view', date_str=d.strftime('%Y-%m-%d')) }}" class="{% if d == date %}active{% endif %}">
-            {{ d.strftime('%a, %d.%m') }}
-          </a>
-        {% endfor %}
-      </div>
-
-      <!-- Schnell-Actions -->
-      <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button onclick="expandAll()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
-          ➕ Alle aufklappen
-        </button>
-        <button onclick="collapseAll()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
-          ➖ Alle zuklappen
-        </button>
-        <button onclick="jumpToEvening()" class="glass-soft" style="padding: 6px 12px; font-size: 13px;">
-          🌙 Zu Abendterminen
-        </button>
-      </div>
-
+    <!-- Slots -->
+    <div class="space-y-3">
       {% for hour, slot in slots.items() %}
         {% set total = slot.total %}
         {% set booked = slot.booked %}
         {% set ratio = (booked / (total + 0.001)) if total > 0 else 0 %}
-        {% set color = 'green' %}
-        {% if slot.overbooked %}
-          {% set color = 'red' %}
-        {% elif ratio >= 1.0 %}
-          {% set color = 'red' %}
+        {% set color = 'success' %}
+        {% if slot.overbooked or ratio >= 1.0 %}
+          {% set color = 'error' %}
         {% elif ratio >= 0.8 %}
-          {% set color = 'orange' %}
+          {% set color = 'warning' %}
         {% elif ratio >= 0.5 %}
-          {% set color = 'yellow' %}
+          {% set color = 'yellow-500' %}
         {% endif %}
 
-        <div class="time-section {{ color }} collapsible" data-hour="{{ hour }}">
-          <!-- Kollabierbare Header-Zeile -->
-          <div class="slot-header" onclick="toggleSlot(this)">
-            <div class="slot-header-info">
-              <span class="slot-time">
-                <strong>🕒 {{ hour }} Uhr</strong>
-              </span>
-              <span class="slot-stats">
-                <span class="stat-item">👥 {{ slot.available_beraters }} Berater</span>
-                <span class="stat-divider">|</span>
-                <span class="stat-item">📊 {{ total }} Plätze</span>
-                <span class="stat-divider">|</span>
-                <span class="stat-item">
-                  {% if slot.free_count == 0 %}
-                    <span class="status-badge full">❌ Ausgebucht</span>
-                  {% elif slot.free_count <= 2 %}
-                    <span class="status-badge limited">⚠️ Nur {{ slot.free_count }} frei</span>
-                  {% else %}
-                    <span class="status-badge available">✅ {{ slot.free_count }} frei</span>
-                  {% endif %}
-                </span>
-                {% if slot.using_default %}
-                <span class="stat-divider">|</span>
-                <span class="stat-item">
-                  <span class="status-badge" style="background: rgba(139,92,246,0.15); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3);">
-                    🔮 Standard-Verfügbarkeit
+        <div class="slot-section glass rounded-2xl overflow-hidden" data-hour="{{ hour }}">
+          <!-- Header -->
+          <div class="slot-header p-4 hover:bg-white/5 transition-colors" onclick="toggleSlot(this)">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex-1 flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2 font-bold text-white">
+                  <i data-lucide="clock" class="w-5 h-5 text-primary"></i>
+                  {{ hour }} Uhr
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-sm text-white/70">
+                  <span class="flex items-center gap-1">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    {{ slot.available_beraters }} Berater
                   </span>
-                </span>
-                {% endif %}
-              </span>
-            </div>
-            <div class="slot-toggle">
-              <span class="toggle-icon">▼</span>
+                  <span>•</span>
+                  <span>{{ total }} Plätze</span>
+                  <span>•</span>
+                  {% if slot.free_count == 0 %}
+                    <span class="badge badge-error gap-1">
+                      <i data-lucide="x" class="w-3 h-3"></i>
+                      Ausgebucht
+                    </span>
+                  {% elif slot.free_count <= 2 %}
+                    <span class="badge badge-warning gap-1">
+                      <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                      {{ slot.free_count }} frei
+                    </span>
+                  {% else %}
+                    <span class="badge badge-success gap-1">
+                      <i data-lucide="check" class="w-3 h-3"></i>
+                      {{ slot.free_count }} frei
+                    </span>
+                  {% endif %}
+
+                  {% if slot.using_default %}
+                    <span class="badge badge-info gap-1">
+                      <i data-lucide="sparkles" class="w-3 h-3"></i>
+                      Standard
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <button class="btn btn-ghost btn-sm btn-circle">
+                <i data-lucide="chevron-down" class="w-4 h-4 toggle-icon"></i>
+              </button>
             </div>
           </div>
 
-          <!-- Ausklappbarer Inhalt -->
-          <div class="slot-content" style="display: none;">
-            <div class="info" style="width:100%;">
-              <div style="margin-bottom: 10px;">
-                Detaillierte Übersicht: 
-                <strong>{{ slot.available_beraters }}</strong> Berater verfügbar | 
-                <strong>{{ total }}</strong> Kapazität | 
+          <!-- Content -->
+          <div class="slot-content collapsed" style="max-height: 0;">
+            <div class="p-4 pt-0 border-t border-white/10">
+              <div class="mb-4 text-sm text-white/80">
+                Detaillierte Übersicht:
+                <strong>{{ slot.available_beraters }}</strong> Berater verfügbar |
+                <strong>{{ total }}</strong> Kapazität |
                 <strong>{{ booked }}</strong> bereits gebucht
               </div>
 
               {% if slot.using_default %}
-              <div style="background: rgba(139,92,246,0.1); padding: 10px; border-radius: 8px; margin: 10px 0; border-left: 3px solid #8b5cf6;">
-                <strong>🔮 Standard-Verfügbarkeit</strong><br>
-                <span style="font-size: 13px; color: var(--muted);">
-                  Für diesen Termin werden Standard-Berater verwendet, da keine spezifische Verfügbarkeit geladen ist.
-                  Buchungen sind bis zu {{ 12 }} Wochen im Voraus möglich.
-                </span>
+              <div class="alert alert-info mb-4">
+                <i data-lucide="info" class="w-5 h-5"></i>
+                <div>
+                  <strong>Standard-Verfügbarkeit</strong>
+                  <p class="text-sm">Für diesen Termin werden Standard-Berater verwendet. Buchungen sind bis zu 12 Wochen im Voraus möglich.</p>
+                </div>
               </div>
               {% endif %}
 
               {% if slot.overbooked %}
-                <div style="color: var(--red); font-weight: bold; margin: 10px 0;">
-                  ⚠️ ACHTUNG: Überbuchung! Es sind zu wenige Berater für {{ booked }} Termine!
+                <div class="alert alert-error mb-4">
+                  <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                  <span><strong>ACHTUNG:</strong> Überbuchung! Es sind zu wenige Berater für {{ booked }} Termine!</span>
                 </div>
               {% elif slot.free_count == 0 %}
-                <div style="color:#ccc; font-style: italic; margin: 10px 0;">
-                  ⚠️ Alle {{ total }} Slots um {{ hour }} Uhr sind bereits belegt.
+                <div class="alert mb-4">
+                  <i data-lucide="info" class="w-5 h-5"></i>
+                  <span>Alle {{ total }} Slots um {{ hour }} Uhr sind bereits belegt.</span>
                 </div>
               {% else %}
-                <div style="color: var(--green); margin: 10px 0;">
-                  ✅ Noch {{ slot.free_count }} von {{ total }} Slots verfügbar
+                <div class="alert alert-success mb-4">
+                  <i data-lucide="check-circle" class="w-5 h-5"></i>
+                  <span>Noch {{ slot.free_count }} von {{ total }} Slots verfügbar</span>
                 </div>
               {% endif %}
 
               {% if not slot.overbooked and slot.free_count > 0 %}
-                <div class="slot" style="margin-top: 15px;">
-                  <form method="POST" action="{{ url_for('booking.book') }}" onsubmit="showLoading()">
-                    <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
-                    <input type="hidden" name="hour" value="{{ hour }}">
-                    <input type="text" name="first_name" placeholder="Vorname" required maxlength="50">
-                    <input type="text" name="last_name" placeholder="Nachname" required maxlength="50">
-                    <textarea name="description" placeholder="Beschreibung (optional)" maxlength="500"></textarea>
-                    <select name="color" required style="margin-left:8px;">
-                      <option value="2">🟢 Normales Potential</option>
-                      <option value="7">🔵 Top Potential</option>
-                      <option value="5">🟡 Closer nötig</option>
-                      <option value="3">🟣 Rückholung</option>
-                    </select>
-                    <button type="submit">Slot buchen</button>
-                  </form>
+              <form method="POST" action="{{ url_for('booking.book') }}" class="space-y-3" onsubmit="return handleBookingSubmit(this)">
+                <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="hour" value="{{ hour }}">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div class="form-control">
+                    <input type="text" name="first_name" placeholder="Vorname" required maxlength="50"
+                           class="input input-bordered w-full">
+                  </div>
+                  <div class="form-control">
+                    <input type="text" name="last_name" placeholder="Nachname" required maxlength="50"
+                           class="input input-bordered w-full">
+                  </div>
                 </div>
+
+                <div class="form-control">
+                  <textarea name="description" placeholder="Beschreibung (optional)" maxlength="500"
+                            class="textarea textarea-bordered w-full" rows="2"></textarea>
+                </div>
+
+                <div class="form-control">
+                  <select name="color" required class="select select-bordered w-full">
+                    <option value="2">🟢 Normales Potential</option>
+                    <option value="7">🔵 Top Potential</option>
+                    <option value="5">🟡 Closer nötig</option>
+                    <option value="3">🟣 Rückholung</option>
+                  </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full gap-2">
+                  <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                  <span class="button-text">Slot buchen</span>
+                  <span class="loading loading-spinner loading-sm hidden"></span>
+                </button>
+              </form>
               {% endif %}
             </div>
           </div>
         </div>
       {% endfor %}
-    </section>
+    </div>
   </div>
+</div>
 
-  <script>
-    // Enhanced Loading States
-    function showLoading(text = 'Lädt...') {
-      const indicator = document.getElementById('loadingIndicator');
-      indicator.textContent = text;
-      indicator.classList.add('show');
-    }
-    
-    function hideLoading() {
-      document.getElementById('loadingIndicator').classList.remove('show');
-    }
-    
-    // Success Animation
-    function showSuccess(message = 'Erfolgreich gebucht!') {
-      const popup = document.getElementById('successPopup');
-      popup.querySelector('.text').textContent = message;
-      popup.style.display = 'block';
-      
-      setTimeout(() => {
-        popup.style.display = 'none';
-      }, 2000);
-    }
-    // Achievement System Class
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================================
+// ACHIEVEMENT SYSTEM
+// ============================================================================
 class AchievementSystem {
   constructor() {
     this.notificationQueue = [];
     this.isShowingNotification = false;
-    this.soundEnabled = true;
-
-    // Smart polling configuration
-    this.pollingInterval = 60000; // Start with 60 seconds (increased from 30)
-    this.maxPollingInterval = 300000; // Max 5 minutes for inactive users
-    this.backoffMultiplier = 1.5;
+    this.pollingInterval = 60000;
+    this.maxPollingInterval = 300000;
     this.lastActivity = Date.now();
-    this.pollTimer = null;
     this.isPageVisible = true;
     this.consecutiveEmptyResponses = 0;
-
     this.init();
   }
 
   init() {
-    // Initialize Page Visibility API
     this.setupPageVisibilityAPI();
-
-    // Track user activity
     this.setupActivityTracking();
-
-    // Initial badge check
     this.checkForNewBadges();
-
-    // Start smart polling
     this.startSmartPolling();
   }
 
   setupPageVisibilityAPI() {
-    // Handle page visibility changes
     document.addEventListener('visibilitychange', () => {
       this.isPageVisible = !document.hidden;
-
       if (this.isPageVisible) {
-        // Page became visible - reset to normal polling
         this.resetPollingInterval();
-        console.log('🔄 Badge polling resumed (page visible)');
       } else {
-        // Page hidden - reduce polling frequency
         this.slowDownPolling();
-        console.log('⏸️ Badge polling slowed (page hidden)');
       }
     });
   }
 
   setupActivityTracking() {
-    // Track user activity to adjust polling
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    let activityThrottle = null;
 
     const updateActivity = () => {
       this.lastActivity = Date.now();
       this.resetPollingInterval();
     };
 
-    // Throttle activity updates to avoid excessive polling resets
-    let activityThrottle = null;
     activityEvents.forEach(event => {
       document.addEventListener(event, () => {
         if (!activityThrottle) {
           activityThrottle = setTimeout(() => {
             updateActivity();
             activityThrottle = null;
-          }, 5000); // Only reset polling once every 5 seconds max
+          }, 5000);
         }
       }, { passive: true });
     });
@@ -1216,16 +630,12 @@ class AchievementSystem {
   }
 
   scheduleNextPoll() {
-    if (this.pollTimer) {
-      clearTimeout(this.pollTimer);
-    }
+    if (this.pollTimer) clearTimeout(this.pollTimer);
 
-    // Calculate dynamic interval based on activity and page visibility
-    let interval = this.calculatePollingInterval();
-
+    const interval = this.calculatePollingInterval();
     this.pollTimer = setTimeout(() => {
       this.checkForNewBadges().then(() => {
-        this.scheduleNextPoll(); // Schedule next poll
+        this.scheduleNextPoll();
       });
     }, interval);
   }
@@ -1234,37 +644,31 @@ class AchievementSystem {
     const now = Date.now();
     const timeSinceActivity = now - this.lastActivity;
 
-    // If page is hidden, use longer intervals
     if (!this.isPageVisible) {
       return Math.min(this.maxPollingInterval, this.pollingInterval * 3);
     }
 
-    // If user is active (activity within last 2 minutes), use normal interval
     if (timeSinceActivity < 120000) {
       return this.pollingInterval;
     }
 
-    // If user is inactive, gradually increase interval (exponential backoff)
     const inactiveMinutes = Math.floor(timeSinceActivity / 60000);
-    const backoffFactor = Math.min(Math.pow(this.backoffMultiplier, inactiveMinutes), 5);
-
+    const backoffFactor = Math.min(Math.pow(1.5, inactiveMinutes), 5);
     return Math.min(this.maxPollingInterval, this.pollingInterval * backoffFactor);
   }
 
   resetPollingInterval() {
-    this.pollingInterval = 60000; // Reset to 60 seconds
+    this.pollingInterval = 60000;
     this.consecutiveEmptyResponses = 0;
   }
 
   slowDownPolling() {
     this.pollingInterval = Math.min(this.maxPollingInterval, this.pollingInterval * 2);
   }
-  
+
   async checkForNewBadges() {
     try {
-      // Don't poll if page has been hidden for more than 10 minutes
       if (!this.isPageVisible && (Date.now() - this.lastActivity) > 600000) {
-        console.log('⏸️ Skipping badge check - page hidden too long');
         return;
       }
 
@@ -1273,580 +677,345 @@ class AchievementSystem {
         const data = await response.json();
 
         if (data.new_badges && data.new_badges.length > 0) {
-          // Reset polling to normal frequency when badges are found
           this.resetPollingInterval();
           this.consecutiveEmptyResponses = 0;
 
-          // Show new badges
           for (const badge of data.new_badges) {
             this.showAchievementNotification(badge);
           }
 
-          // Mark badges as seen
           await fetch('/api/user/badges/mark-seen', { method: 'POST' });
-
-          console.log(`🎉 Found ${data.new_badges.length} new badges!`);
         } else {
-          // Track consecutive empty responses for further optimization
           this.consecutiveEmptyResponses++;
-
-          // After 5 consecutive empty responses, slow down polling slightly
           if (this.consecutiveEmptyResponses >= 5) {
             this.pollingInterval = Math.min(this.maxPollingInterval, this.pollingInterval * 1.2);
-            console.log(`🐌 Slowing polling after ${this.consecutiveEmptyResponses} empty responses`);
           }
         }
       } else {
-        // On error, slow down polling to avoid hammering the server
         this.slowDownPolling();
-        console.warn('⚠️ Badge API error, slowing polling');
       }
     } catch (error) {
       console.error('Error checking for new badges:', error);
-      // On network error, increase interval to reduce server load
       this.slowDownPolling();
     }
   }
-  
+
   showAchievementNotification(badge) {
-    // Füge zur Queue hinzu
     this.notificationQueue.push(badge);
-    
-    // Starte Anzeige wenn nicht bereits aktiv
     if (!this.isShowingNotification) {
       this.processNotificationQueue();
     }
   }
-  
+
   async processNotificationQueue() {
     if (this.notificationQueue.length === 0) {
       this.isShowingNotification = false;
       return;
     }
-    
+
     this.isShowingNotification = true;
     const badge = this.notificationQueue.shift();
-    
-    // Erstelle Notification Element
+
     const notification = this.createNotificationElement(badge);
-    document.body.appendChild(notification);
-    
-    // Spezial-Effekte für seltene Badges
+    document.getElementById('achievementContainer').appendChild(notification);
+
     if (badge.rarity === 'legendary' || badge.rarity === 'mythic') {
       this.createConfetti();
-      this.flashScreen(badge.color);
     }
-    
-    // Animiere rein
+
     requestAnimationFrame(() => {
       notification.classList.add('show');
     });
-    
-    // Sound abspielen
-    this.playSoundForRarity(badge.rarity);
-    
-    // Nach 5 Sekunden entfernen (oder bei Click)
+
     const hideTimeout = setTimeout(() => {
       this.hideNotification(notification);
     }, 5000);
-    
-    // Click Handler für vorzeitiges Schließen
+
     const closeBtn = notification.querySelector('.achievement-close');
     closeBtn.addEventListener('click', () => {
       clearTimeout(hideTimeout);
       this.hideNotification(notification);
     });
-    
-    // Warte 6 Sekunden bevor nächste Notification
+
     setTimeout(() => {
       this.processNotificationQueue();
     }, 6000);
   }
-  
+
   createNotificationElement(badge) {
     const notification = document.createElement('div');
-    notification.className = `achievement-notification rarity-${badge.rarity}`;
-    
+    notification.className = `achievement-notification glass rounded-2xl overflow-hidden rarity-${badge.rarity}`;
+
     notification.innerHTML = `
-      <div class="achievement-header">
-        <h4 class="achievement-title">Achievement Unlocked!</h4>
-        <button class="achievement-close">&times;</button>
+      <div class="bg-gradient-to-r from-primary/20 to-secondary/20 p-4 flex items-center justify-between border-b border-white/10">
+        <h4 class="font-bold text-primary uppercase text-sm">Achievement Unlocked!</h4>
+        <button class="achievement-close btn btn-ghost btn-sm btn-circle">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
       </div>
-      <div class="achievement-content">
-        <div class="achievement-badge rarity-${badge.rarity}">
+      <div class="p-6 text-center">
+        <div class="achievement-badge rarity-${badge.rarity} mx-auto">
           ${badge.emoji}
         </div>
-        <h3 class="achievement-name">${badge.name}</h3>
-        <p class="achievement-description">${badge.description}</p>
-        <span class="achievement-rarity rarity-${badge.rarity}">
+        <h3 class="text-xl font-bold text-white mb-2">${badge.name}</h3>
+        <p class="text-sm text-white/70 mb-3">${badge.description}</p>
+        <span class="badge badge-${badge.rarity === 'mythic' ? 'error' : badge.rarity === 'legendary' ? 'warning' : 'primary'}">
           ✨ ${badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
         </span>
       </div>
     `;
-    
+
+    // Re-initialize Lucide icons in the notification
+    setTimeout(() => lucide.createIcons(), 100);
+
     return notification;
   }
-  
+
   hideNotification(notification) {
     notification.classList.remove('show');
-    
     setTimeout(() => {
       if (notification.parentNode) {
         notification.parentNode.removeChild(notification);
       }
     }, 500);
   }
-  
+
   createConfetti() {
-    // Erstelle Konfetti-Effekt für seltene Badges
     const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
-    
+
     for (let i = 0; i < 50; i++) {
       const confetti = document.createElement('div');
       confetti.className = 'confetti';
       confetti.style.left = Math.random() * 100 + '%';
       confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-      confetti.style.animationDelay = Math.random() * 3 + 's';
-      confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
-      
+      confetti.style.top = '-10px';
+
       document.body.appendChild(confetti);
-      
-      // Entferne nach Animation
+
       setTimeout(() => {
         if (confetti.parentNode) {
           confetti.parentNode.removeChild(confetti);
         }
-      }, 5000);
-    }
-  }
-  
-  flashScreen(color) {
-    // Screen-Flash für mythische Badges
-    const flash = document.createElement('div');
-    flash.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: ${color || '#ec4899'};
-      opacity: 0;
-      pointer-events: none;
-      z-index: 10000;
-      transition: opacity 0.1s ease;
-    `;
-    
-    document.body.appendChild(flash);
-    
-    requestAnimationFrame(() => {
-      flash.style.opacity = '0.3';
-      
-      setTimeout(() => {
-        flash.style.opacity = '0';
-        setTimeout(() => {
-          if (flash.parentNode) {
-            flash.parentNode.removeChild(flash);
-          }
-        }, 100);
-      }, 100);
-    });
-  }
-  
-  playSoundForRarity(rarity) {
-    if (!this.soundEnabled) return;
-    
-    // Einfacher Beep-Sound für verschiedene Seltenheiten
-    const context = new (window.AudioContext || window.webkitAudioContext)();
-    
-    const frequencies = {
-      common: 440,
-      uncommon: 523,
-      rare: 659,
-      epic: 784,
-      legendary: 880,
-      mythic: 1047
-    };
-    
-    const frequency = frequencies[rarity] || 440;
-    const oscillator = context.createOscillator();
-    const gainNode = context.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(context.destination);
-    
-    oscillator.frequency.value = frequency;
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.1, context.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.5);
-    
-    oscillator.start(context.currentTime);
-    oscillator.stop(context.currentTime + 0.5);
-  }
-}
-
-// Achievement-System initialisieren
-let achievementSystem;
-
-// DAS HIER ZUR BESTEHENDEN DOMContentLoaded EVENT HINZUFÜGEN:
-window.addEventListener('DOMContentLoaded', () => {
-  // ... bestehender Code ...
-  
-  // NEU: Achievement System nur initialisieren wenn User eingeloggt ist
-  {% if user_level %}
-  achievementSystem = new AchievementSystem();
-  {% endif %}
-});
-
-// Test-Funktion für Development (optional)
-function testAchievementPopup() {
-  const testBadge = {
-    id: 'test_badge',
-    name: 'Test Champion 🏆',
-    description: 'Dies ist ein Test-Badge',
-    emoji: '🏆',
-    rarity: 'legendary',
-    color: '#eab308'
-  };
-  
-  achievementSystem.showAchievementNotification(testBadge);
-}
-
-// Keyboard Shortcut für Test (nur im Development)
-document.addEventListener('keydown', function(e) {
-  if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-    testAchievementPopup();
-  }
-});
-    // Toggle einzelnen Slot
-    function toggleSlot(header) {
-      const section = header.parentElement;
-      const content = section.querySelector('.slot-content');
-      const isExpanded = section.classList.contains('expanded');
-      
-      if (isExpanded) {
-        content.style.display = 'none';
-        section.classList.remove('expanded');
-      } else {
-        content.style.display = 'block';
-        section.classList.add('expanded');
-      }
-    }
-    
-    // Alle aufklappen
-    function expandAll() {
-      document.querySelectorAll('.time-section.collapsible').forEach(section => {
-        section.classList.add('expanded');
-        section.querySelector('.slot-content').style.display = 'block';
-      });
-    }
-    
-    // Alle zuklappen
-    function collapseAll() {
-      document.querySelectorAll('.time-section.collapsible').forEach(section => {
-        section.classList.remove('expanded');
-        section.querySelector('.slot-content').style.display = 'none';
-      });
-    }
-    
-    // Zu Abendterminen springen
-    function jumpToEvening() {
-      const eveningSlot = document.querySelector('[data-hour="18:00"]');
-      if (eveningSlot) {
-        eveningSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (!eveningSlot.classList.contains('expanded')) {
-          toggleSlot(eveningSlot.querySelector('.slot-header'));
-        }
-        eveningSlot.style.animation = 'highlight 1s ease';
-        setTimeout(() => {
-          eveningSlot.style.animation = '';
-        }, 1000);
-      }
-    }
-    
-    // Enhanced Form Submit with Loading States
-    document.querySelectorAll('.slot form').forEach(form => {
-      form.addEventListener('submit', function(e) {
-        const btn = this.querySelector('button[type="submit"]');
-        btn.classList.add('loading');
-        btn.disabled = true;
-        this.classList.add('submitting');
-        showLoading('Buchung wird verarbeitet...');
-        
-        setTimeout(() => {
-          if (document.querySelector('.flash-success')) {
-            showSuccess();
-          }
-        }, 500);
-      });
-    });
-    
-    // Theme Toggle mit LocalStorage und Animation
-    const body = document.body;
-    const modeToggle = document.getElementById("mode-toggle");
-    
-    function setMode(dark, animate = true) {
-      if (animate) {
-        body.style.transition = 'background 0.3s ease';
-      }
-      body.classList.toggle('lightmode', !dark);
-      body.classList.toggle('darkmode', dark);
-      modeToggle.innerHTML = dark ? '🌙' : '☀️';
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-    
-    // Theme beim Laden setzen
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedTheme = localStorage.getItem('theme');
-      setMode(savedTheme !== 'light', false);
-      
-      // Show keyboard hint after 3 seconds
-      setTimeout(() => {
-        document.getElementById('kbdHint').classList.add('show');
-        setTimeout(() => {
-          document.getElementById('kbdHint').classList.remove('show');
-        }, 5000);
       }, 3000);
-      
-      // Auf Mobile standardmäßig zugeklappt
-      if (window.innerWidth < 768) {
-        collapseAll();
-      }
-    });
-    
-    modeToggle.onclick = () => setMode(!body.classList.contains('darkmode'));
+    }
+  }
+}
 
-    // Sidebar Toggle mit Animation
-    const sidebar = document.getElementById("sidebar");
-    const main = document.getElementById("main");
-    const sidebarTab = document.getElementById("sidebar-tab");
-    
-    function toggleSidebar() {
-      const collapsed = sidebar.classList.toggle("collapsed");
-      main.classList.toggle("with-sidebar", !collapsed);
-      body.classList.toggle("sidebar-open", !collapsed);
-      localStorage.setItem('sidebar-open', !collapsed);
-    }
-    
-    // Sidebar Status aus LocalStorage laden
-    const sidebarOpen = localStorage.getItem('sidebar-open') === 'true';
-    if (sidebarOpen) {
-      sidebar.classList.remove("collapsed");
-      main.classList.add("with-sidebar");
-      body.classList.add("sidebar-open");
-    }
-    
-    sidebarTab.addEventListener("click", toggleSidebar);
-    
-    // KEYBOARD SHORTCUTS
-    const quickActions = document.getElementById('quickActions');
-    const overlay = document.getElementById('overlay');
-    
-    function showQuickActions() {
-      quickActions.classList.add('show');
-      overlay.classList.add('show');
-    }
-    
-    function hideQuickActions() {
-      quickActions.classList.remove('show');
-      overlay.classList.remove('show');
-    }
-    
-    // Quick Actions Click Handler
-    document.querySelectorAll('.action-item').forEach(item => {
-      item.addEventListener('click', function() {
-        const action = this.dataset.action;
-        hideQuickActions();
-        
-        switch(action) {
-          case 'toggle-sidebar':
-            toggleSidebar();
-            break;
-          case 'toggle-theme':
-            setMode(!body.classList.contains('darkmode'));
-            break;
-          case 'my-calendar':
-            window.location.href = "/my-calendar";
-            break;
-          case 'scoreboard':
-            window.location.href = "{{ url_for('scoreboard.scoreboard') }}";
-            break;
+// Initialize Achievement System
+let achievementSystem;
+{% if user_level %}
+achievementSystem = new AchievementSystem();
+{% endif %}
 
-          case 'next-day':
-            navigateDay(1);
-            break;
-          case 'prev-day':
-            navigateDay(-1);
-            break;
-        }
-      });
-    });
-    
-    // Navigate days
-    function navigateDay(direction) {
-      const currentDate = new Date("{{ date.strftime('%Y-%m-%d') }}");
-      currentDate.setDate(currentDate.getDate() + direction);
-      
-      // Skip weekends
-      if (currentDate.getDay() === 0) { // Sunday
-        currentDate.setDate(currentDate.getDate() + (direction > 0 ? 1 : -2));
-      } else if (currentDate.getDay() === 6) { // Saturday
-        currentDate.setDate(currentDate.getDate() + (direction > 0 ? 2 : -1));
-      }
-      
-      const dateStr = currentDate.toISOString().split('T')[0];
-      window.location.href = `/day/${dateStr}`;
-    }
-    
-    // Keyboard Event Listener
-    document.addEventListener('keydown', function(e) {
-      // Ignoriere wenn in Input/Textarea
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-      }
-      
-      // Cmd/Ctrl + K - Quick Actions
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        showQuickActions();
-        return;
-      }
-      
-      // ESC - Close modals
-      if (e.key === 'Escape') {
-        hideQuickActions();
-        if (!sidebar.classList.contains('collapsed')) {
-          toggleSidebar();
-        }
-        return;
-      }
-      
-      // ? - Show help
-      if (e.key === '?' && !e.shiftKey) {
-        e.preventDefault();
-        showQuickActions();
-        return;
-      }
-      
-      // Single key shortcuts (not in modals)
-      if (!quickActions.classList.contains('show')) {
-        switch(e.key.toLowerCase()) {
-          case 's':
-            e.preventDefault();
-            toggleSidebar();
-            break;
-          case 't':
-            e.preventDefault();
-            setMode(!body.classList.contains('darkmode'));
-            break;
-          case 'm':
-            e.preventDefault();
-            window.location.href = "/my-calendar";
-            break;
-          case 'p':
-            e.preventDefault();
-            window.location.href = "{{ url_for('scoreboard.scoreboard') }}";
-            break;
+// ============================================================================
+// SIDEBAR TOGGLE
+// ============================================================================
+let sidebarOpen = false;
 
-          case 'e':
-            e.preventDefault();
-            jumpToEvening();
-            break;
-          case '+':
-            e.preventDefault();
-            expandAll();
-            break;
-          case '-':
-            e.preventDefault();
-            collapseAll();
-            break;
-          case 'arrowright':
-            e.preventDefault();
-            navigateDay(1);
-            break;
-          case 'arrowleft':
-            e.preventDefault();
-            navigateDay(-1);
-            break;
-        }
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.getElementById('mainContent');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+
+  if (sidebarOpen) {
+    sidebar.classList.remove('-translate-x-full');
+    mainContent.classList.add('md:ml-80');
+    sidebarToggle.classList.add('md:left-[21rem]');
+  } else {
+    sidebar.classList.add('-translate-x-full');
+    mainContent.classList.remove('md:ml-80');
+    sidebarToggle.classList.remove('md:left-[21rem]');
+  }
+
+  localStorage.setItem('sidebar-open', sidebarOpen);
+
+  // Re-initialize Lucide icons
+  setTimeout(() => lucide.createIcons(), 100);
+}
+
+// Restore sidebar state
+if (localStorage.getItem('sidebar-open') === 'true' && window.innerWidth >= 768) {
+  toggleSidebar();
+}
+
+// ============================================================================
+// SLOT COLLAPSE/EXPAND
+// ============================================================================
+function toggleSlot(header) {
+  const section = header.parentElement;
+  const content = section.querySelector('.slot-content');
+  const isExpanded = section.classList.contains('expanded');
+
+  if (isExpanded) {
+    content.style.maxHeight = '0';
+    content.classList.add('collapsed');
+    section.classList.remove('expanded');
+  } else {
+    content.style.maxHeight = content.scrollHeight + 'px';
+    content.classList.remove('collapsed');
+    section.classList.add('expanded');
+  }
+}
+
+function expandAll() {
+  document.querySelectorAll('.slot-section').forEach(section => {
+    const content = section.querySelector('.slot-content');
+    content.style.maxHeight = content.scrollHeight + 'px';
+    content.classList.remove('collapsed');
+    section.classList.add('expanded');
+  });
+}
+
+function collapseAll() {
+  document.querySelectorAll('.slot-section').forEach(section => {
+    const content = section.querySelector('.slot-content');
+    content.style.maxHeight = '0';
+    content.classList.add('collapsed');
+    section.classList.remove('expanded');
+  });
+}
+
+function jumpToEvening() {
+  const eveningSlot = document.querySelector('[data-hour="18:00"]');
+  if (eveningSlot) {
+    eveningSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const header = eveningSlot.querySelector('.slot-header');
+    if (!eveningSlot.classList.contains('expanded')) {
+      toggleSlot(header);
+    }
+  }
+}
+
+// Collapse all on mobile by default
+if (window.innerWidth < 768) {
+  collapseAll();
+}
+
+// ============================================================================
+// BOOKING FORM HANDLING
+// ============================================================================
+function handleBookingSubmit(form) {
+  const btn = form.querySelector('button[type="submit"]');
+  const btnText = btn.querySelector('.button-text');
+  const spinner = btn.querySelector('.loading');
+
+  btn.disabled = true;
+  btnText.classList.add('hidden');
+  spinner.classList.remove('hidden');
+
+  return true;
+}
+
+// ============================================================================
+// NAVIGATION
+// ============================================================================
+function navigateDay(direction) {
+  const currentDate = new Date("{{ date.strftime('%Y-%m-%d') }}");
+  currentDate.setDate(currentDate.getDate() + direction);
+
+  // Skip weekends
+  if (currentDate.getDay() === 0) {
+    currentDate.setDate(currentDate.getDate() + (direction > 0 ? 1 : -2));
+  } else if (currentDate.getDay() === 6) {
+    currentDate.setDate(currentDate.getDate() + (direction > 0 ? 2 : -1));
+  }
+
+  const dateStr = currentDate.toISOString().split('T')[0];
+  window.location.href = `/day/${dateStr}`;
+}
+
+// ============================================================================
+// LEVEL UP CHECK
+// ============================================================================
+{% if user_level %}
+function checkForLevelUp() {
+  fetch('/api/level/check-up')
+    .then(response => response.json())
+    .then(data => {
+      if (data.level_up) {
+        showLevelUpModal(data.level_up);
       }
-    });
-    
-    // Close Quick Actions on overlay click
-    overlay.addEventListener('click', hideQuickActions);
-    
-         // Check for success message on page load
-     window.addEventListener('load', () => {
-       const successMsg = document.querySelector('.flash-success');
-       if (successMsg) {
-         setTimeout(() => showSuccess(successMsg.textContent), 500);
-       }
-       
-       // Check for level up
-       checkForLevelUp();
-     });
-     
-     // Level Up Functions
-     function checkForLevelUp() {
-       {% if user_level %}
-       fetch('/api/level/check-up')
-         .then(response => response.json())
-         .then(data => {
-           if (data.level_up) {
-             showLevelUpPopup(data.level_up);
-           }
-         })
-         .catch(error => console.error('Level up check error:', error));
-       {% endif %}
-     }
-     
-     function showLevelUpPopup(levelUpData) {
-       document.getElementById('oldLevel').textContent = levelUpData.old_level;
-       document.getElementById('newLevel').textContent = levelUpData.new_level;
-       document.getElementById('xpGained').textContent = levelUpData.xp_gained;
-       
-       const popup = document.getElementById('levelUpPopup');
-       popup.style.display = 'flex';
-       
-       // Confetti-Effekt
-       createConfetti();
-       
-       // Automatisch schließen nach 8 Sekunden
-       setTimeout(() => {
-         if (popup.style.display === 'flex') {
-           closeLevelUpPopup();
-         }
-       }, 8000);
-     }
-     
-     function closeLevelUpPopup() {
-       document.getElementById('levelUpPopup').style.display = 'none';
-     }
-     
-     function createConfetti() {
-       const colors = ['#fbbf24', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6'];
-       
-       for (let i = 0; i < 100; i++) {
-         const confetti = document.createElement('div');
-         confetti.style.cssText = `
-           position: fixed;
-           width: 10px;
-           height: 10px;
-           background: ${colors[Math.floor(Math.random() * colors.length)]};
-           left: ${Math.random() * 100}%;
-           top: -10px;
-           z-index: 2999;
-           animation: confettiFall 3s linear infinite;
-         `;
-         
-         confetti.style.animationDelay = Math.random() * 3 + 's';
-         confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
-         
-         document.body.appendChild(confetti);
-         
-         setTimeout(() => confetti.remove(), 5000);
-       }
-     }
-  </script>
-</body>
-</html>
+    })
+    .catch(error => console.error('Level up check error:', error));
+}
+
+function showLevelUpModal(levelUpData) {
+  document.getElementById('oldLevel').textContent = levelUpData.old_level;
+  document.getElementById('newLevel').textContent = levelUpData.new_level;
+  document.getElementById('xpGained').textContent = levelUpData.xp_gained;
+
+  document.getElementById('levelUpModal').showModal();
+
+  // Confetti
+  const colors = ['#fbbf24', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6'];
+  for (let i = 0; i < 100; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = Math.random() * 100 + '%';
+    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    confetti.style.top = '-10px';
+    document.body.appendChild(confetti);
+    setTimeout(() => confetti.remove(), 3000);
+  }
+
+  // Re-initialize Lucide icons
+  setTimeout(() => lucide.createIcons(), 100);
+}
+
+// Check on page load
+window.addEventListener('load', checkForLevelUp);
+{% endif %}
+
+// ============================================================================
+// KEYBOARD SHORTCUTS
+// ============================================================================
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+    return;
+  }
+
+  // Ctrl/Cmd + K - Quick Actions
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('quickActionsModal').showModal();
+    return;
+  }
+
+  // Single key shortcuts
+  switch(e.key.toLowerCase()) {
+    case 's':
+      e.preventDefault();
+      toggleSidebar();
+      break;
+    case 'm':
+      e.preventDefault();
+      window.location.href = "/my-calendar";
+      break;
+    case 'p':
+      e.preventDefault();
+      window.location.href = "{{ url_for('scoreboard.scoreboard') }}";
+      break;
+    case 'e':
+      e.preventDefault();
+      jumpToEvening();
+      break;
+    case 'arrowright':
+      e.preventDefault();
+      navigateDay(1);
+      break;
+    case 'arrowleft':
+      e.preventDefault();
+      navigateDay(-1);
+      break;
+  }
+});
+
+// ============================================================================
+// INITIALIZE
+// ============================================================================
+setTimeout(() => {
+  lucide.createIcons();
+}, 100);
+</script>
+{% endblock %}

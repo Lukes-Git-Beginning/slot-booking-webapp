@@ -1,0 +1,13 @@
+[Unit]
+Description=Business Hub - Daily Outcome Check Timer
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+Requires=daily-outcome-check.service
+
+[Timer]
+# Täglich um 19:00 UTC (21:00 Berlin)
+OnCalendar=*-*-* 19:00:00
+# Persistent falls Server offline war
+Persistent=true
+
+[Install]
+WantedBy=timers.target

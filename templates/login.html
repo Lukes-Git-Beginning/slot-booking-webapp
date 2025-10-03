@@ -1,537 +1,301 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <title>Login • Slot Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  
+
+  <!-- Tailwind CSS + DaisyUI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Particles.js -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#5ab1ff',
+            'secondary': '#10b981',
+            'accent': '#f97316',
+          },
+        },
+      },
+    }
+  </script>
+
   <style>
-    /* Login Page Specific Styles */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
       overflow: hidden;
     }
-    
-    /* Animated Background */
-    body::before {
-      content: '';
+
+    /* Animated Background Gradient */
+    .gradient-bg {
+      background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Glassmorphism Card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Particle Container */
+    #particles-js {
       position: fixed;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle at 20% 80%, rgba(90,177,255,0.1), transparent 50%),
-                  radial-gradient(circle at 80% 20%, rgba(16,185,129,0.1), transparent 50%),
-                  radial-gradient(circle at 40% 40%, rgba(249,115,22,0.05), transparent 50%);
-      animation: backgroundShift 20s ease infinite;
-    }
-    
-    @keyframes backgroundShift {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(-10px, -10px) rotate(120deg); }
-      66% { transform: translate(10px, -10px) rotate(240deg); }
-    }
-    
-    .login-container {
-      position: relative;
-      z-index: 1;
       width: 100%;
-      max-width: 420px;
-      padding: 20px;
-    }
-    
-    .login-card {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: 20px;
-      padding: 40px 30px;
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      animation: fadeInScale 0.5s ease;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
     }
 
-    /* Light mode glass effect override */
-    body.lightmode .login-card {
-      background: rgba(255,255,255,0.95);
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+    /* Float Animation */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
     }
-    
-    @keyframes fadeInScale {
-      from {
-        opacity: 0;
-        transform: scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+
+    .float-animation {
+      animation: float 6s ease-in-out infinite;
     }
-    
-    /* Logo Section */
-    .logo-section {
-      text-align: center;
-      margin-bottom: 30px;
+
+    /* Input Focus Glow */
+    .input-glow:focus {
+      box-shadow: 0 0 30px rgba(90, 177, 255, 0.5);
     }
-    
-    .logo-container {
-      width: 100px;
-      height: 100px;
-      margin: 0 auto 15px;
-      background: linear-gradient(135deg, rgba(90,177,255,0.1), rgba(90,177,255,0.05));
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(90,177,255,0.2);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .logo-container::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: linear-gradient(45deg, var(--accent), transparent, var(--accent));
-      border-radius: 20px;
-      opacity: 0;
-      animation: logoGlow 3s ease infinite;
-    }
-    
-    @keyframes logoGlow {
-      0%, 100% { opacity: 0; }
-      50% { opacity: 0.5; }
-    }
-    
-    .logo-container img {
-      width: 70%;
-      height: 70%;
-      object-fit: contain;
-      position: relative;
-      z-index: 1;
-    }
-    
-    /* Falls kein Logo vorhanden, Fallback-Icon */
-    .logo-fallback {
-      font-size: 48px;
-      color: var(--accent);
-      animation: pulse 2s ease infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-    
-    .login-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-color);
-      margin: 0 0 5px;
-    }
-    
-    .login-subtitle {
-      font-size: 14px;
-      color: var(--muted);
-      margin: 0;
-    }
-    
-    /* Form Styles */
-    .login-form {
-      margin-top: 25px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-      position: relative;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .input-wrapper {
-      position: relative;
-    }
-    
-    .input-wrapper input {
-      width: 100%;
-      padding: 12px 15px 12px 40px;
-      background: var(--input-bg, rgba(255,255,255,0.06));
-      border: 1px solid var(--input-border, rgba(255,255,255,0.12));
-      border-radius: 12px;
-      color: var(--text-color);
-      font-size: 15px;
+
+    /* Button Hover Effect */
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #5ab1ff 0%, #2196F3 100%);
       transition: all 0.3s ease;
-      outline: none;
     }
 
-    .input-wrapper input:focus {
-      background: var(--input-focus-bg, rgba(255,255,255,0.08));
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-shadow, rgba(90,177,255,0.1));
-    }
-
-    .input-wrapper input::placeholder {
-      color: var(--placeholder-color, rgba(255,255,255,0.3));
-    }
-
-    /* Light mode input overrides */
-    body.lightmode .input-wrapper input {
-      background: rgba(0,0,0,0.03);
-      border: 1px solid rgba(0,0,0,0.15);
-      color: #1a1a1a;
-    }
-
-    body.lightmode .input-wrapper input:focus {
-      background: rgba(0,0,0,0.05);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
-    }
-
-    body.lightmode .input-wrapper input::placeholder {
-      color: rgba(0,0,0,0.5);
-    }
-    
-    .input-icon {
-      position: absolute;
-      left: 15px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      font-size: 18px;
-      transition: color 0.3s ease;
-    }
-    
-    .input-wrapper:focus-within .input-icon {
-      color: var(--accent);
-    }
-    
-    /* Submit Button */
-    .submit-btn {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      border: none;
-      border-radius: 12px;
-      color: white;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      margin-top: 25px;
-    }
-    
-    .submit-btn::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s ease, height 0.6s ease;
-    }
-    
-    .submit-btn:hover {
+    .btn-primary-custom:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(90,177,255,0.4);
-    }
-    
-    .submit-btn:active::before {
-      width: 300px;
-      height: 300px;
-    }
-    
-    .submit-btn.loading {
-      color: transparent;
-      pointer-events: none;
-    }
-    
-    .submit-btn.loading::after {
-      content: '';
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      top: 50%;
-      left: 50%;
-      margin-left: -10px;
-      margin-top: -10px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    /* Flash Messages */
-    .flash-message {
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      animation: slideDown 0.3s ease;
-    }
-    
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    .flash-danger {
-      background: rgba(239,68,68,0.15);
-      border: 1px solid rgba(239,68,68,0.3);
-      color: #ff6b6b;
-    }
-    
-    .flash-success {
-      background: rgba(16,185,129,0.15);
-      border: 1px solid rgba(16,185,129,0.3);
-      color: #10b981;
-    }
-    
-    /* Additional Info */
-    .login-footer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      text-align: center;
-    }
-    
-    .login-footer p {
-      color: var(--muted);
-      font-size: 13px;
-      margin: 0;
-      line-height: 1.6;
-    }
-    
-    .features-list {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 15px;
-      padding: 15px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-    }
-    
-    .feature-item {
-      text-align: center;
-      flex: 1;
-    }
-    
-    .feature-icon {
-      font-size: 24px;
-      margin-bottom: 5px;
-    }
-    
-    .feature-text {
-      font-size: 11px;
-      color: var(--muted);
-      margin: 0;
-    }
-    
-    /* Dark/Light Mode Toggle */
-    #theme-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 20px;
-      transition: all 0.3s ease;
-      z-index: 100;
-    }
-    
-    #theme-toggle:hover {
-      transform: scale(1.1);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    
-    /* Responsive */
-    @media (max-width: 480px) {
-      .login-card {
-        padding: 30px 20px;
-      }
-      
-      .login-title {
-        font-size: 20px;
-      }
-      
-      .features-list {
-        flex-direction: column;
-        gap: 10px;
-      }
+      box-shadow: 0 20px 40px rgba(90, 177, 255, 0.4);
     }
   </style>
 </head>
-<body>
-  <!-- Theme Toggle -->
-  <button id="theme-toggle" aria-label="Theme wechseln">🌙</button>
-  
-  <div class="login-container">
-    <div class="login-card">
-      <!-- Logo Section -->
-      <div class="logo-section">
-        <div class="logo-container">
-          <!-- Versuche Logo zu laden, falls nicht vorhanden, zeige Icon -->
-          <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';">
-          <div id="logoFallback" class="logo-fallback" style="display:none;">📅</div>
-        </div>
-        <h1 class="login-title">Slot Manager</h1>
-        <p class="login-subtitle">Termine einfach verwalten</p>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+  <!-- Particle Background -->
+  <div id="particles-js"></div>
+
+  <!-- Login Container -->
+  <div class="relative z-10 w-full max-w-md">
+
+    <!-- Logo & Title -->
+    <div class="text-center mb-8 float-animation">
+      <div class="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 mb-6">
+        <i data-lucide="shield-check" class="w-12 h-12 text-primary"></i>
       </div>
-      
-      <!-- Flash Messages -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-          <div class="flash-message flash-{{ category }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endwith %}
-      
+      <h1 class="text-4xl font-bold text-white mb-2">Business Tool Hub</h1>
+      <p class="text-white/70">Sichere Anmeldung erforderlich</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="glass-card rounded-3xl p-8 md:p-10">
+
+      <!-- Error Message -->
+      {% if error %}
+      <div class="mb-6 p-4 rounded-xl bg-error/20 border border-error/50 flex items-center gap-3">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-error"></i>
+        <p class="text-error text-sm">{{ error }}</p>
+      </div>
+      {% endif %}
+
       <!-- Login Form -->
-      <form method="POST" action="{{ url_for('auth.login') }}" class="login-form" id="loginForm">
-        <div class="form-group">
-          <label for="username">Benutzername</label>
-          <div class="input-wrapper">
-            <span class="input-icon">👤</span>
-            <input 
-              type="text" 
-              id="username" 
-              name="username" 
-              placeholder="Dein Benutzername" 
-              required 
-              autocomplete="username"
-              autofocus
-            >
-          </div>
+      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
+
+        <!-- Username -->
+        <div>
+          <label class="block text-white/90 font-semibold mb-2 flex items-center gap-2">
+            <i data-lucide="user" class="w-4 h-4"></i>
+            Benutzername
+          </label>
+          <input
+            type="text"
+            name="username"
+            required
+            class="input-glow w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary transition-all"
+            placeholder="Benutzername eingeben"
+            autocomplete="username">
         </div>
-        
-        <div class="form-group">
-          <label for="password">Passwort</label>
-          <div class="input-wrapper">
-            <span class="input-icon">🔒</span>
-            <input 
-              type="password" 
-              id="password" 
-              name="password" 
-              placeholder="Dein Passwort" 
+
+        <!-- Password -->
+        <div>
+          <label class="block text-white/90 font-semibold mb-2 flex items-center gap-2">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            Passwort
+          </label>
+          <div class="relative">
+            <input
+              type="password"
+              name="password"
               required
-              autocomplete="current-password"
-            >
+              id="password-input"
+              class="input-glow w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary transition-all pr-12"
+              placeholder="Passwort eingeben"
+              autocomplete="current-password">
+            <button
+              type="button"
+              onclick="togglePassword()"
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors">
+              <i data-lucide="eye" id="eye-icon" class="w-5 h-5"></i>
+            </button>
           </div>
         </div>
-        
-        <button type="submit" class="submit-btn" id="submitBtn">
-          Anmelden
+
+        <!-- Remember Me -->
+        <div class="flex items-center">
+          <input
+            type="checkbox"
+            id="remember"
+            class="checkbox checkbox-primary border-white/20">
+          <label for="remember" class="ml-3 text-white/70 text-sm cursor-pointer">
+            Angemeldet bleiben
+          </label>
+        </div>
+
+        <!-- Login Button -->
+        <button
+          type="submit"
+          class="btn-primary-custom w-full py-4 rounded-xl text-white font-bold text-lg shadow-2xl">
+          <span class="flex items-center justify-center gap-2">
+            <i data-lucide="log-in" class="w-5 h-5"></i>
+            Anmelden
+          </span>
         </button>
+
       </form>
-      
-      <!-- Footer Info -->
-      <div class="login-footer">
-        <div class="features-list">
-          <div class="feature-item">
-            <div class="feature-icon">📅</div>
-            <p class="feature-text">Slots buchen</p>
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon">🏆</div>
-            <p class="feature-text">Punkte sammeln</p>
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon">📊</div>
-            <p class="feature-text">Statistiken</p>
-          </div>
+
+      <!-- Footer Links -->
+      <div class="mt-8 pt-6 border-t border-white/10">
+        <div class="flex items-center justify-between text-sm">
+          <a href="#" class="text-white/60 hover:text-primary transition-colors flex items-center gap-2">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            Hilfe benötigt?
+          </a>
+          <a href="/health" class="text-white/60 hover:text-secondary transition-colors flex items-center gap-2">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+            System Status
+          </a>
         </div>
-        <p style="margin-top: 15px;">
-          Bei Problemen wende dich an den Administrator
-        </p>
       </div>
+
+    </div>
+
+    <!-- Version Info -->
+    <div class="text-center mt-6 text-white/50 text-sm">
+      <p>Business Tool Hub v3.2</p>
     </div>
   </div>
-  
+
+  <!-- JavaScript -->
   <script>
-    // Form Submit Animation
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-      const btn = document.getElementById('submitBtn');
-      btn.classList.add('loading');
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Initialize Particles.js
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 100, density: { enable: true, value_area: 800 } },
+        color: { value: '#ffffff' },
+        shape: { type: 'circle' },
+        opacity: {
+          value: 0.3,
+          random: true,
+          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: '#ffffff',
+          opacity: 0.2,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 1.5,
+          direction: 'none',
+          random: true,
+          straight: false,
+          out_mode: 'out',
+          bounce: false
+        }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: {
+          onhover: { enable: true, mode: 'grab' },
+          onclick: { enable: true, mode: 'push' },
+          resize: true
+        },
+        modes: {
+          grab: { distance: 200, line_linked: { opacity: 0.5 } },
+          push: { particles_nb: 4 }
+        }
+      },
+      retina_detect: true
+    });
+
+    // Toggle Password Visibility
+    function togglePassword() {
+      const passwordInput = document.getElementById('password-input');
+      const eyeIcon = document.getElementById('eye-icon');
+
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.setAttribute('data-lucide', 'eye');
+      }
+
+      lucide.createIcons();
+    }
+
+    // Form Animation on Submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const btn = this.querySelector('button[type="submit"]');
+      btn.innerHTML = '<span class="loading loading-spinner"></span> Anmelden...';
       btn.disabled = true;
     });
-    
-    // Theme Toggle
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-    
-    function setTheme(dark) {
-      body.classList.toggle('lightmode', !dark);
-      body.classList.toggle('darkmode', dark);
-      themeToggle.innerHTML = dark ? '🌙' : '☀️';
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-    
-    // Load saved theme
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedTheme = localStorage.getItem('theme');
-      setTheme(savedTheme !== 'light');
-    });
-    
-    themeToggle.addEventListener('click', () => {
-      setTheme(!body.classList.contains('darkmode'));
-    });
-    
-    // Auto-focus animation
-    const inputs = document.querySelectorAll('input');
-    inputs.forEach(input => {
-      input.addEventListener('focus', function() {
-        this.parentElement.style.transform = 'scale(1.02)';
-      });
-      
-      input.addEventListener('blur', function() {
-        this.parentElement.style.transform = 'scale(1)';
-      });
-    });
-    
-    // Enter key navigation
-    document.getElementById('username').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('password').focus();
-      }
-    });
+
+    // Auto-focus on username
+    document.querySelector('input[name="username"]').focus();
   </script>
 </body>
 </html>

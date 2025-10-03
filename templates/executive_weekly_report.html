@@ -1,328 +1,133 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>Wöchentliche Zusammenfassung - Woche {{ report.meta.week }}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-  
-  <style>
-    .executive-summary {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: var(--spacing-lg);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    .report-header {
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      color: white;
-      padding: var(--spacing-xl);
-      border-radius: var(--radius-lg);
-      margin-bottom: var(--spacing-lg);
-      text-align: center;
-      position: relative;
-    }
-    
-    .export-btn-header {
-      position: absolute;
-      top: var(--spacing-md);
-      right: var(--spacing-md);
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
-      padding: var(--spacing-sm) var(--spacing-md);
-      border-radius: var(--radius-md);
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    
-    .export-btn-header:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-    }
-    
-    .report-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: var(--spacing-xs);
-    }
-    
-    .report-subtitle {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-    
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
-    }
-    
-    .summary-card {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: var(--spacing-lg);
-      text-align: center;
-    }
-    
-    .summary-card.status-green { border-color: #10b981; }
-    .summary-card.status-yellow { border-color: #eab308; }
-    .summary-card.status-red { border-color: #ef4444; }
-    
-    .card-icon {
-      font-size: 32px;
-      margin-bottom: var(--spacing-sm);
-    }
-    
-    .card-value {
-      font-size: 36px;
-      font-weight: 700;
-      margin-bottom: var(--spacing-xs);
-    }
-    
-    .card-value.green { color: #10b981; }
-    .card-value.yellow { color: #eab308; }
-    .card-value.red { color: #ef4444; }
-    .card-value.blue { color: var(--accent); }
-    
-    .card-label {
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 500;
-    }
-    
-    .status-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      padding: var(--spacing-xs) var(--spacing-sm);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-top: var(--spacing-xs);
-    }
-    
-    .status-green {
-      background: rgba(16,185,129,0.2);
-      color: #10b981;
-    }
-    
-    .status-yellow {
-      background: rgba(234,179,8,0.2);
-      color: #eab308;
-    }
-    
-    .status-red {
-      background: rgba(239,68,68,0.2);
-      color: #ef4444;
-    }
-    
-    .team-overview {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: var(--spacing-lg);
-      margin-bottom: var(--spacing-lg);
-    }
-    
-    .team-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: var(--spacing-sm);
-      margin-top: var(--spacing-md);
-    }
-    
-    .team-member {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: var(--radius-md);
-      padding: var(--spacing-sm);
-      text-align: center;
-    }
-    
-    .member-name {
-      font-weight: 600;
-      margin-bottom: var(--spacing-xs);
-    }
-    
-    .member-progress {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: var(--spacing-xs);
-    }
-    
-    .member-status {
-      font-size: 11px;
-      padding: 2px var(--spacing-xs);
-      border-radius: 10px;
-    }
-    
-    .actions-section {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: var(--spacing-lg);
-      margin-bottom: var(--spacing-lg);
-    }
-    
-    .action-item {
-      display: flex;
-      align-items: center;
-      padding: var(--spacing-sm);
-      margin-bottom: var(--spacing-sm);
-      background: rgba(255,255,255,0.02);
-      border-radius: var(--radius-sm);
-      border-left: 3px solid var(--accent);
-    }
-    
-    .action-icon {
-      margin-right: var(--spacing-sm);
-      font-size: 18px;
-    }
-    
-    .bottom-actions {
-      text-align: center;
-      padding-top: var(--spacing-lg);
-      border-top: 1px solid var(--box-border);
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      padding: var(--spacing-sm) var(--spacing-lg);
-      margin: 0 var(--spacing-sm);
-      border-radius: var(--radius-md);
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-    }
-    
-    .btn-secondary {
-      background: var(--muted);
-      color: white;
-    }
-    
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    }
-    
-    @media (max-width: 768px) {
-      .summary-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      
-      .team-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="executive-summary">
-    
-    <!-- Report Header with Export Button -->
-    <div class="report-header">
-      <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="export-btn-header">
-        📄 PDF Exportieren
-      </a>
-      <div class="report-title">Wöchentliche Zusammenfassung</div>
-      <div class="report-subtitle">
-        Week {{ report.meta.week }} ({{ report.meta.week_start }} - {{ report.meta.week_end }})
-      </div>
+{% extends "hub/base.html" %}
+
+{% block title %}Wöchentliche Zusammenfassung - Woche {{ report.meta.week }}{% endblock %}
+
+{% block content %}
+
+<!-- Report Header -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 relative" data-aos="fade-down">
+    <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="absolute top-6 right-6 btn btn-sm btn-ghost gap-2 bg-white/10 hover:bg-white/20 border border-white/20">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>PDF Export</span>
+    </a>
+
+    <div class="text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Wöchentliche Zusammenfassung</h1>
+        <p class="text-white/70">Week {{ report.meta.week }} ({{ report.meta.week_start }} - {{ report.meta.week_end }})</p>
     </div>
-    
-    <!-- Key Metrics Summary -->
-    <div class="summary-grid">
-      <div class="summary-card status-{{ report.executive_summary.overall_status.color }}">
-        <div class="card-icon">{{ report.executive_summary.overall_status.icon }}</div>
-        <div class="card-value {{ report.executive_summary.overall_status.color }}">
-          {{ report.executive_summary.key_metrics.achievement_rate }}%
+</div>
+
+<!-- Key Metrics Summary -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+    <!-- Overall Status Card -->
+    <div class="glass rounded-2xl p-6 text-center
+        {% if report.executive_summary.overall_status.color == 'green' %}border-2 border-success
+        {% elif report.executive_summary.overall_status.color == 'yellow' %}border-2 border-warning
+        {% elif report.executive_summary.overall_status.color == 'red' %}border-2 border-error
+        {% endif %}" data-aos="fade-up" data-aos-delay="100">
+        <div class="text-4xl mb-3">{{ report.executive_summary.overall_status.icon }}</div>
+        <div class="text-5xl font-bold mb-2
+            {% if report.executive_summary.overall_status.color == 'green' %}text-success
+            {% elif report.executive_summary.overall_status.color == 'yellow' %}text-warning
+            {% elif report.executive_summary.overall_status.color == 'red' %}text-error
+            {% endif %}">
+            {{ report.executive_summary.key_metrics.achievement_rate }}%
         </div>
-        <div class="card-label">Team-Leistung</div>
-        <div class="status-indicator status-{{ report.executive_summary.overall_status.color }}">
-          {{ report.executive_summary.overall_status.status }}
+        <div class="text-white/60 mb-3">Team-Leistung</div>
+        <div class="badge
+            {% if report.executive_summary.overall_status.color == 'green' %}badge-success
+            {% elif report.executive_summary.overall_status.color == 'yellow' %}badge-warning
+            {% elif report.executive_summary.overall_status.color == 'red' %}badge-error
+            {% endif %}">
+            {{ report.executive_summary.overall_status.status }}
         </div>
-      </div>
-      
-      <div class="summary-card">
-        <div class="card-icon">🎯</div>
-        <div class="card-value blue">{{ report.executive_summary.key_metrics.total_points_achieved }}</div>
-        <div class="card-label">Erreichte Punkte</div>
-        <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          von {{ report.executive_summary.key_metrics.total_points_goal }} Ziel
-        </div>
-      </div>
-      
-      <div class="summary-card">
-        <div class="card-icon">👥</div>
-        <div class="card-value blue">{{ report.performance_overview.team_distribution.high_performers }}</div>
-        <div class="card-label">Top-Performer</div>
-        <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          {{ report.performance_overview.team_distribution.medium_performers }} mittel, {{ report.performance_overview.team_distribution.low_performers }} brauchen Unterstützung
-        </div>
-      </div>
-      
-      {% if report.absence_analysis.total_absent > 0 %}
-      <div class="summary-card">
-        <div class="card-icon">🏖️</div>
-        <div class="card-value yellow">{{ report.absence_analysis.absence_rate }}%</div>
-        <div class="card-label">Team Abwesend</div>
-        <div style="font-size: 12px; color: var(--muted); margin-top: var(--spacing-xs);">
-          {{ report.absence_analysis.total_absent }} Personen abwesend
-        </div>
-      </div>
-      {% endif %}
     </div>
-    
-    <!-- Team Overview -->
-    <div class="team-overview">
-      <h3 style="margin-bottom: var(--spacing-md); display: flex; align-items: center;">
-        <span style="margin-right: var(--spacing-sm);">👥</span>
-        Team-Leistung Diese Woche
-      </h3>
-      
-      <div class="team-grid">
+
+    <!-- Points Achieved Card -->
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="200">
+        <div class="text-4xl mb-3">🎯</div>
+        <div class="text-5xl font-bold text-primary mb-2">{{ report.executive_summary.key_metrics.total_points_achieved }}</div>
+        <div class="text-white/60 mb-3">Erreichte Punkte</div>
+        <div class="text-sm text-white/50">von {{ report.executive_summary.key_metrics.total_points_goal }} Ziel</div>
+    </div>
+
+    <!-- Top Performers Card -->
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="300">
+        <div class="text-4xl mb-3">👥</div>
+        <div class="text-5xl font-bold text-primary mb-2">{{ report.performance_overview.team_distribution.high_performers }}</div>
+        <div class="text-white/60 mb-3">Top-Performer</div>
+        <div class="text-sm text-white/50">
+            {{ report.performance_overview.team_distribution.medium_performers }} mittel,
+            {{ report.performance_overview.team_distribution.low_performers }} brauchen Unterstützung
+        </div>
+    </div>
+
+    <!-- Absence Card -->
+    {% if report.absence_analysis.total_absent > 0 %}
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="400">
+        <div class="text-4xl mb-3">🏖️</div>
+        <div class="text-5xl font-bold text-warning mb-2">{{ report.absence_analysis.absence_rate }}%</div>
+        <div class="text-white/60 mb-3">Team Abwesend</div>
+        <div class="text-sm text-white/50">{{ report.absence_analysis.total_absent }} Personen abwesend</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Team Overview -->
+<div class="glass rounded-2xl p-8 mb-8" data-aos="fade-up" data-aos-delay="500">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <i data-lucide="users" class="w-6 h-6 text-primary"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-white">Team-Leistung Diese Woche</h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {% for user_stat in report.detailed_breakdown.users %}
-          <div class="team-member">
-            <div class="member-name">{{ user_stat.user }}</div>
-            <div class="member-progress {{ 'green' if user_stat.balance >= 0 else 'red' }}">
-              {{ user_stat.achieved }}/{{ user_stat.goal }}
+        <div class="glass rounded-xl p-4 text-center hover:scale-105 transition-transform">
+            <div class="font-semibold text-white mb-2">{{ user_stat.user }}</div>
+            <div class="text-3xl font-bold mb-2 {{ 'text-success' if user_stat.balance >= 0 else 'text-error' }}">
+                {{ user_stat.achieved }}/{{ user_stat.goal }}
             </div>
-            <div class="member-status status-{{ 'green' if user_stat.balance >= 0 else 'yellow' if user_stat.balance >= -5 else 'red' }}">
-              {% if user_stat.on_vacation %}🏖️ Urlaub{% elif user_stat.balance >= 0 %}✅ Im Plan{% elif user_stat.balance >= -5 %}⚠️ Rückstand{% else %}🚨 Handlung erforderlich{% endif %}
+            <div class="badge badge-sm
+                {% if user_stat.on_vacation %}badge-info
+                {% elif user_stat.balance >= 0 %}badge-success
+                {% elif user_stat.balance >= -5 %}badge-warning
+                {% else %}badge-error{% endif %}">
+                {% if user_stat.on_vacation %}🏖️ Urlaub
+                {% elif user_stat.balance >= 0 %}✅ Im Plan
+                {% elif user_stat.balance >= -5 %}⚠️ Rückstand
+                {% else %}🚨 Handlung erforderlich{% endif %}
             </div>
-          </div>
+        </div>
         {% endfor %}
-      </div>
     </div>
-    
-    
-    <!-- Bottom Actions -->
-    <div class="bottom-actions">
-      <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="btn btn-primary">
-        <i class="ti ti-download"></i> PDF-Bericht exportieren
-      </a>
-      <a href="{{ url_for('admin.admin_reports_monthly') }}" class="btn btn-secondary">
-        <i class="ti ti-calendar"></i> Monatsbericht anzeigen
-      </a>
-      <a href="{{ url_for('admin.admin_telefonie') }}" class="btn btn-secondary">
-        <i class="ti ti-arrow-left"></i> Zurück zur Verwaltung
-      </a>
-    </div>
-    
-  </div>
-</body>
-</html>
+</div>
+
+<!-- Bottom Actions -->
+<div class="flex justify-center gap-4 flex-wrap" data-aos="fade-up" data-aos-delay="600">
+    <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='weekly', week=report.meta.week) }}" class="btn btn-primary gap-2">
+        <i data-lucide="download" class="w-5 h-5"></i>
+        <span>PDF-Bericht exportieren</span>
+    </a>
+    <a href="{{ url_for('admin.admin_reports_monthly') }}" class="btn btn-secondary gap-2">
+        <i data-lucide="calendar" class="w-5 h-5"></i>
+        <span>Monatsbericht anzeigen</span>
+    </a>
+    <a href="{{ url_for('admin.admin_telefonie') }}" class="btn btn-ghost gap-2">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        <span>Zurück zur Verwaltung</span>
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Refresh Lucide icons
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+</script>
+{% endblock %}

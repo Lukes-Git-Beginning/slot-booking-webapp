@@ -252,10 +252,22 @@ def gamification_dashboard():
         'mythic': '#ef4444'
     }
 
+    # Ensure user_level has default structure if None or empty
+    user_level_data = gamification_data.get('user_level') or {
+        'current_level': 1,
+        'level_title': 'Anfänger',
+        'current_xp': 0,
+        'xp_for_next_level': 100,
+        'xp_needed': 100,
+        'progress_percent': 0,
+        'next_reward': None
+    }
+
     return render_template("gamification.html",
                          user=user,
+                         is_admin=session.get('is_admin', False),
                          gamification_data=gamification_data,
-                         user_level=gamification_data.get('user_level', {}),
+                         user_level=user_level_data,
                          user_badges=user_badges,
                          badge_stats=badge_stats,
                          rarity_colors=rarity_colors,

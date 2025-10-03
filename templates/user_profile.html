@@ -1,640 +1,246 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>{{ profile.username }} - Profil</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+{% extends "hub/base.html" %}
 
-  <style>
-    .profile-wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+{% block title %}Profil - {{ profile_user }}{% endblock %}
 
-    .profile-header {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 30px;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: 30px;
-      margin-bottom: 30px;
-      align-items: center;
-    }
+{% block content %}
 
-    .profile-avatar-large {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 36px;
-      border: 4px solid var(--box-border);
-      position: relative;
-    }
+<!-- Profile Header -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 bg-gradient-to-br from-primary/20 to-secondary/20 relative overflow-hidden" data-aos="fade-down">
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-10 left-10 w-48 h-48 bg-primary rounded-full blur-3xl"></div>
+        <div class="absolute bottom-10 right-10 w-48 h-48 bg-secondary rounded-full blur-3xl"></div>
+    </div>
 
-    .profile-info h1 {
-      margin: 0 0 10px 0;
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text-color);
-    }
+    <div class="relative z-10">
+        <div class="flex flex-col md:flex-row items-center gap-8">
+            <!-- Avatar -->
+            <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-6xl border-4 border-white/20">
+                {{ profile_avatar or '👤' }}
+            </div>
 
-    .profile-subtitle {
-      color: var(--muted);
-      font-size: 16px;
-      margin-bottom: 15px;
-    }
+            <!-- User Info -->
+            <div class="flex-1 text-center md:text-left">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">{{ profile_user }}</h1>
+                {% if user_title %}
+                <div class="text-xl text-primary mb-4">{{ user_title }}</div>
+                {% endif %}
 
-    .profile-quick-stats {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-    }
+                <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                    <div class="badge badge-lg badge-primary">Level {{ user_level }}</div>
+                    {% if prestige_level > 0 %}
+                    <div class="badge badge-lg badge-warning">Prestige {{ prestige_level }}</div>
+                    {% endif %}
+                    {% if is_admin %}
+                    <div class="badge badge-lg badge-error">Admin</div>
+                    {% endif %}
+                </div>
+            </div>
 
-    .quick-stat {
-      text-align: center;
-    }
-
-    .quick-stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent);
-      display: block;
-    }
-
-    .quick-stat-label {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    .profile-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .profile-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .profile-section {
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-    }
-
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .level-progression {
-      margin-bottom: 20px;
-    }
-
-    .level-bar {
-      background: rgba(255,255,255,0.1);
-      height: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-      position: relative;
-      margin-top: 10px;
-    }
-
-    .level-progress {
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      height: 100%;
-      border-radius: 10px;
-      transition: width 0.3s ease;
-    }
-
-    .level-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12px;
-      font-weight: 600;
-      color: white;
-    }
-
-    .badges-showcase {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .badge-large {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      border: 2px solid rgba(255,255,255,0.2);
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .badge-large:hover {
-      transform: scale(1.1);
-    }
-
-    .badge-large.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
-    .badge-large.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-    .badge-large.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-    .badge-large.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .badge-large.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
-    .badge-large.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
-
-    .activity-timeline {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .timeline-item {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      padding: 15px;
-      border-left: 3px solid transparent;
-      margin-bottom: 10px;
-      border-radius: var(--radius-md);
-      transition: all 0.2s ease;
-    }
-
-    .timeline-item:hover {
-      background: rgba(255,255,255,0.05);
-      border-left-color: var(--accent);
-    }
-
-    .timeline-date {
-      font-size: 12px;
-      color: var(--muted);
-      min-width: 80px;
-    }
-
-    .timeline-content {
-      flex: 1;
-    }
-
-    .timeline-stats {
-      display: flex;
-      gap: 15px;
-      font-size: 14px;
-    }
-
-    .timeline-stat {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .performance-chart {
-      background: rgba(255,255,255,0.05);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      margin-top: 15px;
-    }
-
-    .chart-bar {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .chart-label {
-      min-width: 100px;
-      font-size: 14px;
-    }
-
-    .chart-bar-bg {
-      flex: 1;
-      height: 20px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 0 10px;
-    }
-
-    .chart-bar-fill {
-      height: 100%;
-      background: linear-gradient(135deg, var(--accent), #3d8bfd);
-      border-radius: 10px;
-      transition: width 0.3s ease;
-    }
-
-    .chart-value {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .cosmetics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-
-    .cosmetic-item {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius-md);
-      padding: 15px;
-      text-align: center;
-    }
-
-    .cosmetic-icon {
-      font-size: 32px;
-      margin-bottom: 10px;
-      display: block;
-    }
-
-    .cosmetic-name {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .rarity-breakdown {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .rarity-item {
-      text-align: center;
-      padding: 10px;
-      background: rgba(255,255,255,0.05);
-      border-radius: var(--radius-md);
-    }
-
-    .rarity-count {
-      font-size: 20px;
-      font-weight: 700;
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .rarity-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .back-button {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
-      background: var(--box-bg);
-      border: 1px solid var(--box-border);
-      border-radius: var(--radius-md);
-      color: var(--text-color);
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-
-    .back-button:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-      background: rgba(90,177,255,.1);
-    }
-
-    @media (max-width: 768px) {
-      .profile-header {
-        grid-template-columns: 1fr;
-        text-align: center;
-      }
-
-      .profile-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .profile-quick-stats {
-        justify-content: center;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="profile-wrap">
-
-    <!-- Profile Header -->
-    <div class="profile-header">
-      <div class="profile-avatar-large" data-user="{{ profile.username }}">
-        {{ profile.username[0].upper() }}
-      </div>
-
-      <div class="profile-info">
-        <h1>{{ profile.username }}</h1>
-        <div class="profile-subtitle">
-          Level {{ profile.basic_stats.level }} {{ profile.basic_stats.level_title }}
-          {% if profile.is_own_profile %} • Dein Profil{% endif %}
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-6 text-center">
+                <div>
+                    <div class="text-3xl font-bold text-primary">{{ total_badges }}</div>
+                    <div class="text-sm text-white/60">Badges</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-secondary">{{ total_xp }}</div>
+                    <div class="text-sm text-white/60">XP</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-accent">{{ total_points }}</div>
+                    <div class="text-sm text-white/60">Punkte</div>
+                </div>
+            </div>
         </div>
+    </div>
+</div>
 
-        <div class="profile-quick-stats">
-          <div class="quick-stat">
-            <span class="quick-stat-value">{{ profile.basic_stats.current_points }}</span>
-            <span class="quick-stat-label">Punkte</span>
-          </div>
-          <div class="quick-stat">
-            <span class="quick-stat-value">#{{ profile.basic_stats.current_rank }}</span>
-            <span class="quick-stat-label">Rang</span>
-          </div>
-          <div class="quick-stat">
-            <span class="quick-stat-value">{{ profile.achievements.total_badges }}</span>
-            <span class="quick-stat-label">Badges</span>
-          </div>
-          <div class="quick-stat">
-            <span class="quick-stat-value">{{ profile.basic_stats.active_months }}</span>
-            <span class="quick-stat-label">Monate</span>
-          </div>
+<!-- Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="100">
+        <i data-lucide="calendar-check" class="w-10 h-10 text-primary mx-auto mb-3"></i>
+        <div class="text-3xl font-bold text-white mb-2">{{ bookings_completed }}</div>
+        <div class="text-white/60">Buchungen</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="200">
+        <i data-lucide="flame" class="w-10 h-10 text-accent mx-auto mb-3"></i>
+        <div class="text-3xl font-bold text-white mb-2">{{ current_streak }}</div>
+        <div class="text-white/60">Tage Streak</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="300">
+        <i data-lucide="target" class="w-10 h-10 text-secondary mx-auto mb-3"></i>
+        <div class="text-3xl font-bold text-white mb-2">{{ quests_completed }}</div>
+        <div class="text-white/60">Quests</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="400">
+        <i data-lucide="trophy" class="w-10 h-10 text-warning mx-auto mb-3"></i>
+        <div class="text-3xl font-bold text-white mb-2">#{{ leaderboard_rank }}</div>
+        <div class="text-white/60">Rang</div>
+    </div>
+</div>
+
+<!-- Recent Badges -->
+{% if recent_badges %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="500">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
+                <i data-lucide="award" class="w-7 h-7 text-secondary"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Neueste Badges</h2>
         </div>
-      </div>
-
-      <div class="profile-actions">
-        <a href="{{ url_for('scoreboard.scoreboard') }}" class="back-button">
-          <i class="ti ti-arrow-left"></i> Zurück zum Scoreboard
+        <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-sm btn-ghost">
+            Alle anzeigen
+            <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
         </a>
-      </div>
     </div>
 
-    <!-- Profile Content Grid -->
-    <div class="profile-grid">
-
-      <!-- Level & Progress -->
-      <div class="profile-section">
-        <h3 class="section-title">
-          <i class="ti ti-trending-up"></i> Level-Progression
-        </h3>
-
-        <div class="level-progression">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Level {{ profile.basic_stats.level }}</span>
-            <span>{{ profile.basic_stats.xp }} / {{ profile.basic_stats.next_level_xp }} XP</span>
-          </div>
-
-          <div class="level-bar">
-            <div class="level-progress" style="width: {{ (profile.basic_stats.xp / profile.basic_stats.next_level_xp * 100)|round }}%"></div>
-            <div class="level-text">{{ (profile.basic_stats.xp / profile.basic_stats.next_level_xp * 100)|round }}%</div>
-          </div>
-        </div>
-
-        <div class="performance-chart">
-          <h4>Performance-Metriken</h4>
-
-          {% if profile.performance_metrics.booking_patterns.by_day %}
-          {% for day, count in profile.performance_metrics.booking_patterns.by_day.items() %}
-          <div class="chart-bar">
-            <div class="chart-label">{{ day }}</div>
-            <div class="chart-bar-bg">
-              <div class="chart-bar-fill" style="width: {{ (count / profile.performance_metrics.booking_patterns.total_bookings * 100)|round if profile.performance_metrics.booking_patterns.total_bookings > 0 else 0 }}%"></div>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {% for badge in recent_badges[:6] %}
+        <div class="glass rounded-xl p-4 text-center hover:scale-105 transition-transform">
+            <div class="text-4xl mb-2">{{ badge.icon }}</div>
+            <div class="text-sm font-semibold text-white truncate">{{ badge.name }}</div>
+            <div class="badge badge-xs mt-2
+                {% if badge.rarity == 'mythisch' %}badge-error
+                {% elif badge.rarity == 'legendär' %}badge-warning
+                {% elif badge.rarity == 'episch' %}badge-info
+                {% else %}badge-primary{% endif %}">
+                {{ badge.rarity|title }}
             </div>
-            <div class="chart-value">{{ count }}</div>
-          </div>
-          {% endfor %}
-          {% else %}
-          <p style="color: var(--muted); text-align: center; margin: 20px 0;">Keine Buchungsdaten verfügbar</p>
-          {% endif %}
         </div>
-      </div>
-
-      <!-- Achievements & Badges -->
-      <div class="profile-section">
-        <h3 class="section-title">
-          <i class="ti ti-award"></i> Achievements & Badges
-        </h3>
-
-        <div class="rarity-breakdown">
-          {% for rarity, count in profile.achievements.rarity_breakdown.items() %}
-          <div class="rarity-item">
-            <span class="rarity-count" style="color: var(--rarity-{{ rarity }});">{{ count }}</span>
-            <span class="rarity-label">{{ rarity.title() }}</span>
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="badges-showcase">
-          {% for badge in profile.achievements.badges[:12] %}
-          <div class="badge-large rarity-{{ badge.rarity }}" title="{{ badge.name }} - {{ badge.description }}">
-            {{ badge.emoji }}
-          </div>
-          {% endfor %}
-        </div>
-
-        {% if profile.achievements.badges|length > 12 %}
-        <p style="text-align: center; color: var(--muted); margin-top: 15px;">
-          +{{ profile.achievements.badges|length - 12 }} weitere Badges
-        </p>
-        {% endif %}
-      </div>
-
-      <!-- Activity Timeline -->
-      <div class="profile-section">
-        <h3 class="section-title">
-          <i class="ti ti-activity"></i> Aktivitäts-Timeline
-        </h3>
-
-        <div class="activity-timeline">
-          {% for activity in profile.activity_timeline[-10:] %}
-          <div class="timeline-item">
-            <div class="timeline-date">{{ activity.date }}</div>
-            <div class="timeline-content">
-              <div class="timeline-stats">
-                {% if activity.bookings > 0 %}
-                <div class="timeline-stat">
-                  <i class="ti ti-calendar"></i> {{ activity.bookings }} Buchungen
-                </div>
-                {% endif %}
-
-                {% if activity.points > 0 %}
-                <div class="timeline-stat">
-                  <i class="ti ti-star"></i> {{ activity.points }} Punkte
-                </div>
-                {% endif %}
-
-                {% if activity.badges_earned > 0 %}
-                <div class="timeline-stat">
-                  <i class="ti ti-award"></i> {{ activity.badges_earned }} Badges
-                </div>
-                {% endif %}
-
-                {% if activity.first_booking %}
-                <div class="timeline-stat">
-                  <i class="ti ti-zap"></i> Erste Buchung!
-                </div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-          {% endfor %}
-
-          {% if not profile.activity_timeline %}
-          <p style="color: var(--muted); text-align: center; margin: 20px 0;">Keine Aktivitätsdaten verfügbar</p>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Cosmetics & Customization -->
-      <div class="profile-section">
-        <h3 class="section-title">
-          <i class="ti ti-palette"></i> Cosmetics & Style
-        </h3>
-
-        <h4>Aktive Items</h4>
-        <div class="cosmetics-grid">
-          {% if profile.cosmetics.active.title %}
-          <div class="cosmetic-item">
-            <span class="cosmetic-icon">🏷️</span>
-            <div class="cosmetic-name">Titel aktiv</div>
-          </div>
-          {% endif %}
-
-          {% if profile.cosmetics.active.theme and profile.cosmetics.active.theme != 'default' %}
-          <div class="cosmetic-item">
-            <span class="cosmetic-icon">🎨</span>
-            <div class="cosmetic-name">Custom Theme</div>
-          </div>
-          {% endif %}
-
-          {% if profile.cosmetics.active.avatar and profile.cosmetics.active.avatar != '🧑‍💼' %}
-          <div class="cosmetic-item">
-            <span class="cosmetic-icon">{{ profile.cosmetics.active.avatar }}</span>
-            <div class="cosmetic-name">Avatar</div>
-          </div>
-          {% endif %}
-
-          {% for effect in profile.cosmetics.active.effects %}
-          <div class="cosmetic-item">
-            <span class="cosmetic-icon">✨</span>
-            <div class="cosmetic-name">{{ effect.title() }} Effekt</div>
-          </div>
-          {% endfor %}
-        </div>
-
-        <h4 style="margin-top: 20px;">Sammlung</h4>
-
-        <!-- Debug-Info für Admin-User -->
-        {% if current_user in ['Luke', 'admin', 'Jose', 'Simon', 'Alex', 'David'] %}
-        <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px;">
-          <strong>Debug (Admin):</strong><br>
-          Cosmetics structure: {{ profile.cosmetics.keys()|list }}<br>
-          Owned structure: {{ profile.cosmetics.owned.keys()|list if profile.cosmetics.owned else 'None' }}<br>
-          Titles: {{ profile.cosmetics.owned.titles|length if profile.cosmetics.owned.titles else 'No titles' }}<br>
-          Raw data: {{ profile.cosmetics.owned }}
-        </div>
-        {% endif %}
-
-        <div style="display: flex; gap: 20px; text-align: center; margin-top: 10px;">
-          <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
-              {% if profile.cosmetics.owned and profile.cosmetics.owned.titles %}
-                {{ profile.cosmetics.owned.titles|length }}
-              {% else %}
-                0
-              {% endif %}
-            </div>
-            <div style="font-size: 12px; color: var(--muted);">Titel</div>
-          </div>
-          <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
-              {% if profile.cosmetics.owned and profile.cosmetics.owned.themes %}
-                {{ profile.cosmetics.owned.themes|length }}
-              {% else %}
-                0
-              {% endif %}
-            </div>
-            <div style="font-size: 12px; color: var(--muted);">Themes</div>
-          </div>
-          <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
-              {% if profile.cosmetics.owned and profile.cosmetics.owned.avatars %}
-                {{ profile.cosmetics.owned.avatars|length }}
-              {% else %}
-                0
-              {% endif %}
-            </div>
-            <div style="font-size: 12px; color: var(--muted);">Avatare</div>
-          </div>
-          <div>
-            <div style="font-size: 18px; font-weight: 600; color: var(--accent);">
-              {% if profile.cosmetics.owned and profile.cosmetics.owned.effects %}
-                {{ profile.cosmetics.owned.effects|length }}
-              {% else %}
-                0
-              {% endif %}
-            </div>
-            <div style="font-size: 12px; color: var(--muted);">Effekte</div>
-          </div>
-        </div>
-      </div>
-
+        {% endfor %}
     </div>
-  </div>
+</div>
+{% endif %}
 
-  <script>
-    // Apply avatar customization
-    document.addEventListener('DOMContentLoaded', function() {
-      const avatar = document.querySelector('.profile-avatar-large[data-user]');
-      if (avatar) {
-        const username = avatar.getAttribute('data-user');
-        loadAvatarCustomization(username);
-      }
-    });
+<!-- Activity Timeline -->
+{% if recent_activity %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="600">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <i data-lucide="activity" class="w-7 h-7 text-primary"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Letzte Aktivitäten</h2>
+    </div>
 
-    async function loadAvatarCustomization(username) {
-      try {
-        const response = await fetch(`/api/user/${username}/avatar`);
-        if (response.ok) {
-          const data = await response.json();
-          applyAvatarCustomization(document.querySelector('.profile-avatar-large'), data);
-        }
-      } catch (error) {
-        console.error('Failed to load avatar customization:', error);
-      }
-    }
+    <div class="space-y-3">
+        {% for activity in recent_activity %}
+        <div class="glass rounded-xl p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl flex-shrink-0">
+                {{ activity.icon }}
+            </div>
+            <div class="flex-1">
+                <h4 class="font-semibold text-white">{{ activity.title }}</h4>
+                <p class="text-sm text-white/60">{{ activity.description }}</p>
+            </div>
+            <div class="text-sm text-white/50">{{ activity.time_ago }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
-    function applyAvatarCustomization(avatarElement, customization) {
-      // Same logic as scoreboard.html
-      // Apply background, border, effects, etc.
+<!-- Performance Stats -->
+{% if performance_stats %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="700">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-7 h-7 text-accent"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Performance</h2>
+    </div>
 
-      if (customization.background) {
-        const backgrounds = {
-          "gradient_blue": "linear-gradient(135deg, #3b82f6, #1d4ed8)",
-          "gradient_green": "linear-gradient(135deg, #10b981, #059669)",
-          "gradient_purple": "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-          "gradient_gold": "linear-gradient(135deg, #f59e0b, #d97706)",
-          "gradient_rainbow": "linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6, #10b981)",
-        };
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-sm text-white/60 mb-2">Erfolgsrate</div>
+            <div class="text-3xl font-bold text-secondary mb-3">{{ performance_stats.success_rate }}%</div>
+            <div class="w-full bg-white/10 rounded-full h-2">
+                <div class="bg-secondary h-2 rounded-full" style="width: {{ performance_stats.success_rate }}%"></div>
+            </div>
+        </div>
 
-        const bg = backgrounds[customization.background];
-        if (bg) {
-          avatarElement.style.background = bg;
-        }
-      }
+        <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-sm text-white/60 mb-2">Konsistenz</div>
+            <div class="text-3xl font-bold text-primary mb-3">{{ performance_stats.consistency }}%</div>
+            <div class="w-full bg-white/10 rounded-full h-2">
+                <div class="bg-primary h-2 rounded-full" style="width: {{ performance_stats.consistency }}%"></div>
+            </div>
+        </div>
 
-      if (customization.effect) {
-        avatarElement.classList.add(`avatar-effect-${customization.effect}`);
-      }
-    }
-  </script>
-</body>
-</html>
+        <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-sm text-white/60 mb-2">Engagement</div>
+            <div class="text-3xl font-bold text-accent mb-3">{{ performance_stats.engagement }}%</div>
+            <div class="w-full bg-white/10 rounded-full h-2">
+                <div class="bg-accent h-2 rounded-full" style="width: {{ performance_stats.engagement }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Customization -->
+{% if owned_cosmetics %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="800">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center">
+                <i data-lucide="palette" class="w-7 h-7 text-purple-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Sammlung</h2>
+        </div>
+        <a href="{{ url_for('gamification.cosmetics_shop') }}" class="btn btn-sm btn-ghost">
+            Shop
+            <i data-lucide="shopping-bag" class="w-4 h-4 ml-2"></i>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="text-center">
+            <div class="text-4xl font-bold text-primary mb-2">{{ owned_cosmetics.titles }}</div>
+            <div class="text-sm text-white/60">Titel</div>
+        </div>
+        <div class="text-center">
+            <div class="text-4xl font-bold text-secondary mb-2">{{ owned_cosmetics.themes }}</div>
+            <div class="text-sm text-white/60">Themes</div>
+        </div>
+        <div class="text-center">
+            <div class="text-4xl font-bold text-accent mb-2">{{ owned_cosmetics.avatars }}</div>
+            <div class="text-sm text-white/60">Avatare</div>
+        </div>
+        <div class="text-center">
+            <div class="text-4xl font-bold text-warning mb-2">{{ owned_cosmetics.effects }}</div>
+            <div class="text-sm text-white/60">Effekte</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="flex justify-center gap-4 flex-wrap" data-aos="fade-up" data-aos-delay="900">
+    <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-primary gap-2">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        <span>Dashboard</span>
+    </a>
+    <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-secondary gap-2">
+        <i data-lucide="award" class="w-5 h-5"></i>
+        <span>Badges</span>
+    </a>
+    <a href="{{ url_for('gamification.cosmetics_shop') }}" class="btn btn-accent gap-2">
+        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        <span>Shop</span>
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Refresh Lucide icons
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+</script>
+{% endblock %}

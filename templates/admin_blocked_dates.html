@@ -1,564 +1,182 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>📅 Gesperrte Termine - Admin Panel</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+{% extends "hub/base.html" %}
 
-  <style>
-    .blocked-dates-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+{% block title %}Gesperrte Termine{% endblock %}
 
-    .page-header {
-      background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(245,101,101,0.1));
-      border-radius: var(--radius-lg);
-      padding: 30px;
-      margin-bottom: 30px;
-      text-align: center;
-      border: 1px solid rgba(239,68,68,0.2);
-    }
+{% block content %}
 
-    .page-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent);
-      margin: 0 0 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
+<!-- Header -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8" data-aos="fade-down">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-error/20 flex items-center justify-center">
+                <i data-lucide="calendar-x" class="w-10 h-10 text-error"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white">Gesperrte Termine</h1>
+                <p class="text-white/70 mt-1">Feiertage und benutzerdefinierte Sperren verwalten</p>
+            </div>
+        </div>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost gap-2">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            <span>Zurück</span>
+        </a>
+    </div>
+</div>
 
-    .page-subtitle {
-      color: var(--muted);
-      margin: 0;
-    }
-
-    .year-selector {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 30px;
-      border: 1px solid var(--border);
-      text-align: center;
-    }
-
-    .year-selector select {
-      padding: 8px 16px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 16px;
-      margin: 0 10px;
-    }
-
-    .content-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 30px;
-      margin-bottom: 30px;
-    }
-
-    .dates-overview {
-      background: var(--card-bg);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-      border: 1px solid var(--border);
-    }
-
-    .section-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--accent);
-      margin: 0 0 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .dates-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 25px;
-    }
-
-    .date-category {
-      background: var(--bg);
-      border-radius: var(--radius);
-      padding: 20px;
-      border: 1px solid var(--border);
-    }
-
-    .category-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 15px;
-    }
-
-    .category-title {
-      font-weight: 600;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .category-count {
-      background: var(--accent);
-      color: white;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .date-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .date-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .date-item:last-child {
-      border-bottom: none;
-    }
-
-    .date-info {
-      flex-grow: 1;
-    }
-
-    .date-name {
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-
-    .date-details {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .date-badge {
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .badge-holiday {
-      background: rgba(16,185,129,0.1);
-      color: #10b981;
-      border: 1px solid rgba(16,185,129,0.2);
-    }
-
-    .badge-custom {
-      background: rgba(239,68,68,0.1);
-      color: #ef4444;
-      border: 1px solid rgba(239,68,68,0.2);
-    }
-
-    .actions-panel {
-      background: var(--card-bg);
-      border-radius: var(--radius-lg);
-      padding: 25px;
-      border: 1px solid var(--border);
-      height: fit-content;
-    }
-
-    .add-block-form {
-      margin-bottom: 30px;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    .form-label {
-      display: block;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 14px;
-      transition: border-color 0.2s ease;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: var(--radius);
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      width: 100%;
-    }
-
-    .btn-primary:hover {
-      background: var(--accent-hover);
-    }
-
-    .btn-danger {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-
-    .upcoming-holidays {
-      margin-top: 30px;
-    }
-
-    .holiday-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .holiday-item:last-child {
-      border-bottom: none;
-    }
-
-    .holiday-days {
-      background: rgba(90,177,255,0.1);
-      color: #5ab1ff;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .alert {
-      padding: 12px 16px;
-      border-radius: var(--radius);
-      margin-bottom: 20px;
-      display: none;
-    }
-
-    .alert-success {
-      background: rgba(16,185,129,0.1);
-      color: #10b981;
-      border: 1px solid rgba(16,185,129,0.2);
-    }
-
-    .alert-error {
-      background: rgba(239,68,68,0.1);
-      color: #ef4444;
-      border: 1px solid rgba(239,68,68,0.2);
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--muted);
-    }
-
-    .empty-state i {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
-
-    @media (max-width: 768px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-
-      .dates-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- Admin Navigation -->
-  {% include 'admin_nav.html' %}
-
-  <main class="blocked-dates-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <h1 class="page-title">
-        <i class="ti ti-calendar-off"></i>
-        Gesperrte Termine
-      </h1>
-      <p class="page-subtitle">Verwaltung von Feiertagen und benutzerdefinierten Sperrzeiten</p>
+<!-- Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="calendar" class="w-6 h-6 text-primary"></i>
+            <h3 class="font-semibold text-white">Feiertage</h3>
+        </div>
+        <div class="text-4xl font-bold text-white">{{ holiday_count }}</div>
     </div>
 
-    <!-- Year Selector -->
-    <div class="year-selector">
-      <label for="yearSelect"><strong>Jahr auswählen:</strong></label>
-      <select id="yearSelect" onchange="changeYear(this.value)">
-        {% for year in available_years %}
-        <option value="{{ year }}" {{ 'selected' if year == current_year }}>{{ year }}</option>
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="ban" class="w-6 h-6 text-error"></i>
+            <h3 class="font-semibold text-white">Benutzerdefiniert</h3>
+        </div>
+        <div class="text-4xl font-bold text-error">{{ custom_blocks_count }}</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="calendar-days" class="w-6 h-6 text-warning"></i>
+            <h3 class="font-semibold text-white">Kommend</h3>
+        </div>
+        <div class="text-4xl font-bold text-warning">{{ upcoming_count }}</div>
+    </div>
+</div>
+
+<!-- Add Custom Block -->
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="400">
+    <h2 class="text-2xl font-bold text-white mb-6">Neue Sperrung hinzufügen</h2>
+    <form method="post" action="{{ url_for('admin.admin_blocked_dates') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text text-white">Datum</span>
+            </label>
+            <input type="date" name="date" class="input input-bordered w-full" required>
+        </div>
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text text-white">Grund</span>
+            </label>
+            <input type="text" name="reason" class="input input-bordered w-full" placeholder="z.B. Betriebsfeier" required>
+        </div>
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text text-white">&nbsp;</span>
+            </label>
+            <button type="submit" class="btn btn-primary w-full gap-2">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                <span>Hinzufügen</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Upcoming Holidays -->
+{% if upcoming_holidays %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="500">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <i data-lucide="calendar-heart" class="w-7 h-7 text-primary"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Kommende Feiertage (NRW)</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for holiday in upcoming_holidays %}
+        <div class="glass rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold text-white">{{ holiday.name }}</div>
+                <div class="badge badge-primary">{{ holiday.date }}</div>
+            </div>
+            <div class="text-sm text-white/60">{{ holiday.days_until }} Tage bis zum Feiertag</div>
+        </div>
         {% endfor %}
-      </select>
+    </div>
+</div>
+{% endif %}
+
+<!-- Custom Blocks -->
+{% if custom_blocks %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="600">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-error/20 flex items-center justify-center">
+            <i data-lucide="ban" class="w-7 h-7 text-error"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Benutzerdefinierte Sperren</h2>
     </div>
 
-    <!-- Main Content -->
-    <div class="content-grid">
-      <!-- Dates Overview -->
-      <div class="dates-overview">
-        <h2 class="section-title">
-          <i class="ti ti-calendar-event"></i>
-          Übersicht {{ current_year }}
-        </h2>
-
-        <div class="dates-grid">
-          <!-- Holidays -->
-          <div class="date-category">
-            <div class="category-header">
-              <div class="category-title">
-                <i class="ti ti-home"></i>
-                NRW Feiertage
-              </div>
-              <span class="category-count">{{ overview.holidays|length }}</span>
-            </div>
-
-            <div class="date-list">
-              {% if overview.holidays %}
-                {% for holiday in overview.holidays %}
-                <div class="date-item">
-                  <div class="date-info">
-                    <div class="date-name">{{ holiday.name }}</div>
-                    <div class="date-details">{{ holiday.formatted_date }} · {{ holiday.weekday }}</div>
-                  </div>
-                  <span class="date-badge badge-holiday">Feiertag</span>
-                </div>
+    <div class="overflow-x-auto">
+        <table class="table w-full">
+            <thead>
+                <tr>
+                    <th class="text-white">Datum</th>
+                    <th class="text-white">Grund</th>
+                    <th class="text-white">Erstellt</th>
+                    <th class="text-white">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for block in custom_blocks %}
+                <tr class="hover:bg-white/5">
+                    <td class="text-white font-semibold">{{ block.date }}</td>
+                    <td class="text-white/80">{{ block.reason }}</td>
+                    <td class="text-white/60">{{ block.created_at }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-error btn-outline" onclick="deleteBlock('{{ block.id }}')">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
                 {% endfor %}
-              {% else %}
-                <div class="empty-state">
-                  <i class="ti ti-calendar-off"></i>
-                  <div>Keine Feiertage in diesem Jahr</div>
-                </div>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- Custom Blocks -->
-          <div class="date-category">
-            <div class="category-header">
-              <div class="category-title">
-                <i class="ti ti-ban"></i>
-                Benutzerdefiniert
-              </div>
-              <span class="category-count">{{ overview.custom_blocks|length }}</span>
-            </div>
-
-            <div class="date-list">
-              {% if overview.custom_blocks %}
-                {% for block in overview.custom_blocks %}
-                <div class="date-item">
-                  <div class="date-info">
-                    <div class="date-name">{{ block.name }}</div>
-                    <div class="date-details">{{ block.formatted_date }} · {{ block.weekday }}</div>
-                  </div>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <span class="date-badge badge-custom">Gesperrt</span>
-                    <button class="btn-danger" onclick="removeBlockedDate('{{ block.date_str }}')">
-                      <i class="ti ti-x"></i>
-                    </button>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-                <div class="empty-state">
-                  <i class="ti ti-calendar-plus"></i>
-                  <div>Keine benutzerdefinierten Sperrungen</div>
-                </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Actions Panel -->
-      <div class="actions-panel">
-        <h2 class="section-title">
-          <i class="ti ti-plus"></i>
-          Neues Datum sperren
-        </h2>
-
-        <!-- Alerts -->
-        <div id="successAlert" class="alert alert-success"></div>
-        <div id="errorAlert" class="alert alert-error"></div>
-
-        <!-- Add Block Form -->
-        <form class="add-block-form" onsubmit="addBlockedDate(event)">
-          <div class="form-group">
-            <label for="blockDate" class="form-label">Datum</label>
-            <input type="date" id="blockDate" name="date" class="form-input" required>
-          </div>
-
-          <div class="form-group">
-            <label for="blockReason" class="form-label">Grund</label>
-            <input type="text" id="blockReason" name="reason" class="form-input"
-                   placeholder="z.B. Betriebsurlaub, Wartung, etc." required>
-          </div>
-
-          <button type="submit" class="btn-primary">
-            <i class="ti ti-calendar-off"></i>
-            Datum sperren
-          </button>
-        </form>
-
-        <!-- Upcoming Holidays -->
-        <div class="upcoming-holidays">
-          <h3 class="section-title">
-            <i class="ti ti-clock"></i>
-            Nächste Feiertage
-          </h3>
-
-          <div class="date-list">
-            {% if upcoming_holidays %}
-              {% for holiday in upcoming_holidays[:5] %}
-              <div class="holiday-item">
-                <div class="date-info">
-                  <div class="date-name">{{ holiday.name }}</div>
-                  <div class="date-details">{{ holiday.formatted_date }}</div>
-                </div>
-                {% if holiday.days_until == 0 %}
-                  <span class="holiday-days" style="background: rgba(239,68,68,0.1); color: #ef4444;">Heute</span>
-                {% elif holiday.days_until == 1 %}
-                  <span class="holiday-days">Morgen</span>
-                {% else %}
-                  <span class="holiday-days">{{ holiday.days_until }} Tage</span>
-                {% endif %}
-              </div>
-              {% endfor %}
-            {% else %}
-              <div class="empty-state">
-                <i class="ti ti-calendar-check"></i>
-                <div>Keine anstehenden Feiertage</div>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+            </tbody>
+        </table>
     </div>
-  </main>
+</div>
+{% endif %}
 
-  <script>
-    function changeYear(year) {
-      window.location.href = `{{ url_for('admin.blocked_dates') }}?year=${year}`;
-    }
+<!-- All Holidays List -->
+{% if all_holidays %}
+<div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="700">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+            <i data-lucide="calendar-check" class="w-7 h-7 text-success"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Alle NRW-Feiertage {{ current_year }}</h2>
+    </div>
 
-    function showAlert(message, type) {
-      const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
-      const alert = document.getElementById(alertId);
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {% for holiday in all_holidays %}
+        <div class="glass rounded-xl p-4">
+            <div class="font-semibold text-white mb-1">{{ holiday.name }}</div>
+            <div class="text-sm text-white/60">{{ holiday.date }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
-      // Hide other alert
-      const otherAlert = document.getElementById(type === 'success' ? 'errorAlert' : 'successAlert');
-      otherAlert.style.display = 'none';
+{% endblock %}
 
-      alert.textContent = message;
-      alert.style.display = 'block';
-
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        alert.style.display = 'none';
-      }, 5000);
-    }
-
-    async function addBlockedDate(event) {
-      event.preventDefault();
-
-      const formData = new FormData(event.target);
-
-      try {
-        const response = await fetch('{{ url_for("admin.add_blocked_date") }}', {
-          method: 'POST',
-          body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          showAlert(result.message, 'success');
-          // Reset form
-          event.target.reset();
-          // Reload page after 2 seconds
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        } else {
-          showAlert(result.error, 'error');
+{% block extra_js %}
+<script>
+    function deleteBlock(blockId) {
+        if (confirm('Möchten Sie diese Sperrung wirklich löschen?')) {
+            fetch('/admin/blocked-dates/delete/' + blockId, {
+                method: 'POST'
+            }).then(() => location.reload());
         }
-      } catch (error) {
-        showAlert('Fehler beim Sperren des Datums: ' + error.message, 'error');
-      }
     }
 
-    async function removeBlockedDate(dateStr) {
-      if (!confirm('Möchten Sie diese Sperrung wirklich entfernen?')) {
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('date', dateStr);
-
-      try {
-        const response = await fetch('{{ url_for("admin.remove_blocked_date") }}', {
-          method: 'POST',
-          body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          showAlert(result.message, 'success');
-          // Reload page after 1 second
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } else {
-          showAlert(result.error, 'error');
-        }
-      } catch (error) {
-        showAlert('Fehler beim Entfernen der Sperrung: ' + error.message, 'error');
-      }
-    }
-
-    // Set minimum date to today
-    document.getElementById('blockDate').min = new Date().toISOString().split('T')[0];
-  </script>
-</body>
-</html>
+    // Refresh Lucide icons
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+</script>
+{% endblock %}

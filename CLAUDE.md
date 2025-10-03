@@ -41,6 +41,127 @@ python -c "from app.services.achievement_system import achievement_system; achie
 python -c "from app.services.holiday_service import holiday_service; print(holiday_service.get_upcoming_holidays(30))"  # Kommende Feiertage
 ```
 
+## 🚀 Deployment-Workflow (WICHTIG!)
+
+### Testserver & Live-Deployment
+
+**WICHTIG:** Alle Änderungen werden NUR auf den Hetzner-Testserver deployed!
+
+#### Hetzner-Testserver (Primär)
+- **Server:** `91.98.192.233`
+- **SSH-Key:** `~/.ssh/server_key`
+- **App-Pfad:** `/opt/business-hub/`
+- **Status:** Testserver (Go-Live in ~20 Tagen)
+- **URL:** http://91.98.192.233
+
+#### Deployment-Prozess für Änderungen
+
+**IMMER direkt auf Hetzner-Server deployen:**
+
+```bash
+# 1. Einzelne Datei übertragen
+scp -i ~/.ssh/server_key <lokale-datei> root@91.98.192.233:/opt/business-hub/<ziel-pfad>
+
+# 2. Mehrere Dateien gleichzeitig
+scp -i ~/.ssh/server_key file1.py file2.html root@91.98.192.233:/opt/business-hub/templates/
+
+# 3. Service neu starten nach Änderungen
+ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl restart business-hub"
+
+# 4. Logs prüfen
+ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/error.log"
+
+# 5. Status prüfen
+ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl status business-hub --no-pager"
+```
+
+#### Wichtige Server-Pfade
+```
+/opt/business-hub/                          # Hauptverzeichnis
+/opt/business-hub/app/routes/               # Flask-Routes
+/opt/business-hub/templates/                # Jinja2-Templates
+/opt/business-hub/static/                   # CSS/JS/Assets
+/opt/business-hub/data/persistent/          # Persistente Daten
+/opt/business-hub/backups/                  # Automatische Backups
+/opt/business-hub/venv/                     # Python Virtual Environment
+/var/log/business-hub/error.log             # Error-Logs
+/var/log/business-hub/access.log            # Access-Logs
+/var/log/business-hub/availability.log      # Availability-Generation-Logs
+/var/log/business-hub/outcome-check.log     # Daily-Outcome-Check-Logs
+/var/log/business-hub/achievement.log       # Achievement-Processing-Logs
+/var/log/business-hub/backup.log            # Backup-Logs
+/etc/systemd/system/business-hub.service    # Haupt-Service
+/etc/systemd/system/*.timer                 # Geplante Task-Timer
+/etc/nginx/sites-enabled/business-hub       # Nginx-Konfiguration
+```
+
+#### Deployment-Checkliste für Änderungen
+- [ ] Änderungen lokal testen (optional)
+- [ ] Per SCP auf Hetzner-Server übertragen
+- [ ] Service neu starten: `systemctl restart business-hub`
+- [ ] Logs prüfen auf Fehler
+- [ ] Funktionalität im Browser testen (http://91.98.192.233)
+- [ ] **NICHT auf Git/Render deployen** - nur Hetzner!
+
+#### Automatisierte Tasks auf dem Server
+
+**Automatische Backups (Cronjob):**
+```bash
+# Tägliches Backup um 2:00 Uhr
+0 2 * * * /usr/local/bin/business-hub-backup.sh
+
+# Manuelles Backup erstellen
+ssh -i ~/.ssh/server_key root@91.98.192.233 "/usr/local/bin/business-hub-backup.sh"
+
+# Backups auflisten
+ssh -i ~/.ssh/server_key root@91.98.192.233 "ls -lh /opt/business-hub/backups/"
+```
+
+**Systemd Timers für geplante Tasks:**
+```bash
+# Status aller Timer prüfen
+ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl list-timers"
+
+# Verfügbarkeits-Generierung (stündlich 07-18 UTC)
+systemctl status availability-generator.timer
+
+# Tägliche Outcome-Checks (19:00 UTC / 21:00 Berlin)
+systemctl status daily-outcome-check.timer
+
+# Achievement-Verarbeitung (20:00 UTC / 22:00 Berlin)
+systemctl status achievement-processor.timer
+
+# Timer manuell ausführen
+systemctl start availability-generator.service
+systemctl start daily-outcome-check.service
+systemctl start achievement-processor.service
+
+# Logs der geplanten Tasks
+tail -f /var/log/business-hub/availability.log
+tail -f /var/log/business-hub/outcome-check.log
+tail -f /var/log/business-hub/achievement.log
+tail -f /var/log/business-hub/backup.log
+```
+
+**Server-Monitoring:**
+```bash
+# Service-Status
+ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl status business-hub --no-pager"
+
+# Ressourcen-Nutzung
+ssh -i ~/.ssh/server_key root@91.98.192.233 "df -h /opt/business-hub && free -h"
+
+# Letzte Errors
+ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/error.log | grep ERROR"
+
+# Health Check (psutil erforderlich)
+curl http://91.98.192.233/health
+```
+
+#### Timeline
+- **Jetzt - Tag 20:** Testserver (Hetzner) - Alle Änderungen hier
+- **Ab Tag 20:** Live-Server (Hetzner) - Production-Deployment
+
 ## Anwendungsarchitektur
 
 ### Moderne Flask-Struktur

@@ -1,240 +1,184 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>User Management - Admin</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-    <style>
-        .users-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .users-header {
-            background: linear-gradient(135deg, var(--accent), #3b82f6);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            text-align: center;
-            color: white;
-        }
-        
-        .users-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: var(--accent);
-        }
-        
-        .stat-label {
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .users-table {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .table-header {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: bold;
-            color: #495057;
-        }
-        
-        .user-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-            gap: 15px;
-            padding: 15px 20px;
-            border-bottom: 1px solid #f1f3f4;
-            align-items: center;
-        }
-        
-        .user-row:hover {
-            background: #f8f9fa;
-        }
-        
-        .user-row:last-child {
-            border-bottom: none;
-        }
-        
-        .username {
-            font-weight: bold;
-            color: var(--accent);
-        }
-        
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-        
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-auto {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .points {
-            font-weight: bold;
-            color: #28a745;
-        }
-        
-        .bookings {
-            color: #6c757d;
-        }
-        
-        .password {
-            font-family: monospace;
-            font-size: 0.9em;
-            color: #6c757d;
-        }
-        
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn-small {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 0.8em;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-        
-        .back-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: var(--accent);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 25px;
-            text-decoration: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-        
-        .back-btn:hover {
-            background: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <div class="users-container">
-        <!-- Include Admin Navigation -->
-        {% include 'admin_nav.html' %}
-        <div class="users-header">
-            <h1>👥 User Management</h1>
-            <p>Übersicht aller aktiven Telefonisten und ihrer Statistiken</p>
-        </div>
-        
-        <div class="users-stats">
-            <div class="stat-card">
-                <div class="stat-value">{{ total_users }}</div>
-                <div class="stat-label">Aktive User</div>
+{% extends "hub/base.html" %}
+
+{% block title %}Benutzerverwaltung{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8" data-aos="fade-down">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
+                <i data-lucide="users" class="w-10 h-10 text-primary"></i>
             </div>
-            <div class="stat-card">
-                <div class="stat-value">{{ base_users_count }}</div>
-                <div class="stat-label">In USERLIST</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{{ total_users - base_users_count }}</div>
-                <div class="stat-label">Auto-erstellt</div>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white">Benutzerverwaltung</h1>
+                <p class="text-white/70 mt-1">Verwalte alle Systembenutzer</p>
             </div>
         </div>
-        
-        <div class="users-table">
-            <div class="table-header user-row">
-                <div>Username</div>
-                <div>Status</div>
-                <div>Passwort</div>
-                <div>Buchungen</div>
-                <div>Punkte ({{ "2025-09" }})</div>
-                <div>Aktionen</div>
-            </div>
-            
-            {% for user in users %}
-            <div class="user-row">
-                <div class="username">{{ user.username }}</div>
-                <div>
-                    {% if user.in_userlist %}
-                        <span class="status-badge status-active">Aktiv</span>
-                    {% else %}
-                        <span class="status-badge status-auto">Auto</span>
-                    {% endif %}
-                </div>
-                <div class="password">{{ user.password }}</div>
-                <div class="bookings">
-                    {% if user.has_bookings %}
-                        {{ user.total_bookings }} Buchungen
-                    {% else %}
-                        Keine Buchungen
-                    {% endif %}
-                </div>
-                <div class="points">{{ user.current_month_points }} Punkte</div>
-                <div class="actions">
-                    <a href="{{ url_for('admin.admin_fix_points') }}" class="btn-small btn-primary">Punkte Fix</a>
-                    {% if not user.in_userlist %}
-                        <span class="btn-small btn-warning">Auto-Konto</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <div style="margin-top: 30px; text-align: center; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
-            <a href="{{ url_for('admin.admin_fix_points') }}" class="btn-primary" style="padding: 15px 30px; font-size: 1.1em;">
-                🔧 Alle Punkte nachträglich vergeben
-            </a>
-            <a href="{{ url_for('admin.admin_backfill_september') }}" class="btn-secondary" style="padding: 15px 30px; font-size: 1.1em;" onclick="return confirm('Dies wird alle Kalenderdaten ab 2. September neu verarbeiten. Fortfahren?')">
-                📊 September Daten nachladen
-            </a>
-        </div>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost gap-2">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            <span>Zurück</span>
+        </a>
     </div>
-</body>
-</html>
+</div>
+
+<!-- Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="users" class="w-6 h-6 text-primary"></i>
+            <h3 class="font-semibold text-white">Gesamt</h3>
+        </div>
+        <div class="text-4xl font-bold text-white">{{ total_users }}</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="user-check" class="w-6 h-6 text-success"></i>
+            <h3 class="font-semibold text-white">Aktiv</h3>
+        </div>
+        <div class="text-4xl font-bold text-success">{{ active_users }}</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="shield-check" class="w-6 h-6 text-warning"></i>
+            <h3 class="font-semibold text-white">Admins</h3>
+        </div>
+        <div class="text-4xl font-bold text-warning">{{ admin_count }}</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="400">
+        <div class="flex items-center gap-3 mb-3">
+            <i data-lucide="activity" class="w-6 h-6 text-accent"></i>
+            <h3 class="font-semibold text-white">Online</h3>
+        </div>
+        <div class="text-4xl font-bold text-accent">{{ online_users }}</div>
+    </div>
+</div>
+
+<!-- User List -->
+<div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="500">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-white">Alle Benutzer</h2>
+        <button class="btn btn-primary gap-2" onclick="document.getElementById('add_user_modal').showModal()">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
+            <span>Neuer Benutzer</span>
+        </button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="table w-full">
+            <thead>
+                <tr>
+                    <th class="text-white">Benutzer</th>
+                    <th class="text-white">Status</th>
+                    <th class="text-white">Rolle</th>
+                    <th class="text-white">Letzter Login</th>
+                    <th class="text-white">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="hover:bg-white/5">
+                    <td>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                <i data-lucide="user" class="w-5 h-5 text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">{{ user.username }}</div>
+                                <div class="text-sm text-white/60">{{ user.email or 'Keine Email' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="badge {% if user.active %}badge-success{% else %}badge-error{% endif %}">
+                            {{ 'Aktiv' if user.active else 'Inaktiv' }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="badge {% if user.is_admin %}badge-warning{% else %}badge-ghost{% endif %}">
+                            {{ 'Admin' if user.is_admin else 'Benutzer' }}
+                        </div>
+                    </td>
+                    <td class="text-white/70">{{ user.last_login or 'Nie' }}</td>
+                    <td>
+                        <div class="flex gap-2">
+                            <button class="btn btn-sm btn-ghost" onclick="editUser('{{ user.username }}')">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            {% if not user.is_admin %}
+                            <button class="btn btn-sm btn-error btn-outline" onclick="deleteUser('{{ user.username }}')">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<dialog id="add_user_modal" class="modal">
+    <div class="modal-box glass">
+        <h3 class="font-bold text-2xl text-white mb-4">Neuen Benutzer hinzufügen</h3>
+        <form method="post" action="{{ url_for('admin.admin_users') }}">
+            <div class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text text-white">Benutzername</span>
+                    </label>
+                    <input type="text" name="username" class="input input-bordered w-full" required>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text text-white">Passwort</span>
+                    </label>
+                    <input type="password" name="password" class="input input-bordered w-full" required>
+                </div>
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <span class="label-text text-white">Admin-Rechte</span>
+                        <input type="checkbox" name="is_admin" class="checkbox checkbox-primary">
+                    </label>
+                </div>
+            </div>
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('add_user_modal').close()">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Hinzufügen</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>Schließen</button>
+    </form>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function editUser(username) {
+        // Implementation for editing user
+        alert('Edit user: ' + username);
+    }
+
+    function deleteUser(username) {
+        if (confirm('Möchten Sie den Benutzer ' + username + ' wirklich löschen?')) {
+            fetch('/admin/users/delete/' + username, {
+                method: 'POST'
+            }).then(() => location.reload());
+        }
+    }
+
+    // Refresh Lucide icons
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+</script>
+{% endblock %}

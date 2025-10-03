@@ -1,711 +1,245 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Prestige & Mastery - {{ current_user }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
-    
-    <style>
-        .prestige-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .prestige-hero {
-            background: linear-gradient(135deg, #eab308, #f59e0b, #ec4899);
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 30px;
-            text-align: center;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .prestige-hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="stars" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23stars)"/></svg>');
-            opacity: 0.4;
-            animation: twinkle 4s ease-in-out infinite;
-        }
-        
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 0.7; }
-        }
-        
-        .prestige-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .prestige-level {
-            font-size: 4em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        
-        .prestige-title {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            opacity: 0.95;
-        }
-        
-        .current-level-display {
-            background: rgba(255,255,255,0.2);
-            border-radius: 15px;
-            padding: 15px 25px;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        
-        .mastery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-            margin: 30px 0;
-        }
-        
-        .mastery-card {
-            background: var(--box-bg);
-            border: 1px solid var(--box-border);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .mastery-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 45px rgba(0,0,0,0.15);
-        }
-        
-        .mastery-card.max-level {
-            border-color: #eab308;
-            background: linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.05));
-        }
-        
-        .mastery-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        
-        .mastery-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-color);
-        }
-        
-        .mastery-level-badge {
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .mastery-level-1 { background: rgba(16,185,129,0.2); color: #10b981; }
-        .mastery-level-2 { background: rgba(59,130,246,0.2); color: #3b82f6; }
-        .mastery-level-3 { background: rgba(139,92,246,0.2); color: #8b5cf6; }
-        .mastery-level-4 { background: rgba(245,158,11,0.2); color: #f59e0b; }
-        .mastery-level-5 { background: rgba(234,179,8,0.2); color: #eab308; }
-        
-        .mastery-description {
-            color: var(--muted);
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        
-        .mastery-progress {
-            margin-bottom: 20px;
-        }
-        
-        .mastery-metric {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .metric-current {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--accent);
-        }
-        
-        .metric-target {
-            color: var(--muted);
-            font-size: 14px;
-        }
-        
-        .progress-bar {
-            height: 12px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 6px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 6px;
-            transition: width 0.5s ease;
-            position: relative;
-        }
-        
-        .progress-fill.can-upgrade {
-            background: linear-gradient(90deg, var(--green), #059669);
-            animation: glow 2s ease-in-out infinite;
-        }
-        
-        .progress-fill.normal {
-            background: linear-gradient(90deg, var(--accent), #3d8bfd);
-        }
-        
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.5); }
-            50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.8); }
-        }
-        
-        .upgrade-btn {
-            width: 100%;
-            padding: 12px 20px;
-            background: var(--green);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .upgrade-btn:hover {
-            background: #059669;
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
-        }
-        
-        .upgrade-btn:disabled {
-            background: var(--muted);
-            cursor: not-allowed;
-            opacity: 0.6;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .prestige-section {
-            background: var(--box-bg);
-            border: 1px solid var(--box-border);
-            border-radius: var(--radius-lg);
-            padding: 30px;
-            margin: 30px 0;
-            text-align: center;
-        }
-        
-        .prestige-requirements {
-            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0.05));
-            border: 1px solid rgba(59,130,246,0.3);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            margin: 20px 0;
-        }
-        
-        .requirement-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .requirement-item:last-child {
-            border-bottom: none;
-        }
-        
-        .requirement-status {
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .requirement-met {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-        
-        .requirement-unmet {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-        
-        .prestige-btn {
-            padding: 15px 40px;
-            background: linear-gradient(135deg, #eab308, #f59e0b);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .prestige-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s ease;
-        }
-        
-        .prestige-btn:hover::before {
-            left: 100%;
-        }
-        
-        .prestige-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(234, 179, 8, 0.4);
-        }
-        
-        .prestige-btn:disabled {
-            background: var(--muted);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .benefits-list {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0;
-        }
-        
-        .benefits-list li {
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .benefits-list li:last-child {
-            border-bottom: none;
-        }
-        
-        .leaderboard-section {
-            background: var(--box-bg);
-            border: 1px solid var(--box-border);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            margin: 30px 0;
-        }
-        
-        .leaderboard-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255,255,255,0.03);
-            border-radius: var(--radius-md);
-            transition: all 0.2s ease;
-        }
-        
-        .leaderboard-item:hover {
-            transform: translateX(5px);
-            background: rgba(255,255,255,0.05);
-        }
-        
-        .leaderboard-rank {
-            font-size: 20px;
-            font-weight: bold;
-            margin-right: 20px;
-            min-width: 40px;
-        }
-        
-        .leaderboard-rank.rank-1 { color: #eab308; }
-        .leaderboard-rank.rank-2 { color: #9ca3af; }
-        .leaderboard-rank.rank-3 { color: #cd7c2f; }
-        
-        .leaderboard-user {
-            flex: 1;
-            font-weight: 600;
-        }
-        
-        .leaderboard-stats {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        
-        .stat-item {
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-weight: bold;
-            color: var(--accent);
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            color: var(--muted);
-            text-transform: uppercase;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        }
-        
-        .notification.success {
-            background: #10b981;
-            color: white;
-        }
-        
-        .notification.error {
-            background: #ef4444;
-            color: white;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    </style>
-</head>
-<body>
-    <div class="prestige-container">
-        
-        <!-- Header -->
-        <div class="glass panel">
-            <h1><i class="ti ti-star"></i> Prestige & Mastery</h1>
-            <p>Erreiche die ultimative Meisterschaft und sammle Prestige-Sterne</p>
-            
-            <a href="{{ url_for('scoreboard.gamification_dashboard') }}" style="color: var(--accent); text-decoration: none;">
-                ← Zurück zum Dashboard
-            </a>
+{% extends "hub/base.html" %}
+
+{% block title %}Prestige Dashboard - {{ current_user }}{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 bg-gradient-to-br from-purple-600/30 to-accent/30 relative overflow-hidden" data-aos="fade-down">
+    <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-0 left-0 w-64 h-64 bg-purple-600 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 w-64 h-64 bg-accent rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative z-10 text-center">
+        <div class="inline-block p-4 rounded-2xl bg-purple-600/20 mb-4">
+            <i data-lucide="crown" class="w-16 h-16 text-purple-400"></i>
         </div>
-        
-        <!-- Prestige Hero Section -->
-        <div class="prestige-hero">
-            <div class="prestige-content">
-                <div class="prestige-level">{{ prestige_data.prestige_title.name if prestige_data.prestige_level > 0 else "Level " + prestige_data.current_level|string }}</div>
-                <div class="prestige-title">
-                    {% if prestige_data.prestige_level > 0 %}
-                        {{ prestige_data.prestige_title.name }}
-                    {% else %}
-                        Bereit für Prestige?
-                    {% endif %}
-                </div>
-                <div class="current-level-display">
-                    <strong>Aktuelles Level:</strong> {{ prestige_data.current_level }} |
-                    <strong>Prestige Points:</strong> {{ prestige_data.prestige_points }}
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">👑 Prestige System</h1>
+        <p class="text-xl text-white/80">Elite-Status und Meisterschafts-Errungenschaften</p>
+    </div>
+</div>
+
+<!-- Current Prestige Status -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="100">
+        <div class="text-6xl font-bold text-purple-400 mb-2">{{ prestige_data.level }}</div>
+        <div class="text-white/70 mb-4">Prestige Level</div>
+        <div class="badge badge-lg badge-primary">{{ prestige_data.tier }}</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="200">
+        <div class="text-6xl font-bold text-accent mb-2">{{ prestige_data.total_points }}</div>
+        <div class="text-white/70 mb-4">Prestige Punkte</div>
+        <div class="badge badge-lg badge-accent">Gesamt</div>
+    </div>
+
+    <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="300">
+        <div class="text-6xl font-bold text-secondary mb-2">{{ prestige_data.rank }}</div>
+        <div class="text-white/70 mb-4">Globaler Rang</div>
+        <div class="badge badge-lg badge-success">Top {{ prestige_data.percentile }}%</div>
+    </div>
+</div>
+
+<!-- Mastery Categories -->
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="400">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <i data-lucide="award" class="w-7 h-7 text-primary"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-white">Meisterschafts-Kategorien</h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for category, data in prestige_data.mastery_categories.items() %}
+        <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-bold text-white">{{ category|title }}</h4>
+                <div class="badge
+                    {% if data.level >= 5 %}badge-error
+                    {% elif data.level >= 4 %}badge-warning
+                    {% elif data.level >= 3 %}badge-info
+                    {% else %}badge-primary{% endif %}">
+                    Level {{ data.level }}
                 </div>
             </div>
-        </div>
-        
-        <!-- Prestige Section -->
-        {% if prestige_data.can_prestige %}
-        <div class="prestige-section">
-            <h2><i class="ti ti-star-filled"></i> Prestige Upgrade verfügbar!</h2>
-            <p>Du hast Level {{ prestige_data.current_level }} erreicht und kannst jetzt ein Prestige durchführen!</p>
-            
-            <div class="prestige-requirements">
-                <h3>Anforderungen für {{ prestige_data.next_prestige_requirement and "Prestige " + (prestige_data.prestige_level + 1)|string or "nächstes Prestige" }}:</h3>
-                
-                <div class="requirement-item">
-                    <span>Mindest-Level: {{ prestige_data.next_prestige_requirement or 10 }}</span>
-                    <span class="requirement-status {{ 'requirement-met' if prestige_data.can_upgrade else 'requirement-unmet' }}">
-                        {{ '✓ Erfüllt' if prestige_data.can_upgrade else '✗ Nicht erfüllt' }}
-                    </span>
+
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-white/60 mb-2">
+                    <span>{{ data.current_points }} Punkte</span>
+                    <span>{{ data.next_threshold }} Punkte</span>
                 </div>
-                
-                <div class="requirement-item">
-                    <span>Aktuelles Level: {{ prestige_data.current_level }}</span>
-                    <span class="requirement-status requirement-met">✓ Erfüllt</span>
+                <div class="w-full bg-white/10 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-primary to-purple-600 h-3 rounded-full transition-all"
+                         style="width: {{ data.progress_percent }}%"></div>
                 </div>
             </div>
-            
-            <h3>Prestige-Vorteile:</h3>
-            <ul class="benefits-list">
-                {% for benefit in prestige_data.prestige_benefits or [] %}
-                <li><i class="ti ti-check" style="color: var(--green);"></i> {{ benefit }}</li>
+
+            <div class="text-sm text-white/60">
+                {% if data.next_reward %}
+                <div class="bg-accent/10 border border-accent/30 rounded-lg p-2 text-center">
+                    Nächste Belohnung: {{ data.next_reward }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Prestige Perks -->
+{% if prestige_data.active_perks %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="500">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-7 h-7 text-secondary"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-white">Aktive Prestige-Vorteile</h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for perk in prestige_data.active_perks %}
+        <div class="glass rounded-xl p-4 flex items-center gap-4">
+            <div class="text-3xl">{{ perk.icon }}</div>
+            <div class="flex-1">
+                <h4 class="font-semibold text-white mb-1">{{ perk.name }}</h4>
+                <p class="text-sm text-white/60">{{ perk.description }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Next Prestige Level Preview -->
+{% if prestige_data.next_level_info %}
+<div class="glass rounded-3xl p-8 mb-8 bg-gradient-to-br from-accent/10 to-purple-600/10" data-aos="fade-up" data-aos-delay="600">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
+            <i data-lucide="chevrons-up" class="w-7 h-7 text-accent"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-white">Nächstes Prestige Level</h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <div class="text-lg text-white/70 mb-2">Benötigt:</div>
+            <div class="text-4xl font-bold text-accent mb-4">{{ prestige_data.next_level_info.points_required }} Punkte</div>
+            <div class="w-full bg-white/10 rounded-full h-4 mb-2">
+                <div class="bg-accent h-4 rounded-full transition-all"
+                     style="width: {{ prestige_data.next_level_info.progress_percent }}%"></div>
+            </div>
+            <div class="text-sm text-white/60">
+                Noch {{ prestige_data.next_level_info.points_needed }} Punkte
+            </div>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-6">
+            <div class="text-lg font-semibold text-white mb-4">Freischaltbare Vorteile:</div>
+            <ul class="space-y-2">
+                {% for reward in prestige_data.next_level_info.unlocks %}
+                <li class="flex items-center gap-2 text-white/80">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-secondary"></i>
+                    <span>{{ reward }}</span>
+                </li>
                 {% endfor %}
             </ul>
-            
-            <button class="prestige-btn" onclick="performPrestige()" {{ 'disabled' if not prestige_data.can_upgrade }}>
-                <i class="ti ti-star"></i>
-                Prestige durchführen
-            </button>
-            
-            {% if not prestige_data.can_upgrade %}
-            <p style="color: var(--muted); margin-top: 15px;">
-                Erreiche Level {{ prestige_data.next_prestige_requirement }} um das nächste Prestige freizuschalten.
-            </p>
-            {% endif %}
-        </div>
-        {% endif %}
-        
-        <!-- Mastery Categories -->
-        <div class="glass panel">
-            <h2><i class="ti ti-trophy"></i> Mastery-Kategorien</h2>
-            <p>Spezialisiere dich in verschiedenen Bereichen und schalte mächtige Boni frei</p>
-        </div>
-        
-        <div class="mastery-grid">
-            {% for category_id, progress in mastery_progress.items() %}
-            <div class="mastery-card {{ 'max-level' if progress.current_level >= 5 else '' }}">
-                <div class="mastery-header">
-                    <div class="mastery-title">{{ progress.category.name }}</div>
-                    {% if progress.current_level > 0 %}
-                    <div class="mastery-level-badge mastery-level-{{ progress.current_level }}">
-                        {{ progress.current_level_info.emoji }} {{ progress.current_level_info.name }}
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <div class="mastery-description">
-                    {{ progress.category.description }}
-                </div>
-                
-                <div class="mastery-progress">
-                    <div class="mastery-metric">
-                        <div class="metric-current">{{ progress.metric_value }}</div>
-                        <div class="metric-target">
-                            {% if progress.next_level %}
-                            Ziel: {{ progress.next_requirement }}
-                            {% else %}
-                            Max Level erreicht!
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    {% if progress.next_level %}
-                    <div class="progress-bar">
-                        <div class="progress-fill {{ 'can-upgrade' if progress.can_upgrade else 'normal' }}" 
-                             style="width: {{ progress.progress_percent }}%"></div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--muted);">
-                        <span>{{ progress.progress_percent|round(1) }}%</span>
-                        <span>{{ progress.metric_value }} / {{ progress.next_requirement }}</span>
-                    </div>
-                    {% else %}
-                    <div style="text-align: center; color: var(--green); font-weight: 600; margin: 15px 0;">
-                        <i class="ti ti-crown" style="font-size: 20px;"></i><br>
-                        Maximales Level erreicht!
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <button class="upgrade-btn" 
-                        onclick="upgradeMastery('{{ category_id }}')"
-                        {{ 'disabled' if not progress.can_upgrade else '' }}>
-                    {% if progress.can_upgrade %}
-                    <i class="ti ti-arrow-up"></i>
-                    Auf Level {{ progress.next_level }} upgraden
-                    {% elif progress.next_level %}
-                    <i class="ti ti-clock"></i>
-                    {{ progress.next_requirement - progress.metric_value }} weitere benötigt
-                    {% else %}
-                    <i class="ti ti-crown"></i>
-                    Gemeistert
-                    {% endif %}
-                </button>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <!-- Prestige Leaderboard -->
-        <div class="leaderboard-section">
-            <h2><i class="ti ti-podium"></i> Prestige Rangliste</h2>
-            <p>Die besten Prestige-Spieler aller Zeiten</p>
-            
-            {% if prestige_leaderboard %}
-                {% for player in prestige_leaderboard[:10] %}
-                <div class="leaderboard-item">
-                    <div class="leaderboard-rank rank-{{ loop.index if loop.index <= 3 else 'other' }}">
-                        {% if loop.index == 1 %}🥇
-                        {% elif loop.index == 2 %}🥈  
-                        {% elif loop.index == 3 %}🥉
-                        {% else %}{{ loop.index }}{% endif %}
-                    </div>
-                    <div class="leaderboard-user">{{ player.user }}</div>
-                    <div class="leaderboard-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">{{ player.prestige_title.name if player.prestige_level > 0 else "Level " + player.current_level|string }}</div>
-                            <div class="stat-label">Status</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">{{ player.prestige_level }}</div>
-                            <div class="stat-label">Prestige</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">{{ player.prestige_points }}</div>
-                            <div class="stat-label">Points</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">{{ player.total_prestiges }}</div>
-                            <div class="stat-label">Total</div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-            <div style="text-align: center; padding: 40px; color: var(--muted);">
-                <i class="ti ti-star" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
-                <h3>Noch keine Prestige-Spieler</h3>
-                <p>Sei der erste, der Level 10 erreicht und ein Prestige durchführt!</p>
-            </div>
-            {% endif %}
-        </div>
-        
-        <!-- Navigation -->
-        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
-            <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="nav-btn">
-                <i class="ti ti-arrow-left"></i> Dashboard
-            </a>
-            <a href="{{ url_for('gamification.daily_quests') }}" class="nav-btn">
-                <i class="ti ti-target"></i> Quests
-            </a>
-            <a href="{{ url_for('gamification.analytics_dashboard') }}" class="nav-btn">
-                <i class="ti ti-chart-bar"></i> Analytics
-            </a>
         </div>
     </div>
-    
-    <script>
-        let pageIsActive = true;
-        
-        // Cleanup when leaving the page
-        window.addEventListener('beforeunload', function() {
-            pageIsActive = false;
-        });
-        
-        // Cleanup when navigating away
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                pageIsActive = false;
-            }
-        });
-        
-        async function performPrestige() {
-            if (!pageIsActive) return;
-            if (!confirm('Bist du sicher? Ein Prestige setzt dein Level auf 1 zurück, gewährt aber mächtige Boni!')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('{{ url_for('gamification.api_perform_prestige') }}', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showNotification(`🎉 ${result.message}`, 'success');
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    showNotification(result.message, 'error');
-                }
-            } catch (error) {
-                showNotification('Fehler beim Prestige-Upgrade', 'error');
-            }
-        }
-        
-        async function upgradeMastery(categoryId) {
-            if (!pageIsActive) return;
-            try {
-                const response = await fetch('{{ url_for('gamification.api_upgrade_mastery') }}', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({category_id: categoryId})
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showNotification(`🏆 ${result.message}`, 'success');
-                    location.reload();
-                } else {
-                    showNotification(result.message, 'error');
-                }
-            } catch (error) {
-                showNotification('Fehler beim Mastery-Upgrade', 'error');
-            }
-        }
-        
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-        
-        // Add nav-btn styles and animations
-        const style = document.createElement('style');
-        style.textContent = `
-            .nav-btn {
-                padding: 12px 24px;
-                background: var(--accent);
-                color: white;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-                border: none;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .nav-btn:hover {
-                background: #3b82f6;
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
-</body>
-</html>
+</div>
+{% endif %}
+
+<!-- Prestige History/Timeline -->
+{% if prestige_data.history %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="700">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center">
+            <i data-lucide="clock" class="w-7 h-7 text-purple-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-white">Prestige Verlauf</h3>
+    </div>
+
+    <div class="space-y-4">
+        {% for entry in prestige_data.history[:5] %}
+        <div class="glass rounded-xl p-4 flex items-center gap-4">
+            <div class="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <div class="text-2xl font-bold text-primary">{{ entry.level }}</div>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-semibold text-white">{{ entry.achievement }}</h4>
+                <p class="text-sm text-white/60">{{ entry.date }}</p>
+            </div>
+            <div class="badge badge-primary">+{{ entry.points }} Punkte</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Leaderboard Preview -->
+{% if prestige_leaderboard %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="800">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
+                <i data-lucide="trophy" class="w-7 h-7 text-warning"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white">Prestige Rangliste</h3>
+        </div>
+        <a href="{{ url_for('scoreboard.leaderboard') }}" class="btn btn-sm btn-ghost">
+            Alle anzeigen
+            <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+        </a>
+    </div>
+
+    <div class="space-y-3">
+        {% for entry in prestige_leaderboard[:10] %}
+        <div class="glass rounded-xl p-4 flex items-center gap-4 {{ 'bg-gradient-to-r from-warning/20 to-accent/20' if entry.user == current_user else '' }}">
+            <div class="w-12 h-12 rounded-xl
+                {% if loop.index == 1 %}bg-warning/20 text-warning
+                {% elif loop.index == 2 %}bg-white/20 text-white
+                {% elif loop.index == 3 %}bg-accent/20 text-accent
+                {% else %}bg-white/10 text-white/60{% endif %}
+                flex items-center justify-center font-bold">
+                #{{ loop.index }}
+            </div>
+            <div class="flex-1">
+                <div class="font-semibold text-white">{{ entry.user }}</div>
+                <div class="text-sm text-white/60">Level {{ entry.prestige_level }}</div>
+            </div>
+            <div class="text-right">
+                <div class="font-bold text-primary">{{ entry.prestige_points }}</div>
+                <div class="text-xs text-white/60">Punkte</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="flex justify-center gap-4 flex-wrap" data-aos="fade-up" data-aos-delay="900">
+    <a href="{{ url_for('gamification.daily_quests') }}" class="btn btn-primary gap-2">
+        <i data-lucide="target" class="w-5 h-5"></i>
+        <span>Quests starten</span>
+    </a>
+    <a href="{{ url_for('scoreboard.leaderboard') }}" class="btn btn-secondary gap-2">
+        <i data-lucide="trophy" class="w-5 h-5"></i>
+        <span>Rangliste</span>
+    </a>
+    <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-ghost gap-2">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        <span>Zurück</span>
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Refresh Lucide icons
+    setTimeout(() => {
+        lucide.createIcons();
+    }, 100);
+</script>
+{% endblock %}

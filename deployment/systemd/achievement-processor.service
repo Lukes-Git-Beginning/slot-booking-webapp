@@ -1,0 +1,19 @@
+[Unit]
+Description=Business Hub - Achievement Processor
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+After=network.target business-hub.service daily-outcome-check.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/business-hub
+ExecStart=/opt/business-hub/venv/bin/python /opt/business-hub/scripts/process_achievements.py
+StandardOutput=append:/var/log/business-hub/achievement.log
+StandardError=append:/var/log/business-hub/achievement.log
+
+# Env Variables
+Environment="GOOGLE_CREDS_BASE64=${GOOGLE_CREDS_BASE64}"
+EnvironmentFile=-/opt/business-hub/.env
+
+[Install]
+WantedBy=multi-user.target
