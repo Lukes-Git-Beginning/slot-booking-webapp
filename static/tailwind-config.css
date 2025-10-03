@@ -1,0 +1,281 @@
+/* ========================================
+   Tailwind CSS + DaisyUI Configuration
+   Moderne UI-Library Integration
+   ======================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Tailwind Base Styles Override */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Theme Variables - Glassmorphism Design */
+:root {
+  /* Brand Colors */
+  --primary: #5ab1ff;
+  --primary-dark: #2196F3;
+  --secondary: #10b981;
+  --accent: #f97316;
+  --accent-light: #fb923c;
+
+  /* Neutral Colors */
+  --bg-main: #0b0f14;
+  --bg-secondary: #121922;
+  --text-primary: #e5eef7;
+  --text-secondary: #9aa7b5;
+  --text-muted: #6b7280;
+
+  /* Glass Effect */
+  --glass-bg: rgba(18, 24, 32, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  /* Status Colors */
+  --success: #10b981;
+  --warning: #eab308;
+  --error: #ef4444;
+  --info: #3b82f6;
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+}
+
+/* Light Mode Variables */
+[data-theme="light"], .lightmode {
+  --bg-main: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-main);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Glass Morphism Utility Classes */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  @apply glass rounded-2xl p-6 transition-all duration-300;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Gradient Backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Animated Gradient Background */
+.animated-gradient {
+  background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Button Styles */
+.btn-modern {
+  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+  @apply hover:shadow-lg hover:-translate-y-0.5;
+}
+
+.btn-primary {
+  @apply btn-modern;
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 10px 30px rgba(90, 177, 255, 0.4);
+}
+
+.btn-glass {
+  @apply btn-modern glass;
+  color: var(--text-primary);
+}
+
+/* Card Styles */
+.card-modern {
+  @apply glass-card overflow-hidden;
+}
+
+.card-header {
+  @apply px-6 py-4 border-b border-white/10;
+  background: linear-gradient(135deg, rgba(90, 177, 255, 0.1), rgba(90, 177, 255, 0.05));
+}
+
+/* Input Styles */
+.input-modern {
+  @apply w-full px-4 py-3 rounded-lg;
+  @apply bg-white/5 border border-white/10;
+  @apply text-white placeholder-white/40;
+  @apply focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+  @apply transition-all duration-300;
+}
+
+[data-theme="light"] .input-modern {
+  @apply bg-black/5 border-black/10;
+  @apply text-gray-900 placeholder-gray-400;
+}
+
+/* Badge Styles */
+.badge-modern {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-success {
+  @apply badge-modern;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-warning {
+  @apply badge-modern;
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.badge-error {
+  @apply badge-modern;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.badge-info {
+  @apply badge-modern;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+/* Loading Spinner */
+.spinner {
+  @apply inline-block w-6 h-6 border-4 border-white/20 border-t-primary rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Glow Effects */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(90, 177, 255, 0.4),
+              0 0 40px rgba(90, 177, 255, 0.2);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4),
+              0 0 40px rgba(16, 185, 129, 0.2);
+}
+
+.glow-warning {
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.4),
+              0 0 40px rgba(234, 179, 8, 0.2);
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .glass-card {
+    @apply p-4;
+  }
+
+  .btn-modern {
+    @apply px-4 py-2 text-sm;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Text Selection */
+::selection {
+  background: var(--primary);
+  color: white;
+}

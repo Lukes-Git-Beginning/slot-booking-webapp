@@ -1,0 +1,137 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Profil - {{ user }} | Business Tool Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8" data-aos="fade-down">
+        <h1 class="text-4xl font-bold mb-2">Mein Profil</h1>
+        <p class="text-gray-400">Verwalte deine Profildaten und Statistiken</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Profil-Info Card -->
+        <div class="lg:col-span-1">
+            <div class="glass rounded-3xl p-6" data-aos="fade-right">
+                <div class="text-center mb-6">
+                    <div class="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-5xl font-bold mb-4">
+                        {{ user[0]|upper }}
+                    </div>
+                    <h2 class="text-2xl font-bold mb-1">{{ user }}</h2>
+                    <p class="text-sm text-gray-400">
+                        {% if is_admin %}
+                        <span class="badge badge-primary">Administrator</span>
+                        {% else %}
+                        <span class="badge badge-ghost">Benutzer</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">Account erstellt</span>
+                        <span class="font-semibold">{{ stats.account_created }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">Total Logins</span>
+                        <span class="font-semibold">{{ stats.total_logins }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">Tools genutzt</span>
+                        <span class="font-semibold">{{ stats.tools_used }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">Total Aktionen</span>
+                        <span class="font-semibold">{{ stats.total_actions }}</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <a href="{{ url_for('hub.settings') }}" class="btn btn-primary w-full">
+                    <i data-lucide="settings" class="w-4 h-4 mr-2"></i>
+                    Einstellungen bearbeiten
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Tool-Zugriff -->
+            <div class="glass rounded-3xl p-6" data-aos="fade-left">
+                <h3 class="text-2xl font-bold mb-4">Verfügbare Tools</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for tool in tools_access %}
+                    <div class="bg-base-300/30 rounded-xl p-4 hover:bg-base-300/50 transition-all">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="text-3xl">{{ tool.icon }}</div>
+                            <div>
+                                <h4 class="font-bold">{{ tool.name }}</h4>
+                                <p class="text-xs text-gray-400">{{ tool.description }}</p>
+                            </div>
+                        </div>
+                        {% if tool.status == 'active' %}
+                        <span class="badge badge-success badge-sm">Verfügbar</span>
+                        {% else %}
+                        <span class="badge badge-ghost badge-sm">Coming Soon</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Letzte Aktivitäten -->
+            <div class="glass rounded-3xl p-6" data-aos="fade-up">
+                <h3 class="text-2xl font-bold mb-4">Letzte Aktivitäten</h3>
+                <div class="space-y-3">
+                    {% for activity in recent_activities %}
+                    <div class="flex items-center gap-4 p-3 bg-base-300/30 rounded-lg hover:bg-base-300/50 transition-colors">
+                        <div class="text-2xl">{{ activity.icon }}</div>
+                        <div class="flex-1">
+                            <p class="font-semibold">{{ activity.action }}</p>
+                            <p class="text-sm text-gray-400">{{ activity.details }}</p>
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            {{ activity.timestamp[:10] }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Performance Stats -->
+            <div class="glass rounded-3xl p-6" data-aos="fade-up" data-aos-delay="100">
+                <h3 class="text-2xl font-bold mb-4">Performance</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-base-300/30 rounded-xl">
+                        <p class="text-3xl font-bold text-primary">{{ stats.total_logins }}</p>
+                        <p class="text-sm text-gray-400">Logins</p>
+                    </div>
+                    <div class="text-center p-4 bg-base-300/30 rounded-xl">
+                        <p class="text-3xl font-bold text-success">{{ stats.total_actions }}</p>
+                        <p class="text-sm text-gray-400">Aktionen</p>
+                    </div>
+                    <div class="text-center p-4 bg-base-300/30 rounded-xl">
+                        <p class="text-3xl font-bold text-accent">{{ stats.tools_used }}</p>
+                        <p class="text-sm text-gray-400">Tools</p>
+                    </div>
+                    <div class="text-center p-4 bg-base-300/30 rounded-xl">
+                        <p class="text-3xl font-bold text-warning">100%</p>
+                        <p class="text-sm text-gray-400">Uptime</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Re-initialize Lucide icons after DOM update
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}
