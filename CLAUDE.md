@@ -4,16 +4,40 @@ Diese Datei bietet Anleitungen für Claude Code (claude.ai/code) bei der Arbeit 
 
 ## Projektübersicht
 
-**Slot Booking Webapp** ist ein umfassendes Terminbuchungssystem auf Enterprise-Niveau mit fortschrittlicher Gamification, Analytics und Business Intelligence-Features. Dies ist nicht nur ein einfaches Buchungssystem - es ist eine voll ausgestattete Geschäftsanwendung mit ausgeklügeltem Nutzerengagement und Datenanalyse-Fähigkeiten.
+**Central Business Tool Hub** ist eine umfassende Multi-Tool-Plattform auf Enterprise-Niveau, die mehrere Business-Anwendungen unter einem einheitlichen Hub vereint. Was als Slot Booking Webapp begann, hat sich zu einem vollwertigen Business-Tool-Ökosystem entwickelt.
 
-### Hauptfunktionen
-- 🎯 **Vollständige Terminverwaltung** - Multi-Berater-Buchung mit Google Calendar-Integration
-- 🎮 **Fortschrittliche Gamification** - Achievement-Systeme, Badges, Level, Prestige, tägliche Quests, Cosmetics Shop
-- 📊 **Business Intelligence** - Umfassende Analytics, Vorhersage-Einblicke, Kundenprofilerstellung
-- 🔧 **Admin-Dashboard** - Vollständige administrative Kontrolle mit Reporting und Benutzerverwaltung
-- 🎨 **Anpassungssystem** - Benutzer-Personalisierung mit Themes, Avataren und benutzerdefinierten Zielen
-- 📱 **Moderne Architektur** - Produktionsreife Flask-Anwendung mit ordnungsgemäßer Trennung der Belange
-- 🗓️ **Feiertags-Sperrung** - Automatische Sperrung deutscher Feiertage (NRW) mit Admin-Verwaltung
+### Hauptkomponenten
+
+#### 🏠 **Central Hub**
+- Zentrale Landing-Page mit Tool-Navigation
+- Einheitliche Authentifizierung über alle Tools hinweg
+- Übergreifende Benutzer-Analytics und Dashboard
+- Cross-Tool-Benachrichtigungen und Aktivitätstracking
+- Security-Center (2FA, Passwort-Management)
+
+#### 🎯 **Slot-Booking Tool** (Production-Ready)
+- Multi-Berater-Terminverwaltung mit Google Calendar-Integration
+- Fortschrittliche Gamification (Achievements, Badges, Prestige, Quests)
+- Business Intelligence & Predictive Analytics
+- Cosmetics Shop & Personalisierung
+- Feiertags-Sperrung für deutsche NRW-Feiertage
+
+#### 👥 **T2-Closer System** (Production-Ready)
+- T2-Termin-Management und Follow-up-System
+- Dedicated Dashboard für T2-Closer-Aktivitäten
+- Integration mit Slot-Booking für nahtlose Workflows
+
+#### 📊 **Analytics Tool** (Coming Soon)
+- Business Intelligence über alle Tools hinweg
+- Executive Reports & KPI-Dashboards
+- Predictive Modeling & Forecasting
+
+### Architektur-Highlights
+- 🏗️ **Microservice-Architektur** - Jedes Tool als eigenständiges Modul mit gemeinsamer Infrastruktur
+- 🔐 **Zentralisierte Sicherheit** - 2FA, Session-Management, RBAC über alle Tools
+- 📱 **Moderne Flask-Struktur** - Blueprint-basiert, skalierbar, wartbar
+- 🔄 **Shared Services** - Wiederverwendbare Services (Data Persistence, Caching, Logging)
+- 🎨 **Konsistente UX** - Einheitliches Design-System über alle Tools
 
 ## Entwicklungskommandos
 
@@ -169,48 +193,99 @@ Die Anwendung folgt einer professionellen Flask-Struktur mit:
 
 ```
 app/
-├── config/           # Umgebungsbasierte Konfiguration
-│   ├── base.py      # Basis-Konfigurationsklassen
-│   ├── development.py
-│   └── production.py
-├── core/            # Kern-Anwendungskomponenten
-│   ├── extensions.py    # Flask-Extensions-Initialisierung
+├── __init__.py           # Application Factory - Central Hub Setup
+├── config/               # Umgebungsbasierte Konfiguration
+│   ├── base.py          # Basis-Konfigurationsklassen
+│   ├── development.py   # Development-Settings
+│   ├── production.py    # Production-Settings
+│   └── legacy_config.py # Legacy-Kompatibilität
+├── core/                # Kern-Infrastruktur (Shared)
+│   ├── extensions.py       # Flask-Extensions-Initialisierung
 │   ├── google_calendar.py  # Google Calendar Service
-│   └── middleware.py    # Request/Response-Middleware
-├── routes/          # HTTP-Route-Handler (Blueprints)
-│   ├── admin/       # Administrative Funktionen
-│   │   ├── blocked_dates.py  # 🆕 Feiertags-/Sperrtermin-Verwaltung
+│   ├── cache_manager.py    # Caching-System
+│   └── middleware.py       # Request/Response-Middleware
+├── routes/              # HTTP-Route-Handler (Tool-Blueprints)
+│   ├── hub.py          # 🏠 Central Hub Dashboard
+│   ├── auth.py         # 🔐 Authentifizierung (shared)
+│   ├── security.py     # 🔐 2FA & Passwort-Management
+│   ├── health.py       # 💓 Health-Check-Endpoints
+│   ├── api_gateway.py  # 🌐 Central API Gateway
+│   ├── error_handlers.py # ⚠️ Zentrale Error-Behandlung
+│   │
+│   ├── admin/          # 🔧 Administrative Funktionen (shared)
 │   │   ├── dashboard.py      # Admin-Dashboard
-│   │   ├── reports.py        # Berichte
 │   │   ├── users.py          # Benutzerverwaltung
-│   │   └── telefonie.py      # Telefonie-Punkte
-│   ├── gamification/ # Gamification-Features
-│   ├── auth.py      # Authentifizierung
-│   ├── booking.py   # Terminbuchung
-│   ├── calendar.py  # Kalender-Ansichten
-│   ├── main.py      # Haupt-Anwendungs-Routes
-│   └── api.py       # JSON API-Endpoints
-├── services/        # Business-Logic-Layer
-│   ├── achievement_system.py  # Gamification-Engine
-│   ├── booking_service.py     # Buchungs-Business-Logic
+│   │   ├── reports.py        # System-Reports
+│   │   ├── blocked_dates.py  # Feiertags-/Sperrtermin-Verwaltung
+│   │   ├── telefonie.py      # Telefonie-Punkte
+│   │   └── export.py         # Datenexport
+│   │
+│   ├── slots.py        # 🎯 Slot-Booking (Neuer Wrapper)
+│   ├── main.py         # 🎯 Legacy Slots Main Routes
+│   ├── booking.py      # 🎯 Slots Buchungs-Routes
+│   ├── calendar.py     # 🎯 Slots Kalender-Routes
+│   ├── scoreboard.py   # 🎯 Slots Scoreboard
+│   ├── user_profile.py # 🎯 Slots Benutzerprofile
+│   ├── gamification/   # 🎮 Gamification-Features
+│   │   └── legacy_routes.py # Gamification-Routes
+│   │
+│   └── t2.py           # 👥 T2-Closer-System
+│
+├── services/            # Business-Logic-Layer (Shared)
 │   ├── data_persistence.py    # Datenspeicher-Abstraktion
-│   ├── holiday_service.py     # 🆕 Feiertags-Service (NRW)
-│   ├── level_system.py        # Benutzer-Progressions-System
+│   ├── security_service.py    # 2FA & Security
+│   ├── achievement_system.py  # Gamification-Engine
+│   ├── prestige_system.py     # Prestige & Mastery
+│   ├── level_system.py        # XP & Level-System
+│   ├── daily_quests.py        # Tägliche Quests
+│   ├── cosmetics_shop.py      # Cosmetics & Shop
+│   ├── personalization_system.py  # Anpassungen
+│   ├── booking_service.py     # Buchungs-Business-Logic
+│   ├── holiday_service.py     # Feiertags-Service (NRW)
 │   ├── tracking_system.py     # Analytics und Tracking
-│   └── weekly_points.py       # Punkte-Management
-├── models/          # Datenmodelle (falls ORM verwendet)
-└── utils/           # Hilfsfunktionen und Utilities
+│   ├── executive_reports.py   # Executive-Reports
+│   └── weekly_points.py       # Telefonie-Punkte
+│
+├── models/              # Datenmodelle (falls ORM)
+└── utils/               # Hilfsfunktionen und Utilities
 ```
 
 ### Kern-Anwendungskomponenten
-- **Flask Application Factory**: `app/__init__.py` - Modernes Flask App-Erstellungs-Pattern
+
+#### Central Hub & Shared Infrastructure
+- **Flask Application Factory**: `app/__init__.py` - Multi-Tool Hub mit Blueprint-Registrierung
+- **Central Hub Dashboard**: `app/routes/hub.py` - Landing Page mit Tool-Navigation
+- **Security Center**: `app/routes/security.py` + `app/services/security_service.py` - 2FA & Passwort-Management
 - **Konfigurationsverwaltung**: `app/config/` - Umgebungsspezifische Einstellungen
-- **Google Calendar-Integration**: `app/core/google_calendar.py` - Robuster Kalender-Service
-- **Datenpersistenz-Layer**: `app/services/data_persistence.py` - Dual-Write-System
-- **Gamification-Engine**: `app/services/achievement_system.py` - Vollständiges Engagement-System
-- **Analytics-System**: `app/services/tracking_system.py` - Business Intelligence
-- **Admin-Dashboard**: `app/routes/admin/` - Umfassende Verwaltungsschnittstelle
-- **Feiertags-Service**: `app/services/holiday_service.py` - Deutsche NRW-Feiertage mit benutzerdefinierten Sperren
+- **API Gateway**: `app/routes/api_gateway.py` - Unified API über alle Tools
+- **Error Handling**: `app/routes/error_handlers.py` - Zentrale Fehlerbehandlung
+- **Health Monitoring**: `app/routes/health.py` - System-Health-Checks
+
+#### Shared Services (Tool-übergreifend)
+- **Datenpersistenz**: `app/services/data_persistence.py` - Dual-Write-System mit Auto-Backup
+- **Cache-Management**: `app/core/cache_manager.py` - Multi-Level-Caching
+- **Google Calendar**: `app/core/google_calendar.py` - Robuster Kalender-Service
+- **Tracking & Analytics**: `app/services/tracking_system.py` - Business Intelligence
+- **Executive Reports**: `app/services/executive_reports.py` - Cross-Tool-Reporting
+
+#### Slot-Booking Tool (Unter /slots/)
+- **Legacy-Routes**: Vollständige Render.com-App unter `/slots/` Präfix
+- **Gamification Engine**: `app/services/achievement_system.py` - Badges, XP, Level, Prestige
+- **Quest-System**: `app/services/daily_quests.py` - Tägliche Herausforderungen
+- **Cosmetics Shop**: `app/services/cosmetics_shop.py` - Personalisierung & Anpassung
+- **Booking Service**: `app/services/booking_service.py` - Termin-Business-Logic
+- **Holiday Service**: `app/services/holiday_service.py` - Deutsche NRW-Feiertage
+
+#### T2-Closer Tool (Unter /t2/)
+- **T2-Dashboard**: `app/routes/t2.py` - T2-Termin-Management
+- **Integration**: Nutzt shared Booking & Calendar Services
+
+#### Admin-Tools (Unter /admin/)
+- **Admin-Dashboard**: `app/routes/admin/dashboard.py` - Zentrale Verwaltung
+- **Benutzerverwaltung**: `app/routes/admin/users.py` - User-Management
+- **System-Reports**: `app/routes/admin/reports.py` - Analytics & Insights
+- **Telefonie**: `app/routes/admin/telefonie.py` - Punkte-Management
+- **Datenexport**: `app/routes/admin/export.py` - Bulk-Exports
 
 ### Wichtige Architektur-Patterns
 
@@ -293,13 +368,27 @@ Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpass
 
 ## Vollständiger Feature-Katalog
 
-### 🎯 Kern-Buchungsfeatures
+### 🏠 Central Hub Features
+- **Multi-Tool-Dashboard**: Zentrale Landing Page mit Übersicht aller Tools
+- **Unified Authentication**: Single-Sign-On über alle Tools hinweg
+- **Security Center**: 2FA-Verwaltung, Passwort-Änderung, Login-Historie
+- **Cross-Tool-Navigation**: Nahtlose Navigation zwischen Tools mit Kontext-Erhalt
+- **Activity-Feed**: Tool-übergreifende Aktivitätsverfolgung
+- **Benachrichtigungssystem**: Zentrale Benachrichtigungen für alle Tools
+- **User-Settings**: Globale Einstellungen & Präferenzen
+
+### 🎯 Slot-Booking Tool Features
 - **Multi-Berater-Terminplanung**: Support für unbegrenzte Berater mit individuellen Kalendern
 - **Echtzeit-Verfügbarkeit**: Stündliche Kalender-Scanning und Slot-Generierung
 - **Konflikt-Prävention**: Erweiterte Buchungs-Validierung und Doppelbuchungs-Prävention
 - **Kundenverwaltung**: Vollständige Kundenprofile mit Historie und Präferenzen
 - **Ergebnis-Tracking**: Automatische Erkennung von Terminen, No-Shows und Stornierungen
 - **Feiertags-Sperrung**: Automatische Sperrung deutscher NRW-Feiertage mit Admin-Verwaltung
+
+### 👥 T2-Closer Tool Features
+- **T2-Dashboard**: Dedicated Interface für T2-Closer-Aktivitäten
+- **Termin-Follow-up**: Systematisches Follow-up-Management
+- **Integration**: Nahtlose Integration mit Slot-Booking-Daten
 
 ### 🎮 Gamification-Features (Fortgeschritten)
 - **Achievement-System**: 50+ Badges in 6 Seltenheitsstufen
@@ -320,14 +409,23 @@ Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpass
 - **Trend-Analyse**: Mustererkennung und Einblicks-Generierung
 - **Team-Performance**: Vergleichende Analyse und Benchmarking
 
-### 🔧 Administrative Features
-- **Benutzerverwaltung**: Vollständige Benutzer-Lebenszyklus-Verwaltung
+### 🔧 Administrative Features (Shared)
+- **Benutzerverwaltung**: Vollständige Benutzer-Lebenszyklus-Verwaltung über alle Tools
 - **Rollenbasierter Zugriff**: Admin/Benutzer-Berechtigungen mit granularen Kontrollen
+- **Tool-übergreifende Reports**: Analytics & Insights über alle Tools
 - **Feiertags-Verwaltung**: Deutsche NRW-Feiertage mit benutzerdefinierten Sperren
+- **Telefonie-Punkte**: Telefonie-Punkte-Management mit Commit-Fenstern
 - **Datenexport**: Umfassende Berichterstattung und Datenextraktion
-- **System-Überwachung**: Performance-Metriken und Gesundheitschecks
+- **System-Überwachung**: Performance-Metriken und Gesundheitschecks für alle Tools
 - **Konfigurations-Management**: Dynamische Einstellungen und Feature-Toggles
 - **Backup & Recovery**: Automatisierte Backups mit Aufbewahrungsrichtlinien
+
+### 🔐 Security Features
+- **2FA-Authentifizierung**: TOTP-basierte Zwei-Faktor-Authentifizierung mit QR-Code-Setup
+- **Passwort-Management**: Sichere Passwort-Änderung mit Validierung
+- **Session-Management**: Sichere Session-Handhabung über alle Tools
+- **Login-Historie**: Tracking von Login-Aktivitäten und Security-Events
+- **RBAC**: Rollenbasierte Zugriffskontrolle (Admin/User)
 
 ### 🎨 Anpassung & Personalisierung
 - **Theme-System**: Multiple visuelle Themes und Farbschemata
@@ -337,24 +435,59 @@ Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpass
 - **Persönliche Analytics**: Individuelle Einblicke und Fortschritts-Tracking
 
 ### Umgebungsvariablen & Konfiguration
+
+#### Core Configuration
+- `FLASK_ENV`: Umgebungseinstellung (development/production)
+- `SECRET_KEY`: Flask Session-Verschlüsselungs-Schlüssel (WICHTIG!)
+- `PERSIST_BASE`: Override für Persistenz-Verzeichnis (optional)
+
+#### Authentication & Users
+- `USERLIST`: Benutzer-Zugangsdaten (`user1:pass1,user2:pass2`)
+- `ADMIN_USERS`: Komma-getrennte Liste von Admin-Benutzernamen
+
+#### Google Calendar Integration (Slots-Tool)
 - `GOOGLE_CREDS_BASE64`: Base64-kodierte Service Account JSON
 - `CENTRAL_CALENDAR_ID`: Haupt-Kalender-ID
-- `USERLIST`: Benutzer-Zugangsdaten (`user1:pass1,user2:pass2`)
-- `SECRET_KEY`: Flask Session-Verschlüsselungs-Schlüssel
-- `PERSIST_BASE`: Override für Persistenz-Verzeichnis
-- `FLASK_ENV`: Umgebungseinstellung (development/production)
-- `ADMIN_USERS`: Komma-getrennte Liste von Admin-Benutzernamen
 - `CONSULTANTS`: Berater-Mapping (name:email Paare)
+
+#### Gamification Configuration (Slots-Tool)
 - `EXCLUDED_CHAMPION_USERS`: Benutzer ausgeschlossen von Leaderboards
 
+#### Tool-Specific Settings
+- Weitere tool-spezifische Env-Variablen in jeweiligen Tool-Dokumentationen
+
 ### Kritische Dateien & Verzeichnisse
-- `service_account.json`: Google Service Account-Zugangsdaten (niemals committen)
+
+#### Application Structure
+- `run.py`: Haupt-Einstiegspunkt für die Anwendung
+- `app/__init__.py`: Application Factory mit Blueprint-Registrierung
+- `app/config/`: Umgebungsspezifische Konfigurationsdateien
+- `requirements.txt`: Python-Dependencies (inkl. psutil, pyotp, qrcode)
+
+#### Templates & Static Assets
+- `templates/`: Jinja2 HTML-Templates für alle Tools
+  - `templates/hub/`: Central Hub Templates
+  - `templates/slots/`: Slot-Booking Templates (Legacy unter Root)
+  - `templates/t2/`: T2-Closer Templates
+  - `templates/errors/`: Error-Page Templates
+- `static/`: CSS, JavaScript und statische Assets (shared)
+
+#### Data & Persistence
 - `data/persistent/`: Primäre Datenspeicherung mit vollständigem Anwendungszustand
 - `data/backups/`: Automatisiertes Backup-Verzeichnis mit Aufbewahrung
+- `persist/persistent/`: Render.com Persistenz-Pfad (wenn deployed)
 - `static/availability.json`: Generierte Slot-Verfügbarkeit (Legacy-Fallback)
-- `app/config/`: Umgebungsspezifische Konfigurationsdateien
-- `templates/`: Jinja2 HTML-Templates für alle Seiten
-- `static/`: CSS, JavaScript und statische Assets
+
+#### Security & Credentials
+- `service_account.json`: Google Service Account-Zugangsdaten (niemals committen!)
+- `.env`: Umgebungsvariablen (niemals committen!)
+- `.env.example`: Template für .env-Datei
+
+#### Deployment
+- `deployment/`: VPS-Deployment-Scripts & Dokumentation
+  - `vps_setup.sh`: Automatisches Server-Setup
+  - `business-hub.service`: Systemd Service
+  - `nginx.conf`: Nginx Reverse-Proxy Config
 
 ## Entwicklungsworkflow & Best Practices
 
@@ -436,44 +569,73 @@ Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpass
 
 ## Projektstatus & Aktuelle Updates
 
-### Aktuelle Version: v3.2+ (Enterprise-Grade mit Feiertags-System)
-Die Anwendung hat sich zu einer ausgeklügelten Geschäftsplattform entwickelt mit:
-- ✅ **Vollständiges Gamification-System**: Fortgeschrittene Engagement-Features
-- ✅ **Business Intelligence**: Umfassende Analytics und Berichterstattung
-- ✅ **Moderne Architektur**: Produktionsreife Flask-Anwendung
-- ✅ **Administrative Dashboard**: Vollständige Verwaltungsfähigkeiten
-- ✅ **Anpassungsplattform**: Benutzer-Personalisierungs-Features
-- ✅ **Performance-Optimierung**: Caching, Deduplizierung, Fehlerbehandlung
+### Aktuelle Version: v4.0+ (Multi-Tool Hub mit Security Center)
+Die Anwendung hat sich von einer Slot-Booking-App zu einem **vollwertigen Business Tool Hub** entwickelt:
+
+#### ✅ Abgeschlossene Major-Features (v4.0)
+- ✅ **Central Hub Architecture**: Multi-Tool-Plattform mit einheitlicher Navigation
+- ✅ **Security Center**: 2FA-Authentifizierung (TOTP) + Passwort-Management
+- ✅ **T2-Closer Tool**: Dedicated T2-Management-System
+- ✅ **API Gateway**: Unified API über alle Tools
+- ✅ **Shared Services**: Tool-übergreifende Services (Persistence, Caching, Analytics)
+- ✅ **Health Monitoring**: System-Health-Checks für alle Tools
+- ✅ **Error Handling**: Zentrale Fehlerbehandlung mit Custom Error-Pages
+- ✅ **VPS Deployment**: Production-ready Deployment auf Hetzner (Testserver aktiv)
+
+#### ✅ Slots-Tool Features (Migriert von Render)
+- ✅ **Vollständiges Gamification-System**: Badges, XP, Prestige, Quests, Shop
+- ✅ **Business Intelligence**: Analytics, Tracking, Predictive Insights
 - ✅ **Feiertags-Sperrung**: Deutsche NRW-Feiertage mit Admin-Verwaltung
+- ✅ **Performance-Optimierung**: Multi-Level-Caching, Deduplizierung
 
-### Neueste Feature-Ergänzungen
-- ✅ **German NRW Holiday Blocking**: Automatische Sperrung deutscher Feiertage
-- ✅ **Admin Feiertags-Interface**: Vollständige Verwaltung gesperrter Termine
-- ✅ **Benutzerdefinierte Sperren**: Beliebige Termine mit Begründung sperren
-- ✅ **Deutsche Lokalisierung**: Vollständige deutsche Übersetzung
-- ✅ **Fallback-Mechanismen**: Robuste Fehlerbehandlung für fehlende Dependencies
-- ✅ **Moderne Flask-Struktur**: Ordnungsgemäße Anwendungsorganisation
-
-### Nächste Entwicklungsprioritäten
-- 🔄 **API-Verbesserung**: Umfassende REST API für mobile/externe Apps
-- 🔄 **Echtzeit-Features**: WebSocket-Integration für Live-Updates
-- 🔄 **Machine Learning**: Predictive Analytics und Empfehlungs-Engine
+#### 🔄 In Arbeit
+- 🔄 **Analytics Tool**: Dedicated Analytics-Dashboard über alle Tools (Modul vorbereitet)
+- 🔄 **Tool #4-6**: Weitere Business-Tools in Planung
 - 🔄 **Mobile PWA**: Progressive Web App-Fähigkeiten
-- 🔄 **Erweiterte Sicherheit**: Verbesserte Authentifizierung und Autorisierung
+- 🔄 **Notification System**: Push-Benachrichtigungen über alle Tools
+
+#### 🚀 Deployment-Status
+- **Hetzner Testserver**: ✅ LIVE (http://91.98.192.233)
+- **Production Go-Live**: In ~17 Tagen geplant
+- **Render.com**: Legacy-Fallback (wird nach Go-Live deaktiviert)
+
+### Letzte Git-Commits
+```
+d714373 fix: Prestige display, scoreboard avatars, and cosmetics shop
+02f1ff9 fix: Badge progress bar width and prestige mastery display
+93cf182 fix: Correct gamification display issues and API endpoints
+1c254b0 fix: Correct admin.dashboard endpoint in index.html
+2d2f0a9 feat: Implement Password Change & 2FA Authentication
+```
 
 ## Technische Implementierungs-Anleitung
 
 ### Arbeiten mit der Codebase
 
 #### Wichtige Service-Klassen
+
 ```python
-# Kern-Services - immer für größere Operationen importieren
+# Central Hub & Shared Services
 from app.services.data_persistence import data_persistence
-from app.services.achievement_system import achievement_system
-from app.services.booking_service import BookingService
+from app.services.security_service import security_service  # 🆕 2FA & Security
 from app.services.tracking_system import tracking_system
-from app.services.holiday_service import holiday_service  # 🆕 Feiertags-Service
-from app.core.extensions import cache_manager, level_system
+from app.services.executive_reports import executive_reports
+from app.core.extensions import cache_manager
+from app.core.google_calendar import GoogleCalendarService
+
+# Slot-Booking Tool Services
+from app.services.achievement_system import achievement_system
+from app.services.prestige_system import prestige_system
+from app.services.level_system import level_system
+from app.services.daily_quests import daily_quests
+from app.services.cosmetics_shop import cosmetics_shop
+from app.services.personalization_system import personalization_system
+from app.services.booking_service import BookingService
+from app.services.holiday_service import holiday_service
+from app.services.weekly_points import weekly_points
+
+# T2-Closer Tool Services
+# (Nutzt shared services wie BookingService, GoogleCalendarService)
 ```
 
 #### Datenpersistenz-Patterns
@@ -502,11 +664,21 @@ def check_booking_availability(date_str):
 ```
 
 #### Neue Features hinzufügen
-1. **Service-Klasse erstellen** in `app/services/` für Business Logic
+
+**Für ein bestehendes Tool:**
+1. **Service-Klasse erstellen/erweitern** in `app/services/` für Business Logic
 2. **Route-Handler hinzufügen** in entsprechendem `app/routes/` Blueprint
-3. **Konfiguration aktualisieren** in `app/config/base.py` falls nötig
-4. **Tests hinzufügen** zu `test_integration.py`
-5. **Dokumentation aktualisieren** sowohl in CLAUDE.md als auch README.md
+3. **Template erstellen** in `templates/<tool-name>/` falls UI nötig
+4. **Tests hinzufügen** zu `tests/` (optional)
+5. **Dokumentation aktualisieren** in CLAUDE.md
+
+**Für ein neues Tool:**
+1. **Blueprint erstellen** in `app/routes/<tool-name>.py`
+2. **Blueprint registrieren** in `app/__init__.py` (register_blueprints)
+3. **Templates erstellen** in `templates/<tool-name>/`
+4. **Tool zur Navigation hinzufügen** in `get_available_tools()` (app/__init__.py)
+5. **Service-Klassen erstellen** in `app/services/` (oder shared services nutzen)
+6. **Dokumentation hinzufügen** zu CLAUDE.md und README.md
 
 #### Gamification-Integration
 ```python
@@ -547,17 +719,29 @@ def safe_operation():
 #### Kern-Datenstruktur
 ```
 data/persistent/
-├── blocked_dates.json         # 🆕 Gesperrte Termine (Feiertage + Custom)
-├── user_badges.json          # Badge-Vergaben und Zeitstempel
-├── user_levels.json          # XP und Level-Progression
-├── daily_user_stats.json     # Tägliche Performance-Metriken
-├── prestige_data.json        # Prestige-System-Daten
-├── cosmetic_purchases.json   # Shop-Käufe und ausgerüstete Items
-├── daily_quests.json         # Quest-Fortschritt und Abschlüsse
-├── behavior_patterns.json    # Benutzer-Verhaltens-Analytics
-├── weekly_points.json        # Telefonie-Punkte-System
-├── champions.json            # Leaderboard-Daten
-└── scores.json               # Gesamt-Scoring-System
+├── 🔐 Security & Auth
+│   ├── user_2fa.json           # 🆕 2FA-Secrets & Backup-Codes
+│   └── login_history.json      # 🆕 Login-Aktivitäten (geplant)
+│
+├── 🎯 Slot-Booking Tool
+│   ├── blocked_dates.json      # Gesperrte Termine (Feiertage + Custom)
+│   ├── user_badges.json        # Badge-Vergaben und Zeitstempel
+│   ├── user_levels.json        # XP und Level-Progression
+│   ├── daily_user_stats.json   # Tägliche Performance-Metriken
+│   ├── prestige_data.json      # Prestige-System-Daten
+│   ├── cosmetic_purchases.json # Shop-Käufe und ausgerüstete Items
+│   ├── daily_quests.json       # Quest-Fortschritt und Abschlüsse
+│   ├── behavior_patterns.json  # Benutzer-Verhaltens-Analytics
+│   ├── weekly_points.json      # Telefonie-Punkte-System
+│   ├── champions.json          # Leaderboard-Daten
+│   ├── scores.json             # Gesamt-Scoring-System
+│   └── booking_data.json       # Buchungsdaten (wenn vorhanden)
+│
+├── 👥 T2-Closer Tool
+│   └── t2_data.json            # T2-spezifische Daten (wenn vorhanden)
+│
+└── 📊 Analytics & Reporting
+    └── cross_tool_analytics.json  # Tool-übergreifende Analytics (geplant)
 ```
 
 #### Datenbeziehungen
@@ -656,38 +840,47 @@ def test_holiday_blocking():
 
 #### Umgebungskonfiguration
 ```bash
-# Erforderliche Umgebungsvariablen
+# Core Configuration (ERFORDERLICH)
+SECRET_KEY=<starker-secret-key>               # Flask Session-Verschlüsselung
+USERLIST=<user:pass,user2:pass2>              # Benutzer-Credentials
+ADMIN_USERS=<admin1,admin2>                   # Admin-Benutzer
+
+# Google Calendar (ERFORDERLICH für Slots-Tool)
 GOOGLE_CREDS_BASE64=<base64-kodierte-zugangsdaten>
 CENTRAL_CALENDAR_ID=<kalender-email>
-SECRET_KEY=<starker-secret-key>
-USERLIST=<user:pass,user2:pass2>
+CONSULTANTS=<name:email,name2:email2>         # Berater-Mapping
 
 # Optionale Konfiguration
-PERSIST_BASE=<custom-persistenz-pfad>
-FLASK_ENV=<development|production>
-ADMIN_USERS=<admin1,admin2>
+PERSIST_BASE=<custom-persistenz-pfad>         # Override für Datenpfad
+FLASK_ENV=<development|production>            # Umgebung
+EXCLUDED_CHAMPION_USERS=<user1,user2>         # Von Leaderboards ausschließen
 ```
 
 #### Gesundheitschecks
 ```python
-# Gesundheitscheck-Endpoints hinzufügen
-@app.route('/health')
-def health_check():
-    """System-Gesundheits-Verifizierung"""
-    checks = {
-        'database': data_persistence.verify_integrity(),
-        'calendar': google_calendar_service.test_connection(),
-        'cache': cache_manager.is_healthy(),
-        'holidays': holiday_service.is_holiday(date(2024,12,25))  # 🆕 Holiday Service Check
+# Health-Check ist bereits implementiert in app/routes/health.py
+# Endpoint: /health
+
+# Beispiel Health-Check Response:
+{
+    "status": "healthy",
+    "timestamp": "2024-10-06T12:00:00",
+    "version": "4.0.0",
+    "tools": {
+        "slots": "healthy",
+        "t2": "healthy",
+        "analytics": "not_ready"
+    },
+    "services": {
+        "database": "healthy",
+        "cache": "healthy",
+        "calendar": "healthy"
+    },
+    "memory": {
+        "percent": 45.2,
+        "available_mb": 2048
     }
-
-    all_healthy = all(checks.values())
-    status_code = 200 if all_healthy else 503
-
-    return jsonify({
-        'status': 'healthy' if all_healthy else 'unhealthy',
-        'checks': checks
-    }), status_code
+}
 ```
 
 ## Wichtige Notizen für Entwicklung
@@ -698,19 +891,48 @@ def health_check():
 - **Docstrings hinzufügen** für komplexe Funktionen und Klassen
 - **Bedeutungsvolle Variablennamen verwenden** die ihren Zweck beschreiben
 - **Ordnungsgemäße Fehlerbehandlung implementieren** mit Logging
+- **Shared Services nutzen** - Keine Duplikation von Core-Funktionalität
 
 ### Sicherheits-Anforderungen
-- **Niemals Zugangsdaten committen** oder sensible Daten
+- **Niemals Zugangsdaten committen** oder sensible Daten (.env, service_account.json)
 - **Immer Benutzereingaben validieren** vor Verarbeitung
-- **Parametrisierte Queries verwenden** um Injection-Angriffe zu verhindern
-- **Rate Limiting implementieren** für API-Endpoints
+- **Session-Security beachten** - Keine sensiblen Daten in Sessions
+- **2FA-Secrets sicher speichern** - Nur verschlüsselt in user_2fa.json
+- **Rate Limiting implementieren** für sensitive Endpoints (Login, 2FA)
 - **Sicherheitsrelevante Ereignisse protokollieren** für Audit-Trails
 
 ### Performance-Anforderungen
 - **Kritische Code-Pfade profilieren** für Engpässe
-- **Caching implementieren** für teure Operationen
-- **Background-Tasks verwenden** für schwere Verarbeitung
+- **Multi-Level-Caching nutzen** (Cache-Manager verwenden)
+- **Background-Tasks verwenden** für schwere Verarbeitung (systemd timers auf VPS)
 - **Speicherverbrauch überwachen** und Datenstrukturen optimieren
 - **Unter Last testen** um Skalierbarkeit zu gewährleisten
 
-Diese umfassende Slot-Booking-Anwendung repräsentiert eine ausgeklügelte Geschäftsplattform, die als Grundlage für umfangreiche Enterprise-Anwendungen und Multi-Programm-Ökosysteme dienen kann.
+### Blueprint & Tool-Entwicklung Best Practices
+- **URL-Präfixe konsistent halten**: `/slots/`, `/t2/`, `/admin/`, etc.
+- **Shared Templates nutzen**: `templates/hub/base.html` als Basis
+- **Tool-Isolation beachten**: Jedes Tool kann eigenständig funktionieren
+- **Legacy-Kompatibilität**: Root-Level-Redirects für Rückwärtskompatibilität
+- **Cross-Tool-Features**: Security, Analytics, Reports über alle Tools verfügbar
+
+### Deployment-Best-Practices
+- **Immer auf Hetzner-Testserver deployen** (derzeit primäres Deployment-Ziel)
+- **Service nach Code-Änderungen neu starten**: `systemctl restart business-hub`
+- **Logs überwachen**: `/var/log/business-hub/*.log`
+- **Backups vor größeren Änderungen**: `/usr/local/bin/business-hub-backup.sh`
+- **Health-Check nach Deployment**: `curl http://91.98.192.233/health`
+
+---
+
+## 🎉 Zusammenfassung
+
+Der **Central Business Tool Hub** ist eine umfassende Multi-Tool-Plattform, die von einer einzelnen Slot-Booking-App zu einem vollwertigen Business-Ökosystem gewachsen ist. Mit shared Services, zentraler Sicherheit, und modularer Architektur bietet sie eine solide Grundlage für unbegrenzte Tool-Erweiterungen.
+
+**Aktuelle Production-Umgebung:**
+- Hetzner VPS Testserver (http://91.98.192.233)
+- Production Go-Live in ~17 Tagen
+- 3 aktive Tools: Slots, T2-Closer, Admin
+- Security Center mit 2FA
+- Vollständige VPS-Automatisierung mit systemd
+
+Diese Enterprise-Grade-Plattform ist bereit für Skalierung und weitere Business-Tool-Integration. 🚀

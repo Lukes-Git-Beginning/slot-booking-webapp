@@ -329,16 +329,41 @@ class PrestigeSystem:
             from tracking_system import BookingTracker
             tracker = BookingTracker()
             all_bookings = tracker.load_all_bookings()
-            
+
             user_bookings = [b for b in all_bookings if b.get("user") == user]
             metrics["total_bookings"] = len(user_bookings)
-            
-            # Fast bookings (simuliert - in echter App würde man Buchungszeiten tracken)
-            metrics["fast_bookings"] = len([b for b in user_bookings if b.get("booking_lead_time", 999) < 1])
-            
+
+            # Fast bookings: Buchungen mit < 5 Minuten Vorlaufzeit
+            fast_bookings = 0
+            for b in user_bookings:
+                try:
+                    # Parse Buchungszeitpunkt
+                    booking_timestamp = datetime.fromisoformat(b.get("timestamp", ""))
+
+                    # Parse Terminzeitpunkt (date + time)
+                    appointment_date = b.get("date", "")
+                    appointment_time = b.get("time", "")
+                    appointment_datetime = datetime.strptime(
+                        f"{appointment_date} {appointment_time}",
+                        "%Y-%m-%d %H:%M"
+                    )
+                    # Setze Timezone für appointment_datetime
+                    appointment_datetime = TZ.localize(appointment_datetime)
+
+                    # Berechne Differenz in Minuten
+                    lead_time_minutes = (appointment_datetime - booking_timestamp).total_seconds() / 60
+
+                    # Wenn < 5 Minuten → schnelle Buchung
+                    if lead_time_minutes < 5:
+                        fast_bookings += 1
+                except:
+                    pass
+
+            metrics["fast_bookings"] = fast_bookings
+
             # Detailed bookings
             metrics["detailed_bookings"] = len([b for b in user_bookings if b.get("has_description", False)])
-            
+
         except:
             pass
         

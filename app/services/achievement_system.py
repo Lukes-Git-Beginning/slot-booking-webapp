@@ -1107,10 +1107,12 @@ class AchievementSystem:
                 current = week_points
                 earned = current >= target
             elif definition["category"] == "monthly":
-                current = sum(user_scores.values())
+                # Get max points from any month (or current month if you prefer)
+                current = max(user_scores.values()) if user_scores else 0
                 earned = current >= target
             elif definition["category"] == "total":
-                current = sum(sum(month_scores.values()) for month_scores in scores.values())
+                # Sum only the current user's scores across all months
+                current = sum(user_scores.values()) if user_scores else 0
                 earned = current >= target
             elif definition["category"] == "streak":
                 current = current_streak

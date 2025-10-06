@@ -281,13 +281,13 @@
 <script>
     function purchaseItem(type, itemId) {
         if (confirm('Möchtest du dieses Item wirklich kaufen?')) {
-            fetch('/api/cosmetics/purchase', {
+            fetch('/cosmetics/purchase', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    type: type,
+                    item_type: type,
                     item_id: itemId
                 })
             })
@@ -303,13 +303,13 @@
     }
 
     function equipItem(type, itemId) {
-        fetch('/api/cosmetics/equip', {
+        fetch('/cosmetics/equip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                type: type,
+                item_type: type,
                 item_id: itemId
             })
         })
@@ -324,13 +324,14 @@
     }
 
     function activateTheme(themeId) {
-        fetch('/api/cosmetics/activate-theme', {
+        fetch('/cosmetics/equip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                theme_id: themeId
+                item_type: 'themes',
+                item_id: themeId
             })
         })
         .then(response => response.json())
@@ -344,13 +345,14 @@
     }
 
     function activateEffect(effectId) {
-        fetch('/api/cosmetics/activate-effect', {
+        fetch('/cosmetics/equip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                effect_id: effectId
+                item_type: 'effects',
+                item_id: effectId
             })
         })
         .then(response => response.json())

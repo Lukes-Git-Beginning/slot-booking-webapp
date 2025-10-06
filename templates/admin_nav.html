@@ -1,153 +1,187 @@
-<!-- Admin Navigation Component -->
-<nav class="admin-nav">
-  <div class="admin-nav-container">
-    <!-- Logo/Title -->
-    <div class="admin-nav-brand">
-      <i class="ti ti-shield-check"></i>
-      <span class="admin-nav-title">Admin Panel</span>
+<!-- Modern Admin Navigation - Elegant Sidebar -->
+<div class="drawer-side z-40">
+  <label for="admin-drawer" class="drawer-overlay"></label>
+
+  <!-- Sidebar -->
+  <aside class="glass w-80 min-h-screen p-6 overflow-y-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-error to-warning flex items-center justify-center">
+          <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white">Admin Panel</h2>
+          <p class="text-sm text-white/60">System Management</p>
+        </div>
+      </div>
     </div>
 
-    <!-- Mobile Menu Toggle -->
-    <button class="admin-nav-toggle" onclick="toggleAdminNav()">
-      <i class="ti ti-menu-2"></i>
-    </button>
+    <!-- Navigation Menu -->
+    <div class="space-y-6">
 
-    <!-- Navigation Links -->
-    <div class="admin-nav-menu" id="adminNavMenu">
       <!-- Dashboard -->
-      <div class="admin-nav-section">
-        <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_dashboard' }}">
-          <i class="ti ti-dashboard"></i>
-          <span>Dashboard</span>
+      <div>
+        <a href="{{ url_for('admin.admin_dashboard') }}"
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all
+                  {{ 'bg-gradient-to-r from-primary to-purple-600 text-white' if request.endpoint == 'admin.admin_dashboard' else 'hover:bg-white/10 text-white/80' }}">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+          <span class="font-medium">Dashboard</span>
         </a>
       </div>
 
       <!-- Analytics & Reports -->
-      <div class="admin-nav-section">
-        <div class="admin-nav-section-title">
-          <i class="ti ti-chart-line"></i>
-          <span>Analytics & Reports</span>
+      <div>
+        <div class="flex items-center gap-2 px-4 mb-2">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 text-primary"></i>
+          <span class="text-xs font-semibold text-white/60 uppercase tracking-wider">Analytics & Reports</span>
         </div>
-        <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin.admin_insights') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_insights' }}">
-            <i class="ti ti-bulb"></i>
+        <div class="space-y-1">
+          <a href="{{ url_for('admin.admin_insights') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_insights' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="lightbulb" class="w-4 h-4"></i>
             <span>Insights</span>
           </a>
-          <a href="{{ url_for('admin.admin_reports_weekly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_reports_weekly' }}">
-            <i class="ti ti-calendar-week"></i>
+          <a href="{{ url_for('admin.admin_reports_weekly') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_reports_weekly' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="calendar-days" class="w-4 h-4"></i>
             <span>Weekly Reports</span>
           </a>
-          <a href="{{ url_for('admin.admin_reports_monthly') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_reports_monthly' }}">
-            <i class="ti ti-calendar-month"></i>
+          <a href="{{ url_for('admin.admin_reports_monthly') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_reports_monthly' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="calendar-range" class="w-4 h-4"></i>
             <span>Monthly Reports</span>
           </a>
         </div>
       </div>
 
-      <!-- Data Management -->
-      <div class="admin-nav-section">
-        <div class="admin-nav-section-title">
-          <i class="ti ti-database"></i>
-          <span>Data Export</span>
+      <!-- Data Export -->
+      <div>
+        <div class="flex items-center gap-2 px-4 mb-2">
+          <i data-lucide="database" class="w-4 h-4 text-secondary"></i>
+          <span class="text-xs font-semibold text-white/60 uppercase tracking-wider">Data Export</span>
         </div>
-        <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin.export_analytics') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.export_analytics' }}">
-            <i class="ti ti-download"></i>
+        <div class="space-y-1">
+          <a href="{{ url_for('admin.export_analytics') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.export_analytics' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="download" class="w-4 h-4"></i>
             <span>Export Analytics</span>
           </a>
-          <a href="{{ url_for('admin.export_csv') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.export_csv' }}">
-            <i class="ti ti-file-spreadsheet"></i>
+          <a href="{{ url_for('admin.export_csv') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.export_csv' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
             <span>Export CSV</span>
           </a>
-          <a href="{{ url_for('admin.admin_export_pdf') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_export_pdf' }}">
-            <i class="ti ti-file-type-pdf"></i>
+          <a href="{{ url_for('admin.admin_export_pdf') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_export_pdf' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
             <span>Export PDF</span>
           </a>
         </div>
       </div>
 
       <!-- User Management -->
-      <div class="admin-nav-section">
-        <div class="admin-nav-section-title">
-          <i class="ti ti-users"></i>
-          <span>User Management</span>
+      <div>
+        <div class="flex items-center gap-2 px-4 mb-2">
+          <i data-lucide="users" class="w-4 h-4 text-accent"></i>
+          <span class="text-xs font-semibold text-white/60 uppercase tracking-wider">User Management</span>
         </div>
-        <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin.admin_users') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_users' }}">
-            <i class="ti ti-user-circle"></i>
+        <div class="space-y-1">
+          <a href="{{ url_for('admin.admin_users') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_users' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="user-circle" class="w-4 h-4"></i>
             <span>All Users</span>
           </a>
-          <a href="{{ url_for('admin.admin_telefonie') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_telefonie' }}">
-            <i class="ti ti-phone"></i>
+          <a href="{{ url_for('admin.admin_telefonie') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_telefonie' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="phone" class="w-4 h-4"></i>
             <span>Telefonie Points</span>
           </a>
         </div>
       </div>
 
       <!-- Admin Tools -->
-      <div class="admin-nav-section">
-        <div class="admin-nav-section-title">
-          <i class="ti ti-tools"></i>
-          <span>Admin Tools</span>
+      <div>
+        <div class="flex items-center gap-2 px-4 mb-2">
+          <i data-lucide="wrench" class="w-4 h-4 text-warning"></i>
+          <span class="text-xs font-semibold text-white/60 uppercase tracking-wider">Admin Tools</span>
         </div>
-        <div class="admin-nav-submenu">
-          <a href="{{ url_for('admin.blocked_dates') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.blocked_dates' }}">
-            <i class="ti ti-calendar-off"></i>
+        <div class="space-y-1">
+          <a href="{{ url_for('admin.blocked_dates') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.blocked_dates' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="calendar-x" class="w-4 h-4"></i>
             <span>Blocked Dates</span>
           </a>
-          <a href="{{ url_for('admin.admin_fix_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_fix_points' }}">
-            <i class="ti ti-refresh"></i>
+          <a href="{{ url_for('admin.admin_fix_points') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_fix_points' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
             <span>Fix Points</span>
           </a>
-          <a href="{{ url_for('admin.admin_debug_points') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_debug_points' }}">
-            <i class="ti ti-bug"></i>
+          <a href="{{ url_for('admin.admin_debug_points') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_debug_points' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="bug" class="w-4 h-4"></i>
             <span>Debug Points</span>
           </a>
-          <a href="{{ url_for('admin.admin_badges_backfill') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_badges_backfill' }}">
-            <i class="ti ti-award"></i>
+          <a href="{{ url_for('admin.admin_badges_backfill') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_badges_backfill' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="award" class="w-4 h-4"></i>
             <span>Badge Backfill</span>
           </a>
-          <a href="{{ url_for('admin.admin_storage_optimize') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.admin_storage_optimize' }}">
-            <i class="ti ti-database-cog"></i>
+          <a href="{{ url_for('admin.admin_storage_optimize') }}"
+             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_storage_optimize' else 'hover:bg-white/10 text-white/70' }}">
+            <i data-lucide="hard-drive" class="w-4 h-4"></i>
             <span>Storage Optimize</span>
           </a>
         </div>
       </div>
 
-      <!-- Back to Main App -->
-      <div class="admin-nav-section admin-nav-section-divider">
-        <a href="/" class="admin-nav-link admin-nav-back">
-          <i class="ti ti-arrow-left"></i>
-          <span>Back to App</span>
+      <!-- System Status -->
+      <div>
+        <a href="/health"
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-white/80">
+          <i data-lucide="activity" class="w-5 h-5"></i>
+          <span class="font-medium">System Health</span>
         </a>
       </div>
+
     </div>
-  </div>
-</nav>
 
-<!-- Navigation JavaScript -->
+    <!-- Divider -->
+    <div class="divider my-6"></div>
+
+    <!-- Back to App -->
+    <a href="{{ url_for('hub.dashboard') }}"
+       class="flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
+      <i data-lucide="arrow-left" class="w-5 h-5"></i>
+      <span class="font-medium">Back to App</span>
+    </a>
+
+  </aside>
+</div>
+
+<!-- Floating Toggle Button (Mobile) -->
+<label for="admin-drawer" class="btn btn-circle btn-primary fixed bottom-6 right-6 z-50 lg:hidden drawer-button">
+  <i data-lucide="menu" class="w-6 h-6"></i>
+</label>
+
 <script>
-function toggleAdminNav() {
-  const menu = document.getElementById('adminNavMenu');
-  menu.classList.toggle('show');
-}
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', function(event) {
-  const nav = document.querySelector('.admin-nav');
-  const toggle = document.querySelector('.admin-nav-toggle');
-  const menu = document.getElementById('adminNavMenu');
-
-  if (!nav.contains(event.target) && menu.classList.contains('show')) {
-    menu.classList.remove('show');
+// Initialize Lucide icons
+setTimeout(() => {
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
   }
-});
-
-// Close mobile menu on window resize
-window.addEventListener('resize', function() {
-  const menu = document.getElementById('adminNavMenu');
-  if (window.innerWidth > 768) {
-    menu.classList.remove('show');
-  }
-});
+}, 100);
 </script>

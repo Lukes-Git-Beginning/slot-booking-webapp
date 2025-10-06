@@ -242,7 +242,9 @@
           <!-- Player Info -->
           <div class="flex items-center gap-4">
             <div class="avatar">
-              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-secondary to-purple-600 flex items-center justify-center text-2xl player-avatar" data-user="{{ player.user }}">
+              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-secondary to-purple-600 player-avatar"
+                   data-user="{{ player.user }}"
+                   style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
                 {% set user_cosmetics_data = user_cosmetics.get(player.user, {}) %}
                 {% if user_cosmetics_data.get('avatar') %}
                   {{ user_cosmetics_data.get('avatar') }}

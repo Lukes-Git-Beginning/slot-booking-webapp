@@ -25,7 +25,10 @@
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="100">
         <div class="text-6xl font-bold text-purple-400 mb-2">{{ prestige_data.get('prestige_level', 0) }}</div>
         <div class="text-white/70 mb-4">Prestige Level</div>
-        <div class="badge badge-lg badge-primary">{{ prestige_data.get('prestige_title', 'Neuling') }}</div>
+        {% set title_data = prestige_data.get('prestige_title', {'name': 'Neuling'}) %}
+        <div class="badge badge-lg badge-primary">
+            {{ title_data.get('name', 'Neuling') if title_data is mapping else title_data }}
+        </div>
     </div>
 
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="200">
