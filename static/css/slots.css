@@ -1,0 +1,123 @@
+/* Slot Booking Webapp - Main Styles */
+/* Extracted from index.html for better caching and maintainability */
+
+/* Achievement Notification System */
+.achievement-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  max-width: 400px;
+  transform: translateX(450px);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.achievement-notification.show {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Rarity Glow Effects */
+.achievement-notification.rarity-common { box-shadow: 0 20px 60px rgba(16,185,129,0.3); }
+.achievement-notification.rarity-uncommon { box-shadow: 0 20px 60px rgba(59,130,246,0.3); }
+.achievement-notification.rarity-rare { box-shadow: 0 20px 60px rgba(139,92,246,0.3); }
+.achievement-notification.rarity-epic { box-shadow: 0 20px 60px rgba(245,158,11,0.3); }
+.achievement-notification.rarity-legendary { box-shadow: 0 20px 60px rgba(234,179,8,0.4); }
+.achievement-notification.rarity-mythic { box-shadow: 0 20px 60px rgba(236,72,153,0.4); }
+
+.achievement-badge {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  font-size: 40px;
+  animation: badgePulse 2s ease infinite;
+}
+
+.achievement-badge.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
+.achievement-badge.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.achievement-badge.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.achievement-badge.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.achievement-badge.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
+.achievement-badge.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Confetti Animation */
+.confetti {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  z-index: 2999;
+  animation: confettiFall 3s linear;
+}
+
+@keyframes confettiFall {
+  to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+/* Slot Sections */
+.slot-section {
+  transition: all 0.3s ease;
+}
+
+.slot-header {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.slot-header:hover {
+  transform: translateY(-1px);
+}
+
+.slot-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.slot-content.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.slot-section.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Quick Actions Modal */
+.quick-actions-modal {
+  transition: all 0.2s ease;
+}
+
+.quick-actions-modal.show {
+  display: flex !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .achievement-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    transform: translateY(-100px);
+  }
+
+  .achievement-notification.show {
+    transform: translateY(0);
+  }
+}
