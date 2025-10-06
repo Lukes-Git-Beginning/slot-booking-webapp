@@ -14,8 +14,14 @@
   <!-- AOS Animations -->
   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
-  <!-- Admin Style CSS (fallback) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Particles.js -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 
   <!-- ApexCharts -->
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -28,14 +34,29 @@
         extend: {
           colors: {
             primary: '#5ab1ff',
+            'primary-dark': '#2196F3',
             secondary: '#10b981',
             accent: '#f97316',
-            dark: '#0b0f14',
-            'dark-lighter': '#121922',
           },
-          backdropBlur: {
-            xs: '2px',
-          }
+          animation: {
+            'gradient': 'gradient 15s ease infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite',
+          },
+          keyframes: {
+            gradient: {
+              '0%, 100%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            glow: {
+              '0%, 100%': { boxShadow: '0 0 20px rgba(90,177,255,0.3)' },
+              '50%': { boxShadow: '0 0 40px rgba(90,177,255,0.6)' },
+            },
+          },
         }
       }
     }
@@ -45,21 +66,38 @@
     /* Glassmorphism utilities */
     .glass {
       background: rgba(18, 24, 32, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    .glass-light {
-      background: rgba(255, 255, 255, 0.80);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(0, 0, 0, 0.10);
+    /* Particle Container */
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    body.lightmode .glass {
-      background: rgba(255, 255, 255, 0.80);
-      border: 1px solid rgba(0, 0, 0, 0.10);
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(90, 177, 255, 0.3);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(90, 177, 255, 0.6);
     }
 
     /* ApexCharts dark mode */
@@ -95,18 +133,27 @@
     .historical-badge {
       animation: pulse-glow 2s ease-in-out infinite;
     }
-
-    /* Smooth transitions */
-    * {
-      transition: background-color 0.3s ease, border-color 0.3s ease;
-    }
   </style>
 </head>
 
-<body class="bg-gradient-to-br from-dark to-dark-lighter min-h-screen text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="adminDashboard()">
-    <!-- Include Admin Navigation -->
-    {% include 'admin_nav.html' %}
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+  <!-- Particle Background -->
+  <div id="particles-js"></div>
+
+  <!-- Drawer Container -->
+  <div class="drawer drawer-mobile">
+    <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+
+    <!-- Main Content -->
+    <div class="drawer-content relative z-10">
+      <!-- Toggle Button for Mobile -->
+      <label for="admin-drawer" class="btn btn-circle btn-primary fixed top-4 left-4 z-50 lg:hidden drawer-button">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </label>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:ml-80" x-data="adminDashboard()">
+        <!-- Include Admin Navigation -->
+        {% include 'admin_nav.html' %}
 
     <!-- Header -->
     <div class="glass rounded-2xl p-8 mb-8 text-center shadow-2xl gradient-blue" data-aos="fade-down">
@@ -226,35 +273,26 @@
       </div>
     </div>
 
-    <!-- Navigation Actions -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-aos="fade-up">
-      <a href="{{ url_for('hub.dashboard') }}" class="glass rounded-xl p-4 text-center hover:bg-white/20 transition-all duration-300 group">
-        <i data-lucide="home" class="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-white"></i>
-        <span class="block font-medium">Zurück zur Hauptseite</span>
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-aos="fade-up">
+      <a href="{{ url_for('hub.dashboard') }}" class="glass rounded-xl p-6 text-center hover:bg-white/10 transition-all duration-300 group">
+        <i data-lucide="home" class="w-8 h-8 mx-auto mb-3 text-primary group-hover:scale-110 transition-transform"></i>
+        <span class="block font-semibold text-white">Zurück zum Hub</span>
       </a>
 
-      <a href="{{ url_for('admin.admin_dashboard') }}" class="glass rounded-xl p-4 text-center hover:bg-primary/20 transition-all duration-300 group">
-        <i data-lucide="refresh-cw" class="w-8 h-8 mx-auto mb-2 text-primary group-hover:rotate-180 transition-transform duration-500"></i>
-        <span class="block font-medium text-primary">Dashboard aktualisieren</span>
+      <a href="{{ url_for('admin.admin_dashboard') }}" class="glass rounded-xl p-6 text-center hover:bg-primary/20 transition-all duration-300 group">
+        <i data-lucide="refresh-cw" class="w-8 h-8 mx-auto mb-3 text-primary group-hover:rotate-180 transition-transform duration-500"></i>
+        <span class="block font-semibold text-primary">Aktualisieren</span>
       </a>
 
-      <a href="{{ url_for('admin.admin_debug_points') }}" class="glass rounded-xl p-4 text-center hover:bg-yellow-500/20 transition-all duration-300 group">
-        <i data-lucide="bug" class="w-8 h-8 mx-auto mb-2 text-yellow-500 group-hover:scale-110 transition-transform"></i>
-        <span class="block font-medium text-yellow-500">Punkte Debug</span>
-      </a>
-
-      <a href="{{ url_for('admin.admin_fix_points') }}" class="glass rounded-xl p-4 text-center hover:bg-secondary/20 transition-all duration-300 group">
-        <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-secondary group-hover:scale-110 transition-transform"></i>
-        <span class="block font-medium text-secondary">Punkte Fix</span>
+      <a href="/health" class="glass rounded-xl p-6 text-center hover:bg-secondary/20 transition-all duration-300 group">
+        <i data-lucide="activity" class="w-8 h-8 mx-auto mb-3 text-secondary group-hover:scale-110 transition-transform"></i>
+        <span class="block font-semibold text-secondary">System Status</span>
       </a>
     </div>
+      </div>
+    </div>
   </div>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Alpine.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
   <!-- AOS -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -269,6 +307,54 @@
       easing: 'ease-in-out',
       once: true,
       offset: 50
+    });
+
+    // Initialize Particles.js
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 80, density: { enable: true, value_area: 800 } },
+        color: { value: '#5ab1ff' },
+        shape: { type: 'circle' },
+        opacity: {
+          value: 0.3,
+          random: true,
+          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: '#5ab1ff',
+          opacity: 0.2,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: 'none',
+          random: false,
+          straight: false,
+          out_mode: 'out',
+          bounce: false
+        }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: {
+          onhover: { enable: true, mode: 'grab' },
+          onclick: { enable: true, mode: 'push' },
+          resize: true
+        },
+        modes: {
+          grab: { distance: 140, line_linked: { opacity: 0.5 } },
+          push: { particles_nb: 4 }
+        }
+      },
+      retina_detect: true
     });
 
     // Alpine.js Component
