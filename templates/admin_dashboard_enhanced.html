@@ -133,6 +133,17 @@
     .historical-badge {
       animation: pulse-glow 2s ease-in-out infinite;
     }
+
+    /* Dark dropdown options */
+    select option {
+      background: #1e293b;
+      color: white;
+    }
+
+    /* Table styles for dark theme */
+    .table-zebra tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.03);
+    }
   </style>
 </head>
 
@@ -141,7 +152,7 @@
   <div id="particles-js"></div>
 
   <!-- Drawer Container -->
-  <div class="drawer drawer-mobile">
+  <div class="drawer lg:drawer-open">
     <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
 
     <!-- Main Content -->
