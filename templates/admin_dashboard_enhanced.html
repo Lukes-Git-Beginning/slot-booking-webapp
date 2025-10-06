@@ -136,7 +136,7 @@
           <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
             {{ dashboard.current_totals.days_tracked }}
           </div>
-          <div class="text-sm text-gray-400">Tage Daten</div>
+          <div class="text-sm text-gray-400">Tage seit 01.09.2024</div>
         </div>
 
         <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="200">
@@ -195,11 +195,11 @@
 
       <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-accent/20 transition-all duration-300">
         <div class="text-4xl font-bold text-accent mb-2">
-          {{ "%.1f"|format(dashboard.since_september.success_rate) if dashboard.since_september else 0 }}%
+          {{ "%.1f"|format(dashboard.last_7_days.success_rate) if dashboard.last_7_days else 0 }}%
         </div>
         <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
           <i data-lucide="trophy" class="w-4 h-4"></i>
-          Erfolgsquote (seit September)
+          Erfolgsquote (7 Tage)
         </div>
       </div>
     </div>

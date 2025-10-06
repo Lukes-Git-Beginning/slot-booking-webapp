@@ -582,21 +582,21 @@ class BookingTracker:
                     
                     # Berechne 7-Tage Statistik
                     today = datetime.now(TZ).date()
-                    last_7_days = [str(today - timedelta(days=i)) for i in range(7)]
-                    
+                    last_7_days_list = [str(today - timedelta(days=i)) for i in range(7)]
+
                     total_slots = 0
                     total_no_shows = 0
                     total_completed = 0
                     total_cancelled = 0
-                    
-                    for date_str in last_7_days:
+
+                    for date_str in last_7_days_list:
                         if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
                             metrics = all_metrics[date_str]
                             total_slots += metrics.get("total_slots", 0)
                             total_no_shows += metrics.get("no_shows", 0)
                             total_completed += metrics.get("completed", 0)
                             total_cancelled += metrics.get("cancelled", 0)
-                    
+
                     if total_slots > 0:
                         # Neue Definition: Auftauchquote = erschienen / (erschienen + no_show)
                         appearance_base = total_completed + total_no_shows
@@ -607,12 +607,20 @@ class BookingTracker:
 
                         success_rate = min(100, round((total_completed / total_slots) * 100, 2))
                         no_show_rate = min(100, round((total_no_shows / total_slots) * 100, 2))
-                        
+
                         dashboard["last_7_days"] = {
                             "total_bookings": total_slots,
                             "appearance_rate": appearance_rate,
                             "success_rate": success_rate,
                             "no_show_rate": no_show_rate
+                        }
+                    else:
+                        # Fallback wenn keine Daten vorhanden
+                        dashboard["last_7_days"] = {
+                            "total_bookings": 0,
+                            "appearance_rate": 0,
+                            "success_rate": 0,
+                            "no_show_rate": 0
                         }
                     
                     # Berechne Statistik ab 01.09.2025
