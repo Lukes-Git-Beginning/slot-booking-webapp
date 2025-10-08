@@ -1,0 +1,18 @@
+[Unit]
+Description=Business Hub - Weekly Points Reset (Telefonie)
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+After=network.target business-hub.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/business-hub
+ExecStart=/opt/business-hub/venv/bin/python -c "import sys; sys.path.append('.'); from app.services.weekly_points import reset_week_for_all_users; result = reset_week_for_all_users(); print(f'Weekly reset completed: {result}')"
+StandardOutput=append:/var/log/business-hub/weekly-reset.log
+StandardError=append:/var/log/business-hub/weekly-reset.log
+
+# Env Variables
+EnvironmentFile=-/opt/business-hub/.env
+
+[Install]
+WantedBy=multi-user.target

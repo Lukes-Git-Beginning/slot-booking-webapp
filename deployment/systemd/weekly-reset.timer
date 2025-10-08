@@ -1,0 +1,13 @@
+[Unit]
+Description=Business Hub - Weekly Points Reset Timer
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+Requires=weekly-reset.service
+
+[Timer]
+# Jeden Montag um 04:00 UTC (06:00 Berlin)
+OnCalendar=Mon *-*-* 04:00:00
+# Persistent falls Server offline war
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -182,9 +182,10 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/erro
 curl http://91.98.192.233/health
 ```
 
-#### Timeline
-- **Jetzt - Tag 20:** Testserver (Hetzner) - Alle Änderungen hier
-- **Ab Tag 20:** Live-Server (Hetzner) - Production-Deployment
+#### Deployment-Status
+- **Testserver:** http://91.98.192.233 (Aktiv - Alle Features verfügbar)
+- **Production:** Go-Live in ~17 Tagen geplant
+- **Legacy Render.com:** Nicht mehr aktiv (alle Dienste auf VPS migriert)
 
 ## Anwendungsarchitektur
 
@@ -290,9 +291,8 @@ app/
 ### Wichtige Architektur-Patterns
 
 #### Datenspeicher-Strategie
-Das App verwendet ein ausgeklügeltes Dual-Write-Persistenz-Pattern mit automatischer Provider-Erkennung:
-- **VPS**: `/opt/business-hub/data/persistent/` (Hetzner, Strato, etc.)
-- **Render.com**: `/opt/render/project/src/persist/persistent/`
+Das App verwendet ein ausgeklügeltes Dual-Write-Persistenz-Pattern:
+- **VPS**: `/opt/business-hub/data/persistent/` (Production & Test)
 - **Lokal**: `data/persistent/` (Entwicklung)
 - **Fallback**: `static/` Verzeichnis für Legacy-Kompatibilität
 - Die Pfad-Auswahl erfolgt automatisch basierend auf `PERSIST_BASE` Env-Variable oder System-Detection
@@ -475,7 +475,6 @@ Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpass
 #### Data & Persistence
 - `data/persistent/`: Primäre Datenspeicherung mit vollständigem Anwendungszustand
 - `data/backups/`: Automatisiertes Backup-Verzeichnis mit Aufbewahrung
-- `persist/persistent/`: Render.com Persistenz-Pfad (wenn deployed)
 - `static/availability.json`: Generierte Slot-Verfügbarkeit (Legacy-Fallback)
 
 #### Security & Credentials
@@ -556,7 +555,7 @@ Terminanfrage → Holiday Service → Sperrung prüfen → Verfügbarkeit anpass
 - [ ] Google Calendar-Zugangsdaten gültig
 - [ ] Datenbank/Persistenz-Layer initialisiert
 - [ ] Statische Assets ordnungsgemäß bereitgestellt
-- [ ] Geplante Aufgaben konfiguriert (GitHub Actions)
+- [ ] Geplante Aufgaben konfiguriert (Systemd Timer auf VPS)
 - [ ] Überwachung und Logging aktiviert
 - [ ] Backup-System operational
 
@@ -597,7 +596,7 @@ Die Anwendung hat sich von einer Slot-Booking-App zu einem **vollwertigen Busine
 #### 🚀 Deployment-Status
 - **Hetzner Testserver**: ✅ LIVE (http://91.98.192.233)
 - **Production Go-Live**: In ~17 Tagen geplant
-- **Render.com**: Legacy-Fallback (wird nach Go-Live deaktiviert)
+- **Legacy Render.com**: Nicht mehr aktiv (alle Dienste auf VPS migriert)
 
 ### Letzte Git-Commits
 ```

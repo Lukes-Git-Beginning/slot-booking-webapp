@@ -440,12 +440,12 @@ def reset_week_for_all_users(week_key: Optional[str] = None) -> Dict:
         })
         reset_count += 1
     
-    # Add reset metadata to week
+    # Add reset metadata to week (without circular reference)
     data["weeks"][week_key]["reset_info"] = {
         "reset_at": datetime.now(TZ).isoformat(),
         "reset_by": "system",
         "participants_reset": reset_count,
-        "archived_data": archive_data
+        "archive_created": bool(archive_data)
     }
     
     save_data(data)
