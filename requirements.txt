@@ -62,3 +62,4 @@ psutil==6.1.1
 pyotp==2.9.0
 qrcode==8.0
 Pillow==11.2.1
+Flask-Limiter==3.8.0

@@ -17,11 +17,12 @@ data_persistence = None
 error_handler = None
 level_system = None
 tracking_system = None
+limiter = None
 
 
 def init_extensions(app: Flask) -> None:
     """Initialize all Flask extensions and external services"""
-    global cache_manager, data_persistence, error_handler, level_system, tracking_system
+    global cache_manager, data_persistence, error_handler, level_system, tracking_system, limiter
 
     # Import and initialize cache manager
     from app.core.cache_manager import cache_manager as cm
@@ -54,5 +55,22 @@ def init_extensions(app: Flask) -> None:
     except Exception as e:
         logger.warning(f"Could not initialize tracking system", extra={'error': str(e)})
         tracking_system = None
+
+    # Initialize Flask-Limiter for rate limiting (security)
+    try:
+        from flask_limiter import Limiter
+        from flask_limiter.util import get_remote_address
+
+        limiter = Limiter(
+            app=app,
+            key_func=get_remote_address,
+            default_limits=["200 per day", "50 per hour"],
+            storage_uri="memory://",  # In-memory storage (use Redis for production scaling)
+            strategy="fixed-window"
+        )
+        logger.info("Rate limiting initialized successfully")
+    except Exception as e:
+        logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
+        limiter = None
 
     logger.info("All extensions initialized successfully")

@@ -1,0 +1,35 @@
+# fail2ban configuration for Business Tool Hub
+# Protects SSH and Nginx from brute-force attacks
+
+[DEFAULT]
+# Ban hosts for 1 hour
+bantime = 3600
+# Find time window (10 minutes)
+findtime = 600
+# Max retries before ban
+maxretry = 5
+# Notification email (optional)
+#destemail = admin@example.com
+
+[sshd]
+enabled = true
+port = ssh
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 7200
+
+[nginx-http-auth]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/business-hub-error.log
+
+[nginx-limit-req]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/business-hub-error.log
+maxretry = 10
+
+[nginx-noscript]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/business-hub-access.log

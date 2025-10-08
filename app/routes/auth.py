@@ -6,7 +6,7 @@ Login, logout, and session management
 
 from flask import Blueprint, request, render_template, redirect, url_for, flash, session
 from app.utils.helpers import get_userlist
-from app.core.extensions import data_persistence
+from app.core.extensions import data_persistence, limiter
 from app.config.base import gamification_config
 from app.services.security_service import security_service
 from datetime import datetime, timedelta
@@ -43,9 +43,16 @@ def check_and_set_champion():
     return None
 
 
+def apply_rate_limit(route_func):
+    """Apply rate limiting decorator if limiter is available"""
+    if limiter:
+        return limiter.limit("5 per minute", methods=["POST"])(route_func)
+    return route_func
+
 @auth_bp.route("/login", methods=["GET", "POST"])
+@apply_rate_limit
 def login():
-    """Handle user login"""
+    """Handle user login with rate limiting (max 5 attempts per minute)"""
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
