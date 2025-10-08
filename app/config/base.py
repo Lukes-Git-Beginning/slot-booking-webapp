@@ -139,13 +139,17 @@ class APIConfig:
 class ConsultantConfig:
     """Konfiguration für Berater/Consultants"""
 
-    # Standard-Berater IDs für Google Calendar
+    # Standard-Berater IDs für Google Calendar (ZENTRALE KONFIGURATION)
     DEFAULT_CONSULTANTS: Dict[str, str] = {
-        "Sara": "sara@zfa.com",
-        "Patrick": "patrick@zfa.com",
-        "Dominik": "dominik@zfa.com",
-        "Tim": "tim@zfa.com",
-        "Ann-Kathrin": "ann-kathrin@zfa.com"
+        "Daniel": "daniel.herbort.zfa@gmail.com",
+        "Simon": "simonmast9@gmail.com",
+        "Ann-Kathrin": "a.welge.zfa@gmail.com",
+        "Christian": "chmast95@gmail.com",
+        "Tim": "tim.kreisel71@gmail.com",
+        "Sara": "mastsara2@gmail.com",
+        "Patrick": "0d5nq65ogpekomad34ti234h1g@group.calendar.google.com",
+        "Dominik": "mikic.dom@gmail.com",
+        "Sonja": "sonjamast98@gmail.com"
     }
 
     @classmethod

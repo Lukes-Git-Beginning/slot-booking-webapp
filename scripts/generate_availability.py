@@ -38,16 +38,9 @@ weekday_map = {
     'Sunday': 'So'
 }
 
-consultants = {
-    "Daniel": "daniel.herbort.zfa@gmail.com",
-    "Simon": "simonmast9@gmail.com",
-    "Ann-Kathrin": "a.welge.zfa@gmail.com",
-    "Christian": "chmast95@gmail.com",
-    "Tim": "tim.kreisel71@gmail.com",
-    "Sara": "mastsara2@gmail.com",
-    "Patrick": "0d5nq65ogpekomad34ti234h1g@group.calendar.google.com",
-    "Dominik": "mikic.dom@gmail.com"
-}
+# Import consultant configuration from central config
+from app.config.base import ConsultantConfig
+consultants = ConsultantConfig.get_consultants()
 
 restricted_slots = {
     "Simon": ["20:00"],
