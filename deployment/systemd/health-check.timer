@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Business Hub Health Check every 15 minutes
+Requires=health-check.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Unit=health-check.service
+
+[Install]
+WantedBy=timers.target

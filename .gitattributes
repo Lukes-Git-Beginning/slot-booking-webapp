@@ -1,0 +1,24 @@
+# Git-Crypt Configuration
+# Files matching these patterns will be automatically encrypted
+
+# Environment files with secrets
+.env filter=git-crypt diff=git-crypt
+*.env filter=git-crypt diff=git-crypt
+
+# Sensitive data files
+data/persistent/*.json filter=git-crypt diff=git-crypt
+backups/*.tar.gz filter=git-crypt diff=git-crypt
+backups/*.json filter=git-crypt diff=git-crypt
+
+# Google Service Account credentials
+service_account.json filter=git-crypt diff=git-crypt
+**/service_account*.json filter=git-crypt diff=git-crypt
+
+# SSH keys (if any)
+*.pem filter=git-crypt diff=git-crypt
+*_key filter=git-crypt diff=git-crypt
+*_key.pub filter=git-crypt diff=git-crypt
+
+# Backup archive files
+*.tar.gz filter=git-crypt diff=git-crypt
+*.zip filter=git-crypt diff=git-crypt
