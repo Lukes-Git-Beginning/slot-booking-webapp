@@ -21,29 +21,44 @@ def main():
     try:
         print(f"[{datetime.now().isoformat()}] Starting achievement processing...")
 
-        from app.services.achievement_system import achievement_system
-        from app.config.base import Config
+        # Create Flask app context
+        from app import create_app
+        app = create_app()
 
-        # Auto-check MVP badges
-        print("Checking MVP badges...")
-        achievement_system.auto_check_mvp_badges()
+        with app.app_context():
+            from app.services.achievement_system import achievement_system
+            from app.config.base import Config
 
-        # Get all users
-        users = Config.get_all_users()
-        print(f"Processing achievements for {len(users)} users...")
-
-        total_new_badges = 0
-        for user in users:
+            # Auto-check MVP badges
+            print("Checking MVP badges...")
             try:
-                new_badges = achievement_system.process_user_achievements(user)
-                if new_badges:
-                    print(f"✓ {user} earned {len(new_badges)} new badges: {', '.join([b.get('name', 'Unknown') for b in new_badges])}")
-                    total_new_badges += len(new_badges)
+                achievement_system.auto_check_mvp_badges()
             except Exception as e:
-                print(f"✗ Error processing achievements for {user}: {e}")
+                print(f"MVP badge check warning: {e}")
 
-        print(f"[{datetime.now().isoformat()}] Achievement processing completed: {total_new_badges} badges awarded")
-        return 0
+            # Get all users
+            users = Config.get_all_users()
+            print(f"Processing achievements for {len(users)} users...")
+
+            if not users:
+                print("WARNING: No users found. Check USERLIST environment variable.")
+                return 0
+
+            total_new_badges = 0
+            for user in users:
+                try:
+                    new_badges = achievement_system.process_user_achievements(user)
+                    if new_badges:
+                        badge_names = ', '.join([b.get('name', 'Unknown') for b in new_badges])
+                        print(f"✓ {user} earned {len(new_badges)} new badges: {badge_names}")
+                        total_new_badges += len(new_badges)
+                    else:
+                        print(f"  {user}: No new badges")
+                except Exception as e:
+                    print(f"✗ Error processing achievements for {user}: {e}")
+
+            print(f"[{datetime.now().isoformat()}] Achievement processing completed: {total_new_badges} badges awarded")
+            return 0
 
     except Exception as e:
         print(f"[{datetime.now().isoformat()}] FATAL ERROR: Achievement processing failed: {e}")
