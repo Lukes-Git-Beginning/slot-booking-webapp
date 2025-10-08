@@ -80,35 +80,34 @@ find "$BACKUP_DIR" -name "backup_*.tar.gz.enc" -type f -mtime +30 -delete
 REMAINING=$(find "$BACKUP_DIR" -name "backup_*.tar.gz.enc" -type f | wc -l)
 log "Encrypted backups remaining: $REMAINING"
 
-# Optional: Push to Git (if configured)
-if git -C "$REPO_DIR" rev-parse --git-dir > /dev/null 2>&1; then
-    log "Checking Git repository..."
+# Push to separate backup Git repository
+BACKUP_REPO_DIR="/opt/business-hub/backups-repo"
+if [ -d "$BACKUP_REPO_DIR/.git" ]; then
+    log "Pushing to backup repository..."
 
-    cd "$REPO_DIR"
+    cd "$BACKUP_REPO_DIR"
 
-    # Check if there are changes to commit
-    if [ -n "$(git status --porcelain backups/*.enc 2>/dev/null)" ]; then
-        log "Committing encrypted backup to Git..."
+    # Copy encrypted backup to repo
+    cp "${BACKUP_DIR}/${BACKUP_NAME}.tar.gz.enc" .
 
-        git add backups/*.enc
-        git commit -m "backup: Add encrypted backup ${BACKUP_NAME}" || warn "Nothing to commit"
+    # Add and commit
+    git add "${BACKUP_NAME}.tar.gz.enc"
+    if git commit -m "backup: ${BACKUP_NAME}" 2>/dev/null; then
+        log "Backup committed to Git"
 
-        # Push to remote (if configured)
-        if git remote | grep -q "origin"; then
-            log "Pushing to remote repository..."
-            if git push origin main 2>/dev/null || git push origin master 2>/dev/null; then
-                log "✓ Backup successfully pushed to Git remote"
-            else
-                warn "Could not push to remote (check credentials)"
-            fi
+        # Push to remote
+        if git push origin master 2>/dev/null || git push origin main 2>/dev/null; then
+            log "✓ Backup successfully pushed to GitHub"
         else
-            warn "No Git remote configured, skipping push"
+            warn "Could not push to remote (check credentials)"
         fi
     else
-        log "No new backups to commit"
+        warn "Nothing to commit (backup already exists)"
     fi
+
+    cd "$REPO_DIR"
 else
-    warn "Not a Git repository, skipping Git operations"
+    warn "Backup repository not configured at $BACKUP_REPO_DIR"
 fi
 
 log "✓ Encrypted backup completed successfully!"
