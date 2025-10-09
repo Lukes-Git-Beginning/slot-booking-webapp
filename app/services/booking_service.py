@@ -261,7 +261,7 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
     if not calendar_service:
         # Calendar service unavailable - assume no bookings exist
         # Calculate available slots based on consultant count
-        slots_per_consultant = getattr(slot_config, 'SLOTS_PER_BERATER', 4)
+        slots_per_consultant = getattr(slot_config, 'SLOTS_PER_BERATER', 3)
         total_capacity = berater_count * slots_per_consultant
         return [], 0, total_capacity, total_capacity, False
 
