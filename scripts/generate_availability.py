@@ -46,11 +46,12 @@ consultants = {
     "Tim": "tim.kreisel71@gmail.com",
     "Sara": "mastsara2@gmail.com",
     "Patrick": "0d5nq65ogpekomad34ti234h1g@group.calendar.google.com",
-    "Dominik": "mikic.dom@gmail.com"
+    "Dominik": "mikic.dom@gmail.com",
+    "Sonja": "sonjamast98@gmail.com"
 }
 
 restricted_slots = {
-    "Simon": ["20:00"],
+    # Alle Zeitbeschränkungen entfernt - alle Berater verfügbar zu allen Zeiten
 }
 
 slots = {
@@ -238,12 +239,10 @@ def main():
                 skipped_past += 1
                 print(f"⏭️ Vergangener Slot übersprungen: {slot_key}")
                 continue
-            
-            # Skip wenn schon verarbeitet und noch zukünftig
-            if slot_key in availability:
-                slot_count += 1
-                continue
-            
+
+            # WICHTIG: Slots werden bei jedem Durchlauf neu berechnet (keine Skip-Logik)
+            # Dies stellt sicher, dass Änderungen im Google Calendar sofort reflektiert werden
+
             available = []
             
             # Prüfe jeden Berater (nutze gecachte Events)
@@ -266,7 +265,6 @@ def main():
                     available.append(name)
             
             availability[slot_key] = available
-            new_slots += 1
             slot_count += 1
             
             if not available:
@@ -293,11 +291,11 @@ def main():
     print(f"\n✅ Fertig!")
     print(f"📊 Statistik:")
     print(f"   - Slots analysiert: {slot_count}")
-    print(f"   - Neue Slots: {new_slots}")
     print(f"   - Vergangene übersprungen: {skipped_past}")
     print(f"   - Alte entfernt: {removed_count}")
     print(f"   - Gesamt gespeichert: {len(availability)}")
     print(f"🕒 Nur Slots ab {now.strftime('%Y-%m-%d %H:%M')} berücksichtigt")
+    print(f"♻️ Alle Slots werden bei jedem Durchlauf neu berechnet (dynamische Updates)")
 
 if __name__ == "__main__":
     start_time = time.time()
