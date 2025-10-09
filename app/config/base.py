@@ -75,17 +75,17 @@ class SlotConfig:
     # Wochentage (1=Montag, 7=Sonntag)
     BOOKING_WEEKDAYS: List[int] = [1, 2, 3, 4, 5, 6, 7]  # Alle Wochentage
 
-    # Cache-Konfiguration (Sekunden)
+    # Cache-Konfiguration (Sekunden) - OPTIMIERT für Performance
     CACHE_TIMES: Dict[str, int] = {
-        "availability": int(os.getenv("CACHE_AVAILABILITY", "300")),        # 5 Minuten
-        "calendar_events": int(os.getenv("CACHE_CALENDAR_EVENTS", "180")),  # 3 Minuten
+        "availability": int(os.getenv("CACHE_AVAILABILITY", "600")),        # 10 Minuten (war 5)
+        "calendar_events": int(os.getenv("CACHE_CALENDAR_EVENTS", "300")),  # 5 Minuten (war 3)
         "calendar_events_daily": int(os.getenv("CACHE_CALENDAR_DAILY", "1800")), # 30 Minuten
-        "user_scores": int(os.getenv("CACHE_USER_SCORES", "300")),          # 5 Minuten
+        "user_scores": int(os.getenv("CACHE_USER_SCORES", "900")),          # 15 Minuten (war 5)
         "customer_profiles": int(os.getenv("CACHE_CUSTOMER_PROFILES", "3600")), # 1 Stunde
         "analytics": int(os.getenv("CACHE_ANALYTICS", "1800")),             # 30 Minuten
-        "badges": int(os.getenv("CACHE_BADGES", "600")),                    # 10 Minuten
-        "week_stats": int(os.getenv("CACHE_WEEK_STATS", "900")),            # 15 Minuten
-        "consultant_calendars": int(os.getenv("CACHE_CONSULTANT_CALENDARS", "600")), # 10 Minuten
+        "badges": int(os.getenv("CACHE_BADGES", "1200")),                   # 20 Minuten (war 10)
+        "week_stats": int(os.getenv("CACHE_WEEK_STATS", "1800")),           # 30 Minuten (war 15)
+        "consultant_calendars": int(os.getenv("CACHE_CONSULTANT_CALENDARS", "900")), # 15 Minuten (war 10)
     }
 
 

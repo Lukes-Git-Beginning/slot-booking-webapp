@@ -6,17 +6,22 @@ import time
 import shutil
 from datetime import datetime, timedelta
 import pytz
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from app.utils.credentials import load_google_credentials
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(project_root)
 
-# ----------------- Google Calendar API Setup -----------------
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-creds = load_google_credentials(SCOPES)
-service = build("calendar", "v3", credentials=creds)
+# Load .env file explicitly for standalone execution
+from dotenv import load_dotenv
+dotenv_path = os.path.join(project_root, '.env')
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+    print(f"✅ Loaded environment from {dotenv_path}")
+else:
+    print(f"⚠️ No .env file found at {dotenv_path}")
+
+from app.core.google_calendar import get_google_calendar_service
 
 # ----------------- Konfiguration -----------------
 CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
@@ -54,61 +59,44 @@ slots = {
     "Fr": ["09:00", "11:00", "14:00"]
 }
 
-def safe_api_call(func, *args, **kwargs):
-    """
-    API-Call mit Retry-Logik, Error Handling und auto-execute() für Google-Requests.
-    Gibt bei Erfolg immer ein dict (execute()-Result) zurück, sonst None.
-    """
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            req_or_result = func(*args, **kwargs)
-            if hasattr(req_or_result, "execute") and callable(req_or_result.execute):
-                return req_or_result.execute()
-            return req_or_result
-        except HttpError as e:
-            status = getattr(getattr(e, "resp", None), "status", None)
-            if status == 429:
-                wait_time = (2 ** attempt) * 2
-                print(f"⏳ Rate limit erreicht, warte {wait_time}s …")
-                time.sleep(wait_time)
-                continue
-            if status and status >= 500:
-                wait_time = 2 ** attempt
-                print(f"⚠️ Server-Fehler {status}, Retry in {wait_time}s …")
-                time.sleep(wait_time)
-                continue
-            print(f"❌ API-Fehler: {e}")
-            return None
-        except Exception as e:
-            print(f"❌ Unerwarteter Fehler: {e}")
-            if attempt == max_retries - 1:
-                return None
-            time.sleep(2 ** attempt)
-    return None
+# safe_api_call is now handled by GoogleCalendarService.safe_calendar_call()
 
 def batch_fetch_events(consultant_calendars, start_date, end_date):
-    """Hole Events für alle Berater in einem optimierten Batch"""
+    """
+    Hole Events für alle Berater mit Caching (30min)
+    Nutzt GoogleCalendarService für Quota-Management und Rate-Limiting
+    """
+    calendar_service = get_google_calendar_service()
+    if not calendar_service:
+        print("❌ GoogleCalendarService konnte nicht initialisiert werden")
+        return {}
+
     all_events = {}
-    
+    cache_duration = 1800  # 30 Minuten Cache
+
     for name, cal_id in consultant_calendars.items():
         print(f"📅 Hole Events für {name}...")
-        result = safe_api_call(
-            service.events().list,
-            calendarId=cal_id,
-            timeMin=start_date.isoformat(),
-            timeMax=end_date.isoformat(),
-            singleEvents=True,
-            orderBy='startTime',
-            maxResults=2500
+
+        # GoogleCalendarService mit Cache nutzen
+        result = calendar_service.get_events(
+            calendar_id=cal_id,
+            time_min=start_date.isoformat(),
+            time_max=end_date.isoformat(),
+            max_results=2500,
+            cache_duration=cache_duration
         )
-        
+
         if result:
-            all_events[name] = result.get('items', [])
+            events = result.get('items', [])
+            all_events[name] = events
+            print(f"  ✅ {len(events)} Events geladen (Cache: {cache_duration}s)")
         else:
             all_events[name] = []
-            print(f"⚠️ Keine Events für {name} erhalten")
-    
+            print(f"  ⚠️ Keine Events für {name} erhalten")
+
+    # Quota-Status ausgeben
+    print(f"\n📊 Quota-Status: {calendar_service._daily_quota_used}/{calendar_service._quota_limit} API-Calls heute")
+
     return all_events
 
 def is_consultant_available(events, slot_start, slot_end):
@@ -181,7 +169,10 @@ def main():
     availability = {}
     availability_file = "static/availability.json"
     now = datetime.now(TZ)  # WICHTIG: Mit Timezone für Uhrzeitvergleich
-    
+
+    print(f"🚀 Availability-Generator gestartet um {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    print(f"🔧 Nutzt GoogleCalendarService mit Caching & Quota-Management\n")
+
     # Vorhandene Verfügbarkeiten laden
     if os.path.exists(availability_file):
         try:
@@ -191,13 +182,14 @@ def main():
         except Exception as e:
             print(f"⚠️ Fehler beim Laden der alten availability.json: {e}")
             availability = {}
-    
+
     # Zeitraum für Batch-Fetch (56 Tage = 8 Wochen) - aber ab jetzt
     start_date = TZ.localize(datetime.combine(now.date(), datetime.min.time()))
     end_date = start_date + timedelta(days=56)
 
-    # PERFORMANCE-OPTIMIERUNG: Alle Events einmal holen
-    print(f"\n🚀 Hole alle Events für {len(consultants)} Berater (56 Tage ab jetzt)...")
+    # PERFORMANCE-OPTIMIERUNG: Alle Events einmal holen (mit 30min Cache)
+    print(f"🚀 Hole alle Events für {len(consultants)} Berater (56 Tage ab jetzt)...")
+    print(f"💾 Cache-Dauer: 30 Minuten (reduziert API-Calls drastisch)")
     all_consultant_events = batch_fetch_events(consultants, start_date, end_date)
     
     # Slots analysieren

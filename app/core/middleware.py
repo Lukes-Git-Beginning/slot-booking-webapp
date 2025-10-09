@@ -19,10 +19,24 @@ def init_middleware(app: Flask) -> None:
     def require_login():
         """Check if user is logged in for protected routes"""
         # List of endpoints that don't require login
-        public_endpoints = ['auth.login', 'main.favicon', 'static']
+        public_endpoints = [
+            'auth.login',
+            'main.favicon',
+            'static',
+            # Health check endpoints (no auth required for monitoring)
+            'health.health_check',
+            'health.readiness_check',
+            'health.liveness_check',
+            'health.metrics',
+            'health.ping'
+        ]
 
         # Allow access to public endpoints
         if request.endpoint in public_endpoints:
+            return
+
+        # Also allow health checks via URL path (in case endpoint name differs)
+        if request.path.startswith('/health'):
             return
 
         # Check if user is logged in (compatible with old and new session format)
