@@ -1,11 +1,4 @@
 {
-  "2025-10-10 11:00": [
-    "Ann-Kathrin",
-    "Tim",
-    "Sara",
-    "Dominik",
-    "Sonja"
-  ],
   "2025-10-10 14:00": [
     "Sara"
   ],
@@ -114,8 +107,7 @@
   ],
   "2025-10-17 11:00": [
     "Tim",
-    "Sara",
-    "Dominik"
+    "Sara"
   ],
   "2025-10-17 14:00": [
     "Ann-Kathrin",
@@ -219,19 +211,16 @@
   ],
   "2025-10-24 09:00": [
     "Ann-Kathrin",
-    "Dominik",
-    "Sonja"
+    "Dominik"
   ],
   "2025-10-24 11:00": [
     "Daniel",
     "Tim",
-    "Dominik",
-    "Sonja"
+    "Dominik"
   ],
   "2025-10-24 14:00": [
     "Ann-Kathrin",
-    "Dominik",
-    "Sonja"
+    "Dominik"
   ],
   "2025-10-27 11:00": [
     "Ann-Kathrin",
@@ -336,18 +325,21 @@
   ],
   "2025-10-31 09:00": [
     "Ann-Kathrin",
-    "Dominik"
+    "Dominik",
+    "Sonja"
   ],
   "2025-10-31 11:00": [
     "Daniel",
     "Tim",
     "Sara",
-    "Dominik"
+    "Dominik",
+    "Sonja"
   ],
   "2025-10-31 14:00": [
     "Ann-Kathrin",
     "Sara",
-    "Dominik"
+    "Dominik",
+    "Sonja"
   ],
   "2025-11-03 11:00": [
     "Daniel",
