@@ -30,15 +30,20 @@ def is_t1_bereit_event(summary: str) -> bool:
 
 
 def load_availability() -> Dict[str, List[str]]:
-    """Load availability data from static file"""
-    availability_file = "static/availability.json"
+    """Load availability data from persistent storage"""
+    availability_file = "data/persistent/availability.json"
+
+    # Fallback to old location for backwards compatibility
+    if not os.path.exists(availability_file):
+        availability_file = "static/availability.json"
+
     if os.path.exists(availability_file):
         try:
             with open(availability_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
             from app.utils.logging import booking_logger
-            booking_logger.error(f"Error loading availability: {e}")
+            booking_logger.error(f"Error loading availability from {availability_file}: {e}")
             return {}
     return {}
 

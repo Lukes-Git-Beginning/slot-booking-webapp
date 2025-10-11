@@ -3,90 +3,96 @@
 {% block title %}T2 Termin buchen{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="t2-header">
-    <h1 class="t2-title">
-        <i class="ti ti-calendar-plus"></i> T2-Termin buchen
+<!-- Page Header -->
+<div class="glass rounded-3xl p-8 mb-8 text-center" data-aos="fade-up">
+    <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">
+        <i data-lucide="calendar-plus" class="inline w-10 h-10 mr-3"></i>
+        T2-Termin buchen
     </h1>
-    <p class="t2-subtitle">
+    <p class="text-lg text-gray-300">
         Buche deinen 2-Stunden Termin mit {{ assigned_closer }}
     </p>
 </div>
 
 <!-- Booking Form -->
-<div style="max-width: 700px; margin: 0 auto;">
+<div class="max-w-3xl mx-auto">
 
     <!-- Zugewiesener Closer -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl); text-align: center;">
-        <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--muted); margin: 0 0 var(--spacing-md);">
+    <div class="glass rounded-3xl p-10 mb-8 text-center" data-aos="fade-up" data-aos-delay="100">
+        <h3 class="text-xl font-semibold text-gray-300 mb-6">
             Dein Closer für diesen Termin
         </h3>
 
-        <div style="font-size: 48px; margin-bottom: var(--spacing-sm);">👤</div>
-        <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent); margin-bottom: var(--spacing-xs);">
+        <div class="text-7xl mb-6">👤</div>
+        <div class="text-4xl font-bold text-t2-purple mb-3">
             {{ assigned_closer }}
         </div>
-        <div style="color: var(--muted); font-size: var(--text-sm);">
+        <div class="text-lg text-gray-300">
             2-Stunden Premium-Beratung
         </div>
     </div>
 
     <form id="booking-form">
         <!-- Datum wählen -->
-        <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
-            <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-                <i class="ti ti-calendar"></i> Datum auswählen
+        <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="200">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <i data-lucide="calendar" class="w-6 h-6 text-t2-purple"></i>
+                Datum auswählen
             </h3>
 
             <div>
-                <label style="display: block; color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--spacing-xs);">Wähle ein Datum</label>
+                <label class="block text-gray-300 text-base mb-2">Wähle ein Datum</label>
                 <input type="date" id="booking-date" name="date" required
                        min="{{ (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d') }}"
                        max="{{ (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d') }}"
-                       style="width: 100%; padding: var(--spacing-sm); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); color: var(--text-color); font-size: var(--text-base);">
+                       class="input input-bordered w-full text-lg bg-white/5 border-white/20 text-white focus:border-t2-purple">
             </div>
         </div>
 
         <!-- Uhrzeit wählen -->
-        <div id="time-section" style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl); display: none;">
-            <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-                <i class="ti ti-clock"></i> Uhrzeit auswählen
+        <div id="time-section" class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="300" style="display: none;">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <i data-lucide="clock" class="w-6 h-6 text-t2-purple"></i>
+                Uhrzeit auswählen
             </h3>
 
-            <div id="time-slots-container" style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs);">
+            <div id="time-slots-container" class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <!-- Time slots will be populated -->
             </div>
         </div>
 
         <!-- Thema (optional) -->
-        <div id="details-section" style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl); display: none;">
-            <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-                <i class="ti ti-file-text"></i> Thema (optional)
+        <div id="details-section" class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="400" style="display: none;">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <i data-lucide="file-text" class="w-6 h-6 text-t2-purple"></i>
+                Thema (optional)
             </h3>
 
             <div>
-                <label style="display: block; color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--spacing-xs);">Worum geht es?</label>
+                <label class="block text-gray-300 text-base mb-2">Worum geht es?</label>
                 <input type="text" id="booking-topic" name="topic" placeholder="z.B. Verkaufsstrategie, Teamführung..."
-                       style="width: 100%; padding: var(--spacing-sm); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); color: var(--text-color); font-size: var(--text-base);">
+                       class="input input-bordered w-full text-lg bg-white/5 border-white/20 text-white focus:border-t2-purple">
             </div>
         </div>
 
         <!-- Zusammenfassung & Buchung -->
-        <div id="summary-section" style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); display: none;">
-            <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-                <i class="ti ti-check"></i> Zusammenfassung
+        <div id="summary-section" class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="500" style="display: none;">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <i data-lucide="check-circle" class="w-6 h-6 text-t2-purple"></i>
+                Zusammenfassung
             </h3>
 
-            <div id="booking-summary" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--input-bg); border-radius: var(--radius-md);">
+            <div id="booking-summary" class="glass rounded-2xl p-6 mb-8 border border-t2-purple/30">
                 <!-- Summary will be populated -->
             </div>
 
-            <button type="submit" id="submit-booking" class="btn-t2 btn-t2-success" style="width: 100%; padding: var(--spacing-md); font-size: var(--text-lg);">
-                <i class="ti ti-check"></i> Verbindlich buchen
+            <button type="submit" id="submit-booking" class="btn btn-success btn-lg w-full gap-3 text-lg">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                Verbindlich buchen
             </button>
 
-            <div style="text-align: center; margin-top: var(--spacing-md); color: var(--muted); font-size: var(--text-sm);">
-                Verbleibende Tickets: <strong>{{ tickets_remaining }}</strong>
+            <div class="text-center mt-4 text-gray-300 text-base">
+                Verbleibende Tickets: <strong class="text-t2-purple text-lg">{{ tickets_remaining }}</strong>
             </div>
         </div>
 
@@ -94,17 +100,40 @@
     </form>
 
     <!-- Zurück Button -->
-    <div style="text-align: center; margin-top: var(--spacing-lg);">
-        <a href="{{ url_for('t2.dashboard') }}" class="btn-t2">
-            <i class="ti ti-arrow-left"></i>
-            Zurück zum Dashboard
+    <div class="text-center mt-8" data-aos="fade-up" data-aos-delay="600">
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-primary btn-lg gap-3">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            <span class="text-lg">Zurück zum Dashboard</span>
         </a>
     </div>
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.time-slot {
+    @apply glass rounded-xl p-4 text-center font-semibold text-lg cursor-pointer transition-all;
+}
+
+.time-slot.available {
+    @apply text-white hover:bg-green-500/20 hover:border-green-500 hover:scale-105;
+}
+
+.time-slot.booked {
+    @apply text-gray-500 cursor-not-allowed opacity-50;
+}
+
+.time-slot.selected {
+    @apply bg-t2-purple/30 border-2 border-t2-purple text-white scale-105;
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
+// Re-init Lucide icons
+lucide.createIcons();
+
 let bookingData = {
     date: null,
     time: null,
@@ -123,30 +152,28 @@ document.getElementById('booking-date').addEventListener('change', function(e) {
 
 function loadTimeSlots(date) {
     const container = document.getElementById('time-slots-container');
-    container.innerHTML = '<div style="color: var(--muted);">Lade verfügbare Zeiten...</div>';
+    container.innerHTML = '<div class="text-gray-300 col-span-full text-center py-4">Lade verfügbare Zeiten...</div>';
 
-    fetch(`/t2/api/availability/${date}`)
+    const closer = '{{ assigned_closer }}';
+
+    fetch(`/t2/api/availability/${closer}/${date}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.slots.length > 0) {
+            if (data.success && data.available_slots && data.available_slots.length > 0) {
                 container.innerHTML = '';
-                data.slots.forEach(slot => {
+                data.available_slots.forEach(slotTime => {
                     const btn = document.createElement('div');
-                    btn.className = slot.available ? 'time-slot available' : 'time-slot booked';
-                    btn.textContent = slot.time;
-
-                    if (slot.available) {
-                        btn.onclick = () => selectTime(btn, slot.time);
-                    }
-
+                    btn.className = 'time-slot available';
+                    btn.textContent = slotTime;
+                    btn.onclick = () => selectTime(btn, slotTime);
                     container.appendChild(btn);
                 });
             } else {
-                container.innerHTML = '<div style="color: var(--muted);">Keine verfügbaren Zeiten.</div>';
+                container.innerHTML = '<div class="text-gray-300 col-span-full text-center py-4">Keine verfügbaren Zeiten an diesem Tag.</div>';
             }
         })
         .catch(error => {
-            container.innerHTML = '<div style="color: var(--red);">Fehler beim Laden.</div>';
+            container.innerHTML = '<div class="text-error col-span-full text-center py-4">Fehler beim Laden.</div>';
         });
 }
 
@@ -166,28 +193,37 @@ function selectTime(element, time) {
     document.getElementById('summary-section').style.display = 'block';
 
     updateSummary();
-    document.getElementById('summary-section').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+        document.getElementById('summary-section').scrollIntoView({ behavior: 'smooth' });
+        lucide.createIcons();
+    }, 100);
 }
 
 function updateSummary() {
     const summary = document.getElementById('booking-summary');
 
     summary.innerHTML = `
-        <div style="margin-bottom: var(--spacing-md);">
-            <div style="font-weight: var(--font-semibold); color: var(--text-color); margin-bottom: var(--spacing-xs);">
-                <i class="ti ti-user"></i> Closer: {{ assigned_closer }}
+        <div class="space-y-3">
+            <div class="flex items-center gap-3 text-white text-lg">
+                <i data-lucide="user" class="w-5 h-5 text-t2-purple"></i>
+                <strong>Closer:</strong> {{ assigned_closer }}
+            </div>
+            <div class="flex items-center gap-3 text-white text-lg">
+                <i data-lucide="calendar" class="w-5 h-5 text-t2-purple"></i>
+                <strong>Datum:</strong> ${new Date(bookingData.date).toLocaleDateString('de-DE', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+            </div>
+            <div class="flex items-center gap-3 text-white text-lg">
+                <i data-lucide="clock" class="w-5 h-5 text-t2-purple"></i>
+                <strong>Uhrzeit:</strong> ${bookingData.time} Uhr
+            </div>
+            <div class="flex items-center gap-3 text-white text-lg">
+                <i data-lucide="hourglass" class="w-5 h-5 text-t2-purple"></i>
+                <strong>Dauer:</strong> 2 Stunden
             </div>
         </div>
-        <div style="margin-bottom: var(--spacing-xs); color: var(--text-color);">
-            <i class="ti ti-calendar"></i> <strong>Datum:</strong> ${new Date(bookingData.date).toLocaleDateString('de-DE')}
-        </div>
-        <div style="margin-bottom: var(--spacing-xs); color: var(--text-color);">
-            <i class="ti ti-clock"></i> <strong>Uhrzeit:</strong> ${bookingData.time}
-        </div>
-        <div style="color: var(--text-color);">
-            <i class="ti ti-hourglass"></i> <strong>Dauer:</strong> 2 Stunden
-        </div>
     `;
+
+    setTimeout(() => lucide.createIcons(), 50);
 }
 
 // Form Submit
@@ -198,7 +234,8 @@ document.getElementById('booking-form').addEventListener('submit', function(e) {
 
     const submitBtn = document.getElementById('submit-booking');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Buche...';
+    submitBtn.innerHTML = '<i data-lucide="loader" class="w-6 h-6 animate-spin"></i> Buche...';
+    lucide.createIcons();
 
     fetch('/t2/api/book', {
         method: 'POST',
@@ -208,31 +245,27 @@ document.getElementById('booking-form').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccess('T2-Termin erfolgreich gebucht!');
+            submitBtn.innerHTML = '<i data-lucide="check-circle" class="w-6 h-6"></i> Erfolgreich gebucht!';
+            submitBtn.classList.remove('btn-success');
+            submitBtn.classList.add('btn-primary');
+            lucide.createIcons();
+
             setTimeout(() => {
                 window.location.href = '{{ url_for("t2.dashboard") }}';
             }, 1500);
         } else {
-            showError(data.error || 'Fehler beim Buchen');
+            alert('Fehler: ' + (data.error || 'Fehler beim Buchen'));
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="ti ti-check"></i> Verbindlich buchen';
+            submitBtn.innerHTML = '<i data-lucide="check-circle" class="w-6 h-6"></i> Verbindlich buchen';
+            lucide.createIcons();
         }
     })
     .catch(error => {
-        showError('Buchungsfehler');
+        alert('Buchungsfehler: ' + error.message);
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="ti ti-check"></i> Verbindlich buchen';
+        submitBtn.innerHTML = '<i data-lucide="check-circle" class="w-6 h-6"></i> Verbindlich buchen';
+        lucide.createIcons();
     });
 });
-
-// Spin animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}

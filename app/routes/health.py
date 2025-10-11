@@ -42,7 +42,7 @@ def health_check():
     # 2. Google Calendar API Check
     try:
         cal_service = GoogleCalendarService()
-        if cal_service.is_configured():
+        if cal_service.service is not None:
             checks['google_calendar'] = {
                 'status': 'healthy',
                 'message': 'Google Calendar API configured'
@@ -54,10 +54,10 @@ def health_check():
             }
     except Exception as e:
         checks['google_calendar'] = {
-            'status': 'unhealthy',
-            'message': f'Calendar API error: {str(e)}'
+            'status': 'degraded',
+            'message': f'Calendar API warning: {str(e)}'
         }
-        overall_healthy = False
+        # Calendar not critical, don't mark overall as unhealthy
 
     # 3. Holiday Service Check
     try:
@@ -77,7 +77,7 @@ def health_check():
 
     # 4. File System Check
     try:
-        persist_dir = data_persistence.persist_dir
+        persist_dir = str(data_persistence.data_dir)
         if os.path.exists(persist_dir) and os.access(persist_dir, os.W_OK):
             checks['filesystem'] = {
                 'status': 'healthy',

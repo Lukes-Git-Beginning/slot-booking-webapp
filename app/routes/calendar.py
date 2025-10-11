@@ -23,11 +23,12 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 @require_login
 def my_calendar():
     """Display user's personal calendar view"""
+    from datetime import datetime as dt_module
     user = session.get("user")
 
     # Get user's bookings from the past month and next month
-    start_date = (datetime.now(TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
-    end_date = (datetime.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
+    start_date = (dt_module.now(TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
+    end_date = (dt_module.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
 
     # Get events from Google Calendar
     google_calendar_service = get_google_calendar_service()
@@ -44,21 +45,209 @@ def my_calendar():
 
     all_events = events_result.get('items', []) if events_result else []
 
-    # Filter events for this user (events they created)
+    # Filter events for this user (events they booked - based on [Booked by: username] tag)
     my_events = []
     for event in all_events:
         summary = event.get('summary', '')
-        # Simple heuristic: if user is mentioned in summary or they created it
-        if user.lower() in summary.lower() or event.get('creator', {}).get('email', '').startswith(user.lower()):
+        description = event.get('description', '')
+
+        # Check if this user booked the event (via [Booked by: username] tag in description)
+        booked_by_tag = f"[Booked by: {user}]"
+        is_booked_by_user = booked_by_tag in description
+
+        if is_booked_by_user:
+            # Parse event data for display
+            start_dt = event.get('start', {}).get('dateTime', '')
+            color_id = event.get('colorId', '1')
+
+            # Extract date and hour
+            date_str = ""
+            hour_str = ""
+            if start_dt:
+                try:
+                    dt = dt_module.fromisoformat(start_dt.replace('Z', '+00:00'))
+                    date_str = dt.strftime('%d.%m.%Y')
+                    hour_str = dt.strftime('%H:%M')
+                except:
+                    pass
+
+            # Determine outcome/potential from color
+            potential_map = {
+                '2': 'Normales Potential',  # Sage/Green
+                '7': 'Top Potential',        # Peacock/Türkis
+                '5': 'Closer nötig',         # Banana/Yellow
+                '11': 'Nicht erschienen',    # Tomate/Red
+                '6': 'Storniert',            # Mandarine/Orange
+            }
+            potential = potential_map.get(color_id, 'Sonstiges')
+
+            # Calculate points (simplified)
+            points = 3
+            if color_id == '7':  # Top Potential
+                points = 5
+            elif color_id == '5':  # Closer nötig
+                points = 2
+
+            # Clean description (remove booked by tag)
+            clean_desc = description.replace(f"\n\n{booked_by_tag}", "").replace(booked_by_tag, "").strip()
+
             my_events.append({
                 'summary': summary,
-                'start': event.get('start', {}),
-                'end': event.get('end', {}),
-                'description': event.get('description', ''),
-                'colorId': event.get('colorId', '1')
+                'date': date_str,
+                'hour': hour_str,
+                'color_id': color_id,
+                'potential': potential,
+                'points': points,
+                'desc': clean_desc or '-',
+                'source': 'calendar'
             })
 
     return render_template("my_calendar.html", my_events=my_events, user=user)
+
+
+@calendar_bp.route("/my-customers")
+@require_login
+def my_customers():
+    """Dashboard for telemarketers to see attendance rate of their customers"""
+    from datetime import datetime as dt_module
+    user = session.get("user")
+
+    # Get user's bookings since September 1st (or 90 days back, whichever is earlier)
+    september_first = datetime(2024, 9, 1).date()
+    ninety_days_ago = (dt_module.now(TZ) - timedelta(days=90)).date()
+
+    # Use the earlier date
+    start_date_obj = september_first if september_first < ninety_days_ago else ninety_days_ago
+    start_date = start_date_obj.strftime("%Y-%m-%d")
+    end_date = (dt_module.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
+
+    # Get events from Google Calendar
+    google_calendar_service = get_google_calendar_service()
+    if not google_calendar_service:
+        return render_template("my_customers.html", customers=[], stats={}, user=user)
+
+    from app.config.base import config
+    events_result = google_calendar_service.get_events(
+        calendar_id=config.CENTRAL_CALENDAR_ID,
+        time_min=f"{start_date}T00:00:00+01:00",
+        time_max=f"{end_date}T23:59:59+01:00",
+        max_results=2500
+    )
+
+    all_events = events_result.get('items', []) if events_result else []
+
+    # Filter events booked by this user and analyze outcomes
+    from collections import defaultdict
+    customer_data = defaultdict(lambda: {
+        'name': '',
+        'total': 0,
+        'erschienen': 0,
+        'no_show': 0,
+        'cancelled': 0,
+        'pending': 0,
+        'events': []
+    })
+
+    outcome_map = {
+        '2': 'erschienen',      # Sage/Green - Normal
+        '7': 'erschienen',      # Peacock/Türkis - Top
+        '11': 'no_show',        # Tomate/Red - No Show
+        '6': 'cancelled',       # Mandarine/Orange - Cancelled
+        '5': 'pending',         # Banana/Yellow - Closer needed (pending)
+    }
+
+    booked_by_tag = f"[Booked by: {user}]"
+
+    for event in all_events:
+        description = event.get('description', '')
+
+        # Only events booked by this user
+        if booked_by_tag not in description:
+            continue
+
+        summary = event.get('summary', '').strip()
+        if not summary:
+            continue
+
+        # Parse customer name (format: "Nachname, Vorname")
+        customer_name = summary
+
+        color_id = event.get('colorId', '1')
+        outcome = outcome_map.get(color_id, 'pending')
+
+        # Get event time
+        start_dt = event.get('start', {}).get('dateTime', '')
+        event_date = ''
+        if start_dt:
+            try:
+                dt = dt_module.fromisoformat(start_dt.replace('Z', '+00:00'))
+                event_date = dt.strftime('%d.%m.%Y')
+            except:
+                pass
+
+        # Track customer stats
+        customer_data[customer_name]['name'] = customer_name
+        customer_data[customer_name]['total'] += 1
+        customer_data[customer_name][outcome] += 1
+        customer_data[customer_name]['events'].append({
+            'date': event_date,
+            'outcome': outcome,
+            'color_id': color_id
+        })
+
+    # Calculate attendance rates
+    customers = []
+    for customer_name, data in customer_data.items():
+        total = data['total']
+        erschienen = data['erschienen']
+        no_show = data['no_show']
+        cancelled = data['cancelled']
+        pending = data['pending']
+
+        # Calculate rate (only from completed outcomes)
+        completed = erschienen + no_show + cancelled
+        attendance_rate = (erschienen / completed * 100) if completed > 0 else 0
+        no_show_rate = (no_show / completed * 100) if completed > 0 else 0
+
+        customers.append({
+            'name': customer_name,
+            'total': total,
+            'erschienen': erschienen,
+            'no_show': no_show,
+            'cancelled': cancelled,
+            'pending': pending,
+            'attendance_rate': round(attendance_rate, 1),
+            'no_show_rate': round(no_show_rate, 1),
+            'events': data['events']
+        })
+
+    # Sort by total appointments descending
+    customers.sort(key=lambda x: x['total'], reverse=True)
+
+    # Calculate overall stats
+    total_customers = len(customers)
+    total_appointments = sum(c['total'] for c in customers)
+    total_erschienen = sum(c['erschienen'] for c in customers)
+    total_no_show = sum(c['no_show'] for c in customers)
+    total_cancelled = sum(c['cancelled'] for c in customers)
+    total_pending = sum(c['pending'] for c in customers)
+
+    completed_total = total_erschienen + total_no_show + total_cancelled
+    overall_attendance_rate = (total_erschienen / completed_total * 100) if completed_total > 0 else 0
+    overall_no_show_rate = (total_no_show / completed_total * 100) if completed_total > 0 else 0
+
+    stats = {
+        'total_customers': total_customers,
+        'total_appointments': total_appointments,
+        'total_erschienen': total_erschienen,
+        'total_no_show': total_no_show,
+        'total_cancelled': total_cancelled,
+        'total_pending': total_pending,
+        'overall_attendance_rate': round(overall_attendance_rate, 1),
+        'overall_no_show_rate': round(overall_no_show_rate, 1)
+    }
+
+    return render_template("my_customers.html", customers=customers, stats=stats, user=user)
 
 
 @calendar_bp.route("/calendar-view")
@@ -92,9 +281,15 @@ def calendar_view():
     week_start = current_week
     week_end = current_week + timedelta(days=6)
 
-    # Load availability data from static/availability.json
+    # Load availability data from persistent storage
     availability_data = {}
-    availability_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'availability.json')
+    # Try persistent storage first
+    availability_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'persistent', 'availability.json')
+
+    # Fallback to old location
+    if not os.path.exists(availability_path):
+        availability_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'availability.json')
+
     try:
         with open(availability_path, 'r', encoding='utf-8') as f:
             availability_data = json.load(f)

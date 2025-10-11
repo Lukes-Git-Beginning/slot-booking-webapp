@@ -1,0 +1,13 @@
+[Unit]
+Description=T2 Availability Scanner Timer (2x daily at 09:00 and 21:00 Berlin time)
+Requires=t2-availability-scan.service
+
+[Timer]
+# Run at 07:00 UTC (09:00 Berlin time)
+OnCalendar=07:00
+# Run at 19:00 UTC (21:00 Berlin time)
+OnCalendar=19:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

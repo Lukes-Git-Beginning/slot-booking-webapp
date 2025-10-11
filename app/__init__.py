@@ -287,6 +287,12 @@ def register_template_context(app: Flask) -> None:
                 return dt
         return dt.strftime('%d.%m.%Y')
 
+    @app.template_filter('avatar_url')
+    def avatar_url_filter(avatar_id, category="default", size=128):
+        """Avatar URL Generator Filter - DiceBear API Integration"""
+        from app.utils.avatar_generator import get_avatar_url
+        return get_avatar_url(avatar_id, category, size)
+
 
 def register_request_hooks(app: Flask) -> None:
     """Request-Hooks für Session-Management und Logging"""

@@ -3,103 +3,105 @@
 {% block title %}Keine Tickets verfügbar{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="t2-header">
-    <h1 class="t2-title">
-        <i class="ti ti-ticket-off"></i> Keine Tickets verfügbar
+<!-- Page Header -->
+<div class="glass rounded-3xl p-8 mb-8 text-center" data-aos="fade-up">
+    <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">
+        <i data-lucide="ticket-x" class="inline w-10 h-10 mr-3"></i>
+        Keine Tickets verfügbar
     </h1>
-    <p class="t2-subtitle">
+    <p class="text-lg text-gray-300">
         Du hast diesen Monat alle Tickets aufgebraucht
     </p>
 </div>
 
 <!-- No Tickets Message -->
-<div style="max-width: 600px; margin: 0 auto;">
+<div class="max-w-2xl mx-auto">
 
     <!-- Main Message Box -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-2xl); margin-bottom: var(--spacing-xl); text-align: center;">
+    <div class="glass rounded-3xl p-12 mb-8 text-center" data-aos="fade-up" data-aos-delay="100">
 
         <!-- Icon -->
-        <div style="font-size: 80px; margin-bottom: var(--spacing-lg);">🎫</div>
+        <div class="text-9xl mb-8">🎫</div>
 
         <!-- Message -->
-        <h2 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+        <h2 class="text-3xl font-bold text-white mb-6">
             Alle Tickets aufgebraucht
         </h2>
 
-        <p style="color: var(--muted); font-size: var(--text-base); line-height: var(--leading-relaxed); margin: 0 0 var(--spacing-lg);">
+        <p class="text-xl text-gray-300 leading-relaxed mb-10">
             Du hast diesen Monat bereits alle {{ tickets_total }} T2-Tickets verwendet.
         </p>
 
         <!-- Ticket Counter -->
-        <div style="padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg);">
-            <div style="font-size: var(--text-4xl); font-weight: var(--font-bold); color: var(--muted); margin-bottom: var(--spacing-xs);">
+        <div class="glass rounded-2xl p-8 mb-8 border-2 border-error/30">
+            <div class="text-6xl font-bold text-error mb-3">
                 {{ tickets_remaining }} / {{ tickets_total }}
             </div>
-            <div style="color: var(--muted); font-size: var(--text-sm);">
+            <div class="text-gray-300 text-lg">
                 Verfügbare Tickets
             </div>
         </div>
 
         <!-- Reset Info -->
-        <div style="padding: var(--spacing-md); background: var(--info-bg); border: 1px solid var(--info-bd); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg);">
-            <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: var(--spacing-xs);">
-                <i class="ti ti-calendar-event"></i> Nächster Reset
+        <div class="glass rounded-2xl p-6 border-2 border-info/30">
+            <div class="flex items-center justify-center gap-3 text-white font-bold text-xl mb-3">
+                <i data-lucide="calendar-clock" class="w-6 h-6 text-info"></i>
+                Nächster Reset
             </div>
-            <div style="color: var(--muted); font-size: var(--text-sm);">
+            <div class="text-gray-300 text-lg mb-2">
                 {{ reset_date }}
             </div>
-            <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">
+            <div class="text-gray-400 text-base">
                 Dann erhältst du wieder {{ tickets_total }} neue Tickets
             </div>
         </div>
     </div>
 
     <!-- What you can do -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
-        <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="200">
+        <h3 class="text-2xl font-bold text-white mb-6">
             Was du jetzt tun kannst
         </h3>
 
-        <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+        <div class="space-y-4">
             <!-- View Calendar -->
-            <a href="{{ url_for('t2.calendar_view') }}" style="display: flex; align-items: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-decoration: none; transition: all 0.2s;">
-                <div style="font-size: 24px; margin-right: var(--spacing-md);">📅</div>
-                <div style="flex: 1;">
-                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: 2px;">Deine Termine ansehen</div>
-                    <div style="color: var(--muted); font-size: var(--text-sm);">Überblick über gebuchte T2-Termine</div>
+            <a href="{{ url_for('t2.calendar_view') }}" class="glass rounded-2xl p-5 flex items-center gap-4 hover:bg-white/10 transition-all group">
+                <div class="text-5xl">📅</div>
+                <div class="flex-1">
+                    <div class="text-white font-bold text-lg mb-1 group-hover:text-t2-purple transition-colors">Deine Termine ansehen</div>
+                    <div class="text-gray-400 text-base">Überblick über gebuchte T2-Termine</div>
                 </div>
-                <i class="ti ti-chevron-right" style="color: var(--muted);"></i>
+                <i data-lucide="chevron-right" class="w-6 h-6 text-gray-400 group-hover:text-t2-purple group-hover:translate-x-1 transition-all"></i>
             </a>
 
             <!-- View Stats -->
-            <a href="{{ url_for('t2.stats_page') }}" style="display: flex; align-items: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-decoration: none; transition: all 0.2s;">
-                <div style="font-size: 24px; margin-right: var(--spacing-md);">📊</div>
-                <div style="flex: 1;">
-                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: 2px;">Statistiken ansehen</div>
-                    <div style="color: var(--muted); font-size: var(--text-sm);">Deine T2-Performance im Überblick</div>
+            <a href="{{ url_for('t2.stats_page') }}" class="glass rounded-2xl p-5 flex items-center gap-4 hover:bg-white/10 transition-all group">
+                <div class="text-5xl">📊</div>
+                <div class="flex-1">
+                    <div class="text-white font-bold text-lg mb-1 group-hover:text-t2-purple transition-colors">Statistiken ansehen</div>
+                    <div class="text-gray-400 text-base">Deine T2-Performance im Überblick</div>
                 </div>
-                <i class="ti ti-chevron-right" style="color: var(--muted);"></i>
+                <i data-lucide="chevron-right" class="w-6 h-6 text-gray-400 group-hover:text-t2-purple group-hover:translate-x-1 transition-all"></i>
             </a>
 
             <!-- Back to Dashboard -->
-            <a href="{{ url_for('t2.dashboard') }}" style="display: flex; align-items: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-decoration: none; transition: all 0.2s;">
-                <div style="font-size: 24px; margin-right: var(--spacing-md);">🏠</div>
-                <div style="flex: 1;">
-                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: 2px;">Zurück zum Dashboard</div>
-                    <div style="color: var(--muted); font-size: var(--text-sm);">T2-Hauptübersicht</div>
+            <a href="{{ url_for('t2.dashboard') }}" class="glass rounded-2xl p-5 flex items-center gap-4 hover:bg-white/10 transition-all group">
+                <div class="text-5xl">🏠</div>
+                <div class="flex-1">
+                    <div class="text-white font-bold text-lg mb-1 group-hover:text-t2-purple transition-colors">Zurück zum Dashboard</div>
+                    <div class="text-gray-400 text-base">T2-Hauptübersicht</div>
                 </div>
-                <i class="ti ti-chevron-right" style="color: var(--muted);"></i>
+                <i data-lucide="chevron-right" class="w-6 h-6 text-gray-400 group-hover:text-t2-purple group-hover:translate-x-1 transition-all"></i>
             </a>
         </div>
     </div>
 
-    <!-- Countdown Timer (Optional) -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); text-align: center;">
-        <div style="color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--spacing-sm);">
+    <!-- Countdown Timer -->
+    <div class="glass rounded-3xl p-8 text-center" data-aos="fade-up" data-aos-delay="300">
+        <div class="text-gray-300 text-lg mb-4">
             Zeit bis zum nächsten Reset
         </div>
-        <div id="countdown" style="font-size: var(--text-3xl); font-weight: var(--font-bold); color: var(--accent);">
+        <div id="countdown" class="text-5xl font-bold text-t2-purple">
             <!-- Will be populated by JS -->
         </div>
     </div>
@@ -109,6 +111,9 @@
 
 {% block extra_js %}
 <script>
+// Re-init Lucide icons
+lucide.createIcons();
+
 // Countdown to next month
 function updateCountdown() {
     const now = new Date();
@@ -133,18 +138,6 @@ function updateCountdown() {
 document.addEventListener('DOMContentLoaded', function() {
     updateCountdown();
     setInterval(updateCountdown, 1000);
-});
-
-// Hover effects for action cards
-document.querySelectorAll('a[style*="background: var(--input-bg)"]').forEach(card => {
-    card.addEventListener('mouseenter', function() {
-        this.style.borderColor = 'var(--accent)';
-        this.style.transform = 'translateX(4px)';
-    });
-    card.addEventListener('mouseleave', function() {
-        this.style.borderColor = 'var(--input-bd)';
-        this.style.transform = 'translateX(0)';
-    });
 });
 </script>
 {% endblock %}

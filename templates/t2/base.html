@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}T2-Closer System{% endblock %} • Business Tool Hub</title>
@@ -22,8 +22,8 @@
   <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <!-- Original Admin Styles (Fallback) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
+  <!-- Particles.js -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 
   <!-- Tailwind Config -->
   <script>
@@ -33,9 +33,24 @@
         extend: {
           colors: {
             'primary': '#5ab1ff',
+            'primary-dark': '#2196F3',
             'secondary': '#10b981',
             'accent': '#f97316',
             't2-purple': '#a855f7',
+          },
+          animation: {
+            'gradient': 'gradient 15s ease infinite',
+            'float': 'float 6s ease-in-out infinite',
+          },
+          keyframes: {
+            gradient: {
+              '0%, 100%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
           },
         },
       },
@@ -45,20 +60,55 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-    body {
-      font-family: 'Inter', var(--font-sans), sans-serif;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    /* Glass Effect */
+    body {
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Glassmorphism */
     .glass {
-      background: var(--box-bg);
+      background: rgba(18, 24, 32, 0.65);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid var(--box-border);
-      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    /* T2 Closer Card Styling */
+    /* Particle Container */
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(168, 85, 247, 0.3);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(168, 85, 247, 0.6);
+    }
+
+    /* T2-Specific Styles */
     .closer-card {
       position: relative;
       overflow: hidden;
@@ -103,75 +153,126 @@
 
   {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-[var(--bg)]" x-data="{ theme: localStorage.getItem('theme') || 'darkmode' }" :class="theme">
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
 
-  <!-- Theme Toggle -->
-  <button
-    id="mode-toggle"
-    @click="theme = theme === 'darkmode' ? 'lightmode' : 'darkmode'; localStorage.setItem('theme', theme); document.body.className = theme"
-    class="fixed top-6 right-6 z-50 w-12 h-12 glass rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer"
-    data-aos="fade-left">
-    <i :data-lucide="theme === 'darkmode' ? 'sun' : 'moon'" class="w-6 h-6"></i>
-  </button>
-
-  <!-- Back to Hub Button -->
-  <a href="{{ url_for('hub.dashboard') }}"
-     class="fixed top-6 left-6 z-50 glass px-6 py-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all group"
-     data-aos="fade-right">
-    <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
-    <span class="hidden md:inline">Zurück zum Hub</span>
-  </a>
+  <!-- Particle Background -->
+  <div id="particles-js"></div>
 
   <!-- Main Container -->
-  <div class="t2-container max-w-7xl mx-auto px-4 py-24 md:py-32">
+  <div class="relative z-10">
 
-    <!-- Header -->
-    <header class="glass rounded-3xl p-8 md:p-12 mb-12" data-aos="fade-down">
-      <div class="flex flex-col md:flex-row items-center gap-6">
-        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-t2-purple to-pink-600 flex items-center justify-center flex-shrink-0">
-          <i data-lucide="target" class="w-10 h-10 text-white"></i>
-        </div>
-        <div class="text-center md:text-left">
-          <h1 class="text-4xl md:text-5xl font-bold text-[var(--accent)] mb-2">
-            {% block header_title %}T2-Closer System{% endblock %}
-          </h1>
-          <p class="text-lg text-[var(--muted)]">
-            {% block header_subtitle %}Vereinbare qualifizierte Abschlusstermine{% endblock %}
-          </p>
+    <!-- Modern Navbar -->
+    <nav class="glass sticky top-0 z-50 backdrop-blur-xl"
+         x-data="{ userMenuOpen: false }"
+         data-aos="fade-down">
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+
+          <!-- Brand & Back Button -->
+          <div class="flex items-center gap-4">
+            <a href="{{ url_for('hub.dashboard') }}"
+               class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all group">
+              <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+              <span class="hidden md:inline">Zurück zum Hub</span>
+            </a>
+
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-t2-purple to-pink-600 flex items-center justify-center">
+                <i data-lucide="target" class="w-5 h-5 text-white"></i>
+              </div>
+              <div class="hidden md:block">
+                <h1 class="text-lg font-bold">T2-Closer System</h1>
+                <p class="text-xs text-gray-400">Premium 2-Stunden-Beratungen</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Menu -->
+          {% if user %}
+          <div class="relative" @click.away="userMenuOpen = false">
+            <button @click="userMenuOpen = !userMenuOpen"
+                    class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center font-bold">
+                {{ user[0]|upper }}
+              </div>
+              <div class="text-left hidden md:block">
+                <p class="font-semibold">{{ user }}</p>
+                <p class="text-xs text-gray-400">
+                  {% if is_admin %}Admin{% else %}Benutzer{% endif %}
+                </p>
+              </div>
+              <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+
+            <!-- User Dropdown Menu -->
+            <div x-show="userMenuOpen"
+                 x-transition
+                 class="absolute right-0 mt-2 w-56 glass rounded-2xl p-2 shadow-2xl">
+              <a href="{{ url_for('t2.dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                <span>T2 Dashboard</span>
+              </a>
+              <a href="{{ url_for('t2.stats_page') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                <i data-lucide="bar-chart" class="w-4 h-4"></i>
+                <span>Statistiken</span>
+              </a>
+              <a href="{{ url_for('t2.calendar_view') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                <span>Kalender</span>
+              </a>
+              {% if is_admin %}
+              <div class="divider my-1"></div>
+              <a href="{{ url_for('t2.admin_bucket_config') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+                <span>Bucket Config</span>
+              </a>
+              <a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                <i data-lucide="shield" class="w-4 h-4"></i>
+                <span>Administration</span>
+              </a>
+              {% endif %}
+              <div class="divider my-1"></div>
+              <a href="{{ url_for('auth.logout') }}"
+                 class="flex items-center gap-3 px-4 py-2 hover:bg-error/20 text-error rounded-lg transition-colors">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                <span>Abmelden</span>
+              </a>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
-    </header>
+    </nav>
 
-    <!-- Content -->
-    <div data-aos="fade-up" data-aos-delay="100">
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 min-h-[calc(100vh-200px)]">
       {% block content %}{% endblock %}
-    </div>
+    </main>
 
-  </div>
-
-  <!-- Footer -->
-  <footer class="glass mt-24 py-8" data-aos="fade-up">
-    <div class="max-w-7xl mx-auto px-4">
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-t2-purple to-pink-600 flex items-center justify-center">
-            <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+    <!-- Footer -->
+    <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
+      <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-t2-purple to-pink-600 flex items-center justify-center">
+              <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+            </div>
+            <div class="text-sm">
+              <p class="font-semibold">T2-Closer System</p>
+              <p class="text-gray-400">Premium 2-Stunden-Beratungen</p>
+            </div>
           </div>
-          <div class="text-sm">
-            <p class="font-semibold text-[var(--text-color)]">T2-Closer System</p>
-            <p class="text-[var(--muted)]">Professionelles Termin-Management</p>
+          <div class="flex items-center gap-6 text-sm text-gray-400">
+            <a href="/health" class="flex items-center gap-2 hover:text-primary transition-colors">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+              <span>Status</span>
+            </a>
+            <span>Version 3.2</span>
           </div>
-        </div>
-        <div class="flex items-center gap-6 text-sm text-[var(--muted)]">
-          <a href="/health" class="flex items-center gap-2 hover:text-[var(--accent)] transition-colors">
-            <i data-lucide="activity" class="w-4 h-4"></i>
-            <span>Status</span>
-          </a>
-          <span>Version 3.2</span>
         </div>
       </div>
-    </div>
-  </footer>
+    </footer>
+  </div>
 
   <!-- JavaScript -->
   <script>
@@ -180,15 +281,59 @@
 
     // Initialize AOS
     AOS.init({
-      duration: 600,
+      duration: 800,
       easing: 'ease-out-cubic',
       once: true,
       offset: 50
     });
 
-    // Apply theme on load
-    const savedTheme = localStorage.getItem('theme') || 'darkmode';
-    document.body.className = savedTheme;
+    // Initialize Particles.js (T2 theme with purple)
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 80, density: { enable: true, value_area: 800 } },
+        color: { value: '#a855f7' },
+        shape: { type: 'circle' },
+        opacity: {
+          value: 0.3,
+          random: true,
+          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: '#a855f7',
+          opacity: 0.2,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: 'none',
+          random: false,
+          straight: false,
+          out_mode: 'out',
+          bounce: false
+        }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: {
+          onhover: { enable: true, mode: 'grab' },
+          onclick: { enable: true, mode: 'push' },
+          resize: true
+        },
+        modes: {
+          grab: { distance: 140, line_linked: { opacity: 0.5 } },
+          push: { particles_nb: 4 }
+        }
+      },
+      retina_detect: true
+    });
 
     // Re-init icons after Alpine loads
     document.addEventListener('alpine:initialized', () => {

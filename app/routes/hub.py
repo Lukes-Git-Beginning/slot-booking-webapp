@@ -198,7 +198,7 @@ def get_user_tools(username):
             'id': 't2',
             'name': 'T2-Closer',
             'description': 'T2-Termin-Management',
-            'icon': '👥',
+            'icon': '💼',
             'url': '/t2/',
             'status': 'active',
             'users': 8,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 T2-Closer-System Blueprint
-Random Closer-Zuweisung mit Fairness-System und Ticket-Management
+Random Closer-Zuweisung mit Bucket-System und Ticket-Management
 """
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
@@ -14,6 +14,10 @@ from collections import defaultdict
 
 t2_bp = Blueprint('t2', __name__, url_prefix='/t2')
 logger = logging.getLogger(__name__)
+
+# Register bucket system routes
+from app.routes.t2_bucket_routes import register_bucket_routes
+register_bucket_routes(t2_bp)
 
 # T2-Closer-Konfiguration
 T2_CLOSERS = {
@@ -132,7 +136,9 @@ def booking_page():
                          assigned_closer=assigned_closer,
                          closer_info=T2_CLOSERS[assigned_closer],
                          tickets_remaining=tickets_remaining,
-                         config=T2_CONFIG)
+                         config=T2_CONFIG,
+                         datetime=datetime,
+                         timedelta=timedelta)
 
 
 @t2_bp.route("/calendar")
@@ -141,11 +147,19 @@ def calendar_view():
     """Kalender-Übersicht für T2-Termine"""
     user = session.get('user')
 
+    # Check if user is closer or opener
+    user_is_closer = is_closer(user)
+
+    # Get all closers list for dropdown
+    closers_list = list(T2_CLOSERS.keys())
+
     # Nächste 30 Tage laden
     calendar_data = get_calendar_data(user)
 
     return render_template('t2/calendar.html',
                          user=user,
+                         is_closer=user_is_closer,
+                         closers_list=closers_list,
                          **calendar_data)
 
 
@@ -589,3 +603,228 @@ def generate_booking_id() -> str:
     """Booking-ID generieren"""
     import uuid
     return f"T2-{uuid.uuid4().hex[:8].upper()}"
+
+
+# ========== NEUE AVAILABILITY & CALENDAR API-ENDPOINTS ==========
+
+# Closers list for role detection
+CLOSERS_LIST = ["Jose", "Alexander", "David", "Daniel", "Christian", "Tim"]
+
+def is_closer(username: str) -> bool:
+    """Check if user is a closer"""
+    return username in CLOSERS_LIST
+
+def is_opener(username: str) -> bool:
+    """Check if user is an opener"""
+    return not is_closer(username)
+
+
+@t2_bp.route("/api/availability-calendar/<closer_name>")
+@require_login
+def api_availability_calendar(closer_name):
+    """
+    Get 6-week availability calendar for a closer
+    Returns dates with available slots (for green dots)
+    """
+    try:
+        from app.services.t2_availability_service import availability_service
+
+        if closer_name not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Unknown closer'}), 400
+
+        # Get available dates (dates with at least one free slot)
+        available_dates = availability_service.get_available_dates(closer_name, days=42)
+
+        return jsonify({
+            'success': True,
+            'closer': closer_name,
+            'available_dates': available_dates
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting availability calendar: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/availability/<closer_name>/<date_str>")
+@require_login
+def api_availability_by_date(closer_name, date_str):
+    """
+    Get available time slots for specific closer and date
+    Returns list of free 2h slots (09:00-22:00)
+    """
+    try:
+        from app.services.t2_availability_service import availability_service
+
+        if closer_name not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Unknown closer'}), 400
+
+        # Get cached availability
+        availability = availability_service.get_cached_availability(closer_name, date_str)
+        closer_data = availability.get(closer_name, {})
+        slots = closer_data.get(date_str, [])
+
+        return jsonify({
+            'success': True,
+            'closer': closer_name,
+            'date': date_str,
+            'available_slots': slots
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting availability: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/my-calendar-events/<date_str>")
+@require_login
+def api_my_calendar_events(date_str):
+    """
+    Get closer's own calendar events for specific date
+    Only accessible by closers
+    """
+    try:
+        user = session.get('user')
+
+        if not is_closer(user):
+            return jsonify({'success': False, 'error': 'Not authorized - Closers only'}), 403
+
+        from app.core.google_calendar import get_google_calendar_service
+        from app.services.t2_calendar_parser import calendar_parser
+
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return jsonify({'success': False, 'error': 'Calendar service unavailable'}), 500
+
+        # Get calendar ID for this closer
+        closer_data = T2_CLOSERS.get(user)
+        if not closer_data:
+            return jsonify({'success': False, 'error': 'Closer calendar not found'}), 404
+
+        calendar_id = closer_data['calendar_id']
+
+        # Get events for this date
+        start_time = f"{date_str}T00:00:00Z"
+        end_time = f"{date_str}T23:59:59Z"
+
+        result = calendar_service.get_events(
+            calendar_id=calendar_id,
+            time_min=start_time,
+            time_max=end_time,
+            cache_duration=1800  # 30min cache
+        )
+
+        events = result.get('items', []) if result else []
+
+        # Classify events
+        classified_events = [calendar_parser.classify_appointment(event) for event in events]
+
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'events': classified_events
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting calendar events: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/my-upcoming-events")
+@require_login
+def api_my_upcoming_events():
+    """
+    Get closer's next 5 upcoming appointments
+    Only accessible by closers
+    """
+    try:
+        user = session.get('user')
+
+        if not is_closer(user):
+            return jsonify({'success': False, 'error': 'Not authorized - Closers only'}), 403
+
+        from app.core.google_calendar import get_google_calendar_service
+        from app.services.t2_calendar_parser import calendar_parser
+
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return jsonify({'success': False, 'error': 'Calendar service unavailable'}), 500
+
+        # Get calendar ID
+        closer_data = T2_CLOSERS.get(user)
+        if not closer_data:
+            return jsonify({'success': False, 'error': 'Closer calendar not found'}), 404
+
+        calendar_id = closer_data['calendar_id']
+
+        # Get next 14 days of events
+        start_time = datetime.now().isoformat() + 'Z'
+        end_time = (datetime.now() + timedelta(days=14)).isoformat() + 'Z'
+
+        result = calendar_service.get_events(
+            calendar_id=calendar_id,
+            time_min=start_time,
+            time_max=end_time,
+            max_results=10,
+            cache_duration=1800
+        )
+
+        events = result.get('items', []) if result else []
+
+        # Classify and limit to 5
+        classified_events = [calendar_parser.classify_appointment(event) for event in events]
+        upcoming = classified_events[:5]
+
+        return jsonify({
+            'success': True,
+            'upcoming_events': upcoming
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting upcoming events: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/my-bookings")
+@require_login
+def api_my_bookings():
+    """
+    Get all bookings for current user (opener)
+    Returns bookings from t2_bookings.json
+    """
+    try:
+        user = session.get('user')
+
+        # Get all user bookings
+        bookings = get_user_t2_bookings(user)
+
+        return jsonify({
+            'success': True,
+            'bookings': bookings
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting user bookings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/my-upcoming-bookings")
+@require_login
+def api_my_upcoming_bookings():
+    """
+    Get next 5 upcoming bookings for current user (opener)
+    """
+    try:
+        user = session.get('user')
+
+        # Get upcoming appointments
+        upcoming = get_next_t2_appointments(user)
+
+        return jsonify({
+            'success': True,
+            'upcoming_bookings': upcoming
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting upcoming bookings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

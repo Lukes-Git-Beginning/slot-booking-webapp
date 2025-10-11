@@ -1,0 +1,16 @@
+[Unit]
+Description=T2 Availability Scanner
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/business-hub
+Environment="PATH=/opt/business-hub/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=/opt/business-hub/.env
+ExecStart=/opt/business-hub/venv/bin/python /opt/business-hub/scripts/scan_t2_availability.py
+StandardOutput=append:/var/log/business-hub/t2-availability.log
+StandardError=append:/var/log/business-hub/t2-availability.log
+
+[Install]
+WantedBy=multi-user.target

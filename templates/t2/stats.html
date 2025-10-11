@@ -3,61 +3,65 @@
 {% block title %}T2 Statistiken{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="t2-header">
-    <h1 class="t2-title">
-        <i class="ti ti-chart-bar"></i> T2-Statistiken
-    </h1>
-    <p class="t2-subtitle">
-        Deine Termine und System-Übersicht
-    </p>
+<!-- Page Header -->
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+    <div class="text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+            <i data-lucide="bar-chart" class="inline w-10 h-10 mr-3"></i>
+            T2-Statistiken
+        </h1>
+        <p class="text-lg text-gray-300">
+            Deine Termine und System-Übersicht
+        </p>
+    </div>
 </div>
 
 <!-- Stats Container -->
-<div style="max-width: 1200px; margin: 0 auto;">
+<div class="max-w-6xl mx-auto">
 
     <!-- User Stats -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
-        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-            <i class="ti ti-user"></i> Deine Statistiken
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="100">
+        <h2 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <i data-lucide="user" class="w-8 h-8 text-t2-purple"></i>
+            Deine Statistiken
         </h2>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg);">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Total Bookings -->
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div class="stats-number" style="color: var(--accent);">{{ user_stats.total_bookings }}</div>
-                <div class="stats-label">Gebuchte Termine</div>
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-5xl font-bold text-t2-purple mb-2">{{ user_stats.total_bookings }}</div>
+                <div class="text-gray-400 text-lg">Gebuchte Termine</div>
             </div>
 
             <!-- This Month -->
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div class="stats-number" style="color: var(--green);">{{ user_stats.this_month }}</div>
-                <div class="stats-label">Diesen Monat</div>
-            </div>
-
-            <!-- Tickets Remaining -->
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div class="stats-number" style="color: var(--yellow);">{{ user_stats.tickets_remaining }}</div>
-                <div class="stats-label">Tickets übrig</div>
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-5xl font-bold text-green-500 mb-2">{{ user_stats.this_month }}</div>
+                <div class="text-gray-400 text-lg">Diesen Monat</div>
             </div>
 
             <!-- Upcoming Appointments -->
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div class="stats-number" style="color: var(--blue);">{{ user_stats.upcoming }}</div>
-                <div class="stats-label">Kommende Termine</div>
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-5xl font-bold text-blue-500 mb-2">{{ user_stats.upcoming }}</div>
+                <div class="text-gray-400 text-lg">Kommende Termine</div>
+            </div>
+
+            <!-- Kommende Termine placeholder -->
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-5xl font-bold text-yellow-500 mb-2">{{ user_stats.this_month }}</div>
+                <div class="text-gray-400 text-lg">Diesen Monat</div>
             </div>
         </div>
 
         <!-- Closer Distribution for User -->
-        <div style="margin-top: var(--spacing-lg);">
-            <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+        <div>
+            <h3 class="text-2xl font-bold text-white mb-6">
                 Deine Closer-Verteilung
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-sm);">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {% for closer, count in user_stats.closer_distribution.items() %}
-                <div style="padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-align: center;">
-                    <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent);">{{ count }}</div>
-                    <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">{{ closer }}</div>
+                <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                    <div class="text-4xl font-bold text-t2-purple mb-2">{{ count }}</div>
+                    <div class="text-gray-300 text-lg font-semibold">{{ closer }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -65,46 +69,46 @@
     </div>
 
     <!-- Monthly Overview -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
-        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-            <i class="ti ti-calendar-stats"></i> Monatsübersicht
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="200">
+        <h2 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <i data-lucide="calendar" class="w-8 h-8 text-t2-purple"></i>
+            Monatsübersicht
         </h2>
 
-        <div id="monthly-chart" style="min-height: 200px;">
-            <!-- Chart will be rendered here -->
-            <div style="display: flex; flex-direction: column; gap: var(--spacing-xs);">
-                {% for month_data in user_stats.monthly_history %}
-                <div style="display: flex; align-items: center; gap: var(--spacing-md);">
-                    <div style="min-width: 100px; color: var(--text-color); font-size: var(--text-sm);">{{ month_data.month }}</div>
-                    <div style="flex: 1; background: var(--input-bg); border-radius: var(--radius-md); height: 30px; position: relative; overflow: hidden;">
-                        <div style="background: var(--accent); height: 100%; width: {{ (month_data.count / 4 * 100) | int }}%; transition: width 0.3s;"></div>
-                    </div>
-                    <div style="min-width: 40px; text-align: right; color: var(--accent); font-weight: var(--font-semibold);">{{ month_data.count }}</div>
+        <div class="space-y-4">
+            {% for month_data in user_stats.monthly_history %}
+            <div class="flex items-center gap-4">
+                <div class="min-w-[120px] text-gray-300 text-lg font-semibold">{{ month_data.month }}</div>
+                <div class="flex-1 glass rounded-xl h-12 relative overflow-hidden">
+                    <div class="bg-gradient-to-r from-t2-purple to-pink-600 h-full transition-all duration-500"
+                         style="width: {{ (month_data.count / 4 * 100) | int }}%;"></div>
                 </div>
-                {% endfor %}
+                <div class="min-w-[60px] text-right text-t2-purple font-bold text-xl">{{ month_data.count }}</div>
             </div>
+            {% endfor %}
         </div>
     </div>
 
     <!-- Admin Stats - System-wide Closer Fairness -->
     {% if is_admin %}
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
-        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-            <i class="ti ti-shield-check"></i> Admin: System-Statistiken
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="300">
+        <h2 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <i data-lucide="shield-check" class="w-8 h-8 text-t2-purple"></i>
+            Admin: System-Statistiken
         </h2>
 
         <!-- Current Month Closer Distribution -->
-        <div style="margin-bottom: var(--spacing-lg);">
-            <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-md);">
+        <div class="mb-8">
+            <h3 class="text-2xl font-bold text-white mb-6">
                 Closer-Verteilung (aktueller Monat)
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-md);">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for closer, count in admin_stats.current_month_distribution.items() %}
-                <div style="padding: var(--spacing-lg); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md); text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: var(--spacing-sm);">👤</div>
-                    <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent); margin-bottom: var(--spacing-xs);">{{ count }}</div>
-                    <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: var(--spacing-xs);">{{ closer }}</div>
-                    <div style="color: var(--muted); font-size: var(--text-sm);">
+                <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                    <div class="text-6xl mb-4">👤</div>
+                    <div class="text-4xl font-bold text-t2-purple mb-3">{{ count }}</div>
+                    <div class="text-white font-bold text-xl mb-2">{{ closer }}</div>
+                    <div class="text-gray-400 text-base">
                         {{ ((count / admin_stats.total_this_month * 100) | round(1)) }}% der Termine
                     </div>
                 </div>
@@ -113,39 +117,39 @@
         </div>
 
         <!-- Fairness Indicator -->
-        <div style="padding: var(--spacing-lg); background: {{ 'var(--success-bg)' if admin_stats.is_fair else 'var(--warning-bg)' }}; border: 1px solid {{ 'var(--success-bd)' if admin_stats.is_fair else 'var(--warning-bd)' }}; border-radius: var(--radius-md); text-align: center;">
-            <div style="font-size: 48px; margin-bottom: var(--spacing-sm);">{{ '✅' if admin_stats.is_fair else '⚠️' }}</div>
-            <div style="color: var(--text-color); font-weight: var(--font-semibold); margin-bottom: var(--spacing-xs);">
+        <div class="glass rounded-2xl p-8 text-center mb-8 {% if admin_stats.is_fair %}bg-green-500/10{% else %}bg-yellow-500/10{% endif %}">
+            <div class="text-7xl mb-4">{{ '✅' if admin_stats.is_fair else '⚠️' }}</div>
+            <div class="text-2xl font-bold text-white mb-3">
                 {{ 'Fairness-System funktioniert' if admin_stats.is_fair else 'Leichte Ungleichverteilung' }}
             </div>
-            <div style="color: var(--muted); font-size: var(--text-sm);">
+            <div class="text-gray-300 text-lg">
                 Maximale Abweichung: {{ admin_stats.max_deviation }} Termine
             </div>
         </div>
 
         <!-- Total System Stats -->
-        <div style="margin-top: var(--spacing-lg); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-md);">
-            <div style="text-align: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent);">{{ admin_stats.total_bookings }}</div>
-                <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">Gesamt-Termine</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-4xl font-bold text-t2-purple mb-2">{{ admin_stats.total_bookings }}</div>
+                <div class="text-gray-400 text-lg">Gesamt-Termine</div>
             </div>
-            <div style="text-align: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--green);">{{ admin_stats.active_users }}</div>
-                <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">Aktive Nutzer</div>
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-4xl font-bold text-green-500 mb-2">{{ admin_stats.active_users }}</div>
+                <div class="text-gray-400 text-lg">Aktive Nutzer</div>
             </div>
-            <div style="text-align: center; padding: var(--spacing-md); background: var(--input-bg); border: 1px solid var(--input-bd); border-radius: var(--radius-md);">
-                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--yellow);">{{ admin_stats.tickets_used }}</div>
-                <div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);">Tickets genutzt</div>
+            <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+                <div class="text-4xl font-bold text-yellow-500 mb-2">{{ admin_stats.tickets_used }}</div>
+                <div class="text-gray-400 text-lg">Tickets genutzt</div>
             </div>
         </div>
     </div>
     {% endif %}
 
     <!-- Back Button -->
-    <div style="text-align: center; margin-top: var(--spacing-lg);">
-        <a href="{{ url_for('t2.dashboard') }}" class="btn-t2">
-            <i class="ti ti-arrow-left"></i>
-            Zurück zum Dashboard
+    <div class="text-center" data-aos="fade-up" data-aos-delay="400">
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-primary btn-lg gap-3">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            <span class="text-lg">Zurück zum Dashboard</span>
         </a>
     </div>
 </div>

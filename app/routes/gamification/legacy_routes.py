@@ -542,6 +542,8 @@ def cosmetics_shop_view():
                     item['emoji'] = item_data['emoji']
                 if 'animation' in item_data:
                     item['animation'] = item_data['animation']
+                if 'category' in item_data:
+                    item['category'] = item_data['category']
 
                 items.append(item)
             return items

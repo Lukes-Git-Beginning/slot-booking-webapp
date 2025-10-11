@@ -201,51 +201,211 @@ COLOR_THEMES = {
     }
 }
 
-# Avatar-Emojis Shop
-AVATAR_EMOJIS = {
-    # Tiere (50-100 Coins)
-    "cat_face": {"emoji": "🐱", "name": "Katzen-Gesicht", "price": 50, "category": "animals"},
-    "dog_face": {"emoji": "🐶", "name": "Hunde-Gesicht", "price": 50, "category": "animals"},
-    "panda_face": {"emoji": "🐼", "name": "Panda-Gesicht", "price": 75, "category": "animals"},
-    "lion_face": {"emoji": "🦁", "name": "Löwen-Gesicht", "price": 100, "category": "animals"},
-    "unicorn_face": {"emoji": "🦄", "name": "Einhorn-Gesicht", "price": 150, "category": "fantasy"},
-    
-    # Berufe (100-200 Coins)
-    "office_worker": {"emoji": "🧑‍💼", "name": "Büro-Worker", "price": 100, "category": "professions"},
-    "scientist": {"emoji": "🧑‍🔬", "name": "Wissenschaftler", "price": 120, "category": "professions"},
-    "astronaut": {"emoji": "🧑‍🚀", "name": "Astronaut", "price": 200, "category": "professions"},
-    "ninja": {"emoji": "🥷", "name": "Ninja", "price": 180, "category": "professions"},
-    
-    # Fantasy (200-500 Coins)
-    "wizard": {"emoji": "🧙‍♂️", "name": "Zauberer", "price": 300, "category": "fantasy"},
-    "vampire": {"emoji": "🧛‍♂️", "name": "Vampir", "price": 350, "category": "fantasy"},
-    "robot": {"emoji": "🤖", "name": "Roboter", "price": 250, "category": "tech"},
-    "alien": {"emoji": "👽", "name": "Alien", "price": 400, "category": "sci-fi"},
-    
-    # Legendary (500+ Coins)
-    "crown": {"emoji": "👑", "name": "Krone", "price": 500, "category": "royal"},
-    "crystal_ball": {"emoji": "🔮", "name": "Kristallkugel", "price": 600, "category": "mystical"},
-    "diamond": {"emoji": "💎", "name": "Diamant", "price": 800, "category": "luxury"}
-}
-
-# Avatar Shop
+# Avatar Shop - Male & Female Variants (PNG Images)
 AVATAR_SHOP = {
-    # Basic Avatars (50-100 Coins)
-    "business": {"emoji": "🧑‍💼", "name": "Business", "price": 50, "category": "professional"},
-    "developer": {"emoji": "👨‍💻", "name": "Developer", "price": 75, "category": "tech"},
-    "manager": {"emoji": "👩‍💼", "name": "Manager", "price": 80, "category": "professional"},
-    "student": {"emoji": "👨‍🎓", "name": "Student", "price": 60, "category": "academic"},
+    # Basic Professional Avatars (50-100 Coins)
+    "business_male": {
+        "emoji": "🧑‍💼",
+        "name": "Business",
+        "price": 50,
+        "category": "professional",
+        "gender": "male",
+        "image": "/static/avatars/business_male.png",
+        "description": "Professioneller Business-Look"
+    },
+    "business_female": {
+        "emoji": "👩‍💼",
+        "name": "Business",
+        "price": 50,
+        "category": "professional",
+        "gender": "female",
+        "image": "/static/avatars/business_female.png",
+        "description": "Professioneller Business-Look"
+    },
+    "developer_male": {
+        "emoji": "👨‍💻",
+        "name": "Developer",
+        "price": 75,
+        "category": "tech",
+        "gender": "male",
+        "image": "/static/avatars/developer_male.png",
+        "description": "Code-Ninja im Flow"
+    },
+    "developer_female": {
+        "emoji": "👩‍💻",
+        "name": "Developer",
+        "price": 75,
+        "category": "tech",
+        "gender": "female",
+        "image": "/static/avatars/developer_female.png",
+        "description": "Code-Ninja im Flow"
+    },
+    "manager_male": {
+        "emoji": "👨‍💼",
+        "name": "Manager",
+        "price": 80,
+        "category": "professional",
+        "gender": "male",
+        "image": "/static/avatars/manager_male.png",
+        "description": "Führungskraft mit Weitblick"
+    },
+    "manager_female": {
+        "emoji": "👩‍💼",
+        "name": "Manager",
+        "price": 80,
+        "category": "professional",
+        "gender": "female",
+        "image": "/static/avatars/manager_female.png",
+        "description": "Führungskraft mit Weitblick"
+    },
+    "student_male": {
+        "emoji": "👨‍🎓",
+        "name": "Student",
+        "price": 60,
+        "category": "academic",
+        "gender": "male",
+        "image": "/static/avatars/student_male.png",
+        "description": "Wissbegieriger Lernender"
+    },
+    "student_female": {
+        "emoji": "👩‍🎓",
+        "name": "Studentin",
+        "price": 60,
+        "category": "academic",
+        "gender": "female",
+        "image": "/static/avatars/student_female.png",
+        "description": "Wissbegierige Lernende"
+    },
 
-    # Fun Avatars (100-200 Coins)
-    "ninja": {"emoji": "🥷", "name": "Ninja", "price": 150, "category": "fun"},
-    "superhero": {"emoji": "🦸", "name": "Superhero", "price": 200, "category": "heroic"},
-    "wizard": {"emoji": "🧙‍♂️", "name": "Wizard", "price": 180, "category": "mystical"},
-    "pirate": {"emoji": "🏴‍☠️", "name": "Pirate", "price": 160, "category": "adventure"},
+    # Fun Avatars (150-200 Coins)
+    "ninja_male": {
+        "emoji": "🥷",
+        "name": "Ninja",
+        "price": 150,
+        "category": "fun",
+        "gender": "male",
+        "image": "/static/avatars/ninja_male.png",
+        "description": "Meister der Schatten"
+    },
+    "ninja_female": {
+        "emoji": "🥷",
+        "name": "Ninja",
+        "price": 150,
+        "category": "fun",
+        "gender": "female",
+        "image": "/static/avatars/ninja_female.png",
+        "description": "Meisterin der Schatten"
+    },
+    "superhero_male": {
+        "emoji": "🦸‍♂️",
+        "name": "Superheld",
+        "price": 200,
+        "category": "heroic",
+        "gender": "male",
+        "image": "/static/avatars/superhero_male.png",
+        "description": "Retter in der Not"
+    },
+    "superhero_female": {
+        "emoji": "🦸‍♀️",
+        "name": "Superheldin",
+        "price": 200,
+        "category": "heroic",
+        "gender": "female",
+        "image": "/static/avatars/superhero_female.png",
+        "description": "Retterin in der Not"
+    },
+    "wizard_male": {
+        "emoji": "🧙‍♂️",
+        "name": "Zauberer",
+        "price": 180,
+        "category": "mystical",
+        "gender": "male",
+        "image": "/static/avatars/wizard_male.png",
+        "description": "Meister der Magie"
+    },
+    "wizard_female": {
+        "emoji": "🧙‍♀️",
+        "name": "Zauberin",
+        "price": 180,
+        "category": "mystical",
+        "gender": "female",
+        "image": "/static/avatars/wizard_female.png",
+        "description": "Meisterin der Magie"
+    },
+    "pirate_male": {
+        "emoji": "🏴‍☠️",
+        "name": "Pirat",
+        "price": 160,
+        "category": "adventure",
+        "gender": "male",
+        "image": "/static/avatars/pirate_male.png",
+        "description": "Abenteurer der Meere"
+    },
+    "pirate_female": {
+        "emoji": "🏴‍☠️",
+        "name": "Piratin",
+        "price": 160,
+        "category": "adventure",
+        "gender": "female",
+        "image": "/static/avatars/pirate_female.png",
+        "description": "Abenteurerin der Meere"
+    },
 
-    # Premium Avatars (250-500 Coins)
-    "robot": {"emoji": "🤖", "name": "Robot", "price": 300, "category": "tech"},
-    "alien": {"emoji": "👽", "name": "Alien", "price": 400, "category": "space"},
-    "crown": {"emoji": "👑", "name": "Royal", "price": 500, "category": "luxury"}
+    # Premium Avatars (300-500 Coins)
+    "robot_male": {
+        "emoji": "🤖",
+        "name": "Robot",
+        "price": 300,
+        "category": "tech",
+        "gender": "male",
+        "image": "/static/avatars/robot_male.png",
+        "description": "Futuristische KI-Einheit"
+    },
+    "robot_female": {
+        "emoji": "🤖",
+        "name": "Robot",
+        "price": 300,
+        "category": "tech",
+        "gender": "female",
+        "image": "/static/avatars/robot_female.png",
+        "description": "Futuristische KI-Einheit"
+    },
+    "alien_male": {
+        "emoji": "👽",
+        "name": "Alien",
+        "price": 400,
+        "category": "space",
+        "gender": "male",
+        "image": "/static/avatars/alien_male.png",
+        "description": "Besucher aus dem All"
+    },
+    "alien_female": {
+        "emoji": "👽",
+        "name": "Alien",
+        "price": 400,
+        "category": "space",
+        "gender": "female",
+        "image": "/static/avatars/alien_female.png",
+        "description": "Besucherin aus dem All"
+    },
+    "crown_male": {
+        "emoji": "👑",
+        "name": "König",
+        "price": 500,
+        "category": "luxury",
+        "gender": "male",
+        "image": "/static/avatars/crown_male.png",
+        "description": "Majestätische Herrschaft"
+    },
+    "crown_female": {
+        "emoji": "👑",
+        "name": "Königin",
+        "price": 500,
+        "category": "luxury",
+        "gender": "female",
+        "image": "/static/avatars/crown_female.png",
+        "description": "Majestätische Herrschaft"
+    }
 }
 
 # Animations/Effekte Shop
@@ -394,8 +554,8 @@ class CosmeticsShop:
         purchases = self.load_purchases()
         user_purchases = purchases.get(user, {})
         owned_avatars = user_purchases.get("avatars", [])
-        
-        return {k: v for k, v in AVATAR_EMOJIS.items() if k not in owned_avatars}
+
+        return {k: v for k, v in AVATAR_SHOP.items() if k not in owned_avatars}
     
     def get_available_effects(self, user):
         """Hole verfügbare Effekte zum Kauf"""
@@ -417,8 +577,8 @@ class CosmeticsShop:
         elif item_type == "theme" and item_id in COLOR_THEMES:
             item_data = COLOR_THEMES[item_id]
             price = item_data["price"]
-        elif item_type == "avatar" and item_id in AVATAR_EMOJIS:
-            item_data = AVATAR_EMOJIS[item_id]
+        elif item_type == "avatar" and item_id in AVATAR_SHOP:
+            item_data = AVATAR_SHOP[item_id]
             price = item_data["price"]
         elif item_type == "effect" and item_id in SPECIAL_EFFECTS:
             item_data = SPECIAL_EFFECTS[item_id]
@@ -490,7 +650,7 @@ class CosmeticsShop:
         elif item_type == "theme":
             item_data = COLOR_THEMES.get(item_id, {})
         elif item_type == "avatar":
-            item_data = AVATAR_EMOJIS.get(item_id, {})
+            item_data = AVATAR_SHOP.get(item_id, {})
         elif item_type == "effect":
             item_data = SPECIAL_EFFECTS.get(item_id, {})
         
@@ -532,8 +692,8 @@ class CosmeticsShop:
         
         # Sammle alle verfügbaren Items
         all_titles = list(TITLE_SHOP.keys())
-        all_themes = list(COLOR_THEMES.keys())  
-        all_avatars = list(AVATAR_EMOJIS.keys())
+        all_themes = list(COLOR_THEMES.keys())
+        all_avatars = list(AVATAR_SHOP.keys())
         all_effects = list(SPECIAL_EFFECTS.keys())
         
         # Füge alle Items hinzu (ohne Duplikate)

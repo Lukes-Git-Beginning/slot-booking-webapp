@@ -3,64 +3,68 @@
 {% block title %}T2 Kalender{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="t2-header">
-    <h1 class="t2-title">
-        <i class="ti ti-calendar"></i> T2-Kalender
-    </h1>
-    <p class="t2-subtitle">
-        Deine gebuchten T2-Termine im Überblick
-    </p>
+<!-- Page Header -->
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+    <div class="text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+            <i data-lucide="calendar" class="inline w-10 h-10 mr-3"></i>
+            T2-Kalender
+        </h1>
+        <p class="text-lg text-gray-300">
+            Deine gebuchten T2-Termine im Überblick
+        </p>
+    </div>
 </div>
 
 <!-- Calendar View -->
-<div style="max-width: 1000px; margin: 0 auto;">
+<div class="max-w-5xl mx-auto">
 
     <!-- Current Month Display -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl); text-align: center;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
-            <button onclick="previousMonth()" class="btn-t2" style="padding: var(--spacing-sm) var(--spacing-md);">
-                <i class="ti ti-chevron-left"></i>
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="100">
+        <div class="flex justify-between items-center mb-8">
+            <button onclick="previousMonth()" class="btn btn-circle btn-primary">
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
             </button>
-            <h2 id="current-month" style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-color); margin: 0;"></h2>
-            <button onclick="nextMonth()" class="btn-t2" style="padding: var(--spacing-sm) var(--spacing-md);">
-                <i class="ti ti-chevron-right"></i>
+            <h2 id="current-month" class="text-3xl md:text-4xl font-bold text-white"></h2>
+            <button onclick="nextMonth()" class="btn btn-circle btn-primary">
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
             </button>
         </div>
 
         <!-- Calendar Grid -->
-        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--spacing-xs);">
+        <div id="calendar-grid" class="grid grid-cols-7 gap-2">
             <!-- Weekday headers -->
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">Mo</div>
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">Di</div>
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">Mi</div>
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">Do</div>
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">Fr</div>
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">Sa</div>
-            <div style="padding: var(--spacing-sm); font-weight: var(--font-semibold); color: var(--muted); font-size: var(--text-sm);">So</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">Mo</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">Di</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">Mi</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">Do</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">Fr</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">Sa</div>
+            <div class="p-3 font-bold text-gray-400 text-center text-lg">So</div>
             <!-- Days will be populated by JS -->
         </div>
     </div>
 
     <!-- Upcoming Appointments -->
-    <div style="background: var(--box-bg); backdrop-filter: blur(10px); border: 1px solid var(--box-border); border-radius: var(--radius-lg); padding: var(--spacing-xl);">
-        <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-color); margin: 0 0 var(--spacing-lg);">
-            <i class="ti ti-clock"></i> Kommende Termine
+    <div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="200">
+        <h3 class="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+            <i data-lucide="clock" class="w-8 h-8 text-t2-purple"></i>
+            Kommende Termine
         </h3>
 
         <div id="appointments-list">
             <!-- Appointments will be populated by JS -->
-            <div style="color: var(--muted); text-align: center; padding: var(--spacing-lg);">
+            <div class="text-gray-400 text-center text-lg py-8">
                 Lade Termine...
             </div>
         </div>
     </div>
 
     <!-- Back Button -->
-    <div style="text-align: center; margin-top: var(--spacing-lg);">
-        <a href="{{ url_for('t2.dashboard') }}" class="btn-t2">
-            <i class="ti ti-arrow-left"></i>
-            Zurück zum Dashboard
+    <div class="text-center mt-8" data-aos="fade-up" data-aos-delay="300">
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-primary btn-lg gap-3">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            <span class="text-lg">Zurück zum Dashboard</span>
         </a>
     </div>
 </div>
@@ -88,6 +92,7 @@ function loadUserBookings() {
         })
         .catch(error => {
             console.error('Error loading bookings:', error);
+            renderCalendar();
         });
 }
 
@@ -118,7 +123,7 @@ function renderCalendar() {
     // Add empty cells for days before month starts
     for (let i = 0; i < startDay; i++) {
         const emptyDay = document.createElement('div');
-        emptyDay.style.cssText = 'padding: var(--spacing-sm);';
+        emptyDay.className = 'p-3';
         grid.appendChild(emptyDay);
     }
 
@@ -129,37 +134,25 @@ function renderCalendar() {
         const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
         const dayCell = document.createElement('div');
-        dayCell.style.cssText = `
-            padding: var(--spacing-sm);
-            background: ${hasBooking ? 'var(--success-bg)' : 'var(--input-bg)'};
-            border: 1px solid ${hasBooking ? 'var(--success-bd)' : 'var(--input-bd)'};
-            ${isToday ? 'border-color: var(--accent); border-width: 2px;' : ''}
-            border-radius: var(--radius-md);
-            text-align: center;
-            cursor: ${hasBooking ? 'pointer' : 'default'};
-            transition: all 0.2s;
+        dayCell.className = `
+            p-3 rounded-xl text-center transition-all cursor-pointer
+            ${hasBooking ? 'glass bg-green-500/20 border-2 border-green-500' : 'glass'}
+            ${isToday ? 'ring-2 ring-t2-purple' : ''}
+            hover:scale-105 hover:bg-white/10
         `;
 
         dayCell.innerHTML = `
-            <div style="color: ${hasBooking ? 'var(--green)' : 'var(--text-color)'}; font-weight: ${isToday ? 'var(--font-bold)' : 'var(--font-medium)'};">
+            <div class="text-lg font-semibold ${hasBooking ? 'text-green-400' : 'text-white'}">
                 ${day}
             </div>
-            ${hasBooking ? '<div style="font-size: 12px; margin-top: 2px;">●</div>' : ''}
+            ${hasBooking ? '<div class="text-2xl mt-1">●</div>' : ''}
         `;
-
-        if (hasBooking) {
-            dayCell.onmouseover = () => {
-                dayCell.style.transform = 'scale(1.05)';
-                dayCell.style.borderColor = 'var(--green)';
-            };
-            dayCell.onmouseout = () => {
-                dayCell.style.transform = 'scale(1)';
-                dayCell.style.borderColor = 'var(--success-bd)';
-            };
-        }
 
         grid.appendChild(dayCell);
     }
+
+    // Re-init Lucide icons
+    setTimeout(() => lucide.createIcons(), 100);
 }
 
 function renderAppointmentsList() {
@@ -176,46 +169,44 @@ function renderAppointmentsList() {
         });
 
     if (upcoming.length === 0) {
-        container.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--spacing-lg);">Keine kommenden Termine</div>';
+        container.innerHTML = '<div class="text-gray-400 text-center text-lg py-8">Keine kommenden Termine</div>';
         return;
     }
 
     container.innerHTML = '';
     upcoming.forEach(booking => {
         const appointmentDiv = document.createElement('div');
-        appointmentDiv.style.cssText = `
-            padding: var(--spacing-md);
-            background: var(--input-bg);
-            border: 1px solid var(--input-bd);
-            border-radius: var(--radius-md);
-            margin-bottom: var(--spacing-sm);
-        `;
+        appointmentDiv.className = 'glass rounded-2xl p-6 mb-4 hover:bg-white/5 transition-all';
 
         const date = new Date(booking.date);
         const formattedDate = date.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
         appointmentDiv.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-weight: var(--font-semibold); color: var(--text-color); margin-bottom: var(--spacing-xs);">
-                        <i class="ti ti-calendar"></i> ${formattedDate}
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div class="flex-1">
+                    <div class="font-bold text-white text-xl mb-2 flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                        ${formattedDate}
                     </div>
-                    <div style="color: var(--muted); font-size: var(--text-sm);">
-                        <i class="ti ti-clock"></i> ${booking.time} Uhr
+                    <div class="text-gray-400 text-lg mb-2 flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                        ${booking.time} Uhr
                     </div>
-                    <div style="color: var(--accent); font-size: var(--text-sm); margin-top: var(--spacing-xs);">
-                        <i class="ti ti-user"></i> Closer: ${booking.closer}
+                    <div class="text-t2-purple text-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        Closer: ${booking.closer}
                     </div>
-                    ${booking.topic ? `<div style="color: var(--muted); font-size: var(--text-sm); margin-top: var(--spacing-xs);"><i class="ti ti-file-text"></i> ${booking.topic}</div>` : ''}
+                    ${booking.topic ? `<div class="text-gray-400 text-base mt-2 flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i> ${booking.topic}</div>` : ''}
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 32px;">📅</div>
-                </div>
+                <div class="text-7xl">📅</div>
             </div>
         `;
 
         container.appendChild(appointmentDiv);
     });
+
+    // Re-init Lucide icons
+    setTimeout(() => lucide.createIcons(), 100);
 }
 
 function previousMonth() {

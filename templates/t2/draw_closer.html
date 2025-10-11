@@ -1,0 +1,316 @@
+{% extends "t2/base.html" %}
+
+{% block title %}T2 Closer ziehen{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="glass rounded-3xl p-8 mb-8 text-center" data-aos="fade-up">
+    <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">
+        <i data-lucide="dice-5" class="inline w-10 h-10 mr-3"></i>
+        T2 Closer ziehen
+    </h1>
+    <p class="text-lg text-gray-300">
+        Ziehe einen zufälligen Closer aus dem Bucket
+    </p>
+</div>
+
+<!-- Main Draw Container -->
+<div class="max-w-4xl mx-auto">
+
+    <!-- Draw Machine -->
+    <div id="draw-machine" class="glass rounded-3xl p-12 mb-8 text-center relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+
+        <!-- Animated Background -->
+        <div id="draw-bg-animation" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; pointer-events: none; z-index: 0;">
+            <div class="particle-container"></div>
+        </div>
+
+        <div class="relative z-10">
+            <!-- State: Ready to Draw -->
+            <div id="state-ready" style="display: block;">
+                <div class="text-9xl mb-8 animate-float">
+                    🎲
+                </div>
+                <h2 class="text-4xl font-bold text-white mb-4">
+                    Bereit zum Ziehen?
+                </h2>
+                <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+                    Klicke auf den Button unten, um zufällig deinen T2 Closer zu ziehen
+                </p>
+
+                <!-- Timeout Check -->
+                {% if timeout_info.can_draw %}
+                <button onclick="startDraw()" id="draw-button" class="btn btn-success btn-lg gap-3 text-lg shadow-2xl hover:scale-105 transition-transform">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    Closer ziehen
+                </button>
+                {% else %}
+                <div class="glass rounded-2xl p-8 max-w-md mx-auto border-2 border-warning/30">
+                    <div class="text-6xl mb-4">⏳</div>
+                    <div class="text-2xl font-bold text-white mb-2">
+                        Timeout aktiv
+                    </div>
+                    <div class="text-lg text-gray-300">
+                        Bitte warte noch <span id="timeout-countdown" class="font-bold text-t2-purple">{{ timeout_info.timeout_remaining_seconds }}</span> Sekunden, bevor du erneut ziehen kannst
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- State: Drawing Animation -->
+            <div id="state-drawing" style="display: none;">
+                <div id="slot-machine" class="mb-10">
+                    <div class="glass rounded-2xl p-10 inline-block min-w-[300px] border-2 border-t2-purple">
+                        <div id="rolling-display" class="text-5xl font-bold text-t2-purple h-20 flex items-center justify-center">
+                            ???
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xl text-gray-300 flex items-center justify-center gap-3">
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin"></i>
+                    Ziehe Closer...
+                </div>
+            </div>
+
+            <!-- State: Result -->
+            <div id="state-result" style="display: none;">
+                <div class="text-8xl mb-8">🎉</div>
+                <h2 class="text-3xl font-semibold text-gray-300 mb-6">
+                    Du hast gezogen:
+                </h2>
+                <div id="result-closer-card" class="glass rounded-3xl p-10 max-w-md mx-auto border-3 border-t2-purple animate-scale-in">
+                    <div id="result-closer-icon" class="text-7xl mb-6">👤</div>
+                    <div id="result-closer-color" class="w-16 h-2 rounded-full mx-auto mb-6 bg-t2-purple"></div>
+                    <div id="result-closer-name" class="text-5xl font-bold text-t2-purple mb-3">
+                        <!-- Name will be inserted -->
+                    </div>
+                    <div class="text-lg text-gray-300">Dein T2 Closer</div>
+                </div>
+
+                <div class="flex gap-4 justify-center flex-wrap mt-10">
+                    <a href="{{ url_for('t2.booking_page') }}" class="btn btn-success btn-lg gap-3">
+                        <i data-lucide="calendar-plus" class="w-6 h-6"></i>
+                        <span class="text-lg">Termin buchen</span>
+                    </a>
+                    <button onclick="location.reload()" class="btn btn-primary btn-lg gap-3">
+                        <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+                        <span class="text-lg">Erneut ziehen</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bucket Info -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" data-aos="fade-up" data-aos-delay="200">
+        <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+            <div class="text-5xl font-bold text-t2-purple mb-2">{{ bucket_stats.tickets_remaining }}</div>
+            <div class="text-lg text-gray-400">Tickets im Bucket</div>
+        </div>
+        <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+            <div class="text-5xl font-bold text-yellow-500 mb-2">{{ bucket_stats.draws_until_reset }}</div>
+            <div class="text-lg text-gray-400">Draws bis Reset</div>
+        </div>
+    </div>
+
+    <!-- Available Closers -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="300">
+        <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <i data-lucide="users" class="w-6 h-6 text-t2-purple"></i>
+            Verfügbare T2 Closers
+        </h3>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {% for closer_name, closer_info in closers.items() %}
+            <div class="glass rounded-xl p-4 text-center transition-all hover:-translate-y-1 hover:border-opacity-100 closer-card"
+                 style="border: 1px solid {{ closer_info.color }}30;">
+                <div class="w-5 h-5 rounded-full mx-auto mb-2" style="background: {{ closer_info.color }};"></div>
+                <div class="font-semibold text-white">{{ closer_name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-center" data-aos="fade-up" data-aos-delay="400">
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-primary btn-lg gap-3">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            <span class="text-lg">Zurück zum Dashboard</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes animate-float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.animate-float {
+    animation: animate-float 3s ease-in-out infinite;
+}
+
+@keyframes animate-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: animate-spin 1s linear infinite;
+}
+
+@keyframes animate-scale-in {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-scale-in {
+    animation: animate-scale-in 0.5s ease-out;
+}
+
+/* Confetti Particles */
+.particle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: fall 3s ease-out forwards;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(600px) rotate(360deg);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Re-init Lucide icons
+lucide.createIcons();
+
+const closers = {{ closers|tojson }};
+const closerNames = Object.keys(closers);
+
+{% if not timeout_info.can_draw %}
+// Countdown timer for timeout
+let timeoutRemaining = {{ timeout_info.timeout_remaining_seconds }};
+const countdownEl = document.getElementById('timeout-countdown');
+
+const countdownInterval = setInterval(() => {
+    timeoutRemaining--;
+    countdownEl.textContent = timeoutRemaining;
+
+    if (timeoutRemaining <= 0) {
+        clearInterval(countdownInterval);
+        location.reload();
+    }
+}, 1000);
+{% endif %}
+
+function startDraw() {
+    // Hide ready state
+    document.getElementById('state-ready').style.display = 'none';
+    document.getElementById('state-drawing').style.display = 'block';
+
+    // Re-init Lucide icons after state change
+    setTimeout(() => lucide.createIcons(), 50);
+
+    // Start rolling animation
+    let rollCount = 0;
+    const maxRolls = 30;
+    const rollInterval = setInterval(() => {
+        const randomCloser = closerNames[Math.floor(Math.random() * closerNames.length)];
+        document.getElementById('rolling-display').textContent = randomCloser;
+        rollCount++;
+
+        if (rollCount >= maxRolls) {
+            clearInterval(rollInterval);
+            // Perform actual draw
+            performDraw();
+        }
+    }, 100);
+}
+
+function performDraw() {
+    fetch('/t2/api/draw-closer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draw_type: 'T2' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult(data);
+        } else {
+            showError(data.error || 'Ziehen fehlgeschlagen');
+            setTimeout(() => location.reload(), 2000);
+        }
+    })
+    .catch(error => {
+        showError('Fehler beim Ziehen');
+        setTimeout(() => location.reload(), 2000);
+    });
+}
+
+function showResult(data) {
+    // Hide drawing state
+    document.getElementById('state-drawing').style.display = 'none';
+    document.getElementById('state-result').style.display = 'block';
+
+    // Re-init Lucide icons after state change
+    setTimeout(() => lucide.createIcons(), 50);
+
+    // Show confetti
+    showConfetti();
+
+    // Update result card
+    document.getElementById('result-closer-name').textContent = data.closer;
+    document.getElementById('result-closer-color').style.background = data.color;
+
+    // Store in session for booking
+    sessionStorage.setItem('t2_drawn_closer', data.closer);
+}
+
+function showConfetti() {
+    const container = document.querySelector('.particle-container');
+    const bgAnimation = document.getElementById('draw-bg-animation');
+    bgAnimation.style.opacity = '1';
+
+    const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+
+    for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.animationDelay = Math.random() * 0.5 + 's';
+        particle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        container.appendChild(particle);
+    }
+
+    setTimeout(() => {
+        bgAnimation.style.opacity = '0';
+    }, 3000);
+}
+
+function showError(message) {
+    alert('Fehler: ' + message);
+}
+</script>
+{% endblock %}

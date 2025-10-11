@@ -150,15 +150,16 @@ def is_consultant_available(events, slot_start, slot_end):
     return is_available
 
 def backup_availability():
-    """Erstelle tägliches Backup"""
-    backup_dir = "backups"
+    """Erstelle tägliches Backup - PERSISTENT STORAGE"""
+    backup_dir = "data/persistent/backups"
     os.makedirs(backup_dir, exist_ok=True)
-    
-    if os.path.exists("static/availability.json"):
-        backup_name = f"backups/availability_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        shutil.copy2("static/availability.json", backup_name)
+
+    availability_file = "data/persistent/availability.json"
+    if os.path.exists(availability_file):
+        backup_name = f"{backup_dir}/availability_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        shutil.copy2(availability_file, backup_name)
         print(f"💾 Backup erstellt: {backup_name}")
-        
+
         # Behalte nur die letzten 7 Backups
         backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("availability_")])
         for old_backup in backups[:-7]:
@@ -167,11 +168,15 @@ def backup_availability():
 
 def main():
     availability = {}
-    availability_file = "static/availability.json"
+    availability_file = "data/persistent/availability.json"
     now = datetime.now(TZ)  # WICHTIG: Mit Timezone für Uhrzeitvergleich
 
     print(f"🚀 Availability-Generator gestartet um {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    print(f"🔧 Nutzt GoogleCalendarService mit Caching & Quota-Management\n")
+    print(f"🔧 Nutzt GoogleCalendarService mit Caching & Quota-Management")
+    print(f"💾 Persistent Storage: {availability_file}\n")
+
+    # Sicherstellen dass data/persistent existiert
+    os.makedirs("data/persistent", exist_ok=True)
 
     # Vorhandene Verfügbarkeiten laden
     if os.path.exists(availability_file):
@@ -266,9 +271,9 @@ def main():
     }
     
     removed_count = old_count - len(availability)
-    
-    # Datei speichern
-    os.makedirs("static", exist_ok=True)
+
+    # Datei speichern - PERSISTENT STORAGE
+    os.makedirs("data/persistent", exist_ok=True)
     with open(availability_file, "w", encoding="utf-8") as f:
         json.dump(availability, f, ensure_ascii=False, indent=2)
     

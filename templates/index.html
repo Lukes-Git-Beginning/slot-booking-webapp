@@ -367,47 +367,56 @@
 
           <!-- Content -->
           <div class="slot-content collapsed" style="max-height: 0;">
-            <div class="p-4 pt-0 border-t border-white/10">
-              <div class="mb-4 text-sm text-white/80">
+            <div class="p-6 pt-4 border-t border-white/10">
+              {% if slot.using_default %}
+              <div class="mb-6 text-sm text-white/80">
+                Detaillierte Übersicht:
+                <strong>Kein spezifischer Berater</strong> |
+                <strong>2-4 Termine</strong> buchbar |
+                <strong>{{ booked }}</strong> bereits gebucht
+              </div>
+              {% else %}
+              <div class="mb-6 text-sm text-white/80">
                 Detaillierte Übersicht:
                 <strong>{{ slot.available_beraters }}</strong> Berater verfügbar |
                 <strong>{{ total }}</strong> Kapazität |
                 <strong>{{ booked }}</strong> bereits gebucht
               </div>
+              {% endif %}
 
               {% if slot.using_default %}
-              <div class="alert alert-info mb-4">
+              <div class="alert alert-info mb-6">
                 <i data-lucide="info" class="w-5 h-5"></i>
                 <div>
                   <strong>Standard-Verfügbarkeit</strong>
-                  <p class="text-sm">Für diesen Termin werden Standard-Berater verwendet. Buchungen sind bis zu 12 Wochen im Voraus möglich.</p>
+                  <p class="text-sm">Kein spezifischer Berater zugewiesen. Es können 2-4 Termine gebucht werden, ein verfügbarer Berater wird zugewiesen.</p>
                 </div>
               </div>
               {% endif %}
 
               {% if slot.overbooked %}
-                <div class="alert alert-error mb-4">
+                <div class="alert alert-error mb-6">
                   <i data-lucide="alert-triangle" class="w-5 h-5"></i>
                   <span><strong>ACHTUNG:</strong> Überbuchung! Es sind zu wenige Berater für {{ booked }} Termine!</span>
                 </div>
               {% elif slot.free_count == 0 %}
-                <div class="alert mb-4">
+                <div class="alert mb-6">
                   <i data-lucide="info" class="w-5 h-5"></i>
                   <span>Alle {{ total }} Slots um {{ hour }} Uhr sind bereits belegt.</span>
                 </div>
               {% else %}
-                <div class="alert alert-success mb-4">
+                <div class="alert alert-success mb-6">
                   <i data-lucide="check-circle" class="w-5 h-5"></i>
                   <span>Noch {{ slot.free_count }} von {{ total }} Slots verfügbar</span>
                 </div>
               {% endif %}
 
               {% if not slot.overbooked and slot.free_count > 0 %}
-              <form method="POST" action="{{ url_for('booking.book') }}" class="space-y-3" onsubmit="return handleBookingSubmit(this)">
+              <form method="POST" action="{{ url_for('booking.book') }}" class="space-y-4" onsubmit="return handleBookingSubmit(this)">
                 <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="hour" value="{{ hour }}">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="form-control">
                     <input type="text" name="first_name" placeholder="Vorname" required maxlength="50"
                            class="input input-bordered w-full">
@@ -420,7 +429,7 @@
 
                 <div class="form-control">
                   <textarea name="description" placeholder="Beschreibung (optional)" maxlength="500"
-                            class="textarea textarea-bordered w-full" rows="2"></textarea>
+                            class="textarea textarea-bordered w-full" rows="3"></textarea>
                 </div>
 
                 <div class="form-control">
@@ -432,7 +441,7 @@
                   </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-full gap-2">
+                <button type="submit" class="btn btn-primary w-full gap-2 mt-2">
                   <i data-lucide="calendar-check" class="w-5 h-5"></i>
                   <span class="button-text">Slot buchen</span>
                   <span class="loading loading-spinner loading-sm hidden"></span>

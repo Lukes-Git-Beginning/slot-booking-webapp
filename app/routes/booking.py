@@ -28,6 +28,11 @@ def add_points_to_user(user, points):
     Add points to user with Achievement System Integration
     Migrated from original slot_booking_webapp.py
     Enhanced with memory-safe error handling to prevent SIGSEGV crashes
+
+    Coins System Integration:
+    - Points are added to scores.json (permanent, never reduced)
+    - Equal amount of coins added to user_coins.json (can be spent in shop)
+    - Coins separate from points to preserve scoreboard integrity
     """
     try:
         # Load scores with robust persistence system
@@ -39,6 +44,18 @@ def add_points_to_user(user, points):
 
         scores[user][month] = scores[user].get(month, 0) + points
         data_persistence.save_scores(scores)
+
+        # Add equal amount of coins for cosmetics shop
+        try:
+            from app.services.daily_quests import daily_quest_system
+            coins_data = daily_quest_system.load_user_coins()
+            current_coins = coins_data.get(user, 0)
+            coins_data[user] = current_coins + points
+            daily_quest_system.save_user_coins(coins_data)
+            booking_logger.info(f"Added {points} coins to user {user} (total: {coins_data[user]})")
+        except Exception as e:
+            booking_logger.error(f"Error adding coins to user {user}: {e}", exc_info=True)
+            # Continue even if coins fail - points are still awarded
 
         # Achievement system integration with memory-safe guards
         new_badges = []
@@ -164,9 +181,14 @@ def book():
             print(f"Fehler beim Parsen der Zeit: {e}")
             return redirect(url_for("main.day_view", date_str=date))
 
+        # Add "Booked by" tag to description for tracking who created the booking
+        booking_description = description
+        if user and user != "unknown":
+            booking_description = f"{description}\n\n[Booked by: {user}]" if description else f"[Booked by: {user}]"
+
         event_body = {
             "summary": f"{last}, {first}",
-            "description": description,
+            "description": booking_description,
             "start": {"dateTime": slot_start.isoformat()},
             "end": {"dateTime": slot_end.isoformat()},
             "colorId": color_id
@@ -207,7 +229,7 @@ def book():
                 try:
                     new_badges = add_points_to_user(user, points)
                     if points > 0:
-                        flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) erhalten.", "success")
+                        flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) und {points} Coins erhalten.", "success")
                     else:
                         flash("Slot erfolgreich gebucht!", "success")
                 except Exception as e:
