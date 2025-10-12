@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, url_for, flash, session
 
 from app.config.base import config, slot_config
-from app.core.extensions import cache_manager, data_persistence, tracking_system
+from app.core.extensions import cache_manager, data_persistence, tracking_system, limiter
 from app.core.google_calendar import get_google_calendar_service
 from app.services.booking_service import get_effective_availability, get_slot_status, get_slot_points
 from app.utils.decorators import require_login
@@ -21,6 +21,13 @@ from app.utils.memory_guard import memory_guard, safe_import, force_garbage_coll
 
 booking_bp = Blueprint('booking', __name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
+
+
+def apply_rate_limit(route_func):
+    """Apply rate limiting decorator if limiter is available"""
+    if limiter:
+        return limiter.limit("20 per minute", methods=["POST"])(route_func)
+    return route_func
 
 
 def add_points_to_user(user, points):
@@ -91,6 +98,7 @@ def add_points_to_user(user, points):
 
 @booking_bp.route("/book", methods=["POST"])
 @require_login
+@apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)
 def book():
     """Handle slot booking"""

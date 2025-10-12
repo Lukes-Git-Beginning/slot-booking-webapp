@@ -1,0 +1,101 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Executive KPIs{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-white mb-8">📈 Executive KPIs</h1>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs tabs-boxed glass mb-6">
+        <a href="{{ url_for('analytics.dashboard') }}" class="tab">Overview</a>
+        <a href="{{ url_for('analytics.executive') }}" class="tab tab-active">Executive KPIs</a>
+        <a href="{{ url_for('analytics.team_performance') }}" class="tab">Team</a>
+        <a href="{{ url_for('analytics.lead_insights') }}" class="tab">Leads</a>
+    </div>
+
+    <!-- Executive KPIs Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Total Bookings -->
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Total Bookings (Monat)</div>
+            <div class="text-4xl font-bold text-primary mb-1">{{ total_bookings }}</div>
+            <div class="text-xs text-white/50">Buchungen im aktuellen Monat</div>
+        </div>
+
+        <!-- Conversion Rate -->
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Conversion Rate</div>
+            <div class="text-4xl font-bold text-success mb-1">{{ "%.1f"|format(conversion_rate) }}%</div>
+            <div class="text-xs text-white/50">Von Buchung zu Abschluss</div>
+        </div>
+
+        <!-- No-Show Rate -->
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">No-Show Rate</div>
+            <div class="text-4xl font-bold text-warning mb-1">{{ "%.1f"|format(no_show_rate) }}%</div>
+            <div class="text-xs text-white/50">Nicht erschienene Termine</div>
+        </div>
+
+        <!-- Avg Deal Value -->
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Durchschn. Deal-Wert</div>
+            <div class="text-4xl font-bold text-accent mb-1">{{ avg_deal_value }}€</div>
+            <div class="text-xs text-white/50">Pro abgeschlossenem Deal</div>
+        </div>
+
+        <!-- Revenue Forecast -->
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Revenue Forecast</div>
+            <div class="text-4xl font-bold text-secondary mb-1">{{ "%.0f"|format(revenue_forecast) }}€</div>
+            <div class="text-xs text-white/50">Prognostizierter Umsatz</div>
+        </div>
+
+        <!-- Active Users -->
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Aktive Berater</div>
+            <div class="text-4xl font-bold text-info mb-1">{{ active_users }}</div>
+            <div class="text-xs text-white/50">Berater mit Aktivität</div>
+        </div>
+    </div>
+
+    <!-- Performance Indicators -->
+    <div class="glass rounded-xl p-6 mb-8">
+        <h3 class="text-lg font-bold text-white mb-4">Performance-Indikatoren</h3>
+        <div class="space-y-4">
+            <!-- Show Rate -->
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-white/70">Show-Rate (Erschienen)</span>
+                    <span class="text-white font-bold">{{ "%.1f"|format(100 - no_show_rate) }}%</span>
+                </div>
+                <progress class="progress progress-success w-full" value="{{ 100 - no_show_rate }}" max="100"></progress>
+            </div>
+
+            <!-- Conversion Rate -->
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-white/70">Conversion Rate</span>
+                    <span class="text-white font-bold">{{ "%.1f"|format(conversion_rate) }}%</span>
+                </div>
+                <progress class="progress progress-primary w-full" value="{{ conversion_rate }}" max="100"></progress>
+            </div>
+
+            <!-- Booking Efficiency -->
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-white/70">Buchungs-Effizienz</span>
+                    <span class="text-white font-bold">{{ "%.0f"|format(total_bookings / active_users if active_users > 0 else 0) }}/Berater</span>
+                </div>
+                <progress class="progress progress-accent w-full" value="{{ (total_bookings / active_users if active_users > 0 else 0) * 5 }}" max="100"></progress>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hinweis -->
+    <div class="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span>Diese KPIs basieren auf den aktuellen Buchungsdaten. Für erweiterte Metriken kann die HubSpot-Integration aktiviert werden.</span>
+    </div>
+</div>
+{% endblock %}

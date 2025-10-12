@@ -9,9 +9,13 @@ import qrcode
 import io
 import base64
 import secrets
+import bcrypt
+import logging
 from typing import Dict, Optional, Tuple, List
 from app.core.extensions import data_persistence
 from app.utils.helpers import get_userlist
+
+logger = logging.getLogger(__name__)
 
 
 class SecurityService:
@@ -22,12 +26,30 @@ class SecurityService:
         self.twofa_file = 'user_2fa'
 
     def _load_passwords(self) -> Dict[str, str]:
-        """Lade überschriebene Passwörter"""
+        """Lade überschriebene Passwörter (können Klartext oder Hashes sein)"""
         return data_persistence.load_data(self.passwords_file, {})
 
     def _save_passwords(self, passwords: Dict[str, str]):
         """Speichere überschriebene Passwörter"""
         data_persistence.save_data(self.passwords_file, passwords)
+
+    def hash_password(self, password: str) -> str:
+        """Hash Passwort mit bcrypt"""
+        salt = bcrypt.gensalt(rounds=12)
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        return hashed.decode('utf-8')
+
+    def verify_hashed_password(self, password: str, hashed: str) -> bool:
+        """Verifiziere Passwort gegen bcrypt-Hash"""
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+        except Exception as e:
+            logger.debug(f"Hash verification failed: {e}")
+            return False
+
+    def is_hashed_password(self, password_str: str) -> bool:
+        """Prüfe ob String ein bcrypt-Hash ist (beginnt mit $2b$)"""
+        return password_str.startswith('$2b$') or password_str.startswith('$2a$')
 
     def _load_2fa_data(self) -> Dict[str, dict]:
         """Lade 2FA-Daten"""
@@ -39,24 +61,44 @@ class SecurityService:
 
     def verify_password(self, username: str, password: str) -> bool:
         """
-        Verifiziere Passwort
+        Verifiziere Passwort (Hybrid: bcrypt-Hash oder Klartext)
         Prüft erst überschriebene Passwörter, dann USERLIST
+
+        Unterstützt:
+        - bcrypt-Hashes ($2b$ prefix) - SICHER
+        - Klartext-Passwörter - NUR für Migration/Fallback
         """
         # 1. Check custom passwords (überschrieben)
         custom_passwords = self._load_passwords()
         if username in custom_passwords:
-            return custom_passwords[username] == password
+            stored_pw = custom_passwords[username]
 
-        # 2. Fallback to USERLIST
+            # Gehashtes Passwort?
+            if self.is_hashed_password(stored_pw):
+                is_valid = self.verify_hashed_password(password, stored_pw)
+                logger.debug(f"Verified user {username} with bcrypt hash: {is_valid}")
+                return is_valid
+            else:
+                # Klartext (Legacy) - Auto-Migration beim nächsten Login
+                is_valid = stored_pw == password
+                if is_valid:
+                    logger.warning(f"User {username} logged in with plaintext password - consider migration")
+                    # TODO: Auto-migrate to hash on successful login (optional)
+                return is_valid
+
+        # 2. Fallback to USERLIST (immer Klartext)
         userlist = get_userlist()
         if username in userlist:
-            return userlist[username] == password
+            is_valid = userlist[username] == password
+            if is_valid:
+                logger.info(f"User {username} logged in via USERLIST (plaintext)")
+            return is_valid
 
         return False
 
     def change_password(self, username: str, old_password: str, new_password: str) -> Tuple[bool, str]:
         """
-        Ändere Benutzerpasswort
+        Ändere Benutzerpasswort (neues Passwort wird IMMER gehasht)
         Returns: (success, message)
         """
         # Validierung
@@ -70,11 +112,13 @@ class SecurityService:
         if not self.verify_password(username, old_password):
             return False, "Aktuelles Passwort ist falsch"
 
-        # Neues Passwort speichern
+        # Neues Passwort HASHEN und speichern
         custom_passwords = self._load_passwords()
-        custom_passwords[username] = new_password
+        hashed_password = self.hash_password(new_password)
+        custom_passwords[username] = hashed_password
         self._save_passwords(custom_passwords)
 
+        logger.info(f"Password changed for user {username} (now hashed)")
         return True, "Passwort erfolgreich geändert"
 
     def setup_2fa(self, username: str) -> Tuple[str, str, List[str]]:

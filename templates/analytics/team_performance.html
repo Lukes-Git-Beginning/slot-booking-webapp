@@ -1,0 +1,101 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Team Performance{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-white mb-8">👥 Team Performance</h1>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs tabs-boxed glass mb-6">
+        <a href="{{ url_for('analytics.dashboard') }}" class="tab">Overview</a>
+        <a href="{{ url_for('analytics.executive') }}" class="tab">Executive KPIs</a>
+        <a href="{{ url_for('analytics.team_performance') }}" class="tab tab-active">Team</a>
+        <a href="{{ url_for('analytics.lead_insights') }}" class="tab">Leads</a>
+    </div>
+
+    <!-- Top Performer -->
+    {% if top_performer %}
+    <div class="glass rounded-xl p-6 mb-8">
+        <h3 class="text-lg font-bold text-white mb-4">🏆 Top Performer des Monats</h3>
+        <div class="flex items-center gap-6">
+            <div class="avatar placeholder">
+                <div class="bg-primary text-white rounded-full w-24">
+                    <span class="text-3xl">{{ top_performer.name[0] }}</span>
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="text-2xl font-bold text-white mb-2">{{ top_performer.name }}</div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <div class="text-sm text-white/70">Buchungen</div>
+                        <div class="text-xl font-bold text-primary">{{ top_performer.bookings }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-white/70">Conversion</div>
+                        <div class="text-xl font-bold text-success">{{ top_performer.conversion_rate }}%</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-white/70">Avg Deal</div>
+                        <div class="text-xl font-bold text-accent">{{ top_performer.avg_deal_value }}€</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Team Ranking -->
+    <div class="glass rounded-xl p-6 mb-8">
+        <h3 class="text-lg font-bold text-white mb-4">Berater-Rankings</h3>
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Rang</th>
+                        <th>Berater</th>
+                        <th>Punkte</th>
+                        <th>Buchungen</th>
+                        <th>Conversion</th>
+                        <th>Avg Deal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for berater in berater_rankings[:10] %}
+                    <tr>
+                        <td>
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}
+                            {% endif %}
+                        </td>
+                        <td class="font-bold">{{ berater.name }}</td>
+                        <td>{{ berater.points }}</td>
+                        <td>{{ berater.bookings }}</td>
+                        <td>{{ berater.conversion_rate }}%</td>
+                        <td>{{ berater.avg_deal_value }}€</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Team Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Team Durchschn. Conversion</div>
+            <div class="text-3xl font-bold text-primary">{{ "%.1f"|format(team_avg_conversion) }}%</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Gesamt Team-Punkte</div>
+            <div class="text-3xl font-bold text-secondary">{{ berater_rankings | sum(attribute='points') }}</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-2">Gesamt Buchungen</div>
+            <div class="text-3xl font-bold text-accent">{{ berater_rankings | sum(attribute='bookings') }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

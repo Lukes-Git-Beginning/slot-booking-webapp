@@ -115,26 +115,26 @@ def register_blueprints(app: Flask) -> None:
     try:
         from app.routes.hub import hub_bp
         app.register_blueprint(hub_bp, url_prefix='/')
-        print("SUCCESS: Central Hub blueprint registered")
+        app.logger.info("Central Hub blueprint registered")
     except ImportError as e:
-        print(f"INFO: Creating Central Hub blueprint: {e}")
+        app.logger.info(f"Creating Central Hub blueprint: {e}")
 
     # Central Authentication Blueprint (NEU - erweitert bestehende auth)
     try:
         from app.routes.auth import auth_bp
         # Auth läuft weiterhin auf Root-Level für Compatibility
         app.register_blueprint(auth_bp)
-        print("SUCCESS: Auth blueprint registered")
+        app.logger.info("Auth blueprint registered")
     except ImportError as e:
-        print(f"WARNING: Auth blueprint error: {e}")
+        app.logger.warning(f"Auth blueprint error: {e}")
 
     # Security Blueprint (Passwort & 2FA)
     try:
         from app.routes.security import security_bp
         app.register_blueprint(security_bp, url_prefix='/security')
-        print("SUCCESS: Security blueprint registered")
+        app.logger.info(" Security blueprint registered")
     except ImportError as e:
-        print(f"WARNING: Security blueprint error: {e}")
+        app.logger.warning(f" Security blueprint error: {e}")
 
     # Slot-Booking Tool Blueprint - Use LEGACY blueprints (complete app from Render)
     try:
@@ -149,71 +149,79 @@ def register_blueprints(app: Flask) -> None:
         app.register_blueprint(calendar_bp, url_prefix='/slots')
         app.register_blueprint(scoreboard_bp, url_prefix='/slots')
         app.register_blueprint(user_profile_bp, url_prefix='/slots')
-        print("SUCCESS: Legacy slots blueprints registered (complete Render app)")
+        app.logger.info(" Legacy slots blueprints registered (complete Render app)")
     except ImportError as e:
-        print(f"WARNING: Could not load legacy slots blueprints: {e}")
+        app.logger.warning(f" Could not load legacy slots blueprints: {e}")
         # Fallback to new slots blueprint if legacy fails
         try:
             from app.routes.slots import slots_bp
             app.register_blueprint(slots_bp, url_prefix='/slots')
-            print("SUCCESS: New slots blueprint registered (fallback)")
+            app.logger.info(" New slots blueprint registered (fallback)")
         except ImportError as e2:
-            print(f"ERROR: No slots blueprint available: {e2}")
+            app.logger.error(f" No slots blueprint available: {e2}")
 
     # T2-Closer-System Blueprint (NEU)
     try:
         from app.routes.t2 import t2_bp
         app.register_blueprint(t2_bp, url_prefix='/t2')
-        print("SUCCESS: T2 blueprint registered")
+        app.logger.info(" T2 blueprint registered")
     except ImportError as e:
-        print(f"INFO: Creating T2 blueprint: {e}")
+        app.logger.info(f" Creating T2 blueprint: {e}")
 
     # API Gateway Blueprint (erweitert bestehende API)
     try:
         from app.routes.api_gateway import api_gateway_bp
         app.register_blueprint(api_gateway_bp, url_prefix='/api')
-        print("SUCCESS: API Gateway blueprint registered")
+        app.logger.info(" API Gateway blueprint registered")
     except ImportError as e:
-        print(f"INFO: Creating API Gateway: {e}")
+        app.logger.info(f" Creating API Gateway: {e}")
         # Fallback: Bestehende API verwenden
         try:
             from app.routes.api import api_bp
             app.register_blueprint(api_bp, url_prefix='/api')
-            print("SUCCESS: Legacy API blueprint registered")
+            app.logger.info(" Legacy API blueprint registered")
         except ImportError as e2:
-            print(f"WARNING: API blueprint error: {e2}")
+            app.logger.warning(f" API blueprint error: {e2}")
 
     # Central Admin Blueprint (erweitert bestehende admin)
     try:
         from app.routes.admin import admin_bp
         app.register_blueprint(admin_bp, url_prefix='/admin')
-        print("SUCCESS: Admin blueprint registered")
+        app.logger.info(" Admin blueprint registered")
     except ImportError as e:
-        print(f"WARNING: Admin blueprint error: {e}")
+        app.logger.warning(f" Admin blueprint error: {e}")
 
     # Gamification Blueprint (bestehend)
     try:
         from app.routes.gamification.legacy_routes import gamification_bp
         app.register_blueprint(gamification_bp, url_prefix='/slots')
-        print("SUCCESS: Gamification blueprint registered")
+        app.logger.info(" Gamification blueprint registered")
     except ImportError as e:
-        print(f"WARNING: Could not import gamification blueprint: {e}")
+        app.logger.warning(f" Could not import gamification blueprint: {e}")
 
     # Health Check Blueprint (NEU)
     try:
         from app.routes.health import health_bp
         app.register_blueprint(health_bp)
-        print("SUCCESS: Health check blueprint registered")
+        app.logger.info(" Health check blueprint registered")
     except ImportError as e:
-        print(f"WARNING: Health check blueprint error: {e}")
+        app.logger.warning(f" Health check blueprint error: {e}")
 
     # Error Handlers Blueprint (zentrale Error-Behandlung)
     try:
         from app.routes.error_handlers import error_handlers_bp
         app.register_blueprint(error_handlers_bp)
-        print("SUCCESS: Error handlers blueprint registered")
+        app.logger.info("Error handlers blueprint registered")
     except ImportError as e:
-        print(f"WARNING: Error handlers blueprint error: {e}")
+        app.logger.warning(f"Error handlers blueprint error: {e}")
+
+    # Analytics Blueprint (NEU - Business Intelligence)
+    try:
+        from app.routes.analytics import analytics_bp
+        app.register_blueprint(analytics_bp, url_prefix='/analytics')
+        app.logger.info("Analytics blueprint registered")
+    except ImportError as e:
+        app.logger.warning(f"Analytics blueprint error: {e}")
 
 
 def register_error_handlers(app: Flask) -> None:
@@ -403,8 +411,8 @@ def get_available_tools():
             'description': 'Business Intelligence',
             'icon': '📊',
             'url': '/analytics/',
-            'status': 'coming_soon',
-            'users': 0,
+            'status': 'active',
+            'users': get_tool_user_count('analytics'),
             'color': '#FF9800'
         },
         {
@@ -469,6 +477,10 @@ def user_has_tool_access(username: str, tool_id: str) -> bool:
     # Standard-Benutzer haben Zugang zu Slots und T2
     if tool_id in ['slots', 't2']:
         return True
+
+    # Analytics nur für Admins
+    if tool_id == 'analytics':
+        return username in admin_users
 
     # Andere Tools nur für Admins (vorerst)
     return False

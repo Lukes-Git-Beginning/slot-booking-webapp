@@ -9,6 +9,7 @@ from app.utils.helpers import get_userlist
 from app.core.extensions import data_persistence, limiter
 from app.config.base import gamification_config
 from app.services.security_service import security_service
+from app.services.audit_service import audit_service
 from datetime import datetime, timedelta
 import pytz
 from app.config.base import slot_config
@@ -84,6 +85,10 @@ def login():
             session.update({"logged_in": True, "user": username})
             champ = check_and_set_champion()
             session["is_champion"] = (champ == username)
+
+            # Audit-Log: Erfolgreicher Login
+            audit_service.log_login_success(username)
+
             if champ == username:
                 flash("🏆 Glückwunsch! Du warst Top-Telefonist des letzten Monats!", "success")
 
@@ -92,6 +97,9 @@ def login():
             if next_page:
                 return redirect(next_page)
             return redirect(url_for("hub.dashboard"))
+
+        # Audit-Log: Fehlgeschlagener Login
+        audit_service.log_login_failure(username, reason='invalid_credentials')
 
         flash("Falscher Benutzername oder Passwort.", "danger")
         return redirect(url_for("auth.login"))
@@ -102,5 +110,10 @@ def login():
 @auth_bp.route("/logout")
 def logout():
     """Handle user logout"""
+    # Audit-Log: Logout
+    username = session.get('user')
+    if username:
+        audit_service.log_logout(username)
+
     session.clear()
     return redirect(url_for("auth.login"))

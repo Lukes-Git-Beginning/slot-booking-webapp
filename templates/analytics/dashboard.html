@@ -1,0 +1,211 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-white mb-8">📊 Analytics Dashboard</h1>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Total Bookings</div>
+            <div class="text-3xl font-bold text-primary">{{ overview.total_bookings_month }}</div>
+            <div class="text-xs text-success mt-1">+{{ overview.growth_rate }}% vs. last month</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Active Users</div>
+            <div class="text-3xl font-bold text-secondary">{{ overview.total_users }}</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Avg per User</div>
+            <div class="text-3xl font-bold text-accent">{{ "%.1f"|format(overview.avg_bookings_per_user) }}</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Conversion Rate</div>
+            <div class="text-3xl font-bold text-warning">25.5%</div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs tabs-boxed glass mb-6">
+        <a href="{{ url_for('analytics.dashboard') }}" class="tab tab-active">Overview</a>
+        <a href="{{ url_for('analytics.executive') }}" class="tab">Executive KPIs</a>
+        <a href="{{ url_for('analytics.team_performance') }}" class="tab">Team</a>
+        <a href="{{ url_for('analytics.lead_insights') }}" class="tab">Leads</a>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="glass rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Funnel-Analyse</h3>
+            <div style="position: relative; height: 300px; max-height: 300px;">
+                <canvas id="funnelChart"></canvas>
+            </div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Trend (30 Tage)</h3>
+            <div style="position: relative; height: 300px; max-height: 300px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="glass rounded-xl p-6">
+        <h3 class="text-lg font-bold text-white mb-4">Recent Activity</h3>
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Event</th>
+                        <th>User</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_activity[:10] %}
+                    <tr>
+                        <td>{{ event.timestamp[:16] }}</td>
+                        <td>{{ event.action }}</td>
+                        <td>{{ event.user }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Prevent chart rendering loops
+let chartsInitialized = false;
+
+function initializeCharts() {
+    if (chartsInitialized) return;
+    chartsInitialized = true;
+
+    // Funnel Chart
+    fetch('/analytics/api/funnel')
+        .then(r => {
+            if (!r.ok) throw new Error('API call failed');
+            return r.json();
+        })
+        .then(data => {
+            const ctx = document.getElementById('funnelChart');
+            if (!ctx) return;
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.stages.map(s => s.name),
+                    datasets: [{
+                        label: 'Count',
+                        data: data.stages.map(s => s.count),
+                        backgroundColor: ['#2196F3', '#4CAF50', '#FF9800', '#F44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'rgba(255,255,255,0.7)' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'rgba(255,255,255,0.7)' }
+                        }
+                    },
+                    animation: {
+                        duration: 500
+                    }
+                }
+            });
+        })
+        .catch(err => {
+            console.error('Funnel chart error:', err);
+            const container = document.getElementById('funnelChart')?.parentElement;
+            if (container) {
+                container.innerHTML = '<p class="text-white/70 text-center">Daten werden geladen...</p>';
+            }
+        });
+
+    // Trend Chart
+    fetch('/analytics/api/trends/month')
+        .then(r => {
+            if (!r.ok) throw new Error('API call failed');
+            return r.json();
+        })
+        .then(data => {
+            const ctx = document.getElementById('trendChart');
+            if (!ctx) return;
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.data.map(d => d.date),
+                    datasets: [{
+                        label: 'Bookings',
+                        data: data.data.map(d => d.bookings),
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: 'rgba(255,255,255,0.7)' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'rgba(255,255,255,0.7)' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.7)',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 500
+                    }
+                }
+            });
+        })
+        .catch(err => {
+            console.error('Trend chart error:', err);
+            const container = document.getElementById('trendChart')?.parentElement;
+            if (container) {
+                container.innerHTML = '<p class="text-white/70 text-center">Daten werden geladen...</p>';
+            }
+        });
+}
+
+// Initialize charts when DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeCharts);
+} else {
+    initializeCharts();
+}
+</script>
+{% endblock %}
