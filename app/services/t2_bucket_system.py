@@ -55,7 +55,8 @@ BUCKET_CONFIG = {
     "t1_timeout_minutes": 0,        # T1: Kein Timeout
     "t2_timeout_minutes": 1,        # T2: 1 Minute Timeout
     "min_probability": 0.1,         # Minimum probability (kann nicht 0 sein!)
-    "max_probability": 100.0        # Maximum probability
+    "max_probability": 100.0,       # Maximum probability
+    "probability_reduction_per_draw": 1.0  # Wahrscheinlichkeit sinkt um 1 pro Draw
 }
 
 # Data Persistence
@@ -85,6 +86,8 @@ def load_bucket_data() -> Dict:
             # Validate structure
             if "probabilities" not in data:
                 data["probabilities"] = {name: info["default_probability"] for name, info in T2_CLOSERS.items()}
+            if "default_probabilities" not in data:
+                data["default_probabilities"] = {name: info["default_probability"] for name, info in T2_CLOSERS.items()}
             if "bucket" not in data:
                 data["bucket"] = _create_initial_bucket(data.get("probabilities", {}))
             if "draw_history" not in data:
@@ -116,6 +119,7 @@ def _initialize_bucket_data() -> Dict:
 
     return {
         "probabilities": probabilities,
+        "default_probabilities": {name: info["default_probability"] for name, info in T2_CLOSERS.items()},  # Store defaults
         "bucket": _create_initial_bucket(probabilities),
         "draw_history": [],
         "user_last_draw": {},
@@ -204,6 +208,9 @@ def get_bucket_composition() -> Dict:
     data = load_bucket_data()
     bucket = data.get("bucket", [])
 
+    # Get configured bucket size (use stored value if available)
+    max_draws = data.get("bucket_size_config", BUCKET_CONFIG["max_draws_before_reset"])
+
     # Count tickets per closer
     composition = {}
     for closer_name in T2_CLOSERS.keys():
@@ -213,8 +220,10 @@ def get_bucket_composition() -> Dict:
     return {
         "composition": composition,
         "total_tickets": len(bucket),
-        "draws_until_reset": BUCKET_CONFIG["max_draws_before_reset"] - data.get("total_draws", 0),
-        "probabilities": data.get("probabilities", {})
+        "draws_until_reset": max_draws - data.get("total_draws", 0),
+        "max_draws_before_reset": max_draws,
+        "probabilities": data.get("probabilities", {}),
+        "default_probabilities": data.get("default_probabilities", {})
     }
 
 
@@ -261,7 +270,7 @@ def check_user_timeout(username: str, draw_type: str = "T2") -> Dict:
         return {"can_draw": True, "timeout_remaining_seconds": 0, "message": "Ready to draw"}
 
 
-def draw_closer(username: str, draw_type: str = "T2") -> Dict:
+def draw_closer(username: str, draw_type: str = "T2", customer_name: str = None) -> Dict:
     """
     Draw a closer from the bucket
 
@@ -299,6 +308,14 @@ def draw_closer(username: str, draw_type: str = "T2") -> Dict:
     bucket.remove(drawn_closer)
     data["bucket"] = bucket
 
+    # DEGRESSIVE PROBABILITY: Reduce the drawn closer's probability by 1
+    reduction = BUCKET_CONFIG.get("probability_reduction_per_draw", 1.0)
+    min_prob = BUCKET_CONFIG.get("min_probability", 0.1)
+
+    current_prob = data["probabilities"].get(drawn_closer, 1.0)
+    new_prob = max(min_prob, current_prob - reduction)
+    data["probabilities"][drawn_closer] = new_prob
+
     # Update stats
     data["total_draws"] = data.get("total_draws", 0) + 1
     data["stats"][drawn_closer] = data["stats"].get(drawn_closer, 0) + 1
@@ -307,7 +324,8 @@ def draw_closer(username: str, draw_type: str = "T2") -> Dict:
     data["user_last_draw"][username] = {
         "timestamp": datetime.now(TZ).isoformat(),
         "closer": drawn_closer,
-        "draw_type": draw_type
+        "draw_type": draw_type,
+        "customer_name": customer_name
     }
 
     # Add to history
@@ -315,13 +333,18 @@ def draw_closer(username: str, draw_type: str = "T2") -> Dict:
         "user": username,
         "closer": drawn_closer,
         "draw_type": draw_type,
+        "customer_name": customer_name,
         "timestamp": datetime.now(TZ).isoformat(),
-        "bucket_size_after": len(bucket)
+        "bucket_size_after": len(bucket),
+        "probability_after": new_prob
     })
 
     # Check if bucket needs reset
-    if data["total_draws"] >= BUCKET_CONFIG["max_draws_before_reset"]:
-        data["bucket"] = _create_initial_bucket(data.get("probabilities", {}))
+    max_draws = data.get("bucket_size_config", BUCKET_CONFIG["max_draws_before_reset"])
+    if data["total_draws"] >= max_draws:
+        # Reset probabilities to default values
+        data["probabilities"] = data.get("default_probabilities", {name: info["default_probability"] for name, info in T2_CLOSERS.items()}).copy()
+        data["bucket"] = _create_initial_bucket(data["probabilities"])
         data["total_draws"] = 0
         data["last_reset"] = datetime.now(TZ).isoformat()
 
@@ -335,7 +358,11 @@ def draw_closer(username: str, draw_type: str = "T2") -> Dict:
         "message": f"You drew {drawn_closer}!",
         "bucket_stats": {
             "tickets_remaining": len(data["bucket"]),
-            "draws_until_reset": BUCKET_CONFIG["max_draws_before_reset"] - data["total_draws"]
+            "draws_until_reset": max_draws - data["total_draws"]
+        },
+        "probability_info": {
+            "old_probability": current_prob,
+            "new_probability": new_prob
         }
     }
 
@@ -343,7 +370,11 @@ def draw_closer(username: str, draw_type: str = "T2") -> Dict:
 def reset_bucket() -> Dict:
     """Reset bucket manually (Admin only)"""
     data = load_bucket_data()
-    data["bucket"] = _create_initial_bucket(data.get("probabilities", {}))
+
+    # Reset probabilities to default values
+    data["probabilities"] = data.get("default_probabilities", {name: info["default_probability"] for name, info in T2_CLOSERS.items()}).copy()
+
+    data["bucket"] = _create_initial_bucket(data["probabilities"])
     data["total_draws"] = 0
     data["last_reset"] = datetime.now(TZ).isoformat()
 
@@ -351,7 +382,7 @@ def reset_bucket() -> Dict:
 
     return {
         "success": True,
-        "message": "Bucket reset successfully",
+        "message": "Bucket reset successfully (probabilities restored to defaults)",
         "bucket_size": len(data["bucket"])
     }
 
@@ -374,3 +405,151 @@ def get_system_stats() -> Dict:
 def get_available_closers() -> Dict[str, Dict]:
     """Get list of available T2 closers with their info"""
     return T2_CLOSERS
+
+
+def update_bucket_size(new_size: int) -> Dict:
+    """
+    Update max draws before bucket reset (Admin only)
+
+    Returns: {success: bool, message: str}
+    """
+    if new_size < 1:
+        return {"success": False, "message": "Bucket size must be at least 1"}
+
+    if new_size > 100:
+        return {"success": False, "message": "Bucket size cannot exceed 100"}
+
+    data = load_bucket_data()
+
+    # Update config
+    BUCKET_CONFIG["max_draws_before_reset"] = new_size
+
+    # Reset bucket with new size
+    data["probabilities"] = data.get("default_probabilities", {name: info["default_probability"] for name, info in T2_CLOSERS.items()}).copy()
+    data["bucket"] = _create_initial_bucket(data["probabilities"])
+    data["total_draws"] = 0
+    data["last_reset"] = datetime.now(TZ).isoformat()
+    data["bucket_size_config"] = new_size  # Store in data for persistence
+
+    save_bucket_data(data)
+
+    return {
+        "success": True,
+        "message": f"Bucket size updated to {new_size} draws"
+    }
+
+
+def get_bucket_config() -> Dict:
+    """Get current bucket configuration"""
+    data = load_bucket_data()
+    return {
+        "max_draws_before_reset": data.get("bucket_size_config", BUCKET_CONFIG["max_draws_before_reset"]),
+        "t1_timeout_minutes": BUCKET_CONFIG["t1_timeout_minutes"],
+        "t2_timeout_minutes": BUCKET_CONFIG["t2_timeout_minutes"],
+        "min_probability": BUCKET_CONFIG["min_probability"],
+        "max_probability": BUCKET_CONFIG["max_probability"],
+        "probability_reduction_per_draw": BUCKET_CONFIG["probability_reduction_per_draw"]
+    }
+
+
+def add_closer(name: str, color: str, full_name: str, default_probability: float = 1.0) -> Dict:
+    """
+    Add a new closer to the system (Admin only)
+
+    Returns: {success: bool, message: str}
+    """
+    if name in T2_CLOSERS:
+        return {"success": False, "message": f"Closer '{name}' existiert bereits"}
+
+    # Validate color format (hex)
+    if not color.startswith('#') or len(color) != 7:
+        return {"success": False, "message": "Farbe muss im Format #RRGGBB sein"}
+
+    # Add to T2_CLOSERS dict
+    T2_CLOSERS[name] = {
+        "full_name": full_name,
+        "color": color,
+        "default_probability": default_probability
+    }
+
+    # Update data
+    data = load_bucket_data()
+
+    # Add to probabilities
+    data["probabilities"][name] = default_probability
+    data["default_probabilities"][name] = default_probability
+    data["stats"][name] = 0
+
+    # Rebuild bucket
+    data["bucket"] = _create_initial_bucket(data["probabilities"])
+    data["total_draws"] = 0
+    data["last_reset"] = datetime.now(TZ).isoformat()
+
+    save_bucket_data(data)
+
+    return {
+        "success": True,
+        "message": f"Closer '{name}' erfolgreich hinzugefügt"
+    }
+
+
+def remove_closer(name: str) -> Dict:
+    """
+    Remove a closer from the system (Admin only)
+
+    Returns: {success: bool, message: str}
+    """
+    if name not in T2_CLOSERS:
+        return {"success": False, "message": f"Closer '{name}' nicht gefunden"}
+
+    if len(T2_CLOSERS) <= 1:
+        return {"success": False, "message": "Mindestens ein Closer muss vorhanden sein"}
+
+    # Remove from T2_CLOSERS
+    del T2_CLOSERS[name]
+
+    # Update data
+    data = load_bucket_data()
+
+    # Remove from probabilities
+    if name in data["probabilities"]:
+        del data["probabilities"][name]
+    if name in data["default_probabilities"]:
+        del data["default_probabilities"][name]
+
+    # Rebuild bucket
+    data["bucket"] = _create_initial_bucket(data["probabilities"])
+    data["total_draws"] = 0
+    data["last_reset"] = datetime.now(TZ).isoformat()
+
+    save_bucket_data(data)
+
+    return {
+        "success": True,
+        "message": f"Closer '{name}' erfolgreich entfernt"
+    }
+
+
+def update_closer_info(name: str, new_color: str = None, new_full_name: str = None) -> Dict:
+    """
+    Update closer information (Admin only)
+
+    Returns: {success: bool, message: str}
+    """
+    if name not in T2_CLOSERS:
+        return {"success": False, "message": f"Closer '{name}' nicht gefunden"}
+
+    # Update color if provided
+    if new_color:
+        if not new_color.startswith('#') or len(new_color) != 7:
+            return {"success": False, "message": "Farbe muss im Format #RRGGBB sein"}
+        T2_CLOSERS[name]["color"] = new_color
+
+    # Update full name if provided
+    if new_full_name:
+        T2_CLOSERS[name]["full_name"] = new_full_name
+
+    return {
+        "success": True,
+        "message": f"Closer '{name}' erfolgreich aktualisiert"
+    }

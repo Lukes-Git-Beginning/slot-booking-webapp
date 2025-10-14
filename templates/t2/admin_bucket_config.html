@@ -47,7 +47,7 @@
                 <thead>
                     <tr class="border-b border-white/20">
                         <th class="text-left p-4 text-lg font-bold text-gray-300">Closer</th>
-                        <th class="text-center p-4 text-lg font-bold text-gray-300">Aktuelle Wahrscheinlichkeit</th>
+                        <th class="text-center p-4 text-lg font-bold text-gray-300">Aktuelle / Default</th>
                         <th class="text-center p-4 text-lg font-bold text-gray-300">Tickets im Bucket</th>
                         <th class="text-center p-4 text-lg font-bold text-gray-300">Update Wahrscheinlichkeit</th>
                     </tr>
@@ -62,13 +62,18 @@
                             </div>
                         </td>
                         <td class="p-4 text-center">
-                            <span class="text-4xl font-bold text-t2-purple">
-                                {{ probabilities.get(closer_name, 1.0) }}
-                            </span>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-4xl font-bold text-t2-purple">
+                                    {{ "%.1f"|format(probabilities.get(closer_name, 1.0)) }}
+                                </span>
+                                <span class="text-sm text-gray-400">
+                                    (Standard: {{ "%.1f"|format(bucket_composition.default_probabilities.get(closer_name, 1.0)) }})
+                                </span>
+                            </div>
                         </td>
                         <td class="p-4 text-center">
                             <span class="text-2xl font-semibold text-white">
-                                {{ bucket_composition.get(closer_name, 0) }}
+                                {{ bucket_composition.composition.get(closer_name, 0) }}
                             </span>
                         </td>
                         <td class="p-4">
@@ -104,6 +109,40 @@
         </div>
     </div>
 
+    <!-- Bucket Configuration -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="250">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+            <i data-lucide="settings" class="w-8 h-8 text-t2-purple"></i>
+            Bucket Konfiguration
+        </h2>
+
+        <div class="max-w-md">
+            <label for="bucket-size-input" class="block text-base font-medium text-gray-300 mb-3">
+                Max. Anzahl Draws bis Bucket Reset
+            </label>
+            <div class="flex gap-3">
+                <input
+                    type="number"
+                    id="bucket-size-input"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value="{{ bucket_composition.max_draws_before_reset }}"
+                    class="input input-bordered flex-1 text-center text-xl font-bold bg-white/5 border-white/20 text-white focus:border-t2-purple"
+                >
+                <button
+                    onclick="updateBucketSize()"
+                    class="btn btn-primary gap-2">
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                    <span class="text-base">Aktualisieren</span>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">
+                Nach dieser Anzahl Draws wird der Bucket zurückgesetzt und Wahrscheinlichkeiten auf Standard-Werte wiederhergestellt. (Min: 1, Max: 100)
+            </p>
+        </div>
+    </div>
+
     <!-- Current Bucket Composition -->
     <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="300">
         <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
@@ -132,11 +171,11 @@
         <div class="glass rounded-2xl p-6 text-center">
             <div class="text-gray-400 text-base mb-2">Draws dieser Cycle</div>
             <div class="text-5xl font-bold text-white mb-4">
-                {{ bucket_stats.draws_this_cycle }} / 10
+                {{ bucket_stats.draws_this_cycle }} / {{ bucket_composition.max_draws_before_reset }}
             </div>
             <div class="w-full glass rounded-xl h-8 relative overflow-hidden">
                 <div class="bg-gradient-to-r from-t2-purple to-pink-600 h-full transition-all duration-500"
-                     style="width: {{ (bucket_stats.draws_this_cycle / 10 * 100)|int }}%;"></div>
+                     style="width: {{ (bucket_stats.draws_this_cycle / bucket_composition.max_draws_before_reset * 100)|int }}%;"></div>
             </div>
         </div>
     </div>
@@ -171,38 +210,56 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-white/20">
-                        <th class="text-left p-4 text-lg font-bold text-gray-300">User</th>
-                        <th class="text-center p-4 text-lg font-bold text-gray-300">Gezogener Closer</th>
-                        <th class="text-center p-4 text-lg font-bold text-gray-300">Typ</th>
-                        <th class="text-center p-4 text-lg font-bold text-gray-300">Zeitstempel</th>
-                        <th class="text-center p-4 text-lg font-bold text-gray-300">Bucket Size After</th>
+                        <th class="text-left p-4 text-base font-bold text-gray-300">User</th>
+                        <th class="text-left p-4 text-base font-bold text-gray-300">Kundenname</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Gezogener Closer</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Prob. After</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Typ</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Zeitstempel</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Bucket Size After</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for draw in system_stats.recent_draws[::-1] %}
                     <tr class="border-b border-white/10 hover:bg-white/5 transition-all">
-                        <td class="p-4 text-white text-lg">{{ draw.user }}</td>
+                        <td class="p-4 text-white text-base">{{ draw.user }}</td>
+                        <td class="p-4 text-gray-300 text-base">
+                            {% if draw.customer_name %}
+                                <span class="px-2 py-1 bg-blue-500/20 border border-blue-500/40 rounded-lg text-blue-300 text-sm">
+                                    <i data-lucide="user" class="inline w-3 h-3 mr-1"></i>{{ draw.customer_name }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-500 text-sm italic">-</span>
+                            {% endif %}
+                        </td>
                         <td class="p-4 text-center">
                             <div class="inline-flex items-center gap-2">
                                 <div class="w-3 h-3 rounded-full" style="background: {{ closers[draw.closer].color }};"></div>
-                                <span class="text-white font-semibold text-lg">{{ draw.closer }}</span>
+                                <span class="text-white font-semibold">{{ draw.closer }}</span>
                             </div>
                         </td>
                         <td class="p-4 text-center">
-                            <span class="px-3 py-1 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg text-sm font-semibold">
+                            {% if draw.probability_after %}
+                                <span class="text-t2-purple font-bold text-base">{{ "%.1f"|format(draw.probability_after) }}</span>
+                            {% else %}
+                                <span class="text-gray-500 text-sm">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="px-2 py-1 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg text-xs font-semibold">
                                 {{ draw.draw_type }}
                             </span>
                         </td>
-                        <td class="p-4 text-center text-gray-400 text-base">
+                        <td class="p-4 text-center text-gray-400 text-sm">
                             {{ draw.timestamp[:19].replace('T', ' ') }}
                         </td>
-                        <td class="p-4 text-center text-white font-semibold text-lg">
+                        <td class="p-4 text-center text-white font-semibold">
                             {{ draw.bucket_size_after }}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="text-center p-8 text-gray-400 text-lg">
+                        <td colspan="7" class="text-center p-8 text-gray-400 text-lg">
                             Noch keine Ziehungen vorhanden
                         </td>
                     </tr>
@@ -325,6 +382,45 @@ function showError(message) {
         notification.style.opacity = '0';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+
+function updateBucketSize() {
+    const inputField = document.getElementById('bucket-size-input');
+    const newSize = parseInt(inputField.value);
+
+    if (isNaN(newSize) || newSize < 1) {
+        showError('Bucket-Größe muss mindestens 1 sein');
+        return;
+    }
+
+    if (newSize > 100) {
+        showError('Bucket-Größe kann nicht über 100 liegen');
+        return;
+    }
+
+    if (!confirm(`Bist du sicher, dass du die Bucket-Größe auf ${newSize} ändern möchtest? Dies wird den Bucket zurücksetzen.`)) {
+        return;
+    }
+
+    fetch('/t2/api/admin/update-bucket-size', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            bucket_size: newSize
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Bucket-Größe erfolgreich auf ${newSize} aktualisiert`);
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showError(data.message || 'Update fehlgeschlagen');
+        }
+    })
+    .catch(error => {
+        showError('Fehler beim Aktualisieren der Bucket-Größe');
+    });
 }
 </script>
 {% endblock %}

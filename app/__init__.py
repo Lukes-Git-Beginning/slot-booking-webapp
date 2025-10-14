@@ -72,7 +72,6 @@ def create_app(config_object: Optional[str] = None) -> Flask:
             'version': '1.0.0',
             'tools': {
                 'slots': 'healthy',
-                't2': 'healthy',
                 'analytics': 'not_ready',
             },
             'database': 'healthy',
@@ -160,13 +159,8 @@ def register_blueprints(app: Flask) -> None:
         except ImportError as e2:
             app.logger.error(f" No slots blueprint available: {e2}")
 
-    # T2-Closer-System Blueprint (NEU)
-    try:
-        from app.routes.t2 import t2_bp
-        app.register_blueprint(t2_bp, url_prefix='/t2')
-        app.logger.info(" T2 blueprint registered")
-    except ImportError as e:
-        app.logger.info(f" Creating T2 blueprint: {e}")
+    # T2-Closer-System ENTFERNT - Nicht mehr benötigt
+    # Logik wurde vereinfacht: Nur T1-Slot-Buchung
 
     # API Gateway Blueprint (erweitert bestehende API)
     try:
@@ -396,16 +390,6 @@ def get_available_tools():
             'color': '#2196F3'
         },
         {
-            'id': 't2',
-            'name': 'T2-Closer',
-            'description': 'T2-Termin-Management',
-            'icon': '👥',
-            'url': '/t2/',
-            'status': 'active',
-            'users': get_tool_user_count('t2'),
-            'color': '#4CAF50'
-        },
-        {
             'id': 'analytics',
             'name': 'Analytics',
             'description': 'Business Intelligence',
@@ -474,8 +458,8 @@ def user_has_tool_access(username: str, tool_id: str) -> bool:
     if username in admin_users:
         return True
 
-    # Standard-Benutzer haben Zugang zu Slots und T2
-    if tool_id in ['slots', 't2']:
+    # Standard-Benutzer haben Zugang zu Slots
+    if tool_id in ['slots']:
         return True
 
     # Analytics nur für Admins

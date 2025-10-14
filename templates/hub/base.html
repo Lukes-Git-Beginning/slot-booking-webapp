@@ -9,21 +9,21 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
 
     <!-- Tailwind CSS + DaisyUI -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
+    <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
 
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="{{ url_for('static', filename='lucide.js') }}"></script>
 
     <!-- AOS (Animate On Scroll) -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='aos.js') }}"></script>
 
     <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{{ url_for('static', filename='alpine.min.js') }}"></script>
 
     <!-- Particles.js -->
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
     <!-- Custom Tailwind Config -->
     <script>
@@ -66,7 +66,7 @@
 
     <!-- Custom Styles -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         * {
             margin: 0;

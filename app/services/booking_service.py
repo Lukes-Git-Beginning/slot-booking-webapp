@@ -173,33 +173,50 @@ def extract_weekly_summary(availability, current_date=None):
                     max_results=2500
                 )
                 events = events_result.get('items', []) if events_result else []
+                logger.info(f"Weekly summary: Fetched {len(events)} events from Google Calendar ({min_start_dt.date()} to {max_end_dt.date()})")
             except Exception as e:
                 from app.utils.logging import booking_logger
                 booking_logger.error(f"Error fetching calendar events: {e}")
                 events = []
         else:
+            logger.warning("Weekly summary: Google Calendar service not available")
             events = []
 
         # Process all events
+        events_processed = 0
+        events_counted = 0
+        events_filtered_t1 = 0
+        events_filtered_color = 0
         for event in events:
             if "start" in event and "dateTime" in event["start"]:
                 try:
                     dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+                    events_processed += 1
                     # Only count future events
                     if dt.date() >= today:
                         # Get event summary to check if it's T1-bereit
                         summary = event.get("summary", "")
 
                         # Don't count T1-bereit events as booked
-                        if not is_t1_bereit_event(summary):
+                        if is_t1_bereit_event(summary):
+                            events_filtered_t1 += 1
+                            logger.debug(f"Event filtered (T1-bereit): {summary}")
+                        else:
                             # IMPORTANT: Check if event blocks availability
                             color_id = event.get("colorId", "2")  # Default: Green
-                            if blocks_availability(color_id):  # Only count blocking events
+                            blocks = blocks_availability(color_id)
+                            logger.debug(f"Event '{summary}' has colorId={color_id}, blocks_availability={blocks}")
+                            if blocks:  # Only count blocking events
                                 key = week_key_from_date(dt)
                                 week_booked[key] += 1
+                                events_counted += 1
+                            else:
+                                events_filtered_color += 1
                 except Exception as e:
                     logger.error(f"Error parsing event time", extra={'error': str(e)})
                     continue
+
+        logger.info(f"Weekly summary: Processed {events_processed} events, counted {events_counted} as booked (filtered: {events_filtered_t1} T1-bereit, {events_filtered_color} non-blocking colors)")
 
     summary = []
     for key, possible in week_possible.items():

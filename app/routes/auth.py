@@ -6,7 +6,7 @@ Login, logout, and session management
 
 from flask import Blueprint, request, render_template, redirect, url_for, flash, session
 from app.utils.helpers import get_userlist
-from app.core.extensions import data_persistence, limiter
+from app.core.extensions import data_persistence  # limiter wird zur Laufzeit importiert
 from app.config.base import gamification_config
 from app.services.security_service import security_service
 from app.services.audit_service import audit_service
@@ -46,6 +46,8 @@ def check_and_set_champion():
 
 def apply_rate_limit(route_func):
     """Apply rate limiting decorator if limiter is available"""
+    # Import zur Laufzeit, um zirkuläre Import-Probleme zu vermeiden
+    from app.core.extensions import limiter
     if limiter:
         return limiter.limit("5 per minute", methods=["POST"])(route_func)
     return route_func

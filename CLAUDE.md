@@ -70,7 +70,12 @@ app/
 │   ├── auth.py          # Authentifizierung
 │   ├── security.py      # 2FA & Security
 │   ├── admin/           # Admin-Features
-│   ├── slots.py         # Slot-Booking
+│   ├── main.py          # Legacy Slots (Hauptroute)
+│   ├── booking.py       # Legacy Booking-Logik
+│   ├── calendar.py      # Legacy Kalender-Ansicht
+│   ├── scoreboard.py    # Legacy Gamification
+│   ├── user_profile.py  # Legacy Profile
+│   ├── slots.py         # Neue Slots (Fallback)
 │   └── t2.py            # T2-Closer
 └── services/            # Business Logic
     ├── data_persistence.py
@@ -79,6 +84,8 @@ app/
     ├── booking_service.py
     └── holiday_service.py
 ```
+
+**Blueprint-Registrierung:** Legacy Slots-Blueprints (`main_bp`, `booking_bp`, etc.) werden ZUERST registriert und haben Priorität über neue `slots_bp`.
 
 ### Wichtige Architektur-Patterns
 
@@ -101,15 +108,18 @@ app/
 
 ```bash
 # Core (ERFORDERLICH)
-SECRET_KEY=<key>
-USERLIST=user:pass,user2:pass2
-ADMIN_USERS=admin1,admin2
+SECRET_KEY=<key>                              # Für Production generiert
+USERLIST=user:pass,user2:pass2                # Komma-separierte User-Liste
+ADMIN_USERS=admin1,admin2                     # Admin-Benutzer
+PERSIST_BASE=/opt/business-hub/data/persistent # VPS-Datenpfad
 
 # Google Calendar (ERFORDERLICH für Slots)
-GOOGLE_CREDS_BASE64=<base64>
-CENTRAL_CALENDAR_ID=<email>
-CONSULTANTS=name:email,name2:email2
+GOOGLE_CREDS_BASE64=<base64>                  # Service Account Credentials
+CENTRAL_CALENDAR_ID=<email>                   # Haupt-Kalender
+CONSULTANTS=name:email,name2:email2           # Berater-Kalender (9 konfiguriert)
 ```
+
+**WICHTIG:** Auf dem Hetzner-Server sind alle Placeholder bereits durch echte Werte ersetzt.
 
 ## Wichtige Service-Klassen
 
@@ -197,16 +207,67 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 - Rate Limiting für sensitive Endpoints
 - Security-Events protokollieren
 
+## Frontend-Technologie
+
+### UI-Framework & Design
+- **Bootstrap 5.3.2**: Lokal gehostet in `static/bootstrap.min.css` (228KB)
+- **Font Awesome 6.4.2**: Lokal gehostet in `static/fontawesome.min.css` (100KB)
+- **Glassmorphism-Design**: CSS Custom Properties mit Backdrop-Filter
+- **Legacy Layout**: Bootstrap-Grid-System bleibt erhalten
+- **admin_style.css**: Zentrale CSS-Datei mit ~2200 Zeilen
+
+### CSS-Architektur
+```css
+/* CSS Custom Properties für Theming */
+:root {
+  --bg: #0b0f14;
+  --text-color: #e5eef7;
+  --accent: #5ab1ff;
+  --box-bg: rgba(18, 24, 32, 0.65);
+  --box-border: rgba(255,255,255,.12);
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+/* Glassmorphism-Effekt */
+.glass {
+  background: var(--box-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--box-border);
+  box-shadow: var(--shadow);
+}
+```
+
+### Template-Struktur
+```
+templates/slots/
+├── base.html           # Bootstrap 5 + FontAwesome Basis
+├── dashboard.html      # Legacy Layout mit Glassmorphism
+└── ...
+```
+
+**Wichtig:** Bei Slot-Booking Templates IMMER die Legacy-Struktur (Bootstrap-Grid, Berater-Karten, Gamification-Widgets) beibehalten und NUR das Glassmorphism-Design anwenden!
+
 ## Projektstatus
 
-### Version: v4.0+ (Multi-Tool Hub)
+### Version: v4.0.1 (Multi-Tool Hub + Glassmorphism)
 - ✅ Central Hub Architecture
 - ✅ Security Center (2FA + Password Management)
 - ✅ T2-Closer Tool
 - ✅ Vollständiges Gamification-System
 - ✅ Analytics Dashboard
+- ✅ Glassmorphism-Design mit Bootstrap 5
+- ✅ Lokale Asset-Hosting (Bootstrap + FontAwesome)
 - ✅ VPS Deployment auf Hetzner
 
 ### Deployment-Status
 - **Testserver:** http://91.98.192.233 ✅ LIVE
 - **Production:** Go-Live in ~17 Tagen
+
+### Letzte Updates (2025-10-14)
+- ✅ Legacy Slot-Booking Layout vollständig wiederhergestellt
+- ✅ Blueprint-Registrierungsreihenfolge korrigiert (Legacy Blueprints haben Priorität)
+- ✅ Google Calendar Integration konfiguriert (9 Berater-Kalender)
+- ✅ Wochenauslastung zeigt echte Buchungsdaten (Prozentsätze statt 0%)
+- ✅ Produktions-.env bereinigt (alle Placeholder entfernt)
+- ✅ SECRET_KEY generiert und konfiguriert
+- ✅ Hetzner VPS vollständig konfiguriert und stabil laufend

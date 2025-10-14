@@ -82,8 +82,7 @@ def batch_fetch_events(consultant_calendars, start_date, end_date):
             calendar_id=cal_id,
             time_min=start_date.isoformat(),
             time_max=end_date.isoformat(),
-            max_results=2500,
-            cache_duration=cache_duration
+            max_results=2500
         )
 
         if result:
@@ -94,13 +93,22 @@ def batch_fetch_events(consultant_calendars, start_date, end_date):
             all_events[name] = []
             print(f"  ⚠️ Keine Events für {name} erhalten")
 
-    # Quota-Status ausgeben
-    print(f"\n📊 Quota-Status: {calendar_service._daily_quota_used}/{calendar_service._quota_limit} API-Calls heute")
+    # Quota-Status ausgeben (optional - nur wenn verfügbar)
+    try:
+        quota_used = getattr(calendar_service, '_daily_quota_used', '?')
+        quota_limit = getattr(calendar_service, '_quota_limit', '?')
+        print(f"\n📊 Quota-Status: {quota_used}/{quota_limit} API-Calls heute")
+    except:
+        pass
 
     return all_events
 
 def is_consultant_available(events, slot_start, slot_end):
-    """Prüfe ob Berater verfügbar ist basierend auf Events und Farbcodes"""
+    """Prüfe ob Berater verfügbar ist basierend auf Events und Farbcodes
+
+    STRIKTE REGEL: Berater ist NUR verfügbar wenn explizit "T1-bereit" Event vorhanden ist.
+    Leerer Kalender = NICHT verfügbar (Berater muss aktiv Verfügbarkeit signalisieren)
+    """
     has_t1_bereit = False
     has_blocking_event = False
 
@@ -121,18 +129,23 @@ def is_consultant_available(events, slot_start, slot_end):
                 summary = event.get('summary', '').strip().lower()
                 color_id = event.get('colorId', None)
 
-                # NEUE LOGIK: Erst Farbe prüfen, dann Titel
+                # LOGIK: Erst Farbe prüfen, dann Titel
                 # 1. Wenn Color ID in NON_BLOCKING_COLORS, dann ignorieren
                 if color_id and str(color_id) in NON_BLOCKING_COLORS:
                     print(f"  ⚪ Non-blocking Event (Farbe {color_id}): '{event.get('summary', '')}'")
                     continue
 
-                # 2. T1-bereit Events erkennen (sowohl Titel als auch ohne blockierende Farbe)
-                if 't1' in summary and ('t1-bereit' in summary or 't1 bereit' in summary):
+                # 2. T1 Events erkennen - flexibel für alle Schreibweisen
+                # "T1 Bereit", "T1-bereit", "T1 bereit", "t1 bereit", etc.
+                if 't1' in summary and 'bereit' in summary:
                     has_t1_bereit = True
                     print(f"  ✅ T1-bereit Event gefunden: '{event.get('summary', '')}' (Farbe: {color_id})")
+                elif 't2' in summary or 't3' in summary or 't2.5' in summary:
+                    # T2/T3 Events sind blockierend
+                    has_blocking_event = True
+                    print(f"  🚫 Blockierender Event: '{event.get('summary', '')}' (Farbe: {color_id})")
                 else:
-                    # 3. Alle anderen Events sind blockierend (T2, T2.5, T3, Privat, etc.)
+                    # Alle anderen Events (ohne T1/T2/T3) sind auch blockierend
                     has_blocking_event = True
                     print(f"  🚫 Blockierender Event: '{event.get('summary', '')}' (Farbe: {color_id})")
 
@@ -140,7 +153,7 @@ def is_consultant_available(events, slot_start, slot_end):
             print(f"⚠️ Fehler beim Parsen von Event: {e}")
             continue
 
-    # Verfügbar nur wenn T1-bereit Event vorhanden UND keine blockierenden Events
+    # STRIKTE REGEL: Verfügbar nur wenn T1-bereit Event vorhanden UND keine blockierenden Events
     is_available = has_t1_bereit and not has_blocking_event
     if is_available:
         print(f"  ✅ Berater verfügbar (T1-bereit: {has_t1_bereit}, Blockierende Events: {has_blocking_event})")
@@ -229,7 +242,7 @@ def main():
                 print(f"⏭️ Vergangener Slot übersprungen: {slot_key}")
                 continue
 
-            # WICHTIG: Slots werden bei jedem Durchlauf neu berechnet (keine Skip-Logik)
+            # WICHTIG: Slots werden bei jedem Durchlauf neu berechnet
             # Dies stellt sicher, dass Änderungen im Google Calendar sofort reflektiert werden
 
             available = []

@@ -1,38 +1,37 @@
-# Business Tool Hub - VPS Deployment
-## Production-Ready Deployment auf Hetzner, Strato & anderen VPS-Providern
+# Business Tool Hub - Domain Migration
+
+## Production-Deployment mit Domain: berater.zfa.gmbh
 
 ---
 
 ## 🎯 Übersicht
 
-Dieses Verzeichnis enthält alle notwendigen Scripts und Dokumentation für das Production-Deployment des Business Tool Hub auf einem **VPS (Virtual Private Server)**.
+Dieses Verzeichnis enthält alle notwendigen Scripts und Dokumentation für die Domain-Migration der Business Hub Plattform von IP-only zu **berater.zfa.gmbh** mit SSL/TLS.
 
-**Unterstützte Provider:**
-- ✅ Hetzner Cloud (empfohlen)
-- ✅ Strato VPS
-- ✅ Netcup
-- ✅ Contabo
-- ✅ Alle Ubuntu/Debian-basierten VPS
+**Aktueller Status:**
+- ✅ Testserver läuft: http://91.98.192.233
+- 🔄 Domain-Migration: In Vorbereitung
+- 🎯 Ziel-Domain: https://berater.zfa.gmbh
 
-**Zeitaufwand:** 1-2 Stunden
+**Zeitaufwand:** 1-2 Stunden (+ 24h DNS-Propagation)
 **Schwierigkeit:** Mittel
-**Kosten:** Ab 6 €/Monat
+**Kosten:** Keine (Let's Encrypt SSL kostenlos)
 
 ---
 
 ## 📦 Deployment-Dateien
 
-### 📋 Dokumentation
+### 🚀 Domain-Migration (NEU)
 ```
 deployment/
 ├── README.md                       # Diese Datei - Deployment-Übersicht
-├── SERVER_COMPARISON.md            # Hetzner vs. Strato Vergleich + Empfehlung
-├── VPS_MIGRATION_GUIDE.md          # Schritt-für-Schritt Migration von Render
-├── VPS_DEPLOYMENT_CHECKLIST.md     # Komplette Setup-Checkliste zum Abhaken
-└── legacy/                         # Archiv: Alte Home-Server-Dateien
+├── DNS_SETUP.md                    # DNS-Konfiguration für berater.zfa.gmbh
+├── domain_migration.sh             # Automatisches Migrations-Script
+├── nginx_production.conf           # Nginx mit SSL für berater.zfa.gmbh
+└── .env.production                 # Production-Umgebungsvariablen Template
 ```
 
-### 🔧 Deployment-Scripts
+### 🔧 VPS-Setup (Bereits deployed)
 ```
 deployment/
 ├── vps_setup.sh                    # VPS Basis-Setup (Nginx, Python, Firewall)
@@ -42,19 +41,88 @@ deployment/
 └── business-hub.service            # Systemd Service-Datei
 ```
 
-### ⚙️ Konfiguration
+### 📋 Legacy-Dokumentation
 ```
 deployment/
-├── nginx.conf                      # Nginx Reverse-Proxy Config
-├── business-hub.service            # Systemd Auto-Start Config
-└── ../.env.example                 # Environment-Variablen Template
+├── SERVER_COMPARISON.md            # Hetzner vs. Strato Vergleich
+├── VPS_MIGRATION_GUIDE.md          # Schritt-für-Schritt Migration
+├── VPS_DEPLOYMENT_CHECKLIST.md     # Setup-Checkliste
+└── legacy/                         # Archiv: Alte Home-Server-Dateien
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Domain-Migration zu berater.zfa.gmbh
 
-### Option 1: Vollautomatische Installation (empfohlen)
+### Phase 1: DNS-Konfiguration (JETZT)
+
+```bash
+# 1. DNS-Einträge erstellen (bei eurem Domain-Provider)
+berater.zfa.gmbh     → A-Record → 91.98.192.233
+www.berater.zfa.gmbh → A-Record → 91.98.192.233
+berater.zfa.gmbh     → CAA     → letsencrypt.org
+```
+
+📖 **Detaillierte Anleitung:** [DNS_SETUP.md](DNS_SETUP.md)
+
+### Phase 2: Vorbereitung (HEUTE)
+
+```bash
+# 1. .env.production ausfüllen
+cd deployment
+nano .env.production
+# SECRET_KEY, USERLIST, GOOGLE_CREDS, etc. eintragen
+# WICHTIG: Datei NICHT committen!
+
+# 2. DNS-Propagation prüfen
+nslookup berater.zfa.gmbh 8.8.8.8
+# Sollte 91.98.192.233 zurückgeben
+
+# 3. Script ausführbar machen
+chmod +x domain_migration.sh
+```
+
+### Phase 3: Migration (NACH 24H DNS-PROPAGATION)
+
+```bash
+# Von lokalem PC aus
+cd deployment
+bash domain_migration.sh
+```
+
+**Das Script führt automatisch aus:**
+- ✅ DNS-Check
+- ✅ Backup erstellen
+- ✅ Certbot installieren (falls nötig)
+- ✅ SSL-Zertifikat beantragen (Let's Encrypt)
+- ✅ Nginx-Config aktualisieren
+- ✅ .env-Datei hochladen
+- ✅ Services neu starten
+- ✅ HTTPS-Test durchführen
+
+**Fertig!** Die Anwendung läuft auf `https://berater.zfa.gmbh`
+
+---
+
+## 📋 Migrations-Checkliste
+
+- [ ] DNS A-Records konfiguriert
+- [ ] DNS CAA-Record konfiguriert
+- [ ] 24h auf DNS-Propagation gewartet
+- [ ] `deployment/.env.production` ausgefüllt
+- [ ] `domain_migration.sh` ausgeführt
+- [ ] HTTPS funktioniert: https://berater.zfa.gmbh
+- [ ] Alle Features getestet
+- [ ] Auto-Renewal verifiziert
+
+---
+
+## 🔧 Legacy: VPS-Setup (bereits erledigt)
+
+<details>
+<summary>Für Neu-Installation auf anderem Server</summary>
+
+### Vollautomatische Installation
 
 ```bash
 # 1. VPS bestellen (z.B. Hetzner CX22)
@@ -67,30 +135,18 @@ bash auto_install.sh
 
 # 4. .env Datei konfigurieren
 nano /opt/business-hub/.env
-# Google Credentials, User-Liste, etc. eintragen
 
 # 5. Service starten
 systemctl start business-hub
 systemctl status business-hub
-
-# 6. Nginx konfigurieren (Domain anpassen!)
-nano /etc/nginx/sites-available/business-hub
-systemctl reload nginx
-
-# 7. SSL-Zertifikat (optional)
-certbot --nginx -d deine-domain.de
 ```
 
-**Fertig!** Die Anwendung läuft auf `http://<vps-ip>/`
-
----
-
-### Option 2: Manuelle Installation
-
-Detaillierte Schritt-für-Schritt Anleitung:
+### Manuelle Installation
 
 👉 **[VPS_MIGRATION_GUIDE.md](VPS_MIGRATION_GUIDE.md)** - Vollständiger Migrations-Guide
 👉 **[VPS_DEPLOYMENT_CHECKLIST.md](VPS_DEPLOYMENT_CHECKLIST.md)** - Alle Schritte zum Abhaken
+
+</details>
 
 ---
 

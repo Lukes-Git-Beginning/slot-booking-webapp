@@ -14,7 +14,12 @@ from app.services.t2_bucket_system import (
     reset_bucket,
     get_system_stats,
     get_available_closers,
-    check_user_timeout
+    check_user_timeout,
+    update_bucket_size,
+    get_bucket_config,
+    add_closer,
+    remove_closer,
+    update_closer_info
 )
 import logging
 
@@ -56,16 +61,20 @@ def register_bucket_routes(t2_bp):
             user = session.get('user')
             data = request.get_json() or {}
             draw_type = data.get('draw_type', 'T2')
+            customer_name = data.get('customer_name', '').strip()
 
-            # Perform draw
-            result = draw_closer(user, draw_type)
+            # Perform draw with customer name
+            result = draw_closer(user, draw_type, customer_name if customer_name else None)
 
             if result['success']:
                 # Store in session for booking
                 session['t2_current_closer'] = result['closer']
                 session['t2_closer_color'] = result['color']
 
-                logger.info(f"T2 Draw: {user} drew {result['closer']}")
+                log_msg = f"T2 Draw: {user} drew {result['closer']}"
+                if customer_name:
+                    log_msg += f" for customer '{customer_name}'"
+                logger.info(log_msg)
 
             return jsonify(result)
 
@@ -159,4 +168,143 @@ def register_bucket_routes(t2_bp):
             return jsonify({
                 'success': False,
                 'message': 'Error resetting bucket'
+            }), 500
+
+    @t2_bp.route("/api/admin/update-bucket-size", methods=['POST'])
+    @require_login
+    def api_admin_update_bucket_size():
+        """Update bucket size (Admin only)"""
+        user = session.get('user')
+
+        # Check admin
+        from app.routes.t2 import is_admin_user
+        if not is_admin_user(user):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+        try:
+            data = request.get_json()
+            bucket_size = int(data.get('bucket_size'))
+
+            result = update_bucket_size(bucket_size)
+
+            if result['success']:
+                logger.info(f"Admin {user} updated bucket size to {bucket_size}")
+
+            return jsonify(result)
+
+        except Exception as e:
+            logger.error(f"Error updating bucket size: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Error updating bucket size'
+            }), 500
+
+    @t2_bp.route("/api/admin/add-closer", methods=['POST'])
+    @require_login
+    def api_admin_add_closer():
+        """Add new closer (Admin only)"""
+        user = session.get('user')
+
+        # Check admin
+        from app.routes.t2 import is_admin_user
+        if not is_admin_user(user):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+        try:
+            data = request.get_json()
+            name = data.get('name', '').strip()
+            color = data.get('color', '').strip()
+            full_name = data.get('full_name', '').strip()
+            default_probability = float(data.get('default_probability', 1.0))
+
+            if not name or not color or not full_name:
+                return jsonify({
+                    'success': False,
+                    'message': 'Name, Farbe und vollständiger Name sind erforderlich'
+                }), 400
+
+            result = add_closer(name, color, full_name, default_probability)
+
+            if result['success']:
+                logger.info(f"Admin {user} added closer {name}")
+
+            return jsonify(result)
+
+        except Exception as e:
+            logger.error(f"Error adding closer: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Error adding closer'
+            }), 500
+
+    @t2_bp.route("/api/admin/remove-closer", methods=['POST'])
+    @require_login
+    def api_admin_remove_closer():
+        """Remove closer (Admin only)"""
+        user = session.get('user')
+
+        # Check admin
+        from app.routes.t2 import is_admin_user
+        if not is_admin_user(user):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+        try:
+            data = request.get_json()
+            name = data.get('name', '').strip()
+
+            if not name:
+                return jsonify({
+                    'success': False,
+                    'message': 'Closer-Name erforderlich'
+                }), 400
+
+            result = remove_closer(name)
+
+            if result['success']:
+                logger.info(f"Admin {user} removed closer {name}")
+
+            return jsonify(result)
+
+        except Exception as e:
+            logger.error(f"Error removing closer: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Error removing closer'
+            }), 500
+
+    @t2_bp.route("/api/admin/update-closer-info", methods=['POST'])
+    @require_login
+    def api_admin_update_closer_info():
+        """Update closer info (Admin only)"""
+        user = session.get('user')
+
+        # Check admin
+        from app.routes.t2 import is_admin_user
+        if not is_admin_user(user):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+        try:
+            data = request.get_json()
+            name = data.get('name', '').strip()
+            new_color = data.get('color', '').strip() or None
+            new_full_name = data.get('full_name', '').strip() or None
+
+            if not name:
+                return jsonify({
+                    'success': False,
+                    'message': 'Closer-Name erforderlich'
+                }), 400
+
+            result = update_closer_info(name, new_color, new_full_name)
+
+            if result['success']:
+                logger.info(f"Admin {user} updated closer {name}")
+
+            return jsonify(result)
+
+        except Exception as e:
+            logger.error(f"Error updating closer: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Error updating closer'
             }), 500
