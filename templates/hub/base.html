@@ -32,10 +32,11 @@
             theme: {
                 extend: {
                     colors: {
-                        'primary': '#5ab1ff',
-                        'primary-dark': '#2196F3',
-                        'secondary': '#10b981',
-                        'accent': '#f97316',
+                        'primary': '#d4af6a',
+                        'primary-dark': '#c2ae7f',
+                        'secondary': '#207487',
+                        'accent': '#294c5d',
+                        'zfa-gray': '#77726d',
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -55,8 +56,8 @@
                             '50%': { transform: 'translateY(-20px)' },
                         },
                         glow: {
-                            '0%, 100%': { boxShadow: '0 0 20px rgba(90,177,255,0.3)' },
-                            '50%': { boxShadow: '0 0 40px rgba(90,177,255,0.6)' },
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(212,175,106,0.3)' },
+                            '50%': { boxShadow: '0 0 40px rgba(212,175,106,0.6)' },
                         },
                     },
                 },
@@ -94,7 +95,7 @@
 
         /* Animated Gradient Background */
         .gradient-bg {
-            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+            background: linear-gradient(-45deg, #294c5d, #207487, #d4af6a, #207487);
             background-size: 400% 400%;
             animation: gradient 15s ease infinite;
         }
@@ -120,17 +121,17 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(90, 177, 255, 0.3);
+            background: rgba(212, 175, 106, 0.3);
             border-radius: 10px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(90, 177, 255, 0.6);
+            background: rgba(212, 175, 106, 0.6);
         }
 
         /* Glow Effects */
         .glow-primary {
-            box-shadow: 0 0 20px rgba(90, 177, 255, 0.4), 0 0 40px rgba(90, 177, 255, 0.2);
+            box-shadow: 0 0 20px rgba(212, 175, 106, 0.4), 0 0 40px rgba(212, 175, 106, 0.2);
         }
 
         .glow-success {
@@ -140,7 +141,7 @@
 
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
+<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 text-white min-h-screen">
 
     <!-- Particle Background -->
     <div id="particles-js"></div>
@@ -158,12 +159,12 @@
                     <!-- Brand -->
                     <a href="{{ url_for('hub.dashboard') }}"
                        class="flex items-center gap-3 text-white hover:text-primary transition-colors group">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <i data-lucide="layers" class="w-6 h-6"></i>
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="star" class="w-6 h-6"></i>
                         </div>
                         <div>
-                            <h1 class="text-xl font-bold">Business Tool Hub</h1>
-                            <p class="text-xs text-gray-400">Zentrale Plattform</p>
+                            <h1 class="text-xl font-bold">Beraterwelt</h1>
+                            <p class="text-xs text-gray-400">ZFA Tools</p>
                         </div>
                     </a>
 
@@ -205,7 +206,7 @@
                         <div class="relative" @click.away="userMenuOpen = false">
                             <button @click="userMenuOpen = !userMenuOpen"
                                     class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center font-bold">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
                                     {{ user[0]|upper }}
                                 </div>
                                 <div class="text-left hidden md:block">
@@ -260,8 +261,8 @@
             <div class="container mx-auto px-4 py-8">
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h5 class="font-bold text-lg mb-2">Business Tool Hub</h5>
-                        <p class="text-sm text-gray-400">Zentrale Plattform für alle Geschäfts-Tools</p>
+                        <h5 class="font-bold text-lg mb-2">Beraterwelt</h5>
+                        <p class="text-sm text-gray-400">Zentrum für Finanzielle Aufklärung</p>
                     </div>
                     <div class="flex flex-col md:flex-row gap-4 items-center">
                         <a href="/health" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
@@ -300,7 +301,7 @@
         particlesJS('particles-js', {
             particles: {
                 number: { value: 80, density: { enable: true, value_area: 800 } },
-                color: { value: '#5ab1ff' },
+                color: { value: '#d4af6a' },
                 shape: { type: 'circle' },
                 opacity: {
                     value: 0.3,
@@ -315,7 +316,7 @@
                 line_linked: {
                     enable: true,
                     distance: 150,
-                    color: '#5ab1ff',
+                    color: '#d4af6a',
                     opacity: 0.2,
                     width: 1
                 },

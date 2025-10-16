@@ -266,7 +266,7 @@ def register_template_context(app: Flask) -> None:
         """Globale Template-Variablen"""
         return {
             'current_year': datetime.now().year,
-            'app_name': 'Business Tool Hub',
+            'app_name': 'Beraterwelt',
             'app_version': '1.0.0',
             'current_user': session.get('user'),
             'is_admin': session.get('user') in get_admin_users(),
