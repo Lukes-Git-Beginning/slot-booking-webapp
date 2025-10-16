@@ -1,71 +1,80 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seite nicht gefunden - Slot Booking</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .error-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
-        }
-        .error-code {
-            font-size: 6rem;
-            font-weight: bold;
-            color: #667eea;
-            margin: 0;
-        }
-        .error-title {
-            font-size: 1.5rem;
-            color: #333;
-            margin: 1rem 0;
-        }
-        .error-message {
-            color: #666;
-            margin-bottom: 2rem;
-            line-height: 1.6;
-        }
-        .btn {
-            background: #667eea;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 1rem;
-            transition: background 0.3s;
-            margin: 0 10px;
-        }
-        .btn:hover {
-            background: #5a6fd8;
-        }
-    </style>
-</head>
-<body>
-    <div class="error-container">
-        <h1 class="error-code">404</h1>
-        <h2 class="error-title">Seite nicht gefunden</h2>
-        <p class="error-message">
-            Die angeforderte Seite konnte nicht gefunden werden.
-            Möglicherweise wurde sie verschoben oder existiert nicht mehr.
+{% extends "hub/base.html" %}
+
+{% block title %}404 - Seite nicht gefunden{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center">
+    <div class="glass rounded-3xl p-12 max-w-2xl text-center" data-aos="zoom-in">
+
+        <!-- Error Code with Glow Effect -->
+        <div class="relative mb-8">
+            <h1 class="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-primary animate-pulse">
+                404
+            </h1>
+            <div class="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-600/30 to-primary/30 -z-10"></div>
+        </div>
+
+        <!-- Icon -->
+        <div class="mb-6 flex justify-center">
+            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500/20 to-primary/20 flex items-center justify-center glow-primary">
+                <i data-lucide="search-x" class="w-12 h-12 text-primary"></i>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h2 class="text-3xl font-bold mb-4">
+            Seite nicht gefunden
+        </h2>
+
+        <!-- Message -->
+        <p class="text-gray-400 mb-8 text-lg leading-relaxed max-w-lg mx-auto">
+            Die von Ihnen gesuchte Seite existiert nicht oder wurde verschoben.
+            Überprüfen Sie die URL oder kehren Sie zur Startseite zurück.
         </p>
-        <a href="{{ url_for('hub.dashboard') }}" class="btn">Zurück zur Startseite</a>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{{ url_for('hub.dashboard') }}"
+               class="btn btn-primary btn-lg gap-2 hover:scale-105 transition-transform">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                Zur Startseite
+            </a>
+            <button onclick="history.back()"
+                    class="btn btn-outline btn-lg gap-2 hover:bg-white/10">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                Zurück
+            </button>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="mt-12 pt-8 border-t border-white/10">
+            <p class="text-sm text-gray-500 mb-4">Schnellzugriff:</p>
+            <div class="flex flex-wrap gap-3 justify-center">
+                <a href="{{ url_for('slots.dashboard') }}"
+                   class="btn btn-sm btn-ghost gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    Slot-Booking
+                </a>
+                <a href="{{ url_for('t2.dashboard') }}"
+                   class="btn btn-sm btn-ghost gap-2">
+                    <i data-lucide="briefcase" class="w-4 h-4"></i>
+                    T2-Closer
+                </a>
+                <a href="{{ url_for('analytics.dashboard') }}"
+                   class="btn btn-sm btn-ghost gap-2">
+                    <i data-lucide="bar-chart" class="w-4 h-4"></i>
+                    Analytics
+                </a>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+    // Reinitialize Lucide icons after content load
+    lucide.createIcons();
+</script>
+{% endblock %}
