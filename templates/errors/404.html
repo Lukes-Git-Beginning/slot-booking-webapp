@@ -50,7 +50,7 @@
         <div class="mt-12 pt-8 border-t border-white/10">
             <p class="text-sm text-gray-500 mb-4">Schnellzugriff:</p>
             <div class="flex flex-wrap gap-3 justify-center">
-                <a href="{{ url_for('slots.dashboard') }}"
+                <a href="{{ url_for('main_bp.dashboard') }}"
                    class="btn btn-sm btn-ghost gap-2">
                     <i data-lucide="calendar" class="w-4 h-4"></i>
                     Slot-Booking
@@ -60,10 +60,10 @@
                     <i data-lucide="briefcase" class="w-4 h-4"></i>
                     T2-Closer
                 </a>
-                <a href="{{ url_for('analytics.dashboard') }}"
+                <a href="{{ url_for('scoreboard.gamification_dashboard') }}"
                    class="btn btn-sm btn-ghost gap-2">
-                    <i data-lucide="bar-chart" class="w-4 h-4"></i>
-                    Analytics
+                    <i data-lucide="trophy" class="w-4 h-4"></i>
+                    Gamification
                 </a>
             </div>
         </div>
