@@ -760,7 +760,22 @@ with app.app_context():
 
 ## 📝 Changelog
 
-### v3.2.1 - UI/UX Verbesserungen & Glassmorphism-Design (Aktuell)
+### v3.3.0 - ZFA Rebranding & Consultant Analytics (Aktuell - 2025-10-16)
+- ✅ **ZFA Color Scheme**: Vollständige Migration zu ZFA-Branding (Gold #d4af6a, Blau #207487, Dunkelblau #294c5d)
+- ✅ **Hub/Base Template System**: Alle Templates erweitern hub/base.html mit automatischer ZFA-Farb-Integration
+- ✅ **Consultant Analytics**: Komplett überarbeitete "Meine Buchungen" Seite mit persönlichem Dashboard
+  - Show-Rate und No-Show-Rate Tracking für Telefonisten
+  - Wöchentliche Performance-Übersicht (aktuelle vs. letzte Woche)
+  - Kunden-Qualitäts-Verteilung (Top/Normal/Closer Potential)
+  - Vorbereitet für vollständiges Telefonist-Tracking-System
+- ✅ **Kalender-Ansicht**: Navigation und Highlights auf ZFA-Farben aktualisiert
+- ✅ **Scoreboard**: Avatar-Customization-Presets auf ZFA-Schema angepasst
+- ✅ **CDN zu Lokal**: Alle Templates nutzen lokale Assets (Tailwind, DaisyUI, Lucide) statt CDN
+- ✅ **Slots-Limitierung**: Konfiguriert auf max. 3 Slots pro Berater (SLOTS_PER_BERATER=3)
+- ✅ **T2-System**: Vollständige ZFA-Farb-Integration und Kalender-Entfernung aus Navigation
+- ✅ **Production Ready**: Alle Änderungen auf Hetzner-Server deployed und getestet
+
+### v3.2.1 - UI/UX Verbesserungen & Glassmorphism-Design
 - ✅ **Glassmorphism-Design**: Modernes UI mit Backdrop-Filter, CSS-Variablen und Animationen
 - ✅ **Bootstrap 5 Integration**: Lokal gehostetes Bootstrap 5.3.2 für maximale Performance
 - ✅ **Font Awesome 6 Integration**: Lokal gehostete Icon-Library für zuverlässige Icons

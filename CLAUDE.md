@@ -209,43 +209,57 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 
 ## Frontend-Technologie
 
-### UI-Framework & Design
-- **Bootstrap 5.3.2**: Lokal gehostet in `static/bootstrap.min.css` (228KB)
-- **Font Awesome 6.4.2**: Lokal gehostet in `static/fontawesome.min.css` (100KB)
+### UI-Framework & Design - ZFA Branding (v3.3.0)
+- **Tailwind CSS + DaisyUI**: Lokal gehostet in `static/` (alle neuen Templates)
+- **Lucide Icons**: Lokal gehostet für moderne Icon-Library
+- **Bootstrap 5.3.2**: Lokal gehostet für Legacy Slot-Booking (228KB)
+- **Font Awesome 6.4.2**: Lokal gehostet für Legacy Templates (100KB)
 - **Glassmorphism-Design**: CSS Custom Properties mit Backdrop-Filter
-- **Legacy Layout**: Bootstrap-Grid-System bleibt erhalten
-- **admin_style.css**: Zentrale CSS-Datei mit ~2200 Zeilen
+- **ZFA Color Scheme**: Konsistentes Branding über alle Tools
 
-### CSS-Architektur
-```css
-/* CSS Custom Properties für Theming */
-:root {
-  --bg: #0b0f14;
-  --text-color: #e5eef7;
-  --accent: #5ab1ff;
-  --box-bg: rgba(18, 24, 32, 0.65);
-  --box-border: rgba(255,255,255,.12);
-  --shadow: 0 10px 30px rgba(0,0,0,.35);
-}
-
-/* Glassmorphism-Effekt */
-.glass {
-  background: var(--box-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--box-border);
-  box-shadow: var(--shadow);
+### ZFA Color Scheme (Zentrum für Finanzielle Aufklärung)
+```javascript
+// Tailwind Config (in templates/hub/base.html und T2)
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'primary': '#d4af6a',        // ZFA Gold
+        'primary-dark': '#c2ae7f',   // ZFA Gold Dark
+        'secondary': '#207487',      // ZFA Blau
+        'accent': '#294c5d',         // ZFA Dunkelblau
+      },
+    },
+  },
 }
 ```
 
-### Template-Struktur
+### Template-Architektur
 ```
-templates/slots/
-├── base.html           # Bootstrap 5 + FontAwesome Basis
-├── dashboard.html      # Legacy Layout mit Glassmorphism
-└── ...
+templates/
+├── hub/                    # Central Hub Templates (ZFA)
+│   ├── base.html          # 🎨 Master Template mit ZFA Tailwind Config
+│   └── dashboard.html     # Hub Dashboard
+├── t2/                     # T2-Closer Templates (ZFA)
+│   ├── base.html          # T2 Base mit ZFA Farben
+│   └── ...
+├── slots/                  # Legacy Slot-Booking (Bootstrap 5)
+│   ├── base.html          # Bootstrap 5 + FontAwesome
+│   └── dashboard.html     # Legacy Layout mit Glassmorphism
+├── login.html             # 🆕 ZFA Branding (Gold/Blau)
+├── calendar_view.html     # 🆕 ZFA Navigation
+├── my_calendar.html       # 🆕 Consultant Analytics mit ZFA
+├── scoreboard.html        # Erweitert hub/base.html (automatisch ZFA)
+├── gamification.html      # Erweitert hub/base.html (automatisch ZFA)
+├── daily_quests.html      # Erweitert hub/base.html (automatisch ZFA)
+├── prestige_dashboard.html # Erweitert hub/base.html (automatisch ZFA)
+└── cosmetics_shop.html    # Erweitert hub/base.html (automatisch ZFA)
 ```
 
-**Wichtig:** Bei Slot-Booking Templates IMMER die Legacy-Struktur (Bootstrap-Grid, Berater-Karten, Gamification-Widgets) beibehalten und NUR das Glassmorphism-Design anwenden!
+**Wichtig:**
+- Alle Templates die `hub/base.html` erweitern, erben automatisch ZFA-Farben
+- Slot-Booking Templates nutzen Bootstrap 5 und behalten Legacy-Struktur
+- T2-Templates haben eigene base.html mit ZFA-Tailwind-Config
 
 ## Projektstatus
 
