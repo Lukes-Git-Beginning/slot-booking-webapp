@@ -1,8 +1,4 @@
 {
-  "2025-10-16 14:00": [
-    "Ann-Kathrin",
-    "Sara"
-  ],
   "2025-10-16 16:00": [
     "Ann-Kathrin"
   ],
@@ -18,7 +14,6 @@
     "Dominik"
   ],
   "2025-10-17 11:00": [
-    "Tim",
     "Sara"
   ],
   "2025-10-17 14:00": [
@@ -37,8 +32,7 @@
   ],
   "2025-10-20 16:00": [
     "Ann-Kathrin",
-    "Dominik",
-    "Sonja"
+    "Dominik"
   ],
   "2025-10-20 18:00": [
     "Sara",
@@ -48,7 +42,8 @@
     "Simon",
     "Ann-Kathrin",
     "Sara",
-    "Dominik"
+    "Dominik",
+    "Sonja"
   ],
   "2025-10-21 11:00": [
     "Daniel",
