@@ -55,6 +55,7 @@
 
     <!-- Badge Grid -->
     <div class="mb-8" data-aos="fade-up" data-aos-delay="600">
+    {% if all_badges and all_badges|length > 0 %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for badge in all_badges %}
         <div class="glass rounded-2xl p-6 text-center hover:scale-105 transition-transform
@@ -62,7 +63,8 @@
             x-show="filter === 'all' ||
                     (filter === 'earned' && {{ 'true' if badge.earned else 'false' }}) ||
                     (filter === 'locked' && {{ 'false' if badge.earned else 'true' }}) ||
-                    filter === '{{ badge.rarity }}'">
+                    filter === '{{ badge.rarity }}'"
+            x-transition>
 
             <div class="text-6xl mb-4 {{ 'grayscale' if not badge.earned else '' }}">{{ badge.icon }}</div>
 
@@ -110,6 +112,18 @@
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <!-- No Badges Message -->
+    <div class="glass rounded-2xl p-12 text-center">
+        <div class="text-6xl mb-4">🏆</div>
+        <h3 class="text-2xl font-bold text-white mb-2">Noch keine Badges verfügbar</h3>
+        <p class="text-white/60 mb-6">Beginne mit dem Buchen von Terminen, um Badges zu verdienen!</p>
+        <a href="{{ url_for('main_bp.dashboard') }}" class="btn btn-primary">
+            <i data-lucide="calendar" class="w-5 h-5 mr-2"></i>
+            Zur Terminbuchung
+        </a>
+    </div>
+    {% endif %}
     </div>
 </div>
 
