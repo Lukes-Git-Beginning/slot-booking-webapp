@@ -32,11 +32,11 @@
       theme: {
         extend: {
           colors: {
-            'primary': '#5ab1ff',
-            'primary-dark': '#2196F3',
-            'secondary': '#10b981',
-            'accent': '#f97316',
-            't2-purple': '#a855f7',
+            'primary': '#d4af6a',
+            'primary-dark': '#c2ae7f',
+            'secondary': '#207487',
+            'accent': '#294c5d',
+            't2-purple': '#d4af6a',
           },
           animation: {
             'gradient': 'gradient 15s ease infinite',
@@ -100,12 +100,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(168, 85, 247, 0.3);
+      background: rgba(212, 175, 106, 0.3);
       border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(168, 85, 247, 0.6);
+      background: rgba(212, 175, 106, 0.6);
     }
 
     /* T2-Specific Styles */
@@ -122,7 +122,7 @@
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(212, 175, 106, 0.1) 0%, transparent 70%);
       opacity: 0;
       transition: opacity 0.3s;
     }
@@ -133,7 +133,7 @@
 
     .closer-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 20px 60px rgba(168, 85, 247, 0.3);
+      box-shadow: 0 20px 60px rgba(212, 175, 106, 0.3);
     }
 
     /* Ticket Badge Animation */
@@ -153,7 +153,7 @@
 
   {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
+<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 text-white min-h-screen">
 
   <!-- Particle Background -->
   <div id="particles-js"></div>
@@ -215,10 +215,6 @@
               <a href="{{ url_for('t2.stats_page') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
                 <i data-lucide="bar-chart" class="w-4 h-4"></i>
                 <span>Statistiken</span>
-              </a>
-              <a href="{{ url_for('t2.calendar_view') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                <i data-lucide="calendar" class="w-4 h-4"></i>
-                <span>Kalender</span>
               </a>
               {% if is_admin %}
               <div class="divider my-1"></div>
@@ -287,11 +283,11 @@
       offset: 50
     });
 
-    // Initialize Particles.js (T2 theme with purple)
+    // Initialize Particles.js (T2 theme with ZFA gold)
     particlesJS('particles-js', {
       particles: {
         number: { value: 80, density: { enable: true, value_area: 800 } },
-        color: { value: '#a855f7' },
+        color: { value: '#d4af6a' },
         shape: { type: 'circle' },
         opacity: {
           value: 0.3,
@@ -306,7 +302,7 @@
         line_linked: {
           enable: true,
           distance: 150,
-          color: '#a855f7',
+          color: '#d4af6a',
           opacity: 0.2,
           width: 1
         },
