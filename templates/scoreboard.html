@@ -6,7 +6,7 @@
 <style>
 /* Avatar Customizations */
 .player-avatar.customized {
-  background: var(--avatar-bg, linear-gradient(135deg, #3b82f6, #1d4ed8));
+  background: var(--avatar-bg, linear-gradient(135deg, #d4af6a, #c2ae7f));
   border: var(--avatar-border, 2px solid #e5e7eb);
   box-shadow: var(--avatar-glow, none);
 }
@@ -369,17 +369,17 @@ async function loadUserAvatars() {
 function applyAvatarCustomization(avatarElement, customization) {
   const components = {
     backgrounds: {
-      "gradient_blue": "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+      "gradient_blue": "linear-gradient(135deg, #207487, #294c5d)",
       "gradient_green": "linear-gradient(135deg, #10b981, #059669)",
       "gradient_purple": "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-      "gradient_gold": "linear-gradient(135deg, #f59e0b, #d97706)",
-      "gradient_rainbow": "linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6, #10b981)",
+      "gradient_gold": "linear-gradient(135deg, #d4af6a, #c2ae7f)",
+      "gradient_rainbow": "linear-gradient(135deg, #d4af6a, #ec4899, #8b5cf6, #207487, #10b981)",
       "starfield": "radial-gradient(circle, #1e293b 0%, #0f172a 100%)",
-      "cosmic": "linear-gradient(135deg, #0c0a09, #1c1917, #ec4899)"
+      "cosmic": "linear-gradient(135deg, #0c0a09, #1c1917, #d4af6a)"
     },
     borders: {
       "simple": { style: "2px solid #e5e7eb", glow: "none" },
-      "glow": { style: "3px solid #3b82f6", glow: "0 0 10px rgba(59,130,246,0.5)" },
+      "glow": { style: "3px solid #d4af6a", glow: "0 0 10px rgba(212,175,106,0.5)" },
       "rainbow": { style: "3px solid transparent", glow: "none" },
       "fire": { style: "3px solid #ef4444", glow: "0 0 15px rgba(239,68,68,0.8)" },
       "diamond": { style: "4px solid #e5e7eb", glow: "0 0 20px rgba(255,255,255,0.8)" },
