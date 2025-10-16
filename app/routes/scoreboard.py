@@ -174,7 +174,7 @@ def badges():
                 'id': badge_id,
                 'name': badge_def.get('name', badge_id),
                 'description': badge_def.get('description', ''),
-                'icon': badge_def.get('icon', '🏆'),
+                'icon': badge_def.get('emoji', badge_def.get('icon', '🏆')),  # Try 'emoji' first, then 'icon'
                 'rarity': badge_def.get('rarity', 'häufig'),
                 'earned': earned,
                 'earned_date': earned_badge.get('earned_date') if earned_badge else None,
