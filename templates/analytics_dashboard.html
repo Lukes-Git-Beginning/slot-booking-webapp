@@ -5,21 +5,25 @@
 {% block content %}
 
 <!-- Header -->
-<div class="glass rounded-3xl p-8 md:p-12 mb-8" data-aos="fade-down">
-    <div class="flex items-center gap-4 mb-4">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center animate-float">
-            <i data-lucide="trending-up" class="w-8 h-8 text-white"></i>
-        </div>
-        <div>
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Analytics Dashboard</h1>
-            <p class="text-white/70 mt-1">Detaillierte Einblicke in deine Performance und Verhaltensmuster</p>
-        </div>
-    </div>
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 relative overflow-hidden" data-aos="fade-down">
+    <div class="gradient-bg absolute inset-0 opacity-20"></div>
 
-    <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="inline-flex items-center gap-2 text-primary hover:text-blue-400 transition-colors">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        <span>Zurück zum Dashboard</span>
-    </a>
+    <div class="relative z-10">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center animate-float">
+                <i data-lucide="trending-up" class="w-8 h-8 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white">Analytics Dashboard</h1>
+                <p class="text-white/70 mt-1">Detaillierte Einblicke in deine Performance und Verhaltensmuster</p>
+            </div>
+        </div>
+
+        <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="inline-flex items-center gap-2 text-primary hover:text-blue-400 transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Zurück zum Dashboard</span>
+        </a>
+    </div>
 </div>
 
 <!-- Tabs -->
