@@ -42,7 +42,7 @@ class SlotConfig:
     """Konfiguration für Slot-Buchungen"""
     
     # Slots pro Berater und Zeitslot
-    SLOTS_PER_BERATER: int = int(os.getenv("SLOTS_PER_BERATER", "4"))
+    SLOTS_PER_BERATER: int = int(os.getenv("SLOTS_PER_BERATER", "3"))
     
     # Zeitzone
     TIMEZONE: str = os.getenv("TIMEZONE", "Europe/Berlin")
