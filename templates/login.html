@@ -24,9 +24,9 @@
       theme: {
         extend: {
           colors: {
-            'primary': '#5ab1ff',
-            'secondary': '#10b981',
-            'accent': '#f97316',
+            'primary': '#d4af6a',
+            'secondary': '#207487',
+            'accent': '#294c5d',
           },
         },
       },
@@ -49,7 +49,7 @@
 
     /* Animated Background Gradient */
     .gradient-bg {
-      background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+      background: linear-gradient(-45deg, #294c5d, #207487, #d4af6a, #207487);
       background-size: 400% 400%;
       animation: gradient 15s ease infinite;
     }
@@ -91,18 +91,18 @@
 
     /* Input Focus Glow */
     .input-glow:focus {
-      box-shadow: 0 0 30px rgba(90, 177, 255, 0.5);
+      box-shadow: 0 0 30px rgba(212, 175, 106, 0.5);
     }
 
     /* Button Hover Effect */
     .btn-primary-custom {
-      background: linear-gradient(135deg, #5ab1ff 0%, #2196F3 100%);
+      background: linear-gradient(135deg, #d4af6a 0%, #c2ae7f 100%);
       transition: all 0.3s ease;
     }
 
     .btn-primary-custom:hover {
       transform: translateY(-2px);
-      box-shadow: 0 20px 40px rgba(90, 177, 255, 0.4);
+      box-shadow: 0 20px 40px rgba(212, 175, 106, 0.4);
     }
   </style>
 </head>
@@ -117,10 +117,10 @@
     <!-- Logo & Title -->
     <div class="text-center mb-8 float-animation">
       <div class="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 mb-6">
-        <i data-lucide="shield-check" class="w-12 h-12 text-primary"></i>
+        <i data-lucide="star" class="w-12 h-12 text-primary"></i>
       </div>
-      <h1 class="text-4xl font-bold text-white mb-2">Business Tool Hub</h1>
-      <p class="text-white/70">Sichere Anmeldung erforderlich</p>
+      <h1 class="text-4xl font-bold text-white mb-2">Beraterwelt</h1>
+      <p class="text-white/70">ZFA - Sichere Anmeldung</p>
     </div>
 
     <!-- Login Card -->
@@ -241,7 +241,7 @@
 
     <!-- Version Info -->
     <div class="text-center mt-6 text-white/50 text-sm">
-      <p>Business Tool Hub v3.2</p>
+      <p>Beraterwelt v1.0 • Zentrum für Finanzielle Aufklärung</p>
     </div>
   </div>
 
@@ -254,7 +254,7 @@
     particlesJS('particles-js', {
       particles: {
         number: { value: 100, density: { enable: true, value_area: 800 } },
-        color: { value: '#ffffff' },
+        color: { value: '#d4af6a' },
         shape: { type: 'circle' },
         opacity: {
           value: 0.3,
@@ -269,7 +269,7 @@
         line_linked: {
           enable: true,
           distance: 150,
-          color: '#ffffff',
+          color: '#d4af6a',
           opacity: 0.2,
           width: 1
         },
