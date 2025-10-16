@@ -239,8 +239,7 @@
   ],
   "2025-10-30 20:00": [
     "Simon",
-    "Ann-Kathrin",
-    "Sara"
+    "Ann-Kathrin"
   ],
   "2025-10-31 09:00": [
     "Ann-Kathrin",
@@ -915,5 +914,31 @@
     "Ann-Kathrin",
     "Sara",
     "Dominik"
+  ],
+  "2025-12-10 11:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Tim",
+    "Sara",
+    "Dominik"
+  ],
+  "2025-12-10 14:00": [
+    "Ann-Kathrin",
+    "Dominik"
+  ],
+  "2025-12-10 16:00": [
+    "Daniel",
+    "Ann-Kathrin",
+    "Dominik",
+    "Sonja"
+  ],
+  "2025-12-10 18:00": [
+    "Ann-Kathrin",
+    "Sara"
+  ],
+  "2025-12-10 20:00": [
+    "Simon",
+    "Ann-Kathrin",
+    "Sara"
   ]
 }
