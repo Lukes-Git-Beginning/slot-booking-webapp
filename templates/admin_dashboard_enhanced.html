@@ -33,10 +33,10 @@
       theme: {
         extend: {
           colors: {
-            primary: '#5ab1ff',
-            'primary-dark': '#2196F3',
-            secondary: '#10b981',
-            accent: '#f97316',
+            primary: '#d4af6a',
+            'primary-dark': '#c2ae7f',
+            secondary: '#207487',
+            accent: '#294c5d',
           },
           animation: {
             'gradient': 'gradient 15s ease infinite',
@@ -53,8 +53,8 @@
               '50%': { transform: 'translateY(-20px)' },
             },
             glow: {
-              '0%, 100%': { boxShadow: '0 0 20px rgba(90,177,255,0.3)' },
-              '50%': { boxShadow: '0 0 40px rgba(90,177,255,0.6)' },
+              '0%, 100%': { boxShadow: '0 0 20px rgba(212,175,106,0.3)' },
+              '50%': { boxShadow: '0 0 40px rgba(212,175,106,0.6)' },
             },
           },
         }
@@ -92,12 +92,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(90, 177, 255, 0.3);
+      background: rgba(212, 175, 106, 0.3);
       border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(90, 177, 255, 0.6);
+      background: rgba(212, 175, 106, 0.6);
     }
 
     /* ApexCharts dark mode */
@@ -107,9 +107,9 @@
       --apexcharts-background: transparent;
     }
 
-    /* Custom gradient backgrounds */
+    /* Custom gradient backgrounds - ZFA Colors */
     .gradient-purple {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15));
+      background: linear-gradient(135deg, rgba(41, 76, 93, 0.15), rgba(32, 116, 135, 0.15));
     }
 
     .gradient-green {
@@ -117,7 +117,7 @@
     }
 
     .gradient-blue {
-      background: linear-gradient(135deg, rgba(90, 177, 255, 0.15), rgba(16, 185, 129, 0.15), rgba(139, 92, 246, 0.1));
+      background: linear-gradient(135deg, rgba(212, 175, 106, 0.15), rgba(32, 116, 135, 0.15), rgba(41, 76, 93, 0.1));
     }
 
     /* Badge animations */
@@ -147,7 +147,7 @@
   </style>
 </head>
 
-<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 min-h-screen text-white">
   <!-- Particle Background -->
   <div id="particles-js"></div>
 
@@ -177,16 +177,67 @@
         </span>
       </h1>
       <p class="text-gray-400 text-lg mb-4">
-        Erweiterte Analytics <span class="text-primary font-semibold">seit dem 01.09.2024</span>
+        Erweiterte Analytics mit <span class="text-primary font-semibold">Live-Tracking-Daten</span>
       </p>
+      <div class="flex items-center justify-center gap-2 text-sm text-gray-400 mt-2">
+        <i data-lucide="clock" class="w-4 h-4"></i>
+        <span>App läuft seit {{ app_runtime_days }} Tagen</span>
+      </div>
     </div>
 
-    <!-- Aktuelle Tracking Daten Übersicht -->
+    <!-- Letzte 5 Werktage Tracking -->
+    {% if dashboard.last_7_days %}
+    <div class="glass rounded-2xl p-6 md:p-8 mb-8 gradient-blue border border-primary/30" data-aos="fade-up">
+      <h2 class="text-2xl md:text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+        <i data-lucide="calendar-days" class="w-8 h-8"></i>
+        Aktuelle Tracking Daten (Letzte 5 Werktage)
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="100">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            5
+          </div>
+          <div class="text-sm text-gray-400">Tage Daten</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="200">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            {{ dashboard.last_7_days.total_bookings|default(0) }}
+          </div>
+          <div class="text-sm text-gray-400">Termine Gelegt</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="300">
+          <div class="text-3xl md:text-4xl font-bold text-secondary mb-2">
+            {{ (dashboard.last_7_days.total_bookings|default(0) * (dashboard.last_7_days.appearance_rate|default(0)) / 100)|int }}
+          </div>
+          <div class="text-sm text-gray-400">Erschienen</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="400">
+          <div class="text-3xl md:text-4xl font-bold text-red-500 mb-2">
+            {{ (dashboard.last_7_days.total_bookings|default(0) * (dashboard.last_7_days.no_show_rate|default(0)) / 100)|int }}
+          </div>
+          <div class="text-sm text-gray-400">Nicht Erschienen</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="500">
+          <div class="text-3xl md:text-4xl font-bold text-accent mb-2">
+            {{ "%.1f"|format(dashboard.last_7_days.appearance_rate|default(0)) }}%
+          </div>
+          <div class="text-sm text-gray-400">Auftauchquote</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Tracking seit 01.09.2024 -->
     {% if dashboard.current_totals %}
-    <div class="glass rounded-2xl p-6 md:p-8 mb-8 gradient-purple border border-purple-500/30" data-aos="fade-up">
-      <h2 class="text-2xl md:text-3xl font-bold text-purple-400 mb-6 flex items-center gap-3">
+    <div class="glass rounded-2xl p-6 md:p-8 mb-8 gradient-purple border border-secondary/30" data-aos="fade-up" data-aos-delay="100">
+      <h2 class="text-2xl md:text-3xl font-bold text-secondary mb-6 flex items-center gap-3">
         <i data-lucide="database" class="w-8 h-8"></i>
-        Aktuelle Tracking Daten
+        Tracking-Daten seit 01.09.2024
       </h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
@@ -194,7 +245,7 @@
           <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
             {{ dashboard.current_totals.days_tracked }}
           </div>
-          <div class="text-sm text-gray-400">Tage seit 01.09.2024</div>
+          <div class="text-sm text-gray-400">Tage erfasst</div>
         </div>
 
         <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="200">
@@ -223,6 +274,28 @@
             {{ "%.1f"|format(dashboard.current_totals.appearance_rate) }}%
           </div>
           <div class="text-sm text-gray-400">Auftauchquote</div>
+        </div>
+      </div>
+
+      <!-- Zusätzliche Metriken -->
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-center p-4 bg-white/5 rounded-xl">
+          <div class="text-sm text-gray-400 mb-1">Erfolgsquote (seit 01.09)</div>
+          <div class="text-2xl font-bold text-secondary">
+            {{ "%.1f"|format((dashboard.current_totals.total_appeared / dashboard.current_totals.total_slots * 100) if dashboard.current_totals.total_slots > 0 else 0) }}%
+          </div>
+        </div>
+        <div class="text-center p-4 bg-white/5 rounded-xl">
+          <div class="text-sm text-gray-400 mb-1">Ø Termine pro Tag</div>
+          <div class="text-2xl font-bold text-primary">
+            {{ "%.1f"|format(dashboard.current_totals.total_slots / dashboard.current_totals.days_tracked if dashboard.current_totals.days_tracked > 0 else 0) }}
+          </div>
+        </div>
+        <div class="text-center p-4 bg-white/5 rounded-xl">
+          <div class="text-sm text-gray-400 mb-1">Abgesagt</div>
+          <div class="text-2xl font-bold text-warning">
+            {{ dashboard.current_totals.total_cancelled|default(0) }}
+          </div>
         </div>
       </div>
     </div>
@@ -324,7 +397,7 @@
     particlesJS('particles-js', {
       particles: {
         number: { value: 80, density: { enable: true, value_area: 800 } },
-        color: { value: '#5ab1ff' },
+        color: { value: '#d4af6a' },
         shape: { type: 'circle' },
         opacity: {
           value: 0.3,
@@ -339,7 +412,7 @@
         line_linked: {
           enable: true,
           distance: 150,
-          color: '#5ab1ff',
+          color: '#d4af6a',
           opacity: 0.2,
           width: 1
         },
@@ -398,7 +471,7 @@
                 speed: 800
               }
             },
-            colors: ['#5ab1ff', '#10b981'],
+            colors: ['#d4af6a', '#207487'],
             stroke: {
               curve: 'smooth',
               width: 3

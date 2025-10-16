@@ -265,6 +265,22 @@
                     if (data.success) {
                         this.saveStatus = true;
                         setTimeout(() => { this.saveStatus = false; }, 2000);
+
+                        // Apply theme change immediately
+                        if (this.settings.theme && this.settings.theme !== 'auto') {
+                            document.documentElement.setAttribute('data-theme', this.settings.theme);
+                            localStorage.setItem('theme', this.settings.theme);
+                            if (Alpine.store('theme')) {
+                                Alpine.store('theme').current = this.settings.theme;
+                            }
+                            // Refresh icons after theme change
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+
+                        // Apply dashboard layout change
+                        if (this.settings.dashboard_layout) {
+                            localStorage.setItem('dashboard_layout', this.settings.dashboard_layout);
+                        }
                     }
                 } catch (error) {
                     console.error('Error saving settings:', error);

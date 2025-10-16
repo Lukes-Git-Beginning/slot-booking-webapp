@@ -78,19 +78,53 @@
         body {
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Glassmorphism Utilities */
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Dark Theme (Default) */
+        [data-theme="dark"] body {
+            background: linear-gradient(to bottom right, #0f172a, #294c5d, #0f172a);
+            color: white;
         }
 
+        /* Light Theme - Softer, less bright */
+        [data-theme="light"] body {
+            background: linear-gradient(to bottom right, #f5f5f4, #e7e5e4, #fafaf9);
+            color: #292524;
+        }
+
+        /* Glassmorphism Utilities - Dark Theme */
         [data-theme="dark"] .glass {
             background: rgba(18, 24, 32, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        /* Glassmorphism Utilities - Light Theme (softer) */
+        [data-theme="light"] .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid rgba(212, 175, 106, 0.15);
+            box-shadow: 0 8px 24px rgba(120, 113, 108, 0.08);
+        }
+
+        /* Text Colors - Light Theme (softer contrast) */
+        [data-theme="light"] .text-white {
+            color: #292524 !important;
+        }
+
+        [data-theme="light"] .text-gray-400 {
+            color: #57534e !important;
+        }
+
+        [data-theme="light"] .text-white\/60 {
+            color: rgba(41, 37, 36, 0.65) !important;
+        }
+
+        [data-theme="light"] .text-white\/80 {
+            color: rgba(41, 37, 36, 0.85) !important;
         }
 
         /* Animated Gradient Background */
@@ -111,22 +145,45 @@
             pointer-events: none;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
+        /* Particles - Light Theme */
+        [data-theme="light"] #particles-js {
+            opacity: 0.4;
+        }
+
+        /* Custom Scrollbar - Dark */
+        [data-theme="dark"] ::-webkit-scrollbar {
             width: 10px;
         }
 
-        ::-webkit-scrollbar-track {
+        [data-theme="dark"] ::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        ::-webkit-scrollbar-thumb {
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
             background: rgba(212, 175, 106, 0.3);
             border-radius: 10px;
         }
 
-        ::-webkit-scrollbar-thumb:hover {
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
             background: rgba(212, 175, 106, 0.6);
+        }
+
+        /* Custom Scrollbar - Light */
+        [data-theme="light"] ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        [data-theme="light"] ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        [data-theme="light"] ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 106, 0.4);
+            border-radius: 10px;
+        }
+
+        [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 175, 106, 0.7);
         }
 
         /* Glow Effects */
@@ -136,6 +193,19 @@
 
         .glow-success {
             box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            position: relative;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
         }
     </style>
 
@@ -171,6 +241,13 @@
                     <!-- User Menu -->
                     {% if user %}
                     <div class="flex items-center gap-4">
+
+                        <!-- Theme Toggle -->
+                        <button @click="toggleTheme()"
+                                class="btn btn-circle btn-ghost hover:bg-white/10 theme-toggle">
+                            <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
+                            <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
+                        </button>
 
                         <!-- Notifications -->
                         <div class="relative" @click.away="notificationsOpen = false">
@@ -286,6 +363,52 @@
 
     <!-- JavaScript Initialization -->
     <script>
+        // Alpine.js Theme Store
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('theme', {
+                current: localStorage.getItem('theme') || 'dark',
+
+                init() {
+                    this.apply();
+                },
+
+                apply() {
+                    document.documentElement.setAttribute('data-theme', this.current);
+                    localStorage.setItem('theme', this.current);
+                },
+
+                toggle() {
+                    this.current = this.current === 'dark' ? 'light' : 'dark';
+                    this.apply();
+
+                    // Save to backend
+                    fetch('{{ url_for("hub.update_settings") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            theme: this.current
+                        })
+                    }).catch(err => console.error('Failed to save theme:', err));
+                }
+            });
+        });
+
+        // Global toggle function
+        function toggleTheme() {
+            Alpine.store('theme').toggle();
+            // Refresh icons after theme change
+            setTimeout(() => lucide.createIcons(), 100);
+        }
+
+        // Initialize theme on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            Alpine.store('theme').current = savedTheme;
+        });
+
         // Initialize Lucide Icons
         lucide.createIcons();
 

@@ -29,9 +29,9 @@
       theme: {
         extend: {
           colors: {
-            primary: '#5ab1ff',
-            secondary: '#10b981',
-            accent: '#f97316',
+            primary: '#d4af6a',
+            secondary: '#207487',
+            accent: '#294c5d',
           }
         }
       }
@@ -54,7 +54,7 @@
     }
 
     .gradient-bg {
-      background: linear-gradient(135deg, rgba(90, 177, 255, 0.15), rgba(16, 185, 129, 0.15), rgba(249, 115, 22, 0.1));
+      background: linear-gradient(135deg, rgba(212, 175, 106, 0.15), rgba(32, 116, 135, 0.15), rgba(41, 76, 93, 0.1));
     }
 
     /* Chart containers */
@@ -76,12 +76,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(90, 177, 255, 0.5);
+      background: rgba(212, 175, 106, 0.5);
       border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(90, 177, 255, 0.7);
+      background: rgba(212, 175, 106, 0.7);
     }
 
     /* Alpine.js cloak */
@@ -317,7 +317,7 @@
                 colors: ["#e5e7eb"]
               }
             },
-            colors: ['#10b981'],
+            colors: ['#207487'],
             xaxis: {
               categories: peakHoursData.map(item => (item.hour || 0) + ':00'),
               labels: {
@@ -371,7 +371,7 @@
               height: 300
             },
             labels: popularDaysData.map(item => item.day_name || dayNames[item.day] || `Tag ${item.day}`),
-            colors: ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#a855f7', '#22c55e'],
+            colors: ['#d4af6a', '#207487', '#294c5d', '#c2ae7f', '#10b981', '#f59e0b', '#ef4444'],
             plotOptions: {
               pie: {
                 donut: {
@@ -388,7 +388,7 @@
                       show: true,
                       fontSize: '24px',
                       fontWeight: 700,
-                      color: '#5ab1ff'
+                      color: '#d4af6a'
                     },
                     total: {
                       show: true,
@@ -463,7 +463,7 @@
             stroke: {
               curve: 'smooth',
               width: 3,
-              colors: ['#3b82f6']
+              colors: ['#d4af6a']
             },
             fill: {
               type: 'gradient',
@@ -475,12 +475,12 @@
                 colorStops: [
                   {
                     offset: 0,
-                    color: '#3b82f6',
+                    color: '#d4af6a',
                     opacity: 0.5
                   },
                   {
                     offset: 100,
-                    color: '#3b82f6',
+                    color: '#d4af6a',
                     opacity: 0.1
                   }
                 ]
@@ -488,7 +488,7 @@
             },
             markers: {
               size: 5,
-              colors: ['#3b82f6'],
+              colors: ['#d4af6a'],
               strokeColors: '#fff',
               strokeWidth: 2,
               hover: {
