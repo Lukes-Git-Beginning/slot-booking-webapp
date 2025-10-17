@@ -75,14 +75,51 @@ def health_check():
         }
         # Holiday service is not critical, so don't mark as unhealthy
 
-    # 4. File System Check
+    # 4. Cache Manager Check
+    try:
+        from app.core.extensions import cache_manager
+        cache_stats = cache_manager.get_stats()
+        checks['cache_manager'] = {
+            'status': 'healthy',
+            'message': 'Cache manager operational',
+            'stats': cache_stats
+        }
+    except Exception as e:
+        checks['cache_manager'] = {
+            'status': 'degraded',
+            'message': f'Cache manager warning: {str(e)}'
+        }
+
+    # 5. File System & Disk Space Check
     try:
         persist_dir = str(data_persistence.data_dir)
         if os.path.exists(persist_dir) and os.access(persist_dir, os.W_OK):
-            checks['filesystem'] = {
-                'status': 'healthy',
-                'message': f'Persistent directory writable: {persist_dir}'
-            }
+            # Check disk space
+            disk = psutil.disk_usage(persist_dir)
+            disk_free_pct = 100 - disk.percent
+
+            if disk_free_pct < 10:
+                checks['filesystem'] = {
+                    'status': 'critical',
+                    'message': f'Critical: Only {disk_free_pct:.1f}% disk space remaining',
+                    'disk_free_gb': disk.free / (1024 * 1024 * 1024),
+                    'disk_used_pct': disk.percent
+                }
+                overall_healthy = False
+            elif disk_free_pct < 20:
+                checks['filesystem'] = {
+                    'status': 'warning',
+                    'message': f'Warning: Only {disk_free_pct:.1f}% disk space remaining',
+                    'disk_free_gb': disk.free / (1024 * 1024 * 1024),
+                    'disk_used_pct': disk.percent
+                }
+            else:
+                checks['filesystem'] = {
+                    'status': 'healthy',
+                    'message': f'Filesystem healthy ({disk_free_pct:.1f}% free)',
+                    'disk_free_gb': disk.free / (1024 * 1024 * 1024),
+                    'disk_used_pct': disk.percent
+                }
         else:
             checks['filesystem'] = {
                 'status': 'unhealthy',
@@ -96,7 +133,7 @@ def health_check():
         }
         overall_healthy = False
 
-    # 5. System Resources Check
+    # 6. System Resources Check
     try:
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
@@ -107,7 +144,9 @@ def health_check():
         checks['system_resources'] = {
             'status': 'healthy' if (memory_healthy and disk_healthy) else 'degraded',
             'memory_usage': f'{memory.percent:.1f}%',
-            'disk_usage': f'{disk.percent:.1f}%'
+            'memory_available_mb': memory.available / (1024 * 1024),
+            'disk_usage': f'{disk.percent:.1f}%',
+            'disk_free_gb': disk.free / (1024 * 1024 * 1024)
         }
 
         if not (memory_healthy and disk_healthy):

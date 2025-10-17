@@ -44,6 +44,9 @@ def create_app(config_object: Optional[str] = None) -> Flask:
     # Logging konfigurieren
     setup_logging(app)
 
+    # Sentry Error Tracking initialisieren (Production)
+    init_sentry(app)
+
     # Blueprints registrieren (neue Hub-Architektur)
     register_blueprints(app)
 
@@ -105,6 +108,46 @@ def setup_logging(app: Flask) -> None:
         app_handler.setLevel(logging.INFO)
         app.logger.addHandler(app_handler)
         app.logger.setLevel(logging.INFO)
+
+
+def init_sentry(app: Flask) -> None:
+    """Sentry Error Tracking initialisieren für Production Monitoring"""
+    sentry_dsn = app.config.get('SENTRY_DSN') or os.environ.get('SENTRY_DSN')
+
+    if sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.flask import FlaskIntegration
+
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                integrations=[FlaskIntegration()],
+                traces_sample_rate=0.1,  # 10% Performance Monitoring
+                environment='production' if not app.debug else 'development',
+                release=f"business-hub@{app.config.get('VERSION', '3.3.1')}",
+                # Exclude health check endpoints from monitoring
+                ignore_errors=[
+                    KeyboardInterrupt,
+                ],
+                before_send=lambda event, hint: _filter_sentry_event(event, hint),
+            )
+            app.logger.info(f"Sentry initialized for environment: {'production' if not app.debug else 'development'}")
+        except ImportError:
+            app.logger.warning("Sentry SDK not installed, skipping error tracking")
+        except Exception as e:
+            app.logger.error(f"Failed to initialize Sentry: {e}")
+    else:
+        app.logger.info("Sentry DSN not configured, skipping error tracking")
+
+
+def _filter_sentry_event(event, hint):
+    """Filter Sentry events to reduce noise"""
+    # Don't send health check requests
+    if 'request' in event:
+        url = event['request'].get('url', '')
+        if '/health' in url or '/ping' in url:
+            return None
+    return event
 
 
 def register_blueprints(app: Flask) -> None:
