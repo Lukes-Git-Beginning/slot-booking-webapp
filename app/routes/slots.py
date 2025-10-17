@@ -22,6 +22,7 @@ from app.services.booking_service import (
 from app.utils.helpers import get_week_days, get_week_start, get_current_kw
 from app.core.extensions import cache_manager, level_system
 from app.utils.decorators import require_login
+from app.utils.rate_limiting import rate_limit_booking, rate_limit_api
 
 # Blueprint erstellen
 slots_bp = Blueprint('slots', __name__, url_prefix='/slots')
@@ -105,6 +106,7 @@ def booking_page():
 
 @slots_bp.route('/book', methods=['POST'])
 @require_login
+@rate_limit_booking
 def book_slot():
     """Slot buchen - AJAX-Endpoint"""
     try:
@@ -247,6 +249,7 @@ def api_user_stats():
 
 @slots_bp.route('/api/quick-book', methods=['POST'])
 @require_login
+@rate_limit_api
 def api_quick_book():
     """API: Schnellbuchung"""
     try:

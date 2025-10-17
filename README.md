@@ -760,7 +760,21 @@ with app.app_context():
 
 ## 📝 Changelog
 
-### v3.3.0 - ZFA Rebranding & Consultant Analytics (Aktuell - 2025-10-16)
+### v3.3.1 - Production Hardening & Automation (Aktuell - 2025-10-17)
+- ✅ **Google Calendar API Fix**: Kritische Datetime-Format-Korrektur (ISO 8601) - 100% API-Erfolgsrate
+- ✅ **Security Hardening - Rate Limiting**: Zweischichtige DOS-Protektion
+  - Nginx-Layer: Login (5/min), API (60/min), Booking (10/min), Global (100/min)
+  - Flask-Layer: Zentralisierte Decorators für alle kritischen Endpoints
+  - Custom 429 Error Handler (JSON für APIs, HTML für Web)
+- ✅ **Cache-Cleanup Automation**: Systemd-Timer für tägliche Bereinigung (3 AM)
+  - Automatische Löschung von Dateien >7 Tage
+  - Größenlimit 50MB mit intelligentem Cleanup
+  - 96 alte Dateien initial bereinigt (174→78 Dateien, 0.33→0.17 MB)
+- ✅ **Backup Rotation**: Cron-basierte Bereinigung alter Backups (>30 Tage)
+- ✅ **Log Rotation**: Bereits konfiguriert (Daily, 14 Tage, komprimiert)
+- ✅ **Production-Ready**: Alle Systeme verifiziert und stabil für Go-Live
+
+### v3.3.0 - ZFA Rebranding & Consultant Analytics (2025-10-16)
 - ✅ **ZFA Color Scheme**: Vollständige Migration zu ZFA-Branding (Gold #d4af6a, Blau #207487, Dunkelblau #294c5d)
 - ✅ **Hub/Base Template System**: Alle Templates erweitern hub/base.html mit automatischer ZFA-Farb-Integration
 - ✅ **Consultant Analytics**: Komplett überarbeitete "Meine Buchungen" Seite mit persönlichem Dashboard

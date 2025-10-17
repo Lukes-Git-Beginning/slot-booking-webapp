@@ -1,0 +1,23 @@
+[Unit]
+Description=Business Hub Cache Cleanup Service
+Documentation=https://github.com/Lukes-Git-Beginning/slot-booking-webapp
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/business-hub
+ExecStart=/opt/business-hub/venv/bin/python3 /opt/business-hub/scripts/cache_cleanup.py
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cache-cleanup
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

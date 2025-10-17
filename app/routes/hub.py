@@ -547,8 +547,13 @@ def get_user_settings(username):
     """
     Benutzereinstellungen laden
     """
+    from app.core.extensions import data_persistence
+
+    # Load user settings from persistent storage
+    user_settings = data_persistence.load_data('user_settings', {})
+
     # Default-Settings
-    return {
+    defaults = {
         'theme': 'dark',
         'notifications': True,
         'email_notifications': True,
@@ -556,11 +561,34 @@ def get_user_settings(username):
         'language': 'de'
     }
 
+    # Return user settings or defaults
+    if username in user_settings:
+        # Merge with defaults to ensure all keys exist
+        return {**defaults, **user_settings[username]}
+
+    return defaults
+
 
 def save_user_settings(username, settings):
     """
     Benutzereinstellungen speichern
     """
+    from app.core.extensions import data_persistence
+
     logger.info(f"Saving settings for user {username}: {settings}")
-    # Hier würde später echte Persistierung implementiert
-    return True
+
+    try:
+        # Load existing settings
+        user_settings = data_persistence.load_data('user_settings', {})
+
+        # Update user settings
+        user_settings[username] = settings
+
+        # Save back to persistent storage
+        data_persistence.save_data('user_settings', user_settings)
+
+        logger.info(f"Settings saved successfully for {username}")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving settings for {username}: {e}")
+        return False

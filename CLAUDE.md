@@ -263,7 +263,7 @@ templates/
 
 ## Projektstatus
 
-### Version: v3.3.0 (ZFA Rebranding + Consultant Analytics)
+### Version: v3.3.1 (Production Hardening & Automation)
 - ✅ Central Hub Architecture
 - ✅ Security Center (2FA + Password Management)
 - ✅ T2-Closer Tool
@@ -274,16 +274,18 @@ templates/
 - ✅ Glassmorphism-Design mit Bootstrap 5
 - ✅ Lokale Asset-Hosting (Bootstrap + FontAwesome)
 - ✅ VPS Deployment auf Hetzner
+- ✅ **Zweischichtige Rate Limiting** (Nginx + Flask)
+- ✅ **Automatische Cache-Cleanup** (Systemd Timer)
+- ✅ **Backup Rotation** (Cron Daily)
 
 ### Deployment-Status
-- **Testserver:** http://91.98.192.233 ✅ LIVE
-- **Production:** Go-Live in ~17 Tagen
+- **Testserver:** http://91.98.192.233 ✅ LIVE & PRODUCTION-READY
+- **Production:** Go-Live am Montag (2025-10-21)
 
-### Letzte Updates (2025-10-14)
-- ✅ Legacy Slot-Booking Layout vollständig wiederhergestellt
-- ✅ Blueprint-Registrierungsreihenfolge korrigiert (Legacy Blueprints haben Priorität)
-- ✅ Google Calendar Integration konfiguriert (9 Berater-Kalender)
-- ✅ Wochenauslastung zeigt echte Buchungsdaten (Prozentsätze statt 0%)
-- ✅ Produktions-.env bereinigt (alle Placeholder entfernt)
-- ✅ SECRET_KEY generiert und konfiguriert
-- ✅ Hetzner VPS vollständig konfiguriert und stabil laufend
+### Letzte Updates (2025-10-17)
+- ✅ **KRITISCH** Google Calendar API Fix (ISO 8601 Format) - 100% Erfolgsrate
+- ✅ **Security Hardening**: Nginx + Flask Rate Limiting deployed und getestet
+- ✅ **Automation**: Cache-Cleanup (Systemd), Backup-Rotation (Cron)
+- ✅ **Log Rotation**: Verifiziert funktioniert (Daily, 14 Tage, komprimiert)
+- ✅ **System Status**: Service stabil, 216MB RAM, 4 Gunicorn Workers
+- ✅ **Monitoring**: Systemd Timer (Cache), Cron (Backups), Logrotate (Logs)

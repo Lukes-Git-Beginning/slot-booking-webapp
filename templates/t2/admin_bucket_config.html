@@ -157,7 +157,7 @@
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-8">
-            {% for closer_name, ticket_count in bucket_composition.items() %}
+            {% for closer_name, ticket_count in bucket_composition.composition.items() %}
             <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
                 <div class="w-6 h-6 rounded-full mx-auto mb-3" style="background: {{ closers[closer_name].color }};"></div>
                 <div class="text-white font-semibold text-lg mb-2">{{ closer_name }}</div>

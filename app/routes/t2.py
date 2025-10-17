@@ -63,6 +63,7 @@ T2_CONFIG = {
 }
 
 from app.utils.decorators import require_login
+from app.utils.rate_limiting import rate_limit_t2, rate_limit_api
 
 # ========== HAUPTROUTEN ==========
 
@@ -87,6 +88,7 @@ def dashboard():
 
 @t2_bp.route("/api/roll-closer", methods=['POST'])
 @require_login
+@rate_limit_api
 def api_roll_closer():
     """Neuen Closer würfeln mit Fairness-System"""
     try:
@@ -182,6 +184,7 @@ def stats_page():
 
 @t2_bp.route("/api/book", methods=['POST'])
 @require_login
+@rate_limit_t2
 def api_book_slot():
     """T2-Termin buchen mit zugewiesenem Closer"""
     try:

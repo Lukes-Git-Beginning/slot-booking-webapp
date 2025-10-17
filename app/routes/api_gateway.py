@@ -16,6 +16,7 @@ api_gateway_bp = Blueprint('api_gateway', __name__, url_prefix='/api/v1')
 logger = logging.getLogger(__name__)
 
 from app.utils.decorators import require_login
+from app.utils.rate_limiting import rate_limit_api, rate_limit_api_strict
 
 # ========== CROSS-TOOL APIS ==========
 
@@ -41,6 +42,7 @@ def tools_status():
 
 @api_gateway_bp.route("/user/dashboard-data")
 @require_login
+@rate_limit_api
 def user_dashboard_data():
     """
     Gesammelte Dashboard-Daten für alle Tools
@@ -106,6 +108,7 @@ def unified_availability(date_str):
 
 @api_gateway_bp.route("/booking/create", methods=['POST'])
 @require_login
+@rate_limit_api_strict
 def unified_booking():
     """
     Vereinheitlichte Buchungs-API

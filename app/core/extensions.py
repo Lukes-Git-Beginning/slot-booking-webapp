@@ -60,6 +60,7 @@ def init_extensions(app: Flask) -> None:
     try:
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
+        from app.utils.rate_limiting import init_rate_limiter, handle_rate_limit_error
 
         limiter = Limiter(
             app=app,
@@ -68,6 +69,13 @@ def init_extensions(app: Flask) -> None:
             storage_uri="memory://",  # In-memory storage (use Redis for production scaling)
             strategy="fixed-window"
         )
+
+        # Register custom error handler
+        app.errorhandler(429)(handle_rate_limit_error)
+
+        # Initialize rate limiting module
+        init_rate_limiter(limiter)
+
         logger.info("Rate limiting initialized successfully")
     except Exception as e:
         logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
