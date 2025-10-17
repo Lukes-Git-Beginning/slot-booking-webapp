@@ -47,11 +47,20 @@ Eine professionelle Terminbuchungsplattform auf Enterprise-Niveau mit fortschrit
 
 ### 🎨 Anpassung & Personalisierung
 - **Cosmetics Shop**: Vollständiger Marktplatz mit Titeln, Themes, Avataren und Spezialeffekten
-- **Avatar-System**: Umfangreiche Anpassung mit Tieren, Berufen und Fantasy-Charakteren
-- **Theme-System**: 6+ visuelle Themes von Sunset-Vibes bis Rainbow-Explosion
-- **Persönliche Ziele**: Benutzerdefinierte Herausforderungen mit individuellen Belohnungen und Fortschrittsverfolgung
+- **Avatar-System**: 22 hochwertige PNG-Avatare (Business, Developer, Fantasy, etc.)
+- **Theme-System**: 6+ visuelle Themes mit CSS Custom Properties und Live-Vorschau
+  - Dynamic Color Injection: Themes überschreiben Primary/Secondary/Accent-Farben
+  - Gradient Previews: Visuelle Theme-Vorschau direkt im Shop
+  - Persistent Storage: Aktive Themes werden automatisch geladen
+- **Canvas-Based Effects**: Vollständiges Particle-System für visuelle Effekte
+  - Sparkle Trail: 8 goldene Partikel bei jedem Klick mit Physik (Gravity, Decay)
+  - Confetti Explosion: 50 rotierende Konfetti-Partikel bei Achievements
+  - Screen Shake: Intensive Kamera-Shake-Animation bei Erfolgen
+- **Audio Effects**: Web Audio API-Integration für immersive Sounds
+  - Booking Fanfare: C5-Note mit exponential Decay bei erfolgreichen Buchungen
+  - Keyboard Sounds: Framework für mechanische Tastatur-Sounds (erweiterbar)
+- **Persönliche Ziele**: Benutzerdefinierte Herausforderungen mit individuellen Belohnungen
 - **Dashboard-Anpassung**: Personalisierte Layouts, Widgets und Analytics-Ansichten
-- **Spezialeffekte**: Freischaltbare Glitzer-Spuren, Tipp-Sounds und Konfetti-Explosionen
 - **Titel-System**: 15+ humorvolle und achievement-basierte Titel von "☕ Koffein-Junkie" bis "✨ Buchungs-Gottheit"
 
 ### 🔧 Erweiterte Technische Features
@@ -78,10 +87,13 @@ Eine professionelle Terminbuchungsplattform auf Enterprise-Niveau mit fortschrit
 ### Frontend
 - **Jinja2 Templates** - Server-seitiges Rendering
 - **Bootstrap 5.3.2** - Responsive CSS-Framework (lokal gehostet)
+- **Tailwind CSS + DaisyUI** - Moderne Utility-First CSS (Hub & T2)
 - **Font Awesome 6.4.2** - Icon-Library (lokal gehostet)
+- **Lucide Icons** - Moderne Icon-Library (lokal gehostet)
 - **Modernes CSS/HTML5** - Glassmorphism-Design mit CSS Custom Properties
-- **JavaScript** - Interaktive Features
+- **JavaScript (ES6+)** - Interaktive Features inkl. Canvas API & Web Audio API
 - **Chart.js/Matplotlib** - Datenvisualisierung
+- **Particle System** - Canvas-basierte visuelle Effekte (sparkle, confetti, shake)
 
 ### Daten & Analytics
 - **Pandas** - Datenmanipulation
@@ -760,7 +772,29 @@ with app.app_context():
 
 ## 📝 Changelog
 
-### v3.3.1 - Production Hardening & Automation (Aktuell - 2025-10-17)
+### v3.3.2 - Cosmetics System v2 (Aktuell - 2025-10-17)
+- ✅ **Theme System**: Vollständige CSS Custom Properties Integration
+  - 6+ Themes (Sunset, Ocean, Forest, Lavender, Fire, Rainbow)
+  - Dynamic CSS Injection in hub/base.html mit :root-Variablen
+  - Live-Gradient-Previews im Cosmetics Shop
+  - Persistent Storage über cosmetics_shop Service
+- ✅ **Canvas Particle System**: `static/cosmetics-effects.js` (8.8KB)
+  - Sparkle Trail: 8 goldene Partikel bei Klicks mit Physik-Engine
+  - Confetti Explosion: 50 rotierende Partikel für Achievements/Bookings
+  - Screen Shake: 500ms Kamera-Shake mit Intensity Decay
+  - 60fps Animation Loop mit globalAlpha-Blending
+- ✅ **Audio Effects**: Web Audio API Integration
+  - Booking Fanfare: C5-Oszillator mit exponentialRamp
+  - Keyboard Sounds Framework (bereit für Sound-Files)
+- ✅ **Event-Driven Architecture**: Custom Events für Effect-Trigger
+  - `achievement-unlocked` → Confetti + Screen Shake
+  - `booking-success` → Confetti + Fanfare
+- ✅ **Avatar System**: 22 PNG-Avatare aus C:\Users\Luke\Pictures\Avatare
+  - Business, Developer, Manager, Student, Fantasy-Charaktere
+  - Direkte PNG-Integration ohne Emoji-Fallback
+- ✅ **API Integration**: `/api/cosmetics/active-effects` Endpoint für JavaScript
+
+### v3.3.1 - Production Hardening & Automation (2025-10-17)
 - ✅ **Google Calendar API Fix**: Kritische Datetime-Format-Korrektur (ISO 8601) - 100% API-Erfolgsrate
 - ✅ **Security Hardening - Rate Limiting**: Zweischichtige DOS-Protektion
   - Nginx-Layer: Login (5/min), API (60/min), Booking (10/min), Global (100/min)

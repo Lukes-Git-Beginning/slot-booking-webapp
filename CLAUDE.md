@@ -134,6 +134,7 @@ from app.core.extensions import cache_manager
 from app.services.achievement_system import achievement_system
 from app.services.booking_service import BookingService
 from app.services.holiday_service import holiday_service
+from app.services.cosmetics_shop import cosmetics_shop
 ```
 
 ## Best Practices
@@ -160,6 +161,40 @@ if holiday_service.is_blocked_date(check_date):
     reason = holiday_service.get_blocked_reason(check_date)
     return False, f"Datum gesperrt: {reason}"
 ```
+
+### Cosmetics System (Themes & Effects)
+```python
+# Themes & Effects werden automatisch geladen wenn user/base.html erweitert wird
+# Backend-Integration:
+from app.services.cosmetics_shop import cosmetics_shop
+
+# User-Theme laden (in hub.py get_dashboard_data)
+user_theme = get_user_active_theme(username)  # Returns theme dict or None
+
+# Aktive Effects API (automatisch von JavaScript geladen)
+@hub_bp.route('/api/cosmetics/active-effects')
+def api_active_effects():
+    user_cosmetics = cosmetics_shop.get_user_cosmetics(session['user'])
+    active_effects = user_cosmetics.get('active', {}).get('effects', [])
+    return jsonify({'success': True, 'effects': active_effects})
+
+# Custom Events für Effect-Trigger (im Frontend JavaScript)
+document.dispatchEvent(new CustomEvent('achievement-unlocked'));
+document.dispatchEvent(new CustomEvent('booking-success'));
+```
+
+**Verfügbare Effects:**
+- `sparkle_trail` - 8 goldene Sparkles bei jedem Klick
+- `confetti_explosion` - 50 Konfetti-Partikel bei Achievements/Bookings
+- `screen_shake` - 500ms Kamera-Shake bei Achievement-Unlock
+- `keyboard_sounds` - Tastatur-Sound-Framework (Web Audio API)
+- `booking_fanfare` - C5-Note mit Decay bei erfolgreicher Buchung
+
+**Theme-System:**
+- CSS Custom Properties: `--theme-primary`, `--theme-secondary`, `--theme-accent`
+- Automatische Injection in `hub/base.html` wenn user_theme gesetzt
+- Überschreibt `.glass`, `.btn-primary`, `.gradient-bg` Klassen
+- 6+ vordefinierte Themes (sunset, ocean, forest, lavender, fire, rainbow)
 
 ### Neue Features hinzufügen
 
@@ -289,3 +324,9 @@ templates/
 - ✅ **Log Rotation**: Verifiziert funktioniert (Daily, 14 Tage, komprimiert)
 - ✅ **System Status**: Service stabil, 216MB RAM, 4 Gunicorn Workers
 - ✅ **Monitoring**: Systemd Timer (Cache), Cron (Backups), Logrotate (Logs)
+- ✅ **Cosmetics System v2**: Vollständige Theme & Effects Funktionalität deployed
+  - Canvas-basiertes Particle System (sparkle_trail, confetti_explosion, screen_shake)
+  - CSS Theme Injection mit Custom Properties (6+ Themes verfügbar)
+  - Event-driven Architecture für Achievement/Booking-Trigger
+  - Web Audio API Integration für Sounds (booking_fanfare, keyboard_sounds)
+  - 22 Avatar PNGs aus C:\Users\Luke\Pictures\Avatare integriert
