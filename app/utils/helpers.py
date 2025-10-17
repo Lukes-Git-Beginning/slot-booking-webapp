@@ -63,8 +63,9 @@ def get_color_mapping_status():
 
 
 def week_key_from_date(dt):
-    """Generate week key from datetime"""
-    return f"{dt.year}-W{dt.isocalendar()[1]:02d}"
+    """Generate week key from datetime using ISO year"""
+    iso_year, iso_week, iso_weekday = dt.isocalendar()
+    return f"{iso_year}-W{iso_week:02d}"
 
 
 def format_currency(amount: float) -> str:
