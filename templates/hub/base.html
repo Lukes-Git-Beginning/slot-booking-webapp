@@ -25,6 +25,9 @@
     <!-- Particles.js -->
     <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
+    <!-- Cosmetics Effects System -->
+    <script src="{{ url_for('static', filename='cosmetics-effects.js') }}"></script>
+
     <!-- Custom Tailwind Config -->
     <script>
         tailwind.config = {
@@ -64,6 +67,54 @@
             },
         }
     </script>
+
+    <!-- User Theme Colors (from Cosmetics Shop) -->
+    {% if user_theme %}
+    <style id="user-theme-colors">
+        :root {
+            --theme-primary: {{ user_theme.colors.primary }};
+            --theme-secondary: {{ user_theme.colors.secondary }};
+            --theme-accent: {{ user_theme.colors.accent }};
+        }
+
+        /* Apply theme colors to specific elements */
+        .glass {
+            border-color: var(--theme-primary, rgba(212, 175, 106, 0.2)) !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--theme-primary, #d4af6a), var(--theme-secondary, #207487)) !important;
+        }
+
+        .text-primary {
+            color: var(--theme-primary, #d4af6a) !important;
+        }
+
+        .bg-primary {
+            background-color: var(--theme-primary, #d4af6a) !important;
+        }
+
+        .border-primary {
+            border-color: var(--theme-primary, #d4af6a) !important;
+        }
+
+        /* Gradient backgrounds */
+        .gradient-bg {
+            background: linear-gradient(-45deg,
+                var(--theme-accent, #294c5d),
+                var(--theme-secondary, #207487),
+                var(--theme-primary, #d4af6a),
+                var(--theme-secondary, #207487)) !important;
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        /* Particle colors */
+        #particles-js canvas {
+            filter: hue-rotate({{ user_theme.hue_shift or 0 }}deg);
+        }
+    </style>
+    {% endif %}
 
     <!-- Custom Styles -->
     <style>

@@ -135,6 +135,11 @@ def get_dashboard_data(username):
     # Gamification-Overview (falls eingeloggt in Slots)
     dashboard_data['gamification'] = get_gamification_overview(username)
 
+    # Load user's active theme for CSS injection
+    user_theme = get_user_active_theme(username)
+    if user_theme:
+        dashboard_data['user_theme'] = user_theme
+
     return dashboard_data
 
 
@@ -632,3 +637,50 @@ def save_user_settings(username, settings):
     except Exception as e:
         logger.error(f"Error saving settings for {username}: {e}")
         return False
+
+
+def get_user_active_theme(username):
+    """
+    Lädt das aktive Theme des Benutzers für CSS-Injection
+    """
+    try:
+        from app.services.cosmetics_shop import cosmetics_shop, COLOR_THEMES
+
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(username)
+        active_theme_id = user_cosmetics.get('active', {}).get('theme')
+
+        if active_theme_id and active_theme_id != 'default':
+            theme = COLOR_THEMES.get(active_theme_id)
+            if theme:
+                return {
+                    'id': active_theme_id,
+                    'name': theme['name'],
+                    'colors': theme['colors'],
+                    'hue_shift': 0
+                }
+        return None
+    except Exception as e:
+        logger.error(f"Error loading user theme: {e}")
+        return None
+
+
+@hub_bp.route('/api/cosmetics/active-effects')
+def api_active_effects():
+    """API endpoint für aktive Cosmetics-Effekte"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'effects': []})
+
+    try:
+        from app.services.cosmetics_shop import cosmetics_shop
+
+        user = session.get('user')
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(user)
+        active_effects = user_cosmetics.get('active', {}).get('effects', [])
+
+        return jsonify({
+            'success': True,
+            'effects': active_effects
+        })
+    except Exception as e:
+        logger.error(f"Error loading active effects: {e}")
+        return jsonify({'success': False, 'effects': []})
