@@ -89,30 +89,66 @@ def register_bucket_routes(t2_bp):
     @require_login
     def admin_bucket_config():
         """Admin page for bucket configuration"""
-        user = session.get('user')
+        try:
+            user = session.get('user')
 
-        # Check admin
-        from app.routes.t2 import is_admin_user
-        if not is_admin_user(user):
-            return redirect(url_for('t2.dashboard'))
+            # Check admin
+            from app.routes.t2 import is_admin_user
+            if not is_admin_user(user):
+                return redirect(url_for('t2.dashboard'))
 
-        # Get current data
-        probabilities = get_probabilities()
-        bucket_comp = get_bucket_composition()
-        system_stats = get_system_stats()
-        closers = get_available_closers()
+            # Get current data with fallbacks
+            probabilities = get_probabilities() if get_probabilities else {}
+            bucket_comp = get_bucket_composition() if get_bucket_composition else {
+                'composition': {},
+                'total_tickets': 0,
+                'draws_until_reset': 10,
+                'max_draws_before_reset': 10,
+                'default_probabilities': {}
+            }
+            system_stats = get_system_stats() if get_system_stats else {
+                'total_all_time_draws': 0,
+                'closer_distribution': {},
+                'recent_draws': []
+            }
+            closers = get_available_closers() if get_available_closers else {}
 
-        return render_template('t2/admin_bucket_config.html',
-                             user=user,
-                             probabilities=probabilities,
-                             bucket_composition=bucket_comp['composition'],
-                             bucket_stats={
-                                 'current_bucket_size': bucket_comp['total_tickets'],
-                                 'draws_until_reset': bucket_comp['draws_until_reset'],
-                                 'draws_this_cycle': 10 - bucket_comp['draws_until_reset']
-                             },
-                             system_stats=system_stats,
-                             closers=closers)
+            return render_template('t2/admin_bucket_config.html',
+                                 user=user,
+                                 probabilities=probabilities,
+                                 bucket_composition=bucket_comp,
+                                 bucket_stats={
+                                     'current_bucket_size': bucket_comp.get('total_tickets', 0),
+                                     'draws_until_reset': bucket_comp.get('draws_until_reset', 10),
+                                     'draws_this_cycle': bucket_comp.get('max_draws_before_reset', 10) - bucket_comp.get('draws_until_reset', 10)
+                                 },
+                                 system_stats=system_stats,
+                                 closers=closers)
+        except Exception as e:
+            logger.error(f"Error loading bucket config: {e}", exc_info=True)
+            # Return safe fallback template
+            return render_template('t2/admin_bucket_config.html',
+                                 user=session.get('user', ''),
+                                 probabilities={},
+                                 bucket_composition={
+                                     'composition': {},
+                                     'total_tickets': 0,
+                                     'draws_until_reset': 10,
+                                     'max_draws_before_reset': 10,
+                                     'default_probabilities': {}
+                                 },
+                                 bucket_stats={
+                                     'current_bucket_size': 0,
+                                     'draws_until_reset': 10,
+                                     'draws_this_cycle': 0
+                                 },
+                                 system_stats={
+                                     'total_all_time_draws': 0,
+                                     'closer_distribution': {},
+                                     'recent_draws': []
+                                 },
+                                 closers={},
+                                 error="Fehler beim Laden der Bucket-Konfiguration")
 
     @t2_bp.route("/api/admin/update-probability", methods=['POST'])
     @require_login

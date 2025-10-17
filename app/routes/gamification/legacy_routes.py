@@ -508,11 +508,21 @@ def cosmetics_shop_view():
         if not user:
             return redirect(url_for('login'))
 
+        # Check if systems are available
+        if not cosmetics_shop or not daily_quest_system:
+            logger.error("Cosmetics shop or daily quest system not available")
+            return render_template('cosmetics_shop.html',
+                current_user=user,
+                error="Shop-System ist derzeit nicht verfügbar",
+                user_coins=0,
+                cosmetics={"owned": {}, "active": {}},
+                shop_items={"titles": [], "themes": [], "avatars": [], "effects": []})
+
         # Hole User-Coins aus Daily Quest System
-        user_coins = daily_quest_system.get_user_coins(user)
+        user_coins = daily_quest_system.get_user_coins(user) if daily_quest_system else 0
 
         # Hole Kosmetik-Daten
-        user_cosmetics = cosmetics_shop.get_user_cosmetics(user)
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(user) if cosmetics_shop else {"owned": {}, "active": {}}
         owned = user_cosmetics.get('owned', {})
         active = user_cosmetics.get('active', {})
 

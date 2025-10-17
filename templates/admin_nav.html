@@ -121,24 +121,6 @@
             <i data-lucide="calendar-x" class="w-4 h-4"></i>
             <span>Blocked Dates</span>
           </a>
-          <a href="{{ url_for('admin.admin_fix_points') }}"
-             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
-                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_fix_points' else 'hover:bg-white/10 text-white/70' }}">
-            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-            <span>Fix Points</span>
-          </a>
-          <a href="{{ url_for('admin.admin_debug_points') }}"
-             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
-                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_debug_points' else 'hover:bg-white/10 text-white/70' }}">
-            <i data-lucide="bug" class="w-4 h-4"></i>
-            <span>Debug Points</span>
-          </a>
-          <a href="{{ url_for('admin.admin_badges_backfill') }}"
-             class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
-                    {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_badges_backfill' else 'hover:bg-white/10 text-white/70' }}">
-            <i data-lucide="award" class="w-4 h-4"></i>
-            <span>Badge Backfill</span>
-          </a>
           <a href="{{ url_for('admin.admin_storage_optimize') }}"
              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all
                     {{ 'bg-white/20 text-white' if request.endpoint == 'admin.admin_storage_optimize' else 'hover:bg-white/10 text-white/70' }}">

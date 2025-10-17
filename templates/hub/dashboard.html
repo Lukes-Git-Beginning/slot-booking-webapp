@@ -25,12 +25,55 @@
 
         <!-- Quick Actions -->
         <div class="flex items-center gap-3">
-            <button class="btn btn-circle btn-ghost hover:bg-white/10 relative group" x-data="{ hasNotifications: {{ quick_stats.unread_notifications|default(0) }} > 0 }">
-                <i data-lucide="bell" class="w-5 h-5"></i>
-                <span x-show="hasNotifications" class="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs font-bold">
-                    {{ quick_stats.unread_notifications|default(0) }}
-                </span>
-            </button>
+            <!-- Notification Dropdown -->
+            <div class="dropdown dropdown-end" x-data="notificationDropdown()">
+                <button @click="toggleDropdown()" tabindex="0" class="btn btn-circle btn-ghost hover:bg-white/10 relative group">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span x-show="unreadCount > 0" x-text="unreadCount" class="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs font-bold">
+                    </span>
+                </button>
+                <div x-show="isOpen" @click.outside="closeDropdown()" x-transition tabindex="0" class="dropdown-content z-50 mt-3 w-96 max-h-96 overflow-y-auto glass rounded-2xl shadow-2xl border border-white/20">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white">Benachrichtigungen</h3>
+                            <span x-show="unreadCount > 0" class="badge badge-error badge-sm" x-text="unreadCount + ' neu'"></span>
+                        </div>
+
+                        <template x-if="notifications.length === 0">
+                            <div class="text-center py-8 text-white/60">
+                                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                                <p>Keine Benachrichtigungen</p>
+                            </div>
+                        </template>
+
+                        <div class="space-y-2">
+                            <template x-for="notif in notifications" :key="notif.id">
+                                <div @click="markAsRead(notif.id)"
+                                     :class="notif.read ? 'bg-white/5' : 'bg-primary/10 border-l-4 border-primary'"
+                                     class="p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-all">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                                             :class="{
+                                                 'bg-info/20 text-info': notif.type === 'info',
+                                                 'bg-success/20 text-success': notif.type === 'success',
+                                                 'bg-warning/20 text-warning': notif.type === 'warning',
+                                                 'bg-error/20 text-error': notif.type === 'error'
+                                             }">
+                                            <i :data-lucide="getNotificationIcon(notif.type)" class="w-4 h-4"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-semibold text-white text-sm" x-text="notif.title"></h4>
+                                            <p class="text-xs text-white/70 mt-1" x-text="notif.message"></p>
+                                            <span class="text-xs text-white/50 mt-1 block" x-text="formatTime(notif.timestamp)"></span>
+                                        </div>
+                                        <span x-show="!notif.read" class="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -167,6 +210,74 @@
 
 {% block extra_js %}
 <script>
+    // Notification Dropdown Component
+    function notificationDropdown() {
+        return {
+            isOpen: false,
+            notifications: {{ notifications|tojson|safe }},
+            unreadCount: {{ quick_stats.unread_notifications|default(0) }},
+
+            toggleDropdown() {
+                this.isOpen = !this.isOpen;
+                if (this.isOpen) {
+                    // Refresh Lucide icons when dropdown opens
+                    this.$nextTick(() => {
+                        lucide.createIcons();
+                    });
+                }
+            },
+
+            closeDropdown() {
+                this.isOpen = false;
+            },
+
+            async markAsRead(notifId) {
+                const notif = this.notifications.find(n => n.id === notifId);
+                if (!notif || notif.read) return;
+
+                try {
+                    const response = await fetch(`/api/notifications/${notifId}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        notif.read = true;
+                        this.unreadCount = Math.max(0, this.unreadCount - 1);
+                    }
+                } catch (error) {
+                    console.error('Error marking notification as read:', error);
+                }
+            },
+
+            getNotificationIcon(type) {
+                const icons = {
+                    'info': 'info',
+                    'success': 'check-circle',
+                    'warning': 'alert-triangle',
+                    'error': 'x-circle'
+                };
+                return icons[type] || 'bell';
+            },
+
+            formatTime(timestamp) {
+                if (!timestamp) return '';
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+
+                if (diffMins < 1) return 'Gerade eben';
+                if (diffMins < 60) return `vor ${diffMins} Min`;
+                if (diffMins < 1440) return `vor ${Math.floor(diffMins / 60)} Std`;
+                return `vor ${Math.floor(diffMins / 1440)} Tagen`;
+            }
+        };
+    }
+
     // Refresh icons after dynamic content load
     setTimeout(() => {
         lucide.createIcons();

@@ -140,9 +140,15 @@ def get_dashboard_data(username):
 
 def get_time_based_greeting():
     """
-    Zeitbasierte Begrüßung
+    Zeitbasierte Begrüßung (berücksichtigt aktuelle Uhrzeit)
     """
-    hour = datetime.now().hour
+    import pytz
+    from app.config.base import slot_config
+
+    # Timezone berücksichtigen
+    TZ = pytz.timezone(slot_config.TIMEZONE)
+    now = datetime.now(TZ)
+    hour = now.hour
 
     if 5 <= hour < 12:
         return "Guten Morgen"
@@ -362,30 +368,43 @@ def get_t2_stats(username):
 
 def get_user_notifications_detailed(username):
     """
-    Detaillierte Benachrichtigungen für Benutzer
+    Detaillierte Benachrichtigungen für Benutzer (mit Persistierung)
     """
-    notifications = [
-        {
-            'id': 1,
-            'type': 'info',
-            'title': 'Willkommen im Tool Hub!',
-            'message': 'Du hast jetzt Zugang zu allen Business-Tools.',
-            'timestamp': datetime.now().isoformat(),
-            'read': False,
-            'actions': []
-        },
-        {
-            'id': 2,
-            'type': 'success',
-            'title': 'T2-System verfügbar',
-            'message': 'Das neue T2-Closer-System ist jetzt live!',
-            'timestamp': (datetime.now() - timedelta(hours=3)).isoformat(),
-            'read': False,
-            'actions': [{'text': 'T2 öffnen', 'url': '/t2/'}]
-        }
-    ]
+    from app.core.extensions import data_persistence
 
-    return notifications
+    # Load user notifications from persistent storage
+    all_notifications = data_persistence.load_data('user_notifications', {})
+
+    # Get user-specific notifications
+    user_notifs = all_notifications.get(username, [])
+
+    # If no notifications exist, create default welcome notifications
+    if not user_notifs:
+        user_notifs = [
+            {
+                'id': 1,
+                'type': 'info',
+                'title': 'Willkommen im Tool Hub!',
+                'message': 'Du hast jetzt Zugang zu allen Business-Tools.',
+                'timestamp': datetime.now().isoformat(),
+                'read': False,
+                'actions': []
+            },
+            {
+                'id': 2,
+                'type': 'success',
+                'title': 'T2-System verfügbar',
+                'message': 'Das neue T2-Closer-System ist jetzt live!',
+                'timestamp': (datetime.now() - timedelta(hours=3)).isoformat(),
+                'read': False,
+                'actions': [{'text': 'T2 öffnen', 'url': '/t2/'}]
+            }
+        ]
+        # Save default notifications
+        all_notifications[username] = user_notifs
+        data_persistence.save_data('user_notifications', all_notifications)
+
+    return user_notifs
 
 
 def get_unread_notification_count(username):
@@ -459,11 +478,32 @@ def is_admin_user(username):
 
 def mark_notification_read(username, notification_id):
     """
-    Benachrichtigung als gelesen markieren
+    Benachrichtigung als gelesen markieren (mit Persistierung)
     """
-    # Hier würde später echte Persistierung implementiert
-    logger.info(f"Notification {notification_id} marked as read for user {username}")
-    return True
+    from app.core.extensions import data_persistence
+
+    try:
+        # Load all notifications
+        all_notifications = data_persistence.load_data('user_notifications', {})
+
+        # Get user notifications
+        user_notifs = all_notifications.get(username, [])
+
+        # Find and mark notification as read
+        for notif in user_notifs:
+            if notif['id'] == notification_id:
+                notif['read'] = True
+                break
+
+        # Save back to storage
+        all_notifications[username] = user_notifs
+        data_persistence.save_data('user_notifications', all_notifications)
+
+        logger.info(f"Notification {notification_id} marked as read for user {username}")
+        return True
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {e}")
+        return False
 
 
 @hub_bp.route('/profile')
