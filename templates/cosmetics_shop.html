@@ -108,7 +108,16 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for theme in shop_items.themes %}
             <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
-                <div class="w-full h-32 rounded-xl mb-4 {{ theme.preview_class }}"></div>
+                <!-- Theme Preview with Gradient -->
+                <div class="w-full h-32 rounded-xl mb-4 overflow-hidden relative"
+                     style="background: linear-gradient(135deg,
+                            {{ theme.colors.primary if theme.colors.primary != 'rainbow' else '#ff0000' }} 0%,
+                            {{ theme.colors.secondary if theme.colors.secondary != 'rainbow' else '#00ff00' }} 50%,
+                            {{ theme.colors.accent if theme.colors.accent != 'rainbow' else '#0000ff' }} 100%);">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-white/90 font-bold text-lg drop-shadow-lg">Vorschau</span>
+                    </div>
+                </div>
 
                 <h3 class="text-xl font-bold text-white mb-2">{{ theme.name }}</h3>
                 <p class="text-sm text-white/60 mb-4">{{ theme.description }}</p>
@@ -175,12 +184,8 @@
                             flex items-center justify-center shadow-lg">
                     <img src="{{ avatar.image }}"
                          alt="{{ avatar.name }}"
-                         class="w-full h-full object-cover"
-                         loading="lazy"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div class="hidden w-full h-full items-center justify-center text-5xl">
-                        {{ avatar.emoji }}
-                    </div>
+                         class="w-full h-full object-contain p-2"
+                         loading="lazy">
                 </div>
 
                 <!-- Gender Badge -->
@@ -253,8 +258,28 @@
 
                 <div class="mb-4">
                     <div class="text-sm text-white/70 mb-2">Vorschau:</div>
-                    <div class="bg-white/5 rounded-lg p-3 {{ effect.preview_class }}">
-                        {{ effect.preview_text }}
+                    <div class="bg-white/5 rounded-lg p-4 relative overflow-hidden">
+                        {% if effect.effect == 'sparkle_cursor' %}
+                        <div class="flex items-center gap-2 text-white/80">
+                            <span class="animate-pulse">✨</span> Glitzer bei Klicks
+                        </div>
+                        {% elif effect.effect == 'keyboard_sounds' %}
+                        <div class="flex items-center gap-2 text-white/80">
+                            <span class="animate-bounce">⌨️</span> Mechanische Sounds
+                        </div>
+                        {% elif effect.effect == 'booking_fanfare' %}
+                        <div class="flex items-center gap-2 text-white/80">
+                            <span class="animate-ping">🎺</span> Epische Musik
+                        </div>
+                        {% elif effect.effect == 'achievement_confetti' %}
+                        <div class="flex items-center gap-2 text-white/80">
+                            <span class="animate-spin">🎉</span> Konfetti-Regen
+                        </div>
+                        {% elif effect.effect == 'screen_shake' %}
+                        <div class="flex items-center gap-2 text-white/80 animate-bounce">
+                            <span>📳</span> Bildschirm vibriert
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 

@@ -21,55 +21,38 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 @require_admin
 def admin_users():
     """User management interface"""
+    from app.config.base import Config
+
     userlist = get_userlist()
-    scores = data_persistence.load_scores()
+    admin_users_list = Config.get_admin_users()
 
-    # Load all user badges from achievement system
-    try:
-        from app.services.achievement_system import achievement_system
-        all_badges = {}
-        for username in userlist.keys():
-            try:
-                user_badges = achievement_system.get_user_badges(username)
-                all_badges[username] = user_badges.get('badges', [])
-            except Exception:
-                all_badges[username] = []
-    except Exception as e:
-        print(f"Error loading user badges: {e}")
-        all_badges = {}
-
-    # Calculate user statistics
-    user_stats = []
-    current_month = datetime.now(TZ).strftime("%Y-%m")
-
-    for username in userlist.keys():
-        user_score = scores.get(username, {}).get(current_month, 0)
-        user_badges = all_badges.get(username, [])
-        total_badges = len(user_badges)
-
-        # Calculate total all-time score
-        total_score = sum(scores.get(username, {}).values())
-
-        user_stats.append({
+    # Build user objects for template
+    users = []
+    for username, password in userlist.items():
+        users.append({
             'username': username,
-            'current_month_score': user_score,
-            'total_score': total_score,
-            'total_badges': total_badges,
-            'recent_badges': user_badges[-3:] if user_badges else []  # Last 3 badges
+            'password': password,  # Wird im Template nicht angezeigt, nur "***"
+            'email': None,  # TODO: Email-System implementieren
+            'active': True,  # Alle User aus USERLIST sind aktiv
+            'is_admin': username in admin_users_list,
+            'last_login': None  # TODO: Login-Tracking implementieren
         })
 
-    # Sort by current month score
-    user_stats.sort(key=lambda x: x['current_month_score'], reverse=True)
+    # Sort by username
+    users.sort(key=lambda x: x['username'])
 
-    # Calculate statistics for template
-    total_users = len(user_stats)
-    base_users_count = len(userlist)
+    # Calculate statistics
+    total_users = len(users)
+    active_users = len([u for u in users if u['active']])
+    admin_count = len([u for u in users if u['is_admin']])
+    online_users = 0  # TODO: Online-Tracking implementieren
 
     return render_template("admin_users.html",
-                         user_stats=user_stats,
-                         current_month=current_month,
+                         users=users,
                          total_users=total_users,
-                         base_users_count=base_users_count)
+                         active_users=active_users,
+                         admin_count=admin_count,
+                         online_users=online_users)
 
 
 @admin_bp.route("/fix-points")

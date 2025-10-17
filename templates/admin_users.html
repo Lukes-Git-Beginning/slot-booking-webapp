@@ -73,6 +73,7 @@
             <thead>
                 <tr>
                     <th class="text-white">Benutzer</th>
+                    <th class="text-white">Passwort</th>
                     <th class="text-white">Status</th>
                     <th class="text-white">Rolle</th>
                     <th class="text-white">Letzter Login</th>
@@ -92,6 +93,9 @@
                                 <div class="text-sm text-white/60">{{ user.email or 'Keine Email' }}</div>
                             </div>
                         </div>
+                    </td>
+                    <td>
+                        <div class="font-mono text-white/50">{{ user.password if user.password else '***' }}</div>
                     </td>
                     <td>
                         <div class="badge {% if user.active %}badge-success{% else %}badge-error{% endif %}">
