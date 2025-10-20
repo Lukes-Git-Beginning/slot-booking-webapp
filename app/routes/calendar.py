@@ -40,13 +40,21 @@ def my_calendar():
     events_result = google_calendar_service.get_events(
         calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{start_date}T00:00:00+01:00",
-        time_max=f"{end_date}T23:59:59+01:00"
+        time_max=f"{end_date}T23:59:59+01:00",
+        cache_duration=0  # No cache - always get fresh data for personal calendar
     )
 
     all_events = events_result.get('items', []) if events_result else []
 
     # Filter events for this user (events they booked - based on [Booked by: username] tag)
     my_events = []
+
+    # DEBUG: Log what we're searching for
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"MY-CALENDAR DEBUG: Looking for bookings by user '{user}'")
+    logger.info(f"MY-CALENDAR DEBUG: Total events found: {len(all_events)}")
+
     for event in all_events:
         summary = event.get('summary', '')
         description = event.get('description', '')
@@ -54,6 +62,13 @@ def my_calendar():
         # Check if this user booked the event (via [Booked by: username] tag in description)
         booked_by_tag = f"[Booked by: {user}]"
         is_booked_by_user = booked_by_tag in description
+
+        # DEBUG: Log each event
+        if description and '[Booked by:' in description:
+            logger.info(f"MY-CALENDAR DEBUG: Found event '{summary}' with tag in description")
+            logger.info(f"MY-CALENDAR DEBUG: Description contains: {description[:200]}")
+            logger.info(f"MY-CALENDAR DEBUG: Looking for: '{booked_by_tag}'")
+            logger.info(f"MY-CALENDAR DEBUG: Match: {is_booked_by_user}")
 
         if is_booked_by_user:
             # Parse event data for display
@@ -131,7 +146,8 @@ def my_customers():
         calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{start_date}T00:00:00+01:00",
         time_max=f"{end_date}T23:59:59+01:00",
-        max_results=2500
+        max_results=2500,
+        cache_duration=0  # No cache - always get fresh data for customer analytics
     )
 
     all_events = events_result.get('items', []) if events_result else []

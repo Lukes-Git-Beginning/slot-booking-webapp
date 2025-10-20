@@ -111,14 +111,29 @@ def book_slot():
     """Slot buchen - AJAX-Endpoint"""
     try:
         user = session.get('user')
-        date_str = request.json.get('date')
-        time_str = request.json.get('time')
-        berater = request.json.get('berater')
+        data = request.json or {}
+
+        date_str = data.get('date')
+        time_str = data.get('time')
+        berater = data.get('berater')
+        first_name = data.get('first_name', '')
+        last_name = data.get('last_name', '')
+        description = data.get('description', '')
+        color_id = data.get('color_id', '9')
 
         # Import booking service for actual booking
         from app.services.booking_service import book_slot_for_user
 
-        result = book_slot_for_user(user, date_str, time_str, berater)
+        result = book_slot_for_user(
+            user=user,
+            date_str=date_str,
+            time_str=time_str,
+            berater=berater,
+            first_name=first_name,
+            last_name=last_name,
+            description=description,
+            color_id=color_id
+        )
 
         if result.get('success'):
             logger.info(f"Successful booking by {user}: {date_str} {time_str} with {berater}")
@@ -128,7 +143,7 @@ def book_slot():
             return jsonify(result), 400
 
     except Exception as e:
-        logger.error(f"Booking error: {str(e)}")
+        logger.error(f"Booking error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

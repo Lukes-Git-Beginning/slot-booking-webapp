@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- Report Header -->
-<div class="glass rounded-3xl p-8 md:p-12 mb-8 relative bg-gradient-to-br from-purple-600/20 to-primary/20" data-aos="fade-down">
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 relative bg-gradient-to-br from-secondary/20 to-primary/20" data-aos="fade-down">
     <a href="{{ url_for('admin.admin_telefonie_export_report', report_type='monthly', year=report.meta.year, month=report.meta.month) }}" class="absolute top-6 right-6 btn btn-sm btn-ghost gap-2 bg-white/10 hover:bg-white/20 border border-white/20">
         <i data-lucide="download" class="w-4 h-4"></i>
         <span>PDF Export</span>
@@ -55,7 +55,7 @@
     <!-- Team Performance Card -->
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="300">
         <div class="text-4xl mb-3">👥</div>
-        <div class="text-5xl font-bold text-purple-400 mb-2">{{ report.performance_overview.team_distribution.high_performers }}</div>
+        <div class="text-5xl font-bold text-secondary mb-2">{{ report.performance_overview.team_distribution.high_performers }}</div>
         <div class="text-white/60 mb-3">Top-Performer</div>
         <div class="text-sm text-white/50">
             {{ report.performance_overview.team_distribution.medium_performers }} mittel,
@@ -100,8 +100,8 @@
 <!-- Team Individual Performance -->
 <div class="glass rounded-2xl p-8 mb-8" data-aos="fade-up" data-aos-delay="600">
     <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center">
-            <i data-lucide="users" class="w-6 h-6 text-purple-400"></i>
+        <div class="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
+            <i data-lucide="users" class="w-6 h-6 text-secondary"></i>
         </div>
         <h3 class="text-2xl font-bold text-white">Individuelle Team-Leistung</h3>
     </div>

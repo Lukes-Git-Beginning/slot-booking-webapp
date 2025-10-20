@@ -10,7 +10,7 @@
 
     <div class="relative z-10">
         <div class="flex items-center gap-4 mb-4">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center animate-float">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center animate-float">
                 <i data-lucide="trending-up" class="w-8 h-8 text-white"></i>
             </div>
             <div>
@@ -106,14 +106,14 @@
             <!-- Efficiency Card -->
             <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform duration-300" data-aos="fade-up" data-aos-delay="300">
                 <div class="flex items-center gap-3 mb-4">
-                    <i data-lucide="target" class="w-6 h-6 text-purple-500"></i>
-                    <h3 class="text-lg font-semibold text-purple-400">Effizienz</h3>
+                    <i data-lucide="target" class="w-6 h-6 text-secondary"></i>
+                    <h3 class="text-lg font-semibold text-secondary">Effizienz</h3>
                 </div>
                 <div class="text-5xl font-bold text-white mb-2">{{ analytics.overview.efficiency_score or 0 }}%</div>
                 <div class="text-white/60 mb-4">Effizienz-Score</div>
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-white/5 rounded-lg p-3 text-center">
-                        <div class="text-lg font-bold text-purple-400">{{ analytics.overview.peak_activity_time or "10:00" }}</div>
+                        <div class="text-lg font-bold text-secondary">{{ analytics.overview.peak_activity_time or "10:00" }}</div>
                         <div class="text-xs text-white/60">Peak-Zeit</div>
                     </div>
                     <div class="bg-white/5 rounded-lg p-3 text-center">
@@ -124,7 +124,7 @@
             </div>
 
             <!-- Behavioral Insights Card -->
-            <div class="glass rounded-2xl p-6 bg-gradient-to-br from-primary/20 to-purple-600/20 hover:scale-105 transition-transform duration-300" data-aos="fade-up" data-aos-delay="400">
+            <div class="glass rounded-2xl p-6 bg-gradient-to-br from-primary/20 to-secondary/20 hover:scale-105 transition-transform duration-300" data-aos="fade-up" data-aos-delay="400">
                 <div class="flex items-center gap-3 mb-4">
                     <i data-lucide="brain" class="w-6 h-6 text-white"></i>
                     <h3 class="text-lg font-semibold text-white">Behavioral Insights</h3>
@@ -232,7 +232,7 @@
             <!-- Seasonal Patterns Chart -->
             <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
                 <div class="flex items-center gap-3 mb-6">
-                    <i data-lucide="calendar-days" class="w-6 h-6 text-purple-500"></i>
+                    <i data-lucide="calendar-days" class="w-6 h-6 text-secondary"></i>
                     <h3 class="text-xl font-bold text-white">Saisonale Muster</h3>
                 </div>
                 <div id="seasonalChart" style="min-height: 300px;"></div>
@@ -250,7 +250,7 @@
                 <h4 class="text-sm font-semibold text-white/60 mb-3">Lieblingskategorien:</h4>
                 <div class="flex gap-2 flex-wrap mb-6">
                     {% for category in analytics.achievements_analysis.favorite_categories or [] %}
-                    <span class="px-3 py-1 bg-purple-500/20 border border-purple-500/40 text-purple-400 rounded-full text-xs font-semibold">{{ category|title }}</span>
+                    <span class="px-3 py-1 bg-secondary/20 border border-secondary/40 text-secondary rounded-full text-xs font-semibold">{{ category|title }}</span>
                     {% endfor %}
                 </div>
 
@@ -273,7 +273,7 @@
     <div x-show="activeTab === 'predictions'" x-transition class="w-full pt-6">
 
         <!-- Future Predictions -->
-        <div class="glass rounded-3xl p-8 bg-gradient-to-br from-purple-600/20 to-primary/20 mb-8" data-aos="fade-up" data-aos-delay="100">
+        <div class="glass rounded-3xl p-8 bg-gradient-to-br from-secondary/20 to-primary/20 mb-8" data-aos="fade-up" data-aos-delay="100">
             <div class="flex items-center gap-3 mb-4">
                 <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
                 <h2 class="text-3xl font-bold text-white">Zukunftsprognosen</h2>
@@ -413,12 +413,12 @@
             <!-- Gamification Focus -->
             <div class="mb-8">
                 <div class="flex items-center gap-2 mb-4">
-                    <i data-lucide="gamepad-2" class="w-5 h-5 text-purple-500"></i>
+                    <i data-lucide="gamepad-2" class="w-5 h-5 text-secondary"></i>
                     <h4 class="text-lg font-semibold text-white">Gamification-Fokus</h4>
                 </div>
                 <ul class="space-y-3">
                     {% for focus in analytics.recommendations.gamification_focus or [] %}
-                    <li class="p-4 bg-white/5 rounded-lg border-l-4 border-purple-500 text-white/90">{{ focus }}</li>
+                    <li class="p-4 bg-white/5 rounded-lg border-l-4 border-secondary text-white/90">{{ focus }}</li>
                     {% endfor %}
                 </ul>
             </div>
@@ -447,7 +447,7 @@
         <i data-lucide="arrow-left" class="w-5 h-5"></i>
         <span>Dashboard</span>
     </a>
-    <a href="{{ url_for('gamification.daily_quests') }}" class="btn gap-2 bg-purple-600 hover:bg-purple-700 border-0 text-white">
+    <a href="{{ url_for('gamification.daily_quests') }}" class="btn gap-2 bg-secondary hover:bg-accent border-0 text-white">
         <i data-lucide="target" class="w-5 h-5"></i>
         <span>Quests</span>
     </a>

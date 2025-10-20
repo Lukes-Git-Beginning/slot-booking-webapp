@@ -432,60 +432,66 @@ def get_available_tools():
             'name': 'Slot-Booking',
             'description': 'Terminbuchungs-System',
             'icon': '🎯',
+            'lucide_icon': 'target',
             'url': '/slots/',
             'status': 'active',
             'users': get_tool_user_count('slots'),
-            'color': '#2196F3'
+            'color': '#d4af6a'  # ZFA Gold
         },
         {
             'id': 't2',
             'name': 'T2-Closer',
             'description': 'T2-Termin-Management',
             'icon': '💼',
+            'lucide_icon': 'briefcase',
             'url': '/t2/',
             'status': 'active',
             'users': get_tool_user_count('t2'),
-            'color': '#a855f7'
+            'color': '#207487'  # ZFA Blau
         },
         {
             'id': 'analytics',
             'name': 'Analytics',
             'description': 'Business Intelligence',
             'icon': '📊',
+            'lucide_icon': 'bar-chart-3',
             'url': '/analytics/',
             'status': 'active',
             'users': get_tool_user_count('analytics'),
-            'color': '#FF9800'
+            'color': '#294c5d'  # ZFA Dunkelblau
         },
         {
             'id': 'tool4',
             'name': 'Tool #4',
             'description': 'Coming Soon',
             'icon': '🔧',
+            'lucide_icon': 'wrench',
             'url': '#',
             'status': 'coming_soon',
             'users': 0,
-            'color': '#9E9E9E'
+            'color': '#c2ae7f'  # ZFA Gold Dark
         },
         {
             'id': 'tool5',
             'name': 'Tool #5',
             'description': 'Coming Soon',
             'icon': '⚙️',
+            'lucide_icon': 'settings',
             'url': '#',
             'status': 'coming_soon',
             'users': 0,
-            'color': '#9E9E9E'
+            'color': '#207487'  # ZFA Blau
         },
         {
             'id': 'tool6',
             'name': 'Tool #6',
             'description': 'Coming Soon',
             'icon': '🚀',
+            'lucide_icon': 'rocket',
             'url': '#',
             'status': 'coming_soon',
             'users': 0,
-            'color': '#9E9E9E'
+            'color': '#294c5d'  # ZFA Dunkelblau
         }
     ]
 

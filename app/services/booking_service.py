@@ -391,3 +391,89 @@ def get_slot_points(hour, slot_date, date_str=None, berater_count=None, color_id
         points = max(1, points)
 
     return points
+
+
+def book_slot_for_user(user: str, date_str: str, time_str: str, berater: str,
+                       first_name: str = "", last_name: str = "", description: str = "",
+                       color_id: str = "9") -> Dict[str, Any]:
+    """
+    Book a slot for a user
+
+    Args:
+        user: Username who is booking
+        date_str: Date in format YYYY-MM-DD
+        time_str: Time in format HH:MM
+        berater: Consultant name
+        first_name: Customer first name (optional)
+        last_name: Customer last name (optional)
+        description: Booking description (optional)
+        color_id: Calendar color ID (default 9)
+
+    Returns:
+        Dict with 'success' boolean and either 'message' or 'error'
+    """
+    try:
+        # Validate inputs
+        if not all([user, date_str, time_str]):
+            return {'success': False, 'error': 'Missing required parameters'}
+
+        # Parse datetime
+        try:
+            slot_start = TZ.localize(datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M"))
+            slot_end = slot_start + timedelta(hours=2)
+        except ValueError as e:
+            return {'success': False, 'error': f'Invalid date/time format: {e}'}
+
+        # Create booking description with [Booked by:] tag for tracking
+        booking_description = description
+        if user and user != "unknown":
+            tag = f"[Booked by: {user}]"
+            booking_description = f"{description}\n\n{tag}" if description else tag
+
+        # Create event summary
+        if first_name and last_name:
+            summary = f"{last_name}, {first_name}"
+        elif first_name:
+            summary = first_name
+        elif last_name:
+            summary = last_name
+        else:
+            summary = "Buchung"
+
+        # Create calendar event
+        event_body = {
+            "summary": summary,
+            "description": booking_description,
+            "start": {"dateTime": slot_start.isoformat()},
+            "end": {"dateTime": slot_end.isoformat()},
+            "colorId": color_id
+        }
+
+        # Book via Google Calendar
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return {'success': False, 'error': 'Calendar service not available'}
+
+        from app.config.base import config
+        result = calendar_service.create_event(
+            calendar_id=config.CENTRAL_CALENDAR_ID,
+            event_data=event_body
+        )
+
+        if not result:
+            return {'success': False, 'error': 'Failed to create calendar event'}
+
+        # Clear cache
+        cache_manager.clear_all()
+
+        logger.info(f"Slot booked successfully by {user}: {date_str} {time_str} - {summary}")
+
+        return {
+            'success': True,
+            'message': 'Slot erfolgreich gebucht',
+            'event_id': result.get('id') if isinstance(result, dict) else None
+        }
+
+    except Exception as e:
+        logger.error(f"Error booking slot: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}

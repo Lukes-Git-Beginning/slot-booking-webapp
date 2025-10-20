@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-import datetime
+"""
+Availability Generator - DIREKTE Google API (kein Cache-Bug!)
+Basierend auf bewährter Render-Logik mit direktem API-Zugriff
+"""
 import os
 import json
 import time
@@ -12,7 +15,7 @@ import sys
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(project_root)
 
-# Load .env file explicitly for standalone execution
+# Load .env file
 from dotenv import load_dotenv
 dotenv_path = os.path.join(project_root, '.env')
 if os.path.exists(dotenv_path):
@@ -21,17 +24,30 @@ if os.path.exists(dotenv_path):
 else:
     print(f"⚠️ No .env file found at {dotenv_path}")
 
-from app.core.google_calendar import get_google_calendar_service
+# DIRECT Google API - kein GoogleCalendarService!
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from app.utils.credentials import load_google_credentials
 
-# ----------------- Konfiguration -----------------
-CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "primary")
+# Konfiguration
 TZ = pytz.timezone("Europe/Berlin")
 
-# Google Calendar Farben die NICHT blockieren sollen
-# Import vom Hauptverzeichnis (ein Level höher)
-project_root = os.path.dirname(os.path.dirname(__file__))
-sys.path.insert(0, project_root)
-from app.utils.color_mapping import NON_BLOCKING_COLORS
+# Berater-Konfiguration aus .env
+consultants_str = os.getenv("CONSULTANTS", "")
+consultants = {}
+for entry in consultants_str.split(','):
+    if ':' in entry:
+        name, cal_id = entry.split(':', 1)
+        consultants[name.strip()] = cal_id.strip()
+
+# Zeitslots pro Wochentag
+slots = {
+    "Mo": ["11:00", "14:00", "16:00", "18:00", "20:00"],
+    "Di": ["11:00", "14:00", "16:00", "18:00", "20:00"],
+    "Mi": ["11:00", "14:00", "16:00", "18:00", "20:00"],
+    "Do": ["11:00", "14:00", "16:00", "18:00", "20:00"],
+    "Fr": ["09:00", "11:00", "14:00"]
+}
 
 weekday_map = {
     'Monday': 'Mo',
@@ -43,127 +59,63 @@ weekday_map = {
     'Sunday': 'So'
 }
 
-# Import consultant configuration from central config
-from app.config.base import ConsultantConfig
-consultants = ConsultantConfig.get_consultants()
 
-restricted_slots = {
-    # Alle Zeitbeschränkungen entfernt - alle Berater verfügbar zu allen Zeiten
-}
-
-slots = {
-    "Mo": ["11:00", "14:00", "16:00", "18:00", "20:00"],
-    "Di": ["11:00", "14:00", "16:00", "18:00", "20:00"],
-    "Mi": ["11:00", "14:00", "16:00", "18:00", "20:00"],
-    "Do": ["11:00", "14:00", "16:00", "18:00", "20:00"],
-    "Fr": ["09:00", "11:00", "14:00"]
-}
-
-# safe_api_call is now handled by GoogleCalendarService.safe_calendar_call()
-
-def batch_fetch_events(consultant_calendars, start_date, end_date):
-    """
-    Hole Events für alle Berater mit Caching (30min)
-    Nutzt GoogleCalendarService für Quota-Management und Rate-Limiting
-    """
-    calendar_service = get_google_calendar_service()
-    if not calendar_service:
-        print("❌ GoogleCalendarService konnte nicht initialisiert werden")
-        return {}
-
-    all_events = {}
-    cache_duration = 1800  # 30 Minuten Cache
-
-    for name, cal_id in consultant_calendars.items():
-        print(f"📅 Hole Events für {name}...")
-
-        # GoogleCalendarService mit Cache nutzen
-        result = calendar_service.get_events(
-            calendar_id=cal_id,
-            time_min=start_date.isoformat(),
-            time_max=end_date.isoformat(),
-            max_results=2500
-        )
-
-        if result:
-            events = result.get('items', [])
-            all_events[name] = events
-            print(f"  ✅ {len(events)} Events geladen (Cache: {cache_duration}s)")
-        else:
-            all_events[name] = []
-            print(f"  ⚠️ Keine Events für {name} erhalten")
-
-    # Quota-Status ausgeben (optional - nur wenn verfügbar)
+def init_google_calendar_service():
+    """Initialisiere DIREKTE Google Calendar API"""
     try:
-        quota_used = getattr(calendar_service, '_daily_quota_used', '?')
-        quota_limit = getattr(calendar_service, '_quota_limit', '?')
-        print(f"\n📊 Quota-Status: {quota_used}/{quota_limit} API-Calls heute")
-    except:
-        pass
+        scopes = ['https://www.googleapis.com/auth/calendar.readonly']
+        creds = load_google_credentials(scopes)
+        service = build('calendar', 'v3', credentials=creds)
+        print("✅ Google Calendar API direkt initialisiert (KEIN CACHE!)")
+        return service
+    except Exception as e:
+        print(f"❌ FEHLER beim Initialisieren der Google API: {e}")
+        return None
 
-    return all_events
 
-def is_consultant_available(events, slot_start, slot_end):
-    """Prüfe ob Berater verfügbar ist basierend auf Events und Farbcodes
-
-    STRIKTE REGEL: Berater ist NUR verfügbar wenn explizit "T1-bereit" Event vorhanden ist.
-    Leerer Kalender = NICHT verfügbar (Berater muss aktiv Verfügbarkeit signalisieren)
+def is_berater_available(service, cal_id, berater_name, slot_start, slot_end):
     """
-    has_t1_bereit = False
-    has_blocking_event = False
+    Prüfe ob Berater verfügbar ist - DIREKTE API, kein Cache
 
-    for event in events:
-        # Parse Event-Zeit
-        event_start_str = event.get('start', {}).get('dateTime')
-        event_end_str = event.get('end', {}).get('dateTime')
+    Regel: Berater ist verfügbar wenn T1-bereit Event gefunden wird.
+    """
+    try:
+        # DIREKTE API-Abfrage - KEIN CACHE!
+        events_result = service.events().list(
+            calendarId=cal_id,
+            timeMin=slot_start.isoformat(),
+            timeMax=slot_end.isoformat(),
+            singleEvents=True,
+            orderBy='startTime',
+            maxResults=10
+        ).execute()
 
-        if not event_start_str or not event_end_str:
-            continue
+        events = events_result.get('items', [])
+        print(f"  📋 {berater_name}: {len(events)} events gefunden")
 
-        try:
-            event_start = datetime.fromisoformat(event_start_str)
-            event_end = datetime.fromisoformat(event_end_str)
+        # Suche T1-bereit Event
+        for event in events:
+            summary = event.get('summary', '').strip().lower()
 
-            # Prüfe Überschneidung
-            if event_start < slot_end and event_end > slot_start:
-                summary = event.get('summary', '').strip().lower()
-                color_id = event.get('colorId', None)
+            # T1-bereit gefunden? → Berater verfügbar!
+            if 't1' in summary and 'bereit' in summary:
+                print(f"  ✅ {berater_name}: T1-bereit gefunden: '{event.get('summary', '')}'")
+                return True
 
-                # LOGIK: Erst Farbe prüfen, dann Titel
-                # 1. Wenn Color ID in NON_BLOCKING_COLORS, dann ignorieren
-                if color_id and str(color_id) in NON_BLOCKING_COLORS:
-                    print(f"  ⚪ Non-blocking Event (Farbe {color_id}): '{event.get('summary', '')}'")
-                    continue
+        # Kein T1-bereit Event
+        if len(events) > 0:
+            print(f"  ⚪ {berater_name}: Kein T1-bereit Event ({len(events)} andere Events)")
+        else:
+            print(f"  ⚪ {berater_name}: Keine Events")
+        return False
 
-                # 2. T1 Events erkennen - flexibel für alle Schreibweisen
-                # "T1 Bereit", "T1-bereit", "T1 bereit", "t1 bereit", etc.
-                if 't1' in summary and 'bereit' in summary:
-                    has_t1_bereit = True
-                    print(f"  ✅ T1-bereit Event gefunden: '{event.get('summary', '')}' (Farbe: {color_id})")
-                elif 't2' in summary or 't3' in summary or 't2.5' in summary:
-                    # T2/T3 Events sind blockierend
-                    has_blocking_event = True
-                    print(f"  🚫 Blockierender Event: '{event.get('summary', '')}' (Farbe: {color_id})")
-                else:
-                    # Alle anderen Events (ohne T1/T2/T3) sind auch blockierend
-                    has_blocking_event = True
-                    print(f"  🚫 Blockierender Event: '{event.get('summary', '')}' (Farbe: {color_id})")
+    except Exception as e:
+        print(f"  ❌ {berater_name}: API-Fehler: {e}")
+        return False
 
-        except Exception as e:
-            print(f"⚠️ Fehler beim Parsen von Event: {e}")
-            continue
-
-    # STRIKTE REGEL: Verfügbar nur wenn T1-bereit Event vorhanden UND keine blockierenden Events
-    is_available = has_t1_bereit and not has_blocking_event
-    if is_available:
-        print(f"  ✅ Berater verfügbar (T1-bereit: {has_t1_bereit}, Blockierende Events: {has_blocking_event})")
-    else:
-        print(f"  🚫 Berater NICHT verfügbar (T1-bereit: {has_t1_bereit}, Blockierende Events: {has_blocking_event})")
-
-    return is_available
 
 def backup_availability():
-    """Erstelle tägliches Backup - PERSISTENT STORAGE"""
+    """Erstelle Backup"""
     backup_dir = "data/persistent/backups"
     os.makedirs(backup_dir, exist_ok=True)
 
@@ -171,137 +123,107 @@ def backup_availability():
     if os.path.exists(availability_file):
         backup_name = f"{backup_dir}/availability_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         shutil.copy2(availability_file, backup_name)
-        print(f"💾 Backup erstellt: {backup_name}")
+        print(f"💾 Backup: {backup_name}")
 
         # Behalte nur die letzten 7 Backups
         backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("availability_")])
         for old_backup in backups[:-7]:
             os.remove(os.path.join(backup_dir, old_backup))
-            print(f"🗑️ Altes Backup gelöscht: {old_backup}")
+
 
 def main():
+    """Hauptfunktion"""
     availability = {}
     availability_file = "data/persistent/availability.json"
-    now = datetime.now(TZ)  # WICHTIG: Mit Timezone für Uhrzeitvergleich
+    now = datetime.now(TZ)
 
-    print(f"🚀 Availability-Generator gestartet um {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    print(f"🔧 Nutzt GoogleCalendarService mit Caching & Quota-Management")
-    print(f"💾 Persistent Storage: {availability_file}\n")
+    print(f"\n🚀 Availability-Generator (DIREKTE API, kein Cache-Bug!)")
+    print(f"🕒 Gestartet: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    print(f"👥 {len(consultants)} Berater konfiguriert\n")
 
-    # Sicherstellen dass data/persistent existiert
+    # Sicherstellen dass Verzeichnis existiert
     os.makedirs("data/persistent", exist_ok=True)
 
-    # Vorhandene Verfügbarkeiten laden
+    # Google Calendar Service DIREKT initialisieren
+    service = init_google_calendar_service()
+    if not service:
+        print("❌ ABBRUCH: Keine Google API Verbindung")
+        return
+
+    # Vorhandene Daten laden
     if os.path.exists(availability_file):
         try:
             with open(availability_file, "r", encoding="utf-8") as f:
                 availability = json.load(f)
-            print(f"✅ Bestehende availability.json geladen ({len(availability)} Einträge)")
+            print(f"📂 Bestehende Daten geladen ({len(availability)} Einträge)\n")
         except Exception as e:
-            print(f"⚠️ Fehler beim Laden der alten availability.json: {e}")
+            print(f"⚠️ Fehler beim Laden: {e}\n")
             availability = {}
 
-    # Zeitraum für Batch-Fetch (56 Tage = 8 Wochen) - aber ab jetzt
-    start_date = TZ.localize(datetime.combine(now.date(), datetime.min.time()))
-    end_date = start_date + timedelta(days=56)
-
-    # PERFORMANCE-OPTIMIERUNG: Alle Events einmal holen (mit 30min Cache)
-    print(f"🚀 Hole alle Events für {len(consultants)} Berater (56 Tage ab jetzt)...")
-    print(f"💾 Cache-Dauer: 30 Minuten (reduziert API-Calls drastisch)")
-    all_consultant_events = batch_fetch_events(consultants, start_date, end_date)
-    
-    # Slots analysieren
-    print(f"\n📊 Analysiere Slots...")
-    print(f"ℹ️ Termine mit Farbe Tomate(11) oder Mandarine(6) werden ignoriert")
-    print(f"🕒 Aktuelle Zeit: {now.strftime('%Y-%m-%d %H:%M')}")
-    print(f"ℹ️ Nur zukünftige Slots werden berücksichtigt\n")
-    
     slot_count = 0
-    new_slots = 0
     skipped_past = 0
-    
+
+    # Slots für 56 Tage generieren
     for day_offset in range(56):
         day = now + timedelta(days=day_offset)
         weekday_en = day.strftime('%A')
         weekday = weekday_map.get(weekday_en, None)
-        
+
         if weekday not in slots:
             continue
-        
+
         for time in slots[weekday]:
             start_naive = datetime.strptime(f"{day.strftime('%Y-%m-%d')} {time}", "%Y-%m-%d %H:%M")
             slot_start = TZ.localize(start_naive)
             slot_end = slot_start + timedelta(hours=2)
             slot_key = f"{day.strftime('%Y-%m-%d')} {time}"
-            
-            # KRITISCHER FIX: Skip vergangene Slots (auch heute!)
+
+            # Skip vergangene Slots
             if slot_start <= now:
                 if slot_key in availability:
-                    del availability[slot_key]  # Entferne vergangene Slots
+                    del availability[slot_key]
                 skipped_past += 1
-                print(f"⏭️ Vergangener Slot übersprungen: {slot_key}")
                 continue
 
-            # WICHTIG: Slots werden bei jedem Durchlauf neu berechnet
-            # Dies stellt sicher, dass Änderungen im Google Calendar sofort reflektiert werden
-
+            # Verfügbare Berater finden
             available = []
-            
-            # Prüfe jeden Berater (nutze gecachte Events)
+
+            print(f"🔍 Slot: {slot_key}")
             for name, cal_id in consultants.items():
-                # Prüfe Einschränkungen: Wenn ein Berater für bestimmte Uhrzeiten gesperrt ist,
-                # dann überspringe genau diese Uhrzeiten für diesen Berater
-                if name in restricted_slots and time in restricted_slots[name]:
-                    continue
-                
-                # Nutze die vorher geholten Events
-                consultant_events = all_consultant_events.get(name, [])
-                
-                # Filtere relevante Events für diesen Slot
-                relevant_events = [
-                    e for e in consultant_events
-                    if e.get('start', {}).get('dateTime')
-                ]
-                
-                if is_consultant_available(relevant_events, slot_start, slot_end):
+                if is_berater_available(service, cal_id, name, slot_start, slot_end):
                     available.append(name)
-            
+
             availability[slot_key] = available
             slot_count += 1
-            
+
             if not available:
-                print(f"🚫 {slot_key}: Keine Berater verfügbar")
+                print(f"  🚫 Ergebnis: Keine Berater verfügbar\n")
             else:
-                print(f"✅ {slot_key}: {len(available)} Berater verfügbar ({', '.join(available)})")
-    
-    # Alte Einträge entfernen (älter als heute)
+                print(f"  ✅ Ergebnis: {len(available)} Berater: {', '.join(available)}\n")
+
+    # Alte Einträge entfernen
     old_count = len(availability)
-    today_start = TZ.localize(datetime.combine(now.date(), datetime.min.time()))
-    
     availability = {
         k: v for k, v in availability.items()
-        if TZ.localize(datetime.strptime(k.split(" ")[0] + " " + k.split(" ")[1], "%Y-%m-%d %H:%M")) > now
+        if TZ.localize(datetime.strptime(k, "%Y-%m-%d %H:%M")) > now
     }
-    
     removed_count = old_count - len(availability)
 
-    # Datei speichern - PERSISTENT STORAGE
-    os.makedirs("data/persistent", exist_ok=True)
+    # Datei speichern
     with open(availability_file, "w", encoding="utf-8") as f:
         json.dump(availability, f, ensure_ascii=False, indent=2)
-    
-    print(f"\n✅ Fertig!")
+
+    print(f"✅ Fertig!")
     print(f"📊 Statistik:")
-    print(f"   - Slots analysiert: {slot_count}")
-    print(f"   - Vergangene übersprungen: {skipped_past}")
-    print(f"   - Alte entfernt: {removed_count}")
-    print(f"   - Gesamt gespeichert: {len(availability)}")
-    print(f"🕒 Nur Slots ab {now.strftime('%Y-%m-%d %H:%M')} berücksichtigt")
-    print(f"♻️ Alle Slots werden bei jedem Durchlauf neu berechnet (dynamische Updates)")
+    print(f"   - Analysiert: {slot_count}")
+    print(f"   - Übersprungen: {skipped_past}")
+    print(f"   - Entfernt: {removed_count}")
+    print(f"   - Gespeichert: {len(availability)}")
+
 
 if __name__ == "__main__":
     start_time = time.time()
     main()
-    backup_availability()  # Backup nach erfolgreicher Generierung
+    backup_availability()
     duration = time.time() - start_time
-    print(f"⏱️ Laufzeit: {duration:.2f} Sekunden")
+    print(f"⏱️ Laufzeit: {duration:.2f}s")

@@ -172,20 +172,22 @@ class GoogleCalendarService:
         if not self.service:
             return None
 
-        def _get_events():
+        def _get_events(cal_id, t_min, t_max, max_res):
             params = {
-                'calendarId': calendar_id,
-                'timeMin': time_min,
-                'timeMax': time_max,
+                'calendarId': cal_id,
+                'timeMin': t_min,
+                'timeMax': t_max,
                 'singleEvents': True,
-                'orderBy': 'startTime'
+                'orderBy': 'startTime',
+                # CRITICAL: Request description field explicitly!
+                'fields': 'items(id,summary,description,start,end,colorId,status),nextPageToken'
             }
-            if max_results:
-                params['maxResults'] = max_results
+            if max_res:
+                params['maxResults'] = max_res
 
             return self.service.events().list(**params).execute()
 
-        return self.safe_calendar_call(_get_events, cache_duration=cache_duration)
+        return self.safe_calendar_call(_get_events, calendar_id, time_min, time_max, max_results, cache_duration=cache_duration)
 
     def create_event(self, calendar_id: str, event_data: dict):
         """Create a new calendar event"""

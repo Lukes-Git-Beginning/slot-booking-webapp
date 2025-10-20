@@ -194,6 +194,9 @@ def book():
         if user and user != "unknown":
             booking_description = f"{description}\n\n[Booked by: {user}]" if description else f"[Booked by: {user}]"
 
+        # DEBUG: Log the description
+        booking_logger.info(f"BOOKING DEBUG: Creating event with description: '{booking_description}' for user: '{user}'")
+
         event_body = {
             "summary": f"{last}, {first}",
             "description": booking_description,
@@ -201,6 +204,9 @@ def book():
             "end": {"dateTime": slot_end.isoformat()},
             "colorId": color_id
         }
+
+        # DEBUG: Log the event body
+        booking_logger.info(f"BOOKING DEBUG: Event body description: '{event_body.get('description')}')")
 
         calendar_service = get_google_calendar_service()
         if not calendar_service:
@@ -216,6 +222,9 @@ def book():
             # Invalidate cache for this slot since we just booked it
             cache_key = f"{date}_{hour}"
             cache_manager.invalidate("calendar_events", cache_key)
+
+            # Invalidate personal calendar cache for immediate visibility in my-calendar
+            cache_manager.clear_all()  # Clear all calendar caches to ensure fresh data
 
             # Add tracking
             try:

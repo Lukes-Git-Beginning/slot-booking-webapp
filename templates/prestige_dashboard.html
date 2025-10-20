@@ -9,8 +9,8 @@
     <div class="gradient-bg absolute inset-0 opacity-20"></div>
 
     <div class="relative z-10 text-center">
-        <div class="inline-block p-4 rounded-2xl bg-purple-600/20 mb-4">
-            <i data-lucide="crown" class="w-16 h-16 text-purple-400"></i>
+        <div class="inline-block p-4 rounded-2xl bg-secondary/20 mb-4">
+            <i data-lucide="crown" class="w-16 h-16 text-secondary"></i>
         </div>
         <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">👑 Prestige System</h1>
         <p class="text-xl text-white/80">Elite-Status und Meisterschafts-Errungenschaften</p>
@@ -20,7 +20,7 @@
 <!-- Current Prestige Status -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="100">
-        <div class="text-6xl font-bold text-purple-400 mb-2">{{ prestige_data.get('prestige_level', 0) }}</div>
+        <div class="text-6xl font-bold text-secondary mb-2">{{ prestige_data.get('prestige_level', 0) }}</div>
         <div class="text-white/70 mb-4">Prestige Level</div>
         {% set title_data = prestige_data.get('prestige_title', {'name': 'Neuling'}) %}
         <div class="badge badge-lg badge-primary">
@@ -82,7 +82,7 @@
                     <span>{{ progress_percent|round|int }}%</span>
                 </div>
                 <div class="w-full bg-white/10 rounded-full h-3">
-                    <div class="bg-gradient-to-r from-primary to-purple-600 h-3 rounded-full transition-all"
+                    <div class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all"
                          style="width: {{ progress_percent|round|int }}%"></div>
                 </div>
             </div>
@@ -139,7 +139,7 @@
 
 <!-- Next Prestige Level Preview -->
 {% if prestige_data.next_level_info %}
-<div class="glass rounded-3xl p-8 mb-8 bg-gradient-to-br from-accent/10 to-purple-600/10" data-aos="fade-up" data-aos-delay="600">
+<div class="glass rounded-3xl p-8 mb-8 bg-gradient-to-br from-accent/10 to-secondary/10" data-aos="fade-up" data-aos-delay="600">
     <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
             <i data-lucide="chevrons-up" class="w-7 h-7 text-accent"></i>
@@ -179,8 +179,8 @@
 {% if prestige_data.history %}
 <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="700">
     <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center">
-            <i data-lucide="clock" class="w-7 h-7 text-purple-400"></i>
+        <div class="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
+            <i data-lucide="clock" class="w-7 h-7 text-secondary"></i>
         </div>
         <h3 class="text-2xl font-bold text-white">Prestige Verlauf</h3>
     </div>

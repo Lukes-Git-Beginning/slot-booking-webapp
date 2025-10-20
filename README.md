@@ -772,27 +772,25 @@ with app.app_context():
 
 ## 📝 Changelog
 
-### v3.3.2 - Cosmetics System v2 (Aktuell - 2025-10-17)
-- ✅ **Theme System**: Vollständige CSS Custom Properties Integration
-  - 6+ Themes (Sunset, Ocean, Forest, Lavender, Fire, Rainbow)
-  - Dynamic CSS Injection in hub/base.html mit :root-Variablen
-  - Live-Gradient-Previews im Cosmetics Shop
-  - Persistent Storage über cosmetics_shop Service
-- ✅ **Canvas Particle System**: `static/cosmetics-effects.js` (8.8KB)
-  - Sparkle Trail: 8 goldene Partikel bei Klicks mit Physik-Engine
-  - Confetti Explosion: 50 rotierende Partikel für Achievements/Bookings
-  - Screen Shake: 500ms Kamera-Shake mit Intensity Decay
-  - 60fps Animation Loop mit globalAlpha-Blending
-- ✅ **Audio Effects**: Web Audio API Integration
-  - Booking Fanfare: C5-Oszillator mit exponentialRamp
-  - Keyboard Sounds Framework (bereit für Sound-Files)
-- ✅ **Event-Driven Architecture**: Custom Events für Effect-Trigger
-  - `achievement-unlocked` → Confetti + Screen Shake
-  - `booking-success` → Confetti + Fanfare
-- ✅ **Avatar System**: 22 PNG-Avatare aus C:\Users\Luke\Pictures\Avatare
-  - Business, Developer, Manager, Student, Fantasy-Charaktere
-  - Direkte PNG-Integration ohne Emoji-Fallback
-- ✅ **API Integration**: `/api/cosmetics/active-effects` Endpoint für JavaScript
+### v3.3.2 - Icon Consistency & ZFA Branding (LIVE - 2025-10-18)
+- ✅ **ZFA Color Scheme 100% Konsistent**: Vollständiger Austausch aller purple/violet Farben
+  - Analytics Dashboard: 9 manuelle purple→secondary Replacements
+  - Batch-Update: 16 Template-Dateien automatisch aktualisiert
+  - Alle Gradients: from-primary to-secondary (Gold→Blau)
+  - Konsistente Farbpalette: Primary (#d4af6a), Secondary (#207487), Accent (#294c5d)
+- ✅ **Lucide Icons Integration**: Moderne Icon-Library vollständig implementiert
+  - Alle Tool-Icons von Emojis zu Lucide migriert (target, briefcase, bar-chart, etc.)
+  - Multi-Timeout-Initialisierung für AOS-Animation-Kompatibilität
+  - Icon-Rendering nach 100ms, 500ms, 1000ms, 2000ms für vollständige Coverage
+- ✅ **Production Deployment**: Alle Änderungen live auf Hetzner
+  - 17 Template-Dateien deployed und verifiziert
+  - Service stabil: 4 Gunicorn Workers, 212MB RAM
+  - Go-Live erfolgreich abgeschlossen (2025-10-18)
+- ✅ **Cosmetics System v2** (2025-10-17):
+  - Theme System: 6+ Themes mit CSS Custom Properties
+  - Canvas Particle System: Sparkle Trail, Confetti, Screen Shake
+  - Web Audio API: Booking Fanfare, Keyboard Sounds Framework
+  - 22 PNG-Avatare aus Professional Asset Collection
 
 ### v3.3.1 - Production Hardening & Automation (2025-10-17)
 - ✅ **Google Calendar API Fix**: Kritische Datetime-Format-Korrektur (ISO 8601) - 100% API-Erfolgsrate

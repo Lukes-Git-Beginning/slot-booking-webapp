@@ -25,7 +25,7 @@
         </h3>
 
         <div class="text-center mb-6">
-            <div class="text-7xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-2">
+            <div class="text-7xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
                 {{ user_level.current_level|default(1) }}
             </div>
             <div class="text-lg text-white/70">{{ user_level.level_title|default('Anfänger') }}</div>
@@ -37,7 +37,7 @@
                 <span>{{ user_level.xp_for_next_level|default(100) }} XP</span>
             </div>
             <div class="w-full bg-white/10 rounded-full h-4">
-                <div class="bg-gradient-to-r from-primary to-purple-600 h-4 rounded-full transition-all duration-500"
+                <div class="bg-gradient-to-r from-primary to-secondary h-4 rounded-full transition-all duration-500"
                      style="width: {{ user_level.progress_percent|default(0) }}%"></div>
             </div>
             <div class="text-center text-sm text-white/60 mt-2">
@@ -127,15 +127,15 @@
 {% if prestige_info %}
 <div class="glass rounded-3xl p-8 mb-8 bg-gradient-to-br from-purple-600/10 to-accent/10" data-aos="fade-up" data-aos-delay="400">
     <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center">
-            <i data-lucide="crown" class="w-7 h-7 text-purple-400"></i>
+        <div class="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
+            <i data-lucide="crown" class="w-7 h-7 text-secondary"></i>
         </div>
         <h3 class="text-2xl font-bold text-white">Prestige Status</h3>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="text-center">
-            <div class="text-5xl font-bold text-purple-400 mb-2">{{ prestige_info.level }}</div>
+            <div class="text-5xl font-bold text-secondary mb-2">{{ prestige_info.level }}</div>
             <div class="text-white/70">Prestige Level</div>
         </div>
         <div class="text-center">
@@ -203,7 +203,7 @@
         <i data-lucide="target" class="w-5 h-5"></i>
         <span>Tägliche Quests</span>
     </a>
-    <a href="{{ url_for('gamification.prestige_dashboard') }}" class="btn gap-2 bg-purple-600 hover:bg-purple-700 border-0 text-white">
+    <a href="{{ url_for('gamification.prestige_dashboard') }}" class="btn gap-2 bg-secondary hover:bg-accent border-0 text-white">
         <i data-lucide="crown" class="w-5 h-5"></i>
         <span>Prestige</span>
     </a>
