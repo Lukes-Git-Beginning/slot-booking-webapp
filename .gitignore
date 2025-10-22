@@ -73,3 +73,6 @@ static/daily_user_stats.json
 # Keep historical data for analysis
 !data/historical/*.json
 !data/historical/*.jsonl
+
+# Project Documentation (local only)
+CLAUDE.md
