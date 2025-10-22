@@ -42,6 +42,8 @@ Thumbs.db
 # Sensitive credentials
 service_account.json
 .env
+deployment/.env.production
+deployment/*.env
 
 # SSH Keys (NEVER commit private keys!)
 *.pem
@@ -62,8 +64,6 @@ deployment/*.pub
 # REMOVED: data/tracking/*.jsonl  (was blocking workflow commits)
 # REMOVED: data/tracking/*.json   (was blocking workflow commits)
 data/persistent/*.json
-# EXCEPTION: weekly_points.json needs to be tracked to prevent data loss
-!data/persistent/weekly_points.json
 data/backups/*.backup
 static/scores.json
 static/user_badges.json
