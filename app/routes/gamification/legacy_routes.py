@@ -397,12 +397,19 @@ def api_user_avatar(username):
         customization = personalization_system.get_user_customization(username)
         avatar_data = customization.get('avatar', {
             "background": "gradient_blue",
-            "border": "simple", 
+            "border": "simple",
             "effect": "none",
             "title": "none"
         })
+
+        # Get active avatar from cosmetics_shop
+        user_cosmetics = cosmetics_shop.get_user_cosmetics(username)
+        active_avatar = user_cosmetics.get('active', {}).get('avatar')
+        if active_avatar:
+            avatar_data['avatar'] = active_avatar
+
         return jsonify(avatar_data)
-        
+
     except Exception as e:
         logger.error(f"Error in api_user_avatar: {e}")
         return jsonify({
@@ -516,7 +523,8 @@ def cosmetics_shop_view():
                 error="Shop-System ist derzeit nicht verfügbar",
                 user_coins=0,
                 cosmetics={"owned": {}, "active": {}},
-                shop_items={"titles": [], "themes": [], "avatars": [], "effects": []})
+                shop_items={"titles": [], "themes": [], "avatars": [], "effects": []},
+                owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0})
 
         # Hole User-Coins aus Daily Quest System
         user_coins = daily_quest_system.get_user_coins(user) if daily_quest_system else 0
@@ -534,6 +542,11 @@ def cosmetics_shop_view():
             for item_id, item_data in shop_dict.items():
                 is_owned = item_id in owned_list
                 is_equipped = (active_item == item_id) if item_type == 'titles' else False
+                is_active = (active_item == item_id) if item_type in ['themes', 'avatars'] else False
+
+                # For effects, check if in active effects list
+                if item_type == 'effects' and active_item and isinstance(active_item, list):
+                    is_active = item_id in active_item
 
                 item = {
                     'id': item_id,
@@ -542,10 +555,27 @@ def cosmetics_shop_view():
                     'description': item_data.get('description', ''),
                     'rarity': item_data.get('rarity', 'common'),
                     'owned': is_owned,
-                    'equipped': is_equipped
+                    'equipped': is_equipped,
+                    'active': is_active
                 }
 
-                # For themes/avatars/effects
+                # Theme-specific fields
+                if 'colors' in item_data:
+                    item['colors'] = item_data['colors']
+
+                # Avatar-specific fields
+                if 'gender' in item_data:
+                    item['gender'] = item_data['gender']
+                if 'image' in item_data:
+                    item['image'] = item_data['image']
+
+                # Effect-specific fields
+                if 'icon' in item_data:
+                    item['icon'] = item_data['icon']
+                if 'effect' in item_data:
+                    item['effect'] = item_data['effect']
+
+                # Common optional fields
                 if 'color' in item_data:
                     item['color'] = item_data['color']
                 if 'emoji' in item_data:
@@ -562,14 +592,23 @@ def cosmetics_shop_view():
             'titles': build_item_list(TITLE_SHOP, owned.get('titles', []), active.get('title'), 'titles'),
             'themes': build_item_list(COLOR_THEMES, owned.get('themes', []), active.get('theme'), 'themes'),
             'avatars': build_item_list(AVATAR_SHOP, owned.get('avatars', []), active.get('avatar'), 'avatars'),
-            'effects': build_item_list(SPECIAL_EFFECTS, owned.get('effects', []), None, 'effects')
+            'effects': build_item_list(SPECIAL_EFFECTS, owned.get('effects', []), active.get('effects', []), 'effects')
+        }
+
+        # Calculate owned items counts for summary section
+        owned_items = {
+            'titles': len(owned.get('titles', [])),
+            'themes': len(owned.get('themes', [])),
+            'avatars': len(owned.get('avatars', [])),
+            'effects': len(owned.get('effects', []))
         }
 
         return render_template('cosmetics_shop.html',
             current_user=user,
             user_coins=user_coins,
             cosmetics=user_cosmetics,
-            shop_items=shop_items
+            shop_items=shop_items,
+            owned_items=owned_items
         )
 
     except Exception as e:
@@ -580,7 +619,8 @@ def cosmetics_shop_view():
             error="Fehler beim Laden des Cosmetics Shops",
             user_coins=0,
             cosmetics={"owned": {}, "active": {}, "available_titles": {}, "available_themes": {}, "available_avatars": {}, "available_effects": {}},
-            shop_items={"titles": [], "themes": [], "avatars": [], "effects": []}
+            shop_items={"titles": [], "themes": [], "avatars": [], "effects": []},
+            owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0}
         )
 
 @gamification_bp.route('/cosmetics/purchase', methods=['POST'])

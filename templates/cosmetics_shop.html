@@ -361,7 +361,7 @@
 <script>
     function purchaseItem(type, itemId) {
         if (confirm('Möchtest du dieses Item wirklich kaufen?')) {
-            fetch('/cosmetics/purchase', {
+            fetch('/slots/cosmetics/purchase', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -383,7 +383,7 @@
     }
 
     function equipItem(type, itemId) {
-        fetch('/cosmetics/equip', {
+        fetch('/slots/cosmetics/equip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -404,7 +404,7 @@
     }
 
     function activateTheme(themeId) {
-        fetch('/cosmetics/equip', {
+        fetch('/slots/cosmetics/equip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -425,7 +425,7 @@
     }
 
     function activateEffect(effectId) {
-        fetch('/cosmetics/equip', {
+        fetch('/slots/cosmetics/equip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

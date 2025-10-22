@@ -182,7 +182,9 @@
             <td>
               <div class="flex items-center gap-3">
                 <div class="avatar">
-                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar" data-user="{{ player[0] }}" style="display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar"
+                       data-user="{{ player[0] }}"
+                       style="display: flex; align-items: center; justify-content: center; font-size: 1.25rem; overflow: hidden; line-height: 1;">
                     {% set user_cosmetics_data = user_cosmetics.get(player[0], {}) %}
                     {% if user_cosmetics_data.get('avatar') %}
                       {{ user_cosmetics_data.get('avatar') }}
@@ -193,7 +195,9 @@
                 </div>
                 <div>
                   {% if user_cosmetics_data.get('title') %}
-                  <div class="text-xs text-primary font-semibold">{{ user_cosmetics_data.get('title') }}</div>
+                  <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent drop-shadow-lg">
+                    {{ user_cosmetics_data.get('title')|replace('_', ' ')|title }}
+                  </div>
                   {% endif %}
                   <div class="font-semibold text-white">{{ player[0] }}</div>
                 </div>
@@ -242,9 +246,9 @@
           <!-- Player Info -->
           <div class="flex items-center gap-4">
             <div class="avatar">
-              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-secondary to-purple-600 player-avatar"
+              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-secondary to-accent player-avatar"
                    data-user="{{ player.user }}"
-                   style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                   style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem; overflow: hidden; line-height: 1;">
                 {% set user_cosmetics_data = user_cosmetics.get(player.user, {}) %}
                 {% if user_cosmetics_data.get('avatar') %}
                   {{ user_cosmetics_data.get('avatar') }}
@@ -255,7 +259,9 @@
             </div>
             <div>
               {% if user_cosmetics_data.get('title') %}
-              <div class="text-xs text-primary font-semibold">{{ user_cosmetics_data.get('title') }}</div>
+              <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent drop-shadow-lg">
+                {{ user_cosmetics_data.get('title')|replace('_', ' ')|title }}
+              </div>
               {% endif %}
               <div class="font-bold text-white text-lg">{{ player.user }}</div>
               <div class="flex gap-1 mt-2">
@@ -389,7 +395,13 @@ function applyAvatarCustomization(avatarElement, customization) {
       "cat_face": "🐱", "dog_face": "🐶", "panda_face": "🐼", "lion_face": "🦁",
       "unicorn_face": "🦄", "office_worker": "🧑‍💼", "scientist": "🧑‍🔬",
       "astronaut": "🧑‍🚀", "ninja": "🥷", "wizard": "🧙‍♂️", "vampire": "🧛‍♂️",
-      "robot": "🤖", "alien": "👽", "crown": "👑", "crystal_ball": "🔮", "diamond": "💎"
+      "robot": "🤖", "alien": "👽", "crown": "👑", "crystal_ball": "🔮", "diamond": "💎",
+      "developer_male": "👨‍💻", "developer_female": "👩‍💻",
+      "manager_male": "👨‍💼", "manager_female": "👩‍💼",
+      "artist_male": "👨‍🎨", "artist_female": "👩‍🎨",
+      "teacher_male": "👨‍🏫", "teacher_female": "👩‍🏫",
+      "student_male": "👨‍🎓", "student_female": "👩‍🎓",
+      "business_male": "🧑‍💼", "business_female": "👩‍💼"
     }
   };
 

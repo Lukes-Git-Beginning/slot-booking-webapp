@@ -48,9 +48,9 @@
 
                         <div class="space-y-2">
                             <template x-for="notif in notifications" :key="notif.id">
-                                <div @click="markAsRead(notif.id)"
+                                <div @click="handleNotificationClick(notif)"
                                      :class="notif.read ? 'bg-white/5' : 'bg-primary/10 border-l-4 border-primary'"
-                                     class="p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-all">
+                                     class="p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-all group">
                                     <div class="flex items-start gap-3">
                                         <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                                              :class="{
@@ -65,8 +65,20 @@
                                             <h4 class="font-semibold text-white text-sm" x-text="notif.title"></h4>
                                             <p class="text-xs text-white/70 mt-1" x-text="notif.message"></p>
                                             <span class="text-xs text-white/50 mt-1 block" x-text="formatTime(notif.timestamp)"></span>
+
+                                            <!-- Actions -->
+                                            <template x-if="notif.actions && notif.actions.length > 0">
+                                                <div class="mt-2 flex gap-2">
+                                                    <template x-for="action in notif.actions" :key="action.url">
+                                                        <span class="inline-flex items-center gap-1 text-xs text-primary group-hover:text-primary-dark font-semibold">
+                                                            <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                                            <span x-text="action.text"></span>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </template>
                                         </div>
-                                        <span x-show="!notif.read" class="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
+                                        <span x-show="!notif.read" class="w-2 h-2 bg-warning rounded-full flex-shrink-0 animate-pulse" title="Ungelesen"></span>
                                     </div>
                                 </div>
                             </template>
@@ -233,6 +245,25 @@
 
             closeDropdown() {
                 this.isOpen = false;
+            },
+
+            async handleNotificationClick(notif) {
+                // Mark as read first
+                await this.markAsRead(notif.id);
+
+                // If notification has actions, navigate to the first action URL
+                if (notif.actions && notif.actions.length > 0 && notif.actions[0].url) {
+                    const url = notif.actions[0].url;
+                    // Close dropdown before navigation
+                    this.closeDropdown();
+                    // Navigate after a small delay to show visual feedback
+                    setTimeout(() => {
+                        window.location.href = url;
+                    }, 200);
+                } else {
+                    // No action, just close dropdown
+                    this.closeDropdown();
+                }
             },
 
             async markAsRead(notifId) {
