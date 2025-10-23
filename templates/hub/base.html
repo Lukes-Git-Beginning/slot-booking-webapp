@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Business Tool Hub{% endblock %}</title>
+    <title>{% block title %}ZFA Beraterwelt{% endblock %}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
@@ -340,9 +340,16 @@
                     <!-- Brand -->
                     <a href="{{ url_for('hub.dashboard') }}"
                        class="flex items-center hover:opacity-80 transition-opacity group">
-                        <img src="{{ url_for('static', filename='zfa-brand.png') }}"
+                        <!-- Dark Mode Logo -->
+                        <img src="{{ url_for('static', filename='zfa-dark.png') }}"
                              alt="Zentrum für Finanzielle Aufklärung"
-                             class="h-12 w-auto group-hover:scale-105 transition-transform">
+                             class="h-12 w-auto group-hover:scale-105 transition-transform"
+                             x-show="$store.theme.current === 'dark'">
+                        <!-- Light Mode Logo -->
+                        <img src="{{ url_for('static', filename='zfa-light.png') }}"
+                             alt="Zentrum für Finanzielle Aufklärung"
+                             class="h-12 w-auto group-hover:scale-105 transition-transform"
+                             x-show="$store.theme.current === 'light'">
                     </a>
 
                     <!-- User Menu -->
