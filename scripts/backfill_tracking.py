@@ -88,7 +88,8 @@ def backfill_tracking_data(start_date_str="2025-09-01", end_date_str=None, dry_r
 
         try:
             # Check if data already exists
-            existing_metrics = tracking_system._load_metrics()
+            from app.services.data_persistence import data_persistence
+            existing_metrics = data_persistence.load_data('daily_metrics', {})
 
             if date_str in existing_metrics and not dry_run:
                 print(f">> {date_str} ({day_name}) - Bereits vorhanden, ueberspringe...")
