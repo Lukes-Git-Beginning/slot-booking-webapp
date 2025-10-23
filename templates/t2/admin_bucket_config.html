@@ -81,7 +81,7 @@
                                 <input
                                     type="number"
                                     id="prob-{{ closer_name }}"
-                                    min="0.1"
+                                    min="0"
                                     max="100"
                                     step="0.1"
                                     value="{{ probabilities.get(closer_name, 1.0) }}"
@@ -104,7 +104,7 @@
         <div class="mt-8 glass rounded-2xl p-6 flex items-start gap-3 border border-blue-500/30">
             <i data-lucide="info" class="w-6 h-6 text-blue-400 flex-shrink-0 mt-1"></i>
             <div class="text-gray-300 text-base">
-                <strong class="text-white">Info:</strong> Wahrscheinlichkeit bestimmt die Anzahl der Tickets im Bucket. Höhere Werte = mehr Tickets = höhere Wahrscheinlichkeit gezogen zu werden. Minimum: 0.1
+                <strong class="text-white">Info:</strong> Wahrscheinlichkeit bestimmt die Anzahl der Tickets im Bucket. Höhere Werte = mehr Tickets = höhere Wahrscheinlichkeit gezogen zu werden. Mit jedem Draw sinkt die Wahrscheinlichkeit um 1. Setze auf 0, um einen Closer komplett zu deaktivieren.
             </div>
         </div>
     </div>
@@ -199,6 +199,80 @@
         </div>
     </div>
 
+    <!-- Closer Management -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="450">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <h2 class="text-3xl font-bold text-white flex items-center gap-3">
+                <i data-lucide="users" class="w-8 h-8 text-t2-purple"></i>
+                Closer-Verwaltung
+            </h2>
+            <button onclick="openAddCloserModal()" class="btn btn-success gap-2">
+                <i data-lucide="user-plus" class="w-5 h-5"></i>
+                <span class="text-base">Neuer Closer</span>
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-white/20">
+                        <th class="text-left p-4 text-base font-bold text-gray-300">Name</th>
+                        <th class="text-left p-4 text-base font-bold text-gray-300">Vollständiger Name</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Farbe</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Standard-Wahrscheinlichkeit</th>
+                        <th class="text-center p-4 text-base font-bold text-gray-300">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for closer_name, closer_info in closers.items() %}
+                    <tr class="border-b border-white/10 hover:bg-white/5 transition-all">
+                        <td class="p-4">
+                            <span class="text-white font-semibold text-lg">{{ closer_name }}</span>
+                        </td>
+                        <td class="p-4 text-white text-base">
+                            {{ closer_info.full_name }}
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <div class="w-6 h-6 rounded-full" style="background: {{ closer_info.color }};"></div>
+                                <span class="text-gray-400 text-sm font-mono">{{ closer_info.color }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="text-t2-purple font-bold text-lg">
+                                {{ "%.1f"|format(closer_info.default_probability) }}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex gap-2 justify-center">
+                                <button
+                                    onclick="openEditCloserModal('{{ closer_name }}', '{{ closer_info.full_name }}', '{{ closer_info.color }}')"
+                                    class="btn btn-sm btn-primary gap-1">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                    <span class="text-sm">Bearbeiten</span>
+                                </button>
+                                <button
+                                    onclick="confirmRemoveCloser('{{ closer_name }}')"
+                                    class="btn btn-sm btn-error gap-1">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    <span class="text-sm">Löschen</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-6 glass rounded-2xl p-6 flex items-start gap-3 border border-yellow-500/30">
+            <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1"></i>
+            <div class="text-gray-300 text-base">
+                <strong class="text-white">Hinweis:</strong> Das Hinzufügen/Entfernen von Closern setzt den Bucket automatisch zurück.
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Draw History -->
     <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="500">
         <h2 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
@@ -277,6 +351,212 @@
         </a>
     </div>
 </div>
+
+<!-- Add Closer Modal -->
+<div id="add-closer-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeAddCloserModal()"></div>
+    <div class="glass rounded-3xl p-8 max-w-lg w-full mx-4 relative z-10">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-6 h-6 text-t2-purple"></i>
+                Neuen Closer hinzufügen
+            </h3>
+            <button onclick="closeAddCloserModal()" class="text-gray-400 hover:text-white">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <form id="add-closer-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Kurzer Name</label>
+                <input type="text" id="add-name" required
+                       class="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-white focus:border-t2-purple"
+                       placeholder="z.B. Alex">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Vollständiger Name</label>
+                <input type="text" id="add-full-name" required
+                       class="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-white focus:border-t2-purple"
+                       placeholder="z.B. Alexander">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Farbe (Hex)</label>
+                <div class="flex gap-2">
+                    <input type="color" id="add-color-picker" value="#2196F3"
+                           class="w-16 h-10 rounded-xl bg-white/5 border border-white/20">
+                    <input type="text" id="add-color" required value="#2196F3"
+                           class="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-white focus:border-t2-purple"
+                           placeholder="#2196F3">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Standard-Wahrscheinlichkeit</label>
+                <input type="number" id="add-probability" required min="0" max="100" step="0.1" value="1.0"
+                       class="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-white focus:border-t2-purple">
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="btn btn-success flex-1 gap-2">
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                    <span>Hinzufügen</span>
+                </button>
+                <button type="button" onclick="closeAddCloserModal()" class="btn btn-ghost flex-1">
+                    Abbrechen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Closer Modal -->
+<div id="edit-closer-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeEditCloserModal()"></div>
+    <div class="glass rounded-3xl p-8 max-w-lg w-full mx-4 relative z-10">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="edit-2" class="w-6 h-6 text-t2-purple"></i>
+                Closer bearbeiten
+            </h3>
+            <button onclick="closeEditCloserModal()" class="text-gray-400 hover:text-white">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <form id="edit-closer-form" class="space-y-4">
+            <input type="hidden" id="edit-name-original">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                <input type="text" id="edit-name" disabled
+                       class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-gray-400"
+                       placeholder="Name kann nicht geändert werden">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Vollständiger Name</label>
+                <input type="text" id="edit-full-name" required
+                       class="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-white focus:border-t2-purple">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Farbe (Hex)</label>
+                <div class="flex gap-2">
+                    <input type="color" id="edit-color-picker" value="#2196F3"
+                           class="w-16 h-10 rounded-xl bg-white/5 border border-white/20">
+                    <input type="text" id="edit-color" required
+                           class="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-white focus:border-t2-purple"
+                           placeholder="#2196F3">
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="btn btn-primary flex-1 gap-2">
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                    <span>Speichern</span>
+                </button>
+                <button type="button" onclick="closeEditCloserModal()" class="btn btn-ghost flex-1">
+                    Abbrechen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dark Mode Overlay */
+[data-theme="dark"] .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+/* Light Mode Overlay */
+[data-theme="light"] .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(120, 113, 108, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+/* Light Mode Input Styles */
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] input[type="color"] {
+    color: #1c1917 !important;
+}
+
+[data-theme="light"] input::placeholder {
+    color: #78716c !important;
+}
+
+/* Light Mode Button Styles */
+[data-theme="light"] .btn-ghost {
+    color: #1c1917 !important;
+}
+
+[data-theme="light"] .btn-ghost:hover {
+    background: rgba(212, 175, 106, 0.2) !important;
+}
+
+/* Light Mode Table Border Colors */
+[data-theme="light"] .border-white\/20,
+[data-theme="light"] .border-white\/10 {
+    border-color: rgba(212, 175, 106, 0.25) !important;
+}
+
+/* Light Mode Text Colors in Tables */
+[data-theme="light"] .text-gray-300,
+[data-theme="light"] .text-gray-400 {
+    color: #57534e !important;
+}
+
+/* Light Mode Hover States */
+[data-theme="light"] .hover\:bg-white\/5:hover {
+    background: rgba(212, 175, 106, 0.1) !important;
+}
+
+[data-theme="light"] .hover\:bg-white\/10:hover {
+    background: rgba(212, 175, 106, 0.15) !important;
+}
+
+/* Light Mode Border Colors for Info Boxes */
+[data-theme="light"] .border-blue-500\/30 {
+    border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+[data-theme="light"] .border-yellow-500\/30 {
+    border-color: rgba(234, 179, 8, 0.4) !important;
+}
+
+/* Light Mode Icon Colors */
+[data-theme="light"] .text-blue-400 {
+    color: #3b82f6 !important;
+}
+
+[data-theme="light"] .text-yellow-400 {
+    color: #eab308 !important;
+}
+
+[data-theme="light"] .text-t2-purple {
+    color: #d4af6a !important;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -285,8 +565,8 @@ function updateProbability(closerName) {
     const inputField = document.getElementById(`prob-${closerName}`);
     const newValue = parseFloat(inputField.value);
 
-    if (isNaN(newValue) || newValue < 0.1) {
-        showError('Wahrscheinlichkeit muss mindestens 0.1 sein');
+    if (isNaN(newValue) || newValue < 0) {
+        showError('Wahrscheinlichkeit kann nicht negativ sein');
         return;
     }
 
@@ -420,6 +700,150 @@ function updateBucketSize() {
     })
     .catch(error => {
         showError('Fehler beim Aktualisieren der Bucket-Größe');
+    });
+}
+
+// ========== CLOSER MANAGEMENT ==========
+
+// Add Closer Modal
+function openAddCloserModal() {
+    document.getElementById('add-closer-modal').style.display = 'flex';
+    lucide.createIcons();
+
+    // Sync color picker with text input
+    const colorPicker = document.getElementById('add-color-picker');
+    const colorInput = document.getElementById('add-color');
+
+    colorPicker.addEventListener('input', (e) => {
+        colorInput.value = e.target.value;
+    });
+
+    colorInput.addEventListener('input', (e) => {
+        if (e.target.value.match(/^#[0-9A-F]{6}$/i)) {
+            colorPicker.value = e.target.value;
+        }
+    });
+}
+
+function closeAddCloserModal() {
+    document.getElementById('add-closer-modal').style.display = 'none';
+}
+
+document.getElementById('add-closer-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('add-name').value.trim();
+    const fullName = document.getElementById('add-full-name').value.trim();
+    const color = document.getElementById('add-color').value.trim();
+    const probability = parseFloat(document.getElementById('add-probability').value);
+
+    fetch('/t2/api/admin/add-closer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            full_name: fullName,
+            color: color,
+            default_probability: probability
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Closer "${name}" erfolgreich hinzugefügt`);
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showError(data.message || 'Hinzufügen fehlgeschlagen');
+        }
+    })
+    .catch(error => {
+        showError('Fehler beim Hinzufügen des Closers');
+    });
+});
+
+// Edit Closer Modal
+function openEditCloserModal(name, fullName, color) {
+    document.getElementById('edit-closer-modal').style.display = 'flex';
+    document.getElementById('edit-name-original').value = name;
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-full-name').value = fullName;
+    document.getElementById('edit-color').value = color;
+    document.getElementById('edit-color-picker').value = color;
+    lucide.createIcons();
+
+    // Sync color picker with text input
+    const colorPicker = document.getElementById('edit-color-picker');
+    const colorInput = document.getElementById('edit-color');
+
+    colorPicker.addEventListener('input', (e) => {
+        colorInput.value = e.target.value;
+    });
+
+    colorInput.addEventListener('input', (e) => {
+        if (e.target.value.match(/^#[0-9A-F]{6}$/i)) {
+            colorPicker.value = e.target.value;
+        }
+    });
+}
+
+function closeEditCloserModal() {
+    document.getElementById('edit-closer-modal').style.display = 'none';
+}
+
+document.getElementById('edit-closer-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('edit-name-original').value;
+    const fullName = document.getElementById('edit-full-name').value.trim();
+    const color = document.getElementById('edit-color').value.trim();
+
+    fetch('/t2/api/admin/update-closer-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            full_name: fullName,
+            color: color
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Closer "${name}" erfolgreich aktualisiert`);
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showError(data.message || 'Aktualisierung fehlgeschlagen');
+        }
+    })
+    .catch(error => {
+        showError('Fehler beim Aktualisieren des Closers');
+    });
+});
+
+// Remove Closer
+function confirmRemoveCloser(name) {
+    if (!confirm(`Bist du sicher, dass du Closer "${name}" entfernen möchtest? Dies setzt den Bucket zurück.`)) {
+        return;
+    }
+
+    fetch('/t2/api/admin/remove-closer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Closer "${name}" erfolgreich entfernt`);
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showError(data.message || 'Entfernen fehlgeschlagen');
+        }
+    })
+    .catch(error => {
+        showError('Fehler beim Entfernen des Closers');
     });
 }
 </script>

@@ -190,12 +190,16 @@ def book():
             return redirect(url_for("main.day_view", date_str=date))
 
         # Add "Booked by" tag to description for tracking who created the booking
+        # Normalize username to ensure consistency across all systems
+        from app.utils.helpers import normalize_username
+        normalized_user = normalize_username(user) if user else user
+
         booking_description = description
-        if user and user != "unknown":
-            booking_description = f"{description}\n\n[Booked by: {user}]" if description else f"[Booked by: {user}]"
+        if normalized_user and normalized_user != "unknown":
+            booking_description = f"{description}\n\n[Booked by: {normalized_user}]" if description else f"[Booked by: {normalized_user}]"
 
         # DEBUG: Log the description
-        booking_logger.info(f"BOOKING DEBUG: Creating event with description: '{booking_description}' for user: '{user}'")
+        booking_logger.info(f"BOOKING DEBUG: Creating event with description: '{booking_description}' for user: '{user}' (normalized: '{normalized_user}')")
 
         event_body = {
             "summary": f"{last}, {first}",

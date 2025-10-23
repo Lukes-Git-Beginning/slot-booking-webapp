@@ -54,7 +54,7 @@ BUCKET_CONFIG = {
     "max_draws_before_reset": 10,  # Bucket wird nach 10 Draws zurückgesetzt
     "t1_timeout_minutes": 0,        # T1: Kein Timeout
     "t2_timeout_minutes": 1,        # T2: 1 Minute Timeout
-    "min_probability": 0.1,         # Minimum probability (kann nicht 0 sein!)
+    "min_probability": 0.0,         # Minimum probability (kann auch 0 sein!)
     "max_probability": 100.0,       # Maximum probability
     "probability_reduction_per_draw": 1.0  # Wahrscheinlichkeit sinkt um 1 pro Draw
 }
@@ -138,14 +138,18 @@ def _create_initial_bucket(probabilities: Dict[str, float]) -> List[str]:
     Example:
     - Jose: 2.0 → 2 tickets
     - David: 9.0 → 9 tickets
-    - Alex: 9.0 → 9 tickets
+    - Alex: 9.0 → 9 tickets (nach 1 Draw: 8 tickets)
+    - Probability 0 → 0 tickets (Closer wird nicht gezogen)
     Total: 20 tickets in bucket
     """
     bucket = []
 
     for closer_name, probability in probabilities.items():
-        # Round to int, minimum 1 ticket if probability > 0
-        ticket_count = max(1, int(round(probability))) if probability >= BUCKET_CONFIG["min_probability"] else 0
+        # Round to int, 0 tickets if probability is 0
+        if probability > 0:
+            ticket_count = max(1, int(round(probability)))
+        else:
+            ticket_count = 0
 
         # Add tickets to bucket
         for _ in range(ticket_count):
@@ -168,17 +172,18 @@ def get_probabilities() -> Dict[str, float]:
 def update_probability(closer_name: str, new_probability: float) -> Dict:
     """
     Update probability for a closer (Admin only)
+    Probability kann auch 0 sein, um einen Closer komplett zu deaktivieren.
 
     Returns: {success: bool, message: str}
     """
     if closer_name not in T2_CLOSERS:
         return {"success": False, "message": f"Invalid closer: {closer_name}"}
 
-    # Validate probability range
-    if new_probability < BUCKET_CONFIG["min_probability"]:
+    # Validate probability range (0 ist jetzt erlaubt!)
+    if new_probability < 0:
         return {
             "success": False,
-            "message": f"Probability must be at least {BUCKET_CONFIG['min_probability']}"
+            "message": "Probability cannot be negative"
         }
 
     if new_probability > BUCKET_CONFIG["max_probability"]:
@@ -310,7 +315,7 @@ def draw_closer(username: str, draw_type: str = "T2", customer_name: str = None)
 
     # DEGRESSIVE PROBABILITY: Reduce the drawn closer's probability by 1
     reduction = BUCKET_CONFIG.get("probability_reduction_per_draw", 1.0)
-    min_prob = BUCKET_CONFIG.get("min_probability", 0.1)
+    min_prob = BUCKET_CONFIG.get("min_probability", 0.0)
 
     current_prob = data["probabilities"].get(drawn_closer, 1.0)
     new_prob = max(min_prob, current_prob - reduction)

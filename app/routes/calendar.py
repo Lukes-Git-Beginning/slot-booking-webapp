@@ -49,10 +49,15 @@ def my_calendar():
     # Filter events for this user (events they booked - based on [Booked by: username] tag)
     my_events = []
 
+    # Get all possible username variants for backward compatibility
+    from app.utils.helpers import get_username_variants
+    username_variants = get_username_variants(user)
+
     # DEBUG: Log what we're searching for
     import logging
     logger = logging.getLogger(__name__)
     logger.info(f"MY-CALENDAR DEBUG: Looking for bookings by user '{user}'")
+    logger.info(f"MY-CALENDAR DEBUG: Username variants: {username_variants}")
     logger.info(f"MY-CALENDAR DEBUG: Total events found: {len(all_events)}")
 
     for event in all_events:
@@ -60,14 +65,18 @@ def my_calendar():
         description = event.get('description', '')
 
         # Check if this user booked the event (via [Booked by: username] tag in description)
-        booked_by_tag = f"[Booked by: {user}]"
-        is_booked_by_user = booked_by_tag in description
+        # Check all username variants for backward compatibility
+        is_booked_by_user = False
+        for variant in username_variants:
+            booked_by_tag = f"[Booked by: {variant}]"
+            if booked_by_tag in description:
+                is_booked_by_user = True
+                break
 
         # DEBUG: Log each event
         if description and '[Booked by:' in description:
             logger.info(f"MY-CALENDAR DEBUG: Found event '{summary}' with tag in description")
             logger.info(f"MY-CALENDAR DEBUG: Description contains: {description[:200]}")
-            logger.info(f"MY-CALENDAR DEBUG: Looking for: '{booked_by_tag}'")
             logger.info(f"MY-CALENDAR DEBUG: Match: {is_booked_by_user}")
 
         if is_booked_by_user:
@@ -172,13 +181,22 @@ def my_customers():
         '5': 'pending',         # Banana/Yellow - Closer needed (pending)
     }
 
-    booked_by_tag = f"[Booked by: {user}]"
+    # Get all possible username variants for backward compatibility
+    from app.utils.helpers import get_username_variants
+    username_variants = get_username_variants(user)
 
     for event in all_events:
         description = event.get('description', '')
 
-        # Only events booked by this user
-        if booked_by_tag not in description:
+        # Only events booked by this user - check all username variants
+        is_booked_by_user = False
+        for variant in username_variants:
+            booked_by_tag = f"[Booked by: {variant}]"
+            if booked_by_tag in description:
+                is_booked_by_user = True
+                break
+
+        if not is_booked_by_user:
             continue
 
         summary = event.get('summary', '').strip()

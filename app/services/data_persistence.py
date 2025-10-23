@@ -80,16 +80,20 @@ class DataPersistence:
             scores_file = str(self.data_dir / "scores.json")
             data = atomic_read_json(scores_file)
             if data is not None:
+                # Normalisiere Usernames beim Laden
+                data = self._normalize_usernames_in_data(data)
                 return data
-            
+
             # Fallback: static/ Verzeichnis
             static_scores = str(self.static_dir / "scores.json")
             data = atomic_read_json(static_scores)
             if data is not None:
+                # Normalisiere Usernames beim Laden
+                data = self._normalize_usernames_in_data(data)
                 # Speichere in persistentes Verzeichnis
                 self.save_scores(data)
                 return data
-            
+
             # Fallback: Leere Daten
             return {}
         except Exception as e:
@@ -125,17 +129,21 @@ class DataPersistence:
             badges_file = self.data_dir / "user_badges.json"
             if badges_file.exists():
                 with open(badges_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            
+                    data = json.load(f)
+                    # Normalisiere Usernames beim Laden
+                    return self._normalize_usernames_in_data(data)
+
             # Fallback: static/ Verzeichnis
             static_badges = self.static_dir / "user_badges.json"
             if static_badges.exists():
                 with open(static_badges, "r", encoding="utf-8") as f:
                     data = json.load(f)
+                    # Normalisiere Usernames beim Laden
+                    data = self._normalize_usernames_in_data(data)
                     # Speichere in persistentes Verzeichnis
                     self.save_badges(data)
                     return data
-            
+
             # Fallback: Leere Daten
             return {}
         except Exception as e:
@@ -256,6 +264,22 @@ class DataPersistence:
             logger.error(f"Fehler beim Laden der Champions: {e}")
             return {}
     
+    def _normalize_usernames_in_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalisiert Usernames in geladenen Daten.
+        Wird beim Laden von scores, badges, etc. aufgerufen.
+        """
+        try:
+            from app.utils.helpers import normalize_data_usernames
+            return normalize_data_usernames(data)
+        except ImportError:
+            # Fallback: keine Normalisierung
+            logger.warning("Could not import normalize_data_usernames, skipping normalization")
+            return data
+        except Exception as e:
+            logger.error(f"Error normalizing usernames: {e}")
+            return data
+
     def _create_backup(self, filename, data):
         """Erstelle Backup mit Timestamp"""
         try:

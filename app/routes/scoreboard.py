@@ -57,6 +57,13 @@ def scoreboard():
     else:
         scores = data_persistence.load_scores()
 
+        # Normalisiere Usernames in scores
+        try:
+            from app.utils.helpers import normalize_data_usernames
+            scores = normalize_data_usernames(scores)
+        except Exception as e:
+            print(f"Username normalization error: {e}")
+
         # Get badge data for leaderboard (persistent)
         try:
             from app.services.achievement_system import achievement_system

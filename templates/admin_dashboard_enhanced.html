@@ -163,8 +163,6 @@
       </label>
 
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:ml-80" x-data="adminDashboard()">
-        <!-- Include Admin Navigation -->
-        {% include 'admin_nav.html' %}
 
     <!-- Header -->
     <div class="glass rounded-2xl p-8 mb-8 text-center shadow-2xl gradient-blue" data-aos="fade-down">
@@ -179,10 +177,6 @@
       <p class="text-gray-400 text-lg mb-4">
         Erweiterte Analytics mit <span class="text-primary font-semibold">Live-Tracking-Daten</span>
       </p>
-      <div class="flex items-center justify-center gap-2 text-sm text-gray-400 mt-2">
-        <i data-lucide="clock" class="w-4 h-4"></i>
-        <span>App läuft seit {{ app_runtime_days }} Tagen</span>
-      </div>
     </div>
 
     <!-- Letzte 5 Werktage Tracking -->
@@ -376,7 +370,13 @@
     </div>
       </div>
     </div>
+    <!-- End of drawer-content -->
+
+    <!-- Include Admin Navigation Sidebar -->
+    {% include 'admin_nav.html' %}
+
   </div>
+  <!-- End of drawer container -->
 
   <!-- AOS -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -591,5 +591,6 @@
     window.addEventListener('resize', updateLayout);
     updateLayout();
   </script>
+
 </body>
 </html>

@@ -92,3 +92,134 @@ def safe_float(value, default: float = 0.0) -> float:
         return float(value)
     except (ValueError, TypeError):
         return default
+
+
+# ========== USERNAME NORMALIZATION ==========
+
+# Mapping von alten/inkonsistenten Usernames zu aktuellen vollständigen Namen
+USERNAME_NORMALIZATION_MAP = {
+    # Nur Vornamen → Volle Namen
+    "ladislav": "ladislav.heka",
+    "patrick": "patrick.woltschleger",
+    "alexandra": "alexandra.scharrschmidt",
+    "christian": "christian.mast",
+    "tim": "tim.kreisel",
+    "dominik": "dominik.mikic",
+    "yasmine": "yasmine.schumacher",
+    "daniel": "daniel.herbort",
+    "jose": "jose.torspecken",
+    "luke": "luke.hoppe",
+    "david": "david.nehm",
+    "alexander": "alexander.nehm",
+
+    # Alte Kurzformen → Volle Namen
+    "l.heka": "ladislav.heka",
+    "p.woltschleger": "patrick.woltschleger",
+    "a.scharrschmidt": "alexandra.scharrschmidt",
+    "c.mast": "christian.mast",
+    "t.kreisel": "tim.kreisel",
+    "d.mikic": "dominik.mikic",
+    "y.schumacher": "yasmine.schumacher",
+    "d.herbort": "daniel.herbort",
+    "j.torspecken": "jose.torspecken",
+    "l.hoppe": "luke.hoppe",
+    "d.nehm": "david.nehm",
+    "a.nehm": "alexander.nehm",
+
+    # Weitere Varianten mit verschiedenen Schreibweisen
+    "ann.welge": "ann-kathrin.welge",
+    "ann-kathrin": "ann-kathrin.welge",
+    "sonja.mast": "sonja.mast",
+    "sara.mast": "sara.mast",
+}
+
+
+def normalize_username(username: str) -> str:
+    """
+    Normalisiert Usernamen zu einem einheitlichen Format.
+
+    Args:
+        username: Der zu normalisierende Username (kann Vorname, Kurzform oder voller Name sein)
+
+    Returns:
+        Der normalisierte vollständige Username (z.B. "ladislav.heka")
+    """
+    if not username:
+        return username
+
+    # Zu Kleinbuchstaben konvertieren für case-insensitive Matching
+    username_lower = username.lower().strip()
+
+    # Prüfe ob Username im Mapping existiert
+    if username_lower in USERNAME_NORMALIZATION_MAP:
+        return USERNAME_NORMALIZATION_MAP[username_lower]
+
+    # Falls nicht im Mapping, gebe Original zurück (könnte bereits korrekt sein)
+    return username
+
+
+def get_username_variants(username: str) -> list:
+    """
+    Gibt alle möglichen Varianten eines Usernames zurück.
+    Nützlich für die Suche in Kalendern/Logs, die alte Formate verwenden.
+
+    Args:
+        username: Der Username (beliebiges Format)
+
+    Returns:
+        Liste aller möglichen Username-Varianten
+    """
+    if not username:
+        return []
+
+    # Normalisiere zuerst zum vollständigen Namen
+    normalized = normalize_username(username)
+    variants = [normalized, username]
+
+    # Finde alle Varianten aus dem Mapping
+    for old_name, new_name in USERNAME_NORMALIZATION_MAP.items():
+        if new_name == normalized:
+            variants.append(old_name)
+
+    # Entferne Duplikate und behalte Reihenfolge
+    seen = set()
+    unique_variants = []
+    for variant in variants:
+        if variant not in seen:
+            seen.add(variant)
+            unique_variants.append(variant)
+
+    return unique_variants
+
+
+def normalize_data_usernames(data: dict) -> dict:
+    """
+    Normalisiert alle Usernames in einem Daten-Dictionary.
+
+    Args:
+        data: Dictionary mit Usernamen als Keys (z.B. scores, badges)
+
+    Returns:
+        Neues Dictionary mit normalisierten Usernames
+    """
+    normalized_data = {}
+
+    for username, user_data in data.items():
+        normalized_username = normalize_username(username)
+
+        # Falls der normalisierte Username bereits existiert, merge die Daten
+        if normalized_username in normalized_data:
+            # Für scores: addiere Punkte
+            if isinstance(user_data, dict) and all(isinstance(v, (int, float)) for v in user_data.values()):
+                for month, points in user_data.items():
+                    if month in normalized_data[normalized_username]:
+                        normalized_data[normalized_username][month] += points
+                    else:
+                        normalized_data[normalized_username][month] = points
+            else:
+                # Für andere Daten: behalte das neuere/vollständigere
+                normalized_data[normalized_username] = user_data
+        else:
+            normalized_data[normalized_username] = user_data
+
+    return normalized_data

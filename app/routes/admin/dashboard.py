@@ -11,7 +11,7 @@ import pytz
 from app.config.base import slot_config
 from app.core.extensions import data_persistence, tracking_system
 from app.utils.decorators import require_admin
-from app.utils.helpers import get_app_runtime_days, get_color_mapping_status
+from app.utils.helpers import get_color_mapping_status
 from app.routes.admin import admin_bp
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -39,7 +39,6 @@ def admin_dashboard():
             recent_activity = dashboard_data.get('recent_bookings', [])
 
         # System metrics
-        app_runtime_days = get_app_runtime_days()
         color_mapping_status = get_color_mapping_status()
 
         # User scores
@@ -79,7 +78,6 @@ def admin_dashboard():
                              total_bookings=total_bookings,
                              total_customers=total_customers,
                              recent_activity=recent_activity[:10],  # Last 10 activities
-                             app_runtime_days=app_runtime_days,
                              color_mapping_status=color_mapping_status,
                              monthly_scores=monthly_scores[:10],  # Top 10 users
                              total_badges_awarded=total_badges_awarded,

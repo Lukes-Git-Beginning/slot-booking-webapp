@@ -815,6 +815,14 @@ class AchievementSystem:
         except Exception:
             badges_data = {}
 
+        # Username-Normalisierung importieren
+        try:
+            from app.utils.helpers import normalize_username
+        except ImportError:
+            # Fallback wenn Import fehlschlägt
+            def normalize_username(username):
+                return username
+
         leaderboard = []
         for user, entry in badges_data.items():
             user_badges = entry.get("badges", [])
@@ -835,8 +843,11 @@ class AchievementSystem:
                 }
                 rarity_points += weights.get(rarity, 1)
 
+            # Normalisiere den Username bevor er zur Leaderboard hinzugefügt wird
+            normalized_user = normalize_username(user)
+
             leaderboard.append({
-                "user": user,
+                "user": normalized_user,
                 "total_badges": len(user_badges),
                 "rarity_points": rarity_points,
                 "rarity_breakdown": dict(rarity_counts),
