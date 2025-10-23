@@ -11,7 +11,7 @@ import logging
 from typing import Dict, Any, Optional
 
 # Blueprint erstellen
-api_gateway_bp = Blueprint('api_gateway', __name__, url_prefix='/api/v1')
+api_gateway_bp = Blueprint('api_gateway', __name__)
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +260,82 @@ def tool_analytics(tool_name):
 
 
 # ========== GAMIFICATION API ==========
+
+@api_gateway_bp.route("/user/badges")
+@require_login
+def api_current_user_badges():
+    """Get current user's badges (for achievement notifications)"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        from app.services.achievement_system import achievement_system
+        user_badges_data = achievement_system.get_user_badges(user)
+
+        # Check for new unseen badges
+        new_badges = []
+        for badge in user_badges_data.get('badges', []):
+            if not badge.get('seen', True):  # If badge is not marked as seen
+                new_badges.append({
+                    'name': badge.get('name', ''),
+                    'emoji': badge.get('icon', '🏆'),
+                    'rarity': badge.get('rarity', 'common'),
+                    'description': badge.get('description', '')
+                })
+
+        return jsonify({
+            'success': True,
+            'badges': user_badges_data.get('badges', []),
+            'new_badges': new_badges
+        })
+    except Exception as e:
+        logger.error(f"Error getting current user badges: {e}")
+        return jsonify({'success': False, 'badges': [], 'new_badges': []}), 200
+
+
+@api_gateway_bp.route("/user/badges/mark-seen", methods=["POST"])
+@require_login
+def api_mark_badges_seen():
+    """Mark user's badges as seen"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        from app.services.achievement_system import achievement_system
+        # Mark all badges as seen for this user
+        achievement_system.mark_badges_seen(user)
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error marking badges as seen: {e}")
+        return jsonify({'success': False}), 200
+
+
+@api_gateway_bp.route("/level/check-up")
+@require_login
+def api_check_level_up():
+    """Check if user has leveled up"""
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        from app.core.extensions import level_system
+        if level_system:
+            user_level = level_system.calculate_user_level(user)
+            return jsonify({
+                "success": True,
+                "current_level": user_level.get("level", 1),
+                "has_leveled_up": False,
+                "level_data": user_level
+            })
+        else:
+            return jsonify({"success": False, "error": "Level system not available"}), 503
+    except Exception as e:
+        logger.error(f"Error checking level up for {user}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @api_gateway_bp.route("/user/<username>/badges")
 @require_login
