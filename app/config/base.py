@@ -102,6 +102,7 @@ class SlotConfig:
         "badges": int(os.getenv("CACHE_BADGES", "1200")),                   # 20 Minuten (war 10)
         "week_stats": int(os.getenv("CACHE_WEEK_STATS", "1800")),           # 30 Minuten (war 15)
         "consultant_calendars": int(os.getenv("CACHE_CONSULTANT_CALENDARS", "900")), # 15 Minuten (war 10)
+        "9am_availability": int(os.getenv("CACHE_9AM_AVAILABILITY", "180")),  # 3 Minuten - T1-bereit Live-Check
     }
 
 
