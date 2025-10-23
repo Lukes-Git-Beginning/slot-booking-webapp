@@ -16,7 +16,7 @@ import pytz
 TZ = pytz.timezone("Europe/Berlin")
 
 
-def backfill_tracking_data(start_date_str="2025-09-01", end_date_str=None, dry_run=False):
+def backfill_tracking_data(start_date_str="2025-09-01", end_date_str=None, dry_run=False, force=False):
     """
     Erfasst Tracking-Daten rückwirkend für alle Tage zwischen start_date und end_date.
 
@@ -65,7 +65,7 @@ def backfill_tracking_data(start_date_str="2025-09-01", end_date_str=None, dry_r
     print(f"Zu verarbeitende Tage: {days_to_process}")
     print()
 
-    if not dry_run:
+    if not dry_run and not force:
         confirm = input("Moechtest du fortfahren? (ja/nein): ")
         if confirm.lower() not in ['ja', 'yes', 'y', 'j']:
             print("Abgebrochen")
@@ -144,6 +144,8 @@ def main():
                        help='End date (YYYY-MM-DD), default: today')
     parser.add_argument('--dry-run', '-n', action='store_true',
                        help='Dry run mode (no changes)')
+    parser.add_argument('--force', '-f', action='store_true',
+                       help='Skip confirmation prompt')
 
     args = parser.parse_args()
 
@@ -157,7 +159,8 @@ def main():
         backfill_tracking_data(
             start_date_str=args.start,
             end_date_str=args.end,
-            dry_run=args.dry_run
+            dry_run=args.dry_run,
+            force=args.force
         )
 
 
