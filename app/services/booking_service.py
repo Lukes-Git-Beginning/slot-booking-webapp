@@ -97,16 +97,7 @@ def get_9am_availability_from_calendar(date_str: str) -> List[str]:
 
     Returns list of consultant names who have T1-bereit events at 9am on the given date.
     This is used for LIVE availability checking, not pre-generated data.
-
-    Cached via cache_manager (TTL managed by CACHE_TIMES config).
     """
-    # Cache-Check
-    cache_key = f"9am_t1_{date_str}"
-    cached = cache_manager.get("9am_availability", cache_key)
-    if cached is not None:
-        logger.debug(f"9am availability cache hit for {date_str}")
-        return cached
-
     available_consultants = []
 
     try:
@@ -149,8 +140,6 @@ def get_9am_availability_from_calendar(date_str: str) -> List[str]:
                 logger.warning(f"Error checking {consultant_name} calendar for 9am slot: {e}")
                 continue
 
-        # Cache speichern (TTL wird durch CACHE_TIMES config gesteuert)
-        cache_manager.set("9am_availability", cache_key, available_consultants)
         return available_consultants
 
     except Exception as e:
@@ -178,14 +167,30 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
     # Try to get from loaded data first - handle old format "YYYY-MM-DD HH:MM"
     slot_key = f"{date_str} {hour}"
     if slot_key in availability:
-        return availability[slot_key]
+        loaded_consultants = availability[slot_key]
+
+        # For 9am slots: merge with live T1-bereit check
+        if hour == "09:00":
+            t1_consultants = get_9am_availability_from_calendar(date_str)
+            # Combine and deduplicate
+            combined = list(set(loaded_consultants + t1_consultants))
+            return combined
+
+        return loaded_consultants
 
     # Also try new nested format for backwards compatibility
     if date_str in availability and hour in availability[date_str]:
-        return availability[date_str][hour]
+        loaded_consultants = availability[date_str][hour]
+
+        # For 9am slots: merge with live T1-bereit check
+        if hour == "09:00":
+            t1_consultants = get_9am_availability_from_calendar(date_str)
+            combined = list(set(loaded_consultants + t1_consultants))
+            return combined
+
+        return loaded_consultants
 
     # For 9am slots: Check calendar for T1-bereit events (no generated data)
-    # This is ONLY called when NO data in availability.json
     if hour == "09:00":
         return get_9am_availability_from_calendar(date_str)
 
