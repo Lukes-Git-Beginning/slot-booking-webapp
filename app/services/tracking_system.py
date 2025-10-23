@@ -659,8 +659,8 @@ class BookingTracker:
                             "no_show_rate": no_show_rate_30
                         }
 
-                    # Calculate current totals from data since 01.09.2024
-                    tracking_start_date = datetime(2024, 9, 1).date()
+                    # Calculate current totals from data since 01.09.2025
+                    tracking_start_date = datetime(2025, 9, 1).date()
                     all_total_slots = 0
                     all_total_completed = 0
                     all_total_no_shows = 0
@@ -669,7 +669,7 @@ class BookingTracker:
 
                     for date_str, metrics in all_metrics.items():
                         try:
-                            # Only count data from 01.09.2024 onwards
+                            # Only count data from 01.09.2025 onwards
                             metric_date = datetime.strptime(date_str, "%Y-%m-%d").date()
                             if metric_date >= tracking_start_date and isinstance(metrics, dict) and 'total_slots' in metrics:
                                 all_total_slots += metrics.get("total_slots", 0)
