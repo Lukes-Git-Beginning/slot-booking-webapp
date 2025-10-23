@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- ZFA Logo: Stern mit Strahlen (basierend auf Identity) -->
+
+  <!-- Goldene Strahlen (horizontal + vertikal) -->
+  <line x1="50" y1="15" x2="50" y2="85" stroke="#d4af6a" stroke-width="4" stroke-linecap="round"/>
+  <line x1="15" y1="50" x2="85" y2="50" stroke="#d4af6a" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Dunkelblaue Strahlen (diagonal) -->
+  <line x1="28" y1="28" x2="72" y2="72" stroke="#294c5d" stroke-width="4" stroke-linecap="round"/>
+  <line x1="72" y1="28" x2="28" y2="72" stroke="#294c5d" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Weitere diagonale Strahlen (ZFA-Blau) -->
+  <line x1="22" y1="40" x2="78" y2="60" stroke="#207487" stroke-width="3" stroke-linecap="round"/>
+  <line x1="78" y1="40" x2="22" y2="60" stroke="#207487" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Zentrum - goldener Kreis -->
+  <circle cx="50" cy="50" r="12" fill="#d4af6a"/>
+  <circle cx="50" cy="50" r="8" fill="#294c5d"/>
+</svg>

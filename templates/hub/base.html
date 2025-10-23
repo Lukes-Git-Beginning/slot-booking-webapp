@@ -279,14 +279,10 @@
 
                     <!-- Brand -->
                     <a href="{{ url_for('hub.dashboard') }}"
-                       class="flex items-center gap-3 text-white hover:text-primary transition-colors group">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <i data-lucide="star" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-xl font-bold">Beraterwelt</h1>
-                            <p class="text-xs text-gray-400">ZFA Tools</p>
-                        </div>
+                       class="flex items-center hover:opacity-80 transition-opacity group">
+                        <img src="{{ url_for('static', filename='zfa-brand.png') }}"
+                             alt="Zentrum für Finanzielle Aufklärung"
+                             class="h-12 w-auto group-hover:scale-105 transition-transform">
                     </a>
 
                     <!-- User Menu -->

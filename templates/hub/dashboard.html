@@ -6,12 +6,12 @@
 <div class="glass rounded-3xl p-8 md:p-12 mb-8" data-aos="fade-down">
     <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center animate-float">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
             </div>
             <div>
                 <h2 class="text-3xl md:text-4xl font-bold text-white">
-                    {{ greeting }}, {{ user }}
+                    {{ greeting }}, {{ display_name }}
                     {% if is_admin %}
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/40 text-primary ml-2">
                         <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i>

@@ -103,6 +103,25 @@ def tool_redirect(tool_id):
     return redirect(url)
 
 
+def get_display_name(username):
+    """
+    Extrahiert Display-Namen aus Login-Username
+
+    Beispiele:
+    - luke.hoppe → Luke
+    - ann-kathrin.welge → Ann-Kathrin
+    - alexandra.scharrschmidt → Alexandra
+    - Admin → Admin
+    """
+    if '.' in username:
+        # firstname.lastname → Firstname
+        first_part = username.split('.')[0]
+        # Capitalize mit Bindestrich-Support (ann-kathrin → Ann-Kathrin)
+        return first_part.replace('-', ' ').title().replace(' ', '-')
+    # Kein Punkt vorhanden (z.B. "Admin")
+    return username.capitalize()
+
+
 def get_dashboard_data(username):
     """
     Dashboard-Daten für Benutzer sammeln
@@ -110,6 +129,7 @@ def get_dashboard_data(username):
     # Basis-Informationen
     dashboard_data = {
         'user': username,
+        'display_name': get_display_name(username),
         'current_time': datetime.now(),
         'greeting': get_time_based_greeting(),
         'is_admin': is_admin_user(username),
