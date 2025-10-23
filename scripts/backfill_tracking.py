@@ -15,20 +15,6 @@ import pytz
 
 TZ = pytz.timezone("Europe/Berlin")
 
-# Initialize tracking system
-tracking_system = None
-
-def init_tracking_system():
-    """Initialize tracking system"""
-    global tracking_system
-    try:
-        from app.services.tracking_system import BookingTracker
-        tracking_system = BookingTracker()
-        return tracking_system
-    except Exception as e:
-        print(f"Fehler beim Initialisieren des Tracking-Systems: {e}")
-        return None
-
 
 def backfill_tracking_data(start_date_str="2025-09-01", end_date_str=None, dry_run=False):
     """
@@ -51,10 +37,8 @@ def backfill_tracking_data(start_date_str="2025-09-01", end_date_str=None, dry_r
     print("=" * 70)
     print()
 
-    # Initialize tracking system if needed
-    if tracking_system is None:
-        print("Initialisiere Tracking-System...")
-        tracking_system = init_tracking_system()
+    # Get tracking system from Flask extensions
+    from app.core.extensions import tracking_system
 
     if not tracking_system:
         print("Fehler: Tracking-System nicht verfuegbar!")
@@ -162,11 +146,18 @@ def main():
 
     args = parser.parse_args()
 
-    backfill_tracking_data(
-        start_date_str=args.start,
-        end_date_str=args.end,
-        dry_run=args.dry_run
-    )
+    # Initialize Flask app context
+    from app import create_app
+    from app.config.production import ProductionConfig
+
+    app = create_app(ProductionConfig)
+
+    with app.app_context():
+        backfill_tracking_data(
+            start_date_str=args.start,
+            end_date_str=args.end,
+            dry_run=args.dry_run
+        )
 
 
 if __name__ == "__main__":
