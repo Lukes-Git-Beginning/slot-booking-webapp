@@ -92,7 +92,7 @@
 
 <!-- Quick Stats -->
 {% if quick_stats and quick_stats.total_tools > 0 %}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="100">
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8" data-aos="fade-up" data-aos-delay="100">
     <!-- Active Tools -->
     <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
         <div class="text-3xl font-bold text-primary mb-1">{{ quick_stats.active_tools }}</div>
@@ -104,14 +104,6 @@
         <div class="text-3xl font-bold text-secondary mb-1">{{ quick_stats.total_tools }}</div>
         <div class="text-white/60 text-sm">Gesamt Tools</div>
     </div>
-
-    {% if quick_stats.unread_notifications > 0 %}
-    <!-- Notifications -->
-    <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
-        <div class="text-3xl font-bold text-accent mb-1">{{ quick_stats.unread_notifications }}</div>
-        <div class="text-white/60 text-sm">Benachrichtigungen</div>
-    </div>
-    {% endif %}
 
     <!-- Last Login (if available) -->
     {% if quick_stats.last_login %}

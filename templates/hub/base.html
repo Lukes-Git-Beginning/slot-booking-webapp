@@ -154,28 +154,88 @@
 
         /* Glassmorphism Utilities - Light Theme (softer) */
         [data-theme="light"] .glass {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.90);
             backdrop-filter: blur(20px) saturate(150%);
             -webkit-backdrop-filter: blur(20px) saturate(150%);
-            border: 1px solid rgba(212, 175, 106, 0.15);
-            box-shadow: 0 8px 24px rgba(120, 113, 108, 0.08);
+            border: 1px solid rgba(212, 175, 106, 0.25);
+            box-shadow: 0 8px 32px rgba(120, 113, 108, 0.15);
         }
 
-        /* Text Colors - Light Theme (softer contrast) */
+        /* Text Colors - Light Theme (better contrast) */
         [data-theme="light"] .text-white {
-            color: #292524 !important;
+            color: #1c1917 !important;
         }
 
         [data-theme="light"] .text-gray-400 {
-            color: #57534e !important;
+            color: #44403c !important;
         }
 
         [data-theme="light"] .text-white\/60 {
-            color: rgba(41, 37, 36, 0.65) !important;
+            color: rgba(28, 25, 23, 0.70) !important;
         }
 
         [data-theme="light"] .text-white\/80 {
-            color: rgba(41, 37, 36, 0.85) !important;
+            color: rgba(28, 25, 23, 0.90) !important;
+        }
+
+        /* Icon Backgrounds - Light Theme (subtle gray gradient) */
+        [data-theme="light"] .bg-gradient-to-br {
+            background: linear-gradient(135deg, rgba(120, 113, 108, 0.12), rgba(168, 162, 158, 0.18)) !important;
+        }
+
+        /* Tool Card Description Text - Light Theme */
+        [data-theme="light"] .text-white\/70 {
+            color: #57534e !important;
+        }
+
+        /* Admin Quick Access - Light Theme */
+        [data-theme="light"] .text-white\/90 {
+            color: #292524 !important;
+        }
+
+        [data-theme="light"] .bg-white\/5 {
+            background: rgba(120, 113, 108, 0.10) !important;
+        }
+
+        [data-theme="light"] .bg-white\/10 {
+            background: rgba(120, 113, 108, 0.15) !important;
+        }
+
+        /* Badge Colors - Light Theme (better visibility) */
+        [data-theme="light"] .bg-success\/20 {
+            background: rgba(16, 185, 129, 0.20) !important;
+        }
+
+        [data-theme="light"] .border-success\/40 {
+            border-color: rgba(16, 185, 129, 0.50) !important;
+        }
+
+        [data-theme="light"] .text-success {
+            color: #059669 !important;
+        }
+
+        [data-theme="light"] .bg-warning\/20 {
+            background: rgba(234, 179, 8, 0.20) !important;
+        }
+
+        [data-theme="light"] .border-warning\/40 {
+            border-color: rgba(234, 179, 8, 0.50) !important;
+        }
+
+        [data-theme="light"] .text-warning {
+            color: #ca8a04 !important;
+        }
+
+        [data-theme="light"] .bg-white\/10 {
+            background: rgba(120, 113, 108, 0.15) !important;
+        }
+
+        [data-theme="light"] .border-white\/20 {
+            border-color: rgba(120, 113, 108, 0.25) !important;
+        }
+
+        [data-theme="light"] .text-white\/60 {
+            color: #57534e !important;
         }
 
         /* Animated Gradient Background */
@@ -272,7 +332,7 @@
 
         <!-- Modern Navbar -->
         <nav class="glass sticky top-0 z-50 backdrop-blur-xl"
-             x-data="{ userMenuOpen: false, notificationsOpen: false }"
+             x-data="{ userMenuOpen: false }"
              data-aos="fade-down">
             <div class="container mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
@@ -295,36 +355,6 @@
                             <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
                             <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
                         </button>
-
-                        <!-- Notifications -->
-                        <div class="relative" @click.away="notificationsOpen = false">
-                            <button @click="notificationsOpen = !notificationsOpen"
-                                    class="btn btn-circle btn-ghost relative hover:bg-white/10">
-                                <i data-lucide="bell" class="w-5 h-5"></i>
-                                {% if notifications and notifications|length > 0 %}
-                                <span class="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs font-bold">
-                                    {{ notifications|length }}
-                                </span>
-                                {% endif %}
-                            </button>
-
-                            <!-- Notifications Dropdown -->
-                            <div x-show="notificationsOpen"
-                                 x-transition
-                                 class="absolute right-0 mt-2 w-80 glass rounded-2xl p-4 shadow-2xl">
-                                <h3 class="font-bold mb-3">Benachrichtigungen</h3>
-                                {% if notifications and notifications|length > 0 %}
-                                    {% for notif in notifications[:5] %}
-                                    <div class="p-3 hover:bg-white/5 rounded-lg cursor-pointer transition-colors mb-2">
-                                        <p class="text-sm">{{ notif.message }}</p>
-                                        <span class="text-xs text-gray-400">{{ notif.time }}</span>
-                                    </div>
-                                    {% endfor %}
-                                {% else %}
-                                <p class="text-sm text-gray-400">Keine neuen Benachrichtigungen</p>
-                                {% endif %}
-                            </div>
-                        </div>
 
                         <!-- User Dropdown -->
                         <div class="relative" @click.away="userMenuOpen = false">

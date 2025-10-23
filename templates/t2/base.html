@@ -69,14 +69,45 @@
     body {
       font-family: 'Inter', sans-serif;
       overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    /* Glassmorphism */
-    .glass {
+    /* Dark Theme (Default) */
+    [data-theme="dark"] body {
+      background: linear-gradient(to bottom right, #0f172a, #294c5d, #0f172a);
+      color: white;
+    }
+
+    /* Light Theme */
+    [data-theme="light"] body {
+      background: linear-gradient(to bottom right, #fafaf9, #e7e5e4, #f5f5f4);
+      color: #1c1917;
+    }
+
+    /* Glassmorphism - Dark Theme */
+    [data-theme="dark"] .glass {
       background: rgba(18, 24, 32, 0.65);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* Glassmorphism - Light Theme */
+    [data-theme="light"] .glass {
+      background: rgba(255, 255, 255, 0.90);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(212, 175, 106, 0.25);
+      box-shadow: 0 8px 32px rgba(120, 113, 108, 0.15);
+    }
+
+    /* Text Colors - Light Theme */
+    [data-theme="light"] .text-white {
+      color: #1c1917 !important;
+    }
+
+    [data-theme="light"] .text-gray-400 {
+      color: #57534e !important;
     }
 
     /* Particle Container */
@@ -90,22 +121,45 @@
       pointer-events: none;
     }
 
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
+    /* Particles - Light Theme */
+    [data-theme="light"] #particles-js {
+      opacity: 0.3;
+    }
+
+    /* Custom Scrollbar - Dark */
+    [data-theme="dark"] ::-webkit-scrollbar {
       width: 10px;
     }
 
-    ::-webkit-scrollbar-track {
+    [data-theme="dark"] ::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    ::-webkit-scrollbar-thumb {
+    [data-theme="dark"] ::-webkit-scrollbar-thumb {
       background: rgba(212, 175, 106, 0.3);
       border-radius: 10px;
     }
 
-    ::-webkit-scrollbar-thumb:hover {
+    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
       background: rgba(212, 175, 106, 0.6);
+    }
+
+    /* Custom Scrollbar - Light */
+    [data-theme="light"] ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    [data-theme="light"] ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    [data-theme="light"] ::-webkit-scrollbar-thumb {
+      background: rgba(212, 175, 106, 0.4);
+      border-radius: 10px;
+    }
+
+    [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+      background: rgba(212, 175, 106, 0.7);
     }
 
     /* T2-Specific Styles */
@@ -177,7 +231,7 @@
             </a>
 
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-t2-purple to-pink-600 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <i data-lucide="target" class="w-5 h-5 text-white"></i>
               </div>
               <div class="hidden md:block">
@@ -189,20 +243,28 @@
 
           <!-- User Menu -->
           {% if user %}
-          <div class="relative" @click.away="userMenuOpen = false">
-            <button @click="userMenuOpen = !userMenuOpen"
-                    class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
-                {{ user[0]|upper }}
-              </div>
-              <div class="text-left hidden md:block">
-                <p class="font-semibold">{{ user }}</p>
-                <p class="text-xs text-gray-400">
-                  {% if is_admin %}Admin{% else %}Benutzer{% endif %}
-                </p>
-              </div>
-              <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          <div class="flex items-center gap-4">
+            <!-- Theme Toggle -->
+            <button @click="toggleTheme()"
+                    class="btn btn-circle btn-ghost hover:bg-white/10">
+              <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
+              <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
             </button>
+
+            <div class="relative" @click.away="userMenuOpen = false">
+              <button @click="userMenuOpen = !userMenuOpen"
+                      class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
+                  {{ user[0]|upper }}
+                </div>
+                <div class="text-left hidden md:block">
+                  <p class="font-semibold">{{ user }}</p>
+                  <p class="text-xs text-gray-400">
+                    {% if is_admin %}Admin{% else %}Benutzer{% endif %}
+                  </p>
+                </div>
+                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+              </button>
 
             <!-- User Dropdown Menu -->
             <div x-show="userMenuOpen"
@@ -234,6 +296,7 @@
                 <span>Abmelden</span>
               </a>
             </div>
+            </div>
           </div>
           {% endif %}
         </div>
@@ -250,7 +313,7 @@
       <div class="container mx-auto px-4 py-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-t2-purple to-pink-600 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
               <i data-lucide="zap" class="w-5 h-5 text-white"></i>
             </div>
             <div class="text-sm">
@@ -330,6 +393,32 @@
       },
       retina_detect: true
     });
+
+    // Alpine.js Theme Store
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('theme', {
+        current: localStorage.getItem('theme') || 'dark',
+        init() {
+          document.documentElement.setAttribute('data-theme', this.current);
+        },
+        toggle() {
+          this.current = this.current === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('theme', this.current);
+          document.documentElement.setAttribute('data-theme', this.current);
+          setTimeout(() => lucide.createIcons(), 50);
+        }
+      });
+    });
+
+    // Set initial theme
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Toggle theme function
+    function toggleTheme() {
+      const store = Alpine.store('theme');
+      if (store) store.toggle();
+    }
 
     // Re-init icons after Alpine loads
     document.addEventListener('alpine:initialized', () => {
