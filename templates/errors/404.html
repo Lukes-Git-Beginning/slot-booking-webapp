@@ -8,15 +8,15 @@
 
         <!-- Error Code with Glow Effect -->
         <div class="relative mb-8">
-            <h1 class="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-primary animate-pulse">
+            <h1 class="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-secondary to-primary animate-pulse">
                 404
             </h1>
-            <div class="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-600/30 to-primary/30 -z-10"></div>
+            <div class="absolute inset-0 blur-3xl bg-gradient-to-r from-secondary/30 to-primary/30 -z-10"></div>
         </div>
 
         <!-- Icon -->
         <div class="mb-6 flex justify-center">
-            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500/20 to-primary/20 flex items-center justify-center glow-primary">
+            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center glow-primary">
                 <i data-lucide="search-x" class="w-12 h-12 text-primary"></i>
             </div>
         </div>
@@ -50,7 +50,7 @@
         <div class="mt-12 pt-8 border-t border-white/10">
             <p class="text-sm text-gray-500 mb-4">Schnellzugriff:</p>
             <div class="flex flex-wrap gap-3 justify-center">
-                <a href="{{ url_for('main_bp.dashboard') }}"
+                <a href="{{ url_for('hub.dashboard') }}"
                    class="btn btn-sm btn-ghost gap-2">
                     <i data-lucide="calendar" class="w-4 h-4"></i>
                     Slot-Booking
