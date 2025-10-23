@@ -561,7 +561,20 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 
 ## 📝 Changelog
 
-### v3.3.2 - Production Hardening & Documentation (LIVE - 2025-10-23)
+### v3.3.3 - Dark Mode Logo & Username Migration (LIVE - 2025-10-23)
+- ✅ **Dark Mode Logo optimiert**:
+  - Transparentes goldenes Logo für Header (kein weißer Kasten mehr)
+  - Separates Favicon (Stern-Logo) für Browser-Tabs
+  - `zfa-dark.png` (67KB) + `favicon.png` (285KB)
+- ✅ **Username Migration**: Alle 17 Benutzer auf volle Namen migriert
+  - `d.mikic` → `dominik.mikic`, `l.hoppe` → `luke.hoppe`, etc.
+  - .env-Datei und JSON-Datenbanken vollständig migriert
+- ✅ **404-Template gefixt**:
+  - Purple-Farben ersetzt durch ZFA Secondary Blue
+  - Endpoint-Referenzen korrigiert
+- ✅ **Git-History aktualisiert**: Server erfolgreich auf neue bereinigte History umgestellt
+
+### v3.3.2 - Production Hardening & Documentation (2025-10-23)
 - ✅ **Git-History komplett bereinigt**: Alle sensiblen Credentials aus gesamter History entfernt (595 Commits)
 - ✅ **Availability Generator optimiert**: 5x täglich (08:00, 11:00, 14:00, 17:00, 20:00 Berlin-Zeit)
 - ✅ **README vollständig überarbeitet**:
