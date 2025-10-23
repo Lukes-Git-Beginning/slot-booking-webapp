@@ -61,16 +61,32 @@ class SlotConfig:
     # Slots pro Berater und Zeitslot
     SLOTS_PER_BERATER: int = int(os.getenv("SLOTS_PER_BERATER", "3"))
 
+    # Spezielle Kapazität für 9-Uhr-Slots (nur 2 Kunden pro Berater)
+    SLOTS_PER_BERATER_9AM: int = int(os.getenv("SLOTS_PER_BERATER_9AM", "2"))
+
     # Zeitzone
     TIMEZONE: str = os.getenv("TIMEZONE", "Europe/Berlin")
 
     # Maximale Buchungszeit im Voraus (Tage) - 8 Wochen
     MAX_BOOKING_DAYS_AHEAD: int = int(os.getenv("MAX_BOOKING_DAYS_AHEAD", "56"))
 
+    # Tage für die Verfügbarkeitsgenerierung (Standard-Verfügbarkeit greift danach)
+    AVAILABILITY_GENERATION_DAYS: int = int(os.getenv("AVAILABILITY_GENERATION_DAYS", "56"))
+
     # Buchungszeiten
     BOOKING_HOURS: List[str] = [
         "09:00", "11:00", "14:00", "16:00", "18:00", "20:00"
     ]
+
+    # Standard-Verfügbarkeit nach Wochentag (greift nach AVAILABILITY_GENERATION_DAYS)
+    # 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday
+    STANDARD_AVAILABILITY_HOURS: Dict[int, List[str]] = {
+        0: ["11:00", "14:00", "16:00", "18:00", "20:00"],  # Montag
+        1: ["11:00", "14:00", "16:00", "18:00", "20:00"],  # Dienstag
+        2: ["11:00", "14:00", "16:00", "18:00", "20:00"],  # Mittwoch
+        3: ["11:00", "14:00", "16:00", "18:00", "20:00"],  # Donnerstag
+        4: ["09:00", "11:00", "14:00"]  # Freitag
+    }
 
     # Wochentage (1=Montag, 7=Sonntag)
     BOOKING_WEEKDAYS: List[int] = [1, 2, 3, 4, 5, 6, 7]  # Alle Wochentage

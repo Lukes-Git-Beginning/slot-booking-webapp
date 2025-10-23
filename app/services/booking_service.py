@@ -51,10 +51,14 @@ def load_availability() -> Dict[str, List[str]]:
 def get_default_availability(date_str: str, hour: str) -> List[str]:
     """Get default consultant availability for a time slot
 
-    Only provides Standard-Verfügbarkeit for:
-    - Tuesday 9am
-    - Thursday 9am
-    - Friday 4pm, 6pm, 8pm
+    Standard-Verfügbarkeit greift nur wenn:
+    1. Datum ist NACH AVAILABILITY_GENERATION_DAYS (56 Tage)
+    2. Datum ist nicht geblockt (Feiertage)
+    3. Zeitslot ist in STANDARD_AVAILABILITY_HOURS definiert
+
+    Zeiten:
+    - Mo-Do: 11:00, 14:00, 16:00, 18:00, 20:00
+    - Fr: 09:00, 11:00, 14:00
     """
     # Check if date is blocked (holidays or custom blocks) first
     try:
@@ -67,23 +71,84 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
         # If there's any error checking holidays, log it but continue
         from app.utils.logging import booking_logger
         booking_logger.warning(f"Error checking holiday status for {date_str}: {e}")
+        return []
 
-    weekday = datetime.strptime(date_str, '%Y-%m-%d').weekday()
+    # Check if date is beyond availability generation days
+    today = datetime.now(TZ).date()
+    days_ahead = (check_date - today).days
 
-    # Standard-Verfügbarkeit only for specific slots
-    if weekday == 1 and hour == "09:00":  # Tuesday 9am
-        return consultant_config.DEFAULT_STANDARD_CONSULTANTS
-    elif weekday == 3 and hour == "09:00":  # Thursday 9am
-        return consultant_config.DEFAULT_STANDARD_CONSULTANTS
-    elif weekday == 4 and hour in ["16:00", "18:00", "20:00"]:  # Friday 4pm, 6pm, 8pm
+    # Standard-Verfügbarkeit nur nach AVAILABILITY_GENERATION_DAYS
+    if days_ahead <= slot_config.AVAILABILITY_GENERATION_DAYS:
+        return []  # Noch innerhalb des generierten Zeitraums
+
+    # Check if weekday and hour are in standard availability
+    weekday = check_date.weekday()
+    standard_hours = slot_config.STANDARD_AVAILABILITY_HOURS.get(weekday, [])
+
+    if hour in standard_hours:
         return consultant_config.DEFAULT_STANDARD_CONSULTANTS
 
-    # No Standard-Verfügbarkeit for all other times
+    # No Standard-Verfügbarkeit for this slot
     return []
 
 
+def get_9am_availability_from_calendar(date_str: str) -> List[str]:
+    """Get 9am slot availability by checking for T1-bereit events in consultant calendars
+
+    Returns list of consultant names who have T1-bereit events at 9am on the given date.
+    This is used for LIVE availability checking, not pre-generated data.
+    """
+    available_consultants = []
+
+    try:
+        # Parse the date
+        slot_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        slot_start = TZ.localize(datetime.combine(slot_date, datetime.strptime("09:00", "%H:%M").time()))
+        slot_end = slot_start + timedelta(hours=2)
+
+        # Get calendar service
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            logger.warning("9am availability check: Calendar service not available")
+            return []
+
+        # Get consultant mapping
+        from app.config.base import consultant_config
+        consultants = consultant_config.get_consultants()
+
+        # Check each consultant's calendar for T1-bereit event
+        for consultant_name, calendar_id in consultants.items():
+            try:
+                events_result = calendar_service.get_events(
+                    calendar_id=calendar_id,
+                    time_min=slot_start.isoformat(),
+                    time_max=slot_end.isoformat(),
+                    max_results=10
+                )
+
+                events = events_result.get('items', []) if events_result else []
+
+                # Check if any event is a T1-bereit event
+                for event in events:
+                    summary = event.get('summary', '').strip()
+                    if is_t1_bereit_event(summary):
+                        available_consultants.append(consultant_name)
+                        logger.debug(f"9am slot {date_str}: {consultant_name} has T1-bereit event")
+                        break  # Found T1-bereit for this consultant
+
+            except Exception as e:
+                logger.warning(f"Error checking {consultant_name} calendar for 9am slot: {e}")
+                continue
+
+        return available_consultants
+
+    except Exception as e:
+        logger.error(f"Error in get_9am_availability_from_calendar for {date_str}: {e}")
+        return []
+
+
 def get_effective_availability(date_str: str, hour: str) -> List[str]:
-    """Get effective availability combining loaded and default data"""
+    """Get effective availability combining loaded, calendar (for 9am), and default data"""
     # Check if date is blocked (holidays or custom blocks)
     try:
         from datetime import datetime
@@ -102,11 +167,32 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
     # Try to get from loaded data first - handle old format "YYYY-MM-DD HH:MM"
     slot_key = f"{date_str} {hour}"
     if slot_key in availability:
-        return availability[slot_key]
+        loaded_consultants = availability[slot_key]
+
+        # For 9am slots: merge with live T1-bereit check
+        if hour == "09:00":
+            t1_consultants = get_9am_availability_from_calendar(date_str)
+            # Combine and deduplicate
+            combined = list(set(loaded_consultants + t1_consultants))
+            return combined
+
+        return loaded_consultants
 
     # Also try new nested format for backwards compatibility
     if date_str in availability and hour in availability[date_str]:
-        return availability[date_str][hour]
+        loaded_consultants = availability[date_str][hour]
+
+        # For 9am slots: merge with live T1-bereit check
+        if hour == "09:00":
+            t1_consultants = get_9am_availability_from_calendar(date_str)
+            combined = list(set(loaded_consultants + t1_consultants))
+            return combined
+
+        return loaded_consultants
+
+    # For 9am slots: Check calendar for T1-bereit events (no generated data)
+    if hour == "09:00":
+        return get_9am_availability_from_calendar(date_str)
 
     # Fall back to default availability
     return get_default_availability(date_str, hour)
@@ -146,8 +232,14 @@ def extract_weekly_summary(availability, current_date=None):
                     slot_time = f"{date_str} {hour}"
                     dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
 
+                    # Use different capacity for 9am slots
+                    if hour == "09:00":
+                        slots_per_consultant = slot_config.SLOTS_PER_BERATER_9AM
+                    else:
+                        slots_per_consultant = slot_config.SLOTS_PER_BERATER
+
                     key = week_key_from_date(dt)
-                    week_possible[key] += len(consultants) * slot_config.SLOTS_PER_BERATER
+                    week_possible[key] += len(consultants) * slots_per_consultant
                     monday = dt - timedelta(days=dt.weekday())
                     friday = monday + timedelta(days=4)
                     week_dates[key] = (monday, friday)
@@ -275,15 +367,22 @@ def extract_detailed_summary(availability):
 
 
 def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[Dict[str, Any]], int, int, int, bool]:
-    """Get slot booking status for a specific time slot"""
-    max_slots = berater_count * slot_config.SLOTS_PER_BERATER
+    """Get slot booking status for a specific time slot
+
+    9am slots have reduced capacity: SLOTS_PER_BERATER_9AM (2) instead of SLOTS_PER_BERATER (3)
+    """
+    # Use different capacity for 9am slots
+    if hour == "09:00":
+        slots_per_consultant = slot_config.SLOTS_PER_BERATER_9AM
+    else:
+        slots_per_consultant = slot_config.SLOTS_PER_BERATER
+
+    max_slots = berater_count * slots_per_consultant
 
     # Get events from Google Calendar
     calendar_service = get_google_calendar_service()
     if not calendar_service:
         # Calendar service unavailable - assume no bookings exist
-        # Calculate available slots based on consultant count
-        slots_per_consultant = getattr(slot_config, 'SLOTS_PER_BERATER', 4)
         total_capacity = berater_count * slots_per_consultant
         return [], 0, total_capacity, total_capacity, False
 
