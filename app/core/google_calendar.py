@@ -27,7 +27,7 @@ class GoogleCalendarService:
         self._last_api_call = 0
         self._daily_quota_used = 0
         self._quota_reset_time = time.time() + 86400  # Reset in 24h
-        self._quota_limit = 180  # Conservative limit (90% of 200)
+        self._quota_limit = 5000  # Conservative daily limit (50% of 10,000 Google default)
         self._initialize_service()
 
     def _initialize_service(self):
