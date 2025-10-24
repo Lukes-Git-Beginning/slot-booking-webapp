@@ -39,6 +39,17 @@
     body {
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       min-height: 100vh;
+      color: white;
+    }
+
+    /* Fallback if JS doesn't load */
+    noscript {
+      display: block;
+      padding: 20px;
+      background: rgba(255, 0, 0, 0.2);
+      color: white;
+      text-align: center;
+      font-size: 18px;
     }
 
     .glass {
@@ -76,6 +87,10 @@
   </style>
 </head>
 <body class="p-4 md:p-8">
+
+  <noscript>
+    ⚠️ JavaScript ist deaktiviert. Bitte aktivieren Sie JavaScript um das Admin Dashboard zu nutzen.
+  </noscript>
 
   <!-- Header -->
   <div class="max-w-7xl mx-auto mb-8" data-aos="fade-down">
