@@ -238,10 +238,10 @@ def get_user_tools(username):
             'last_used': get_tool_last_used(username, 't2')
         },
         {
-            'id': 'service_booking',
-            'name': 'Service-Buchung',
+            'id': 'onboarding',
+            'name': 'Onboarding',
             'description': 'T4-Termin buchen',
-            'lucide_icon': 'external-link',
+            'lucide_icon': 'plane',
             'url': 'https://meetings-eu1.hubspot.com/meetings/david-nehm/t4?uuid=2503fdf7-e2aa-425c-ba34-1da08f536b8e',
             'status': 'active',
             'users': 0,

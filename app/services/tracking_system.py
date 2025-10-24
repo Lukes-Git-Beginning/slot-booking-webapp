@@ -141,9 +141,9 @@ class BookingTracker:
                     continue
                 
                 event_time = datetime.fromisoformat(event_start).strftime("%H:%M")
-                
-                # WICHTIG: Nutze die neue Funktion für Outcome-Bestimmung
-                outcome = get_outcome_from_color(color_id)
+
+                # WICHTIG: Nutze titel-basierte Outcome-Bestimmung
+                outcome = self._get_outcome_from_title_and_color(customer_name, color_id)
                 
                 # Track outcome
                 outcome_data = {
@@ -196,23 +196,25 @@ class BookingTracker:
             "no_shows": 0,
             "completed": 0,
             "cancelled": 0,
-            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0, "cancelled": 0}),
+            "rescheduled": 0,
+            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0, "cancelled": 0, "rescheduled": 0}),
             "by_user": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0}),
             "by_potential": defaultdict(lambda: {"total": 0, "completed": 0}),
             "calculated_at": datetime.now(TZ).isoformat()
         }
-        
+
         for event in events:
             # Skip Platzhalter
             if event.get("summary", "").isdigit():
                 continue
-            
+
             metrics["total_slots"] += 1
-            
+
             color_id = event.get("colorId", "9")
-            outcome = get_outcome_from_color(color_id)
+            customer_name = event.get("summary", "Unknown")
+            outcome = self._get_outcome_from_title_and_color(customer_name, color_id)
             potential_type = self._get_potential_type(color_id)
-            
+
             # Zähle Outcomes
             if outcome == "no_show":
                 metrics["no_shows"] += 1
@@ -220,6 +222,8 @@ class BookingTracker:
                 metrics["completed"] += 1
             elif outcome == "cancelled":
                 metrics["cancelled"] += 1
+            elif outcome == "rescheduled":
+                metrics["rescheduled"] += 1
             
             # Nach Stunde
             event_start = event.get("start", {}).get("dateTime")
@@ -232,6 +236,8 @@ class BookingTracker:
                     metrics["by_hour"][hour]["completed"] += 1
                 elif outcome == "cancelled":
                     metrics["by_hour"][hour]["cancelled"] += 1
+                elif outcome == "rescheduled":
+                    metrics["by_hour"][hour]["rescheduled"] += 1
             
             # Nach Potential-Typ
             if potential_type not in ["no_show", "cancelled"]:
@@ -739,7 +745,31 @@ class BookingTracker:
     def _get_potential_type(self, color_id):
         """Mappe Color ID zu Potential Type"""
         return POTENTIAL_TYPES.get(str(color_id), "unknown")
-    
+
+    def _get_outcome_from_title_and_color(self, title, color_id):
+        """
+        Bestimme Outcome basierend auf Titel-Keywords (Priorität) und Farbe (Fallback)
+
+        Args:
+            title: Event-Titel (Kundenname)
+            color_id: Google Calendar Color ID
+
+        Returns:
+            str: 'completed', 'no_show', 'cancelled', 'rescheduled'
+        """
+        title_lower = title.lower() if title else ""
+
+        # 1. Priorität: Titel-basierte Erkennung
+        if "nicht erschienen" in title_lower or "ghost" in title_lower:
+            return "no_show"
+        elif "abgesagt" in title_lower:
+            return "cancelled"
+        elif "verschoben" in title_lower:
+            return "rescheduled"
+
+        # 2. Fallback: Color-basierte Erkennung
+        return get_outcome_from_color(color_id)
+
     def get_user_bookings(self, user, start_date, end_date):
         """
         Hole alle Buchungen eines Users für einen bestimmten Zeitraum
@@ -969,6 +999,7 @@ class BookingTracker:
                     completed = metrics.get("completed", 0)
                     no_shows = metrics.get("no_shows", 0)
                     cancelled = metrics.get("cancelled", 0)
+                    rescheduled = metrics.get("rescheduled", 0)
 
                     appearance_base = completed + no_shows
                     if appearance_base > 0:
@@ -984,6 +1015,7 @@ class BookingTracker:
                         "completed": completed,
                         "no_shows": no_shows,
                         "cancelled": cancelled,
+                        "rescheduled": rescheduled,
                         "appearance_rate": appearance_rate
                     })
                 else:
@@ -996,6 +1028,7 @@ class BookingTracker:
                         "completed": 0,
                         "no_shows": 0,
                         "cancelled": 0,
+                        "rescheduled": 0,
                         "appearance_rate": 0.0
                     })
 
@@ -1025,6 +1058,7 @@ class BookingTracker:
                     "completed": 0,
                     "no_shows": 0,
                     "cancelled": 0,
+                    "rescheduled": 0,
                     "appearance_rate": 0.0,
                     "completion_rate": 0.0,
                     "no_show_rate": 0.0,
@@ -1042,6 +1076,7 @@ class BookingTracker:
             total_completed = 0
             total_no_shows = 0
             total_cancelled = 0
+            total_rescheduled = 0
             days_with_data = 0
             daily_data = []
 
@@ -1058,11 +1093,13 @@ class BookingTracker:
                         completed = metrics.get("completed", 0)
                         no_shows = metrics.get("no_shows", 0)
                         cancelled = metrics.get("cancelled", 0)
+                        rescheduled = metrics.get("rescheduled", 0)
 
                         total_slots += slots
                         total_completed += completed
                         total_no_shows += no_shows
                         total_cancelled += cancelled
+                        total_rescheduled += rescheduled
                         days_with_data += 1
 
                         # Für Trend-Chart
@@ -1105,6 +1142,7 @@ class BookingTracker:
                 "completed": total_completed,
                 "no_shows": total_no_shows,
                 "cancelled": total_cancelled,
+                "rescheduled": total_rescheduled,
                 "appearance_rate": appearance_rate,
                 "completion_rate": completion_rate,
                 "no_show_rate": no_show_rate,
@@ -1120,6 +1158,7 @@ class BookingTracker:
                 "completed": 0,
                 "no_shows": 0,
                 "cancelled": 0,
+                "rescheduled": 0,
                 "appearance_rate": 0.0,
                 "completion_rate": 0.0,
                 "no_show_rate": 0.0,
