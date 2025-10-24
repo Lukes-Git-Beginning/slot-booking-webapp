@@ -25,27 +25,17 @@ T2_CLOSERS = {
     "Alex": {
         "full_name": "Alexander",
         "color": "#2196F3",
-        "default_probability": 1.0
-    },
-    "Christian": {
-        "full_name": "Christian",
-        "color": "#4CAF50",
-        "default_probability": 1.0
+        "default_probability": 9.0
     },
     "David": {
         "full_name": "David",
         "color": "#9C27B0",
-        "default_probability": 1.0
+        "default_probability": 9.0
     },
     "Jose": {
         "full_name": "José",
         "color": "#795548",
-        "default_probability": 1.0
-    },
-    "Tim": {
-        "full_name": "Tim",
-        "color": "#FF9800",
-        "default_probability": 1.0
+        "default_probability": 2.0
     }
 }
 
@@ -73,6 +63,16 @@ def _ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
 
 
+def _sync_closers_from_data(closers_data: Dict):
+    """
+    Sync closers from persistent storage to global T2_CLOSERS dictionary
+    This ensures closers survive server restarts
+    """
+    global T2_CLOSERS
+    T2_CLOSERS.clear()
+    T2_CLOSERS.update(closers_data)
+
+
 def load_bucket_data() -> Dict:
     """Load bucket system data"""
     _ensure_dirs()
@@ -83,6 +83,11 @@ def load_bucket_data() -> Dict:
     try:
         with open(BUCKET_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
+
+            # Load closers from data (if available) and sync to global dict
+            if "closers" in data:
+                _sync_closers_from_data(data["closers"])
+
             # Validate structure
             if "probabilities" not in data:
                 data["probabilities"] = {name: info["default_probability"] for name, info in T2_CLOSERS.items()}
@@ -107,6 +112,9 @@ def save_bucket_data(data: Dict):
     _ensure_dirs()
 
     try:
+        # Always save current closers to data
+        data["closers"] = T2_CLOSERS.copy()
+
         with open(BUCKET_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
@@ -118,6 +126,7 @@ def _initialize_bucket_data() -> Dict:
     probabilities = {name: info["default_probability"] for name, info in T2_CLOSERS.items()}
 
     return {
+        "closers": T2_CLOSERS.copy(),  # Store closers persistently
         "probabilities": probabilities,
         "default_probabilities": {name: info["default_probability"] for name, info in T2_CLOSERS.items()},  # Store defaults
         "bucket": _create_initial_bucket(probabilities),
@@ -490,6 +499,7 @@ def add_closer(name: str, color: str, full_name: str, default_probability: float
     data["total_draws"] = 0
     data["last_reset"] = datetime.now(TZ).isoformat()
 
+    # Save will automatically persist T2_CLOSERS via save_bucket_data()
     save_bucket_data(data)
 
     return {
@@ -527,6 +537,7 @@ def remove_closer(name: str) -> Dict:
     data["total_draws"] = 0
     data["last_reset"] = datetime.now(TZ).isoformat()
 
+    # Save will automatically persist T2_CLOSERS via save_bucket_data()
     save_bucket_data(data)
 
     return {
@@ -553,6 +564,10 @@ def update_closer_info(name: str, new_color: str = None, new_full_name: str = No
     # Update full name if provided
     if new_full_name:
         T2_CLOSERS[name]["full_name"] = new_full_name
+
+    # Persist changes
+    data = load_bucket_data()
+    save_bucket_data(data)
 
     return {
         "success": True,

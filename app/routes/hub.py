@@ -238,6 +238,19 @@ def get_user_tools(username):
             'last_used': get_tool_last_used(username, 't2')
         },
         {
+            'id': 'service_booking',
+            'name': 'Service-Buchung',
+            'description': 'T4-Termin buchen',
+            'lucide_icon': 'external-link',
+            'url': 'https://meetings-eu1.hubspot.com/meetings/david-nehm/t4?uuid=2503fdf7-e2aa-425c-ba34-1da08f536b8e',
+            'status': 'active',
+            'users': 0,
+            'color': '#d4af6a',
+            'features': ['T4-Termine', 'HubSpot', 'Externe Buchung'],
+            'external': True,
+            'last_used': None
+        },
+        {
             'id': 'analytics',
             'name': 'Analytics',
             'description': 'Business Intelligence',
@@ -480,6 +493,15 @@ def has_tool_access(username, tool_id):
     # Admins haben Zugang zu allen Tools
     if username in admin_users:
         return True
+
+    # Service-Buchung für spezifische Benutzer (zusätzlich zu Admins)
+    if tool_id == 'service_booking':
+        allowed_users = [
+            'christian.mast', 'daniel.herbort',
+            'tim.kreisel', 'yasmine.schumacher',
+            'alexandra.börner'
+        ]
+        return username in allowed_users
 
     # Standard-Benutzer haben Zugang zu Slots und T2
     if tool_id in ['slots', 't2']:

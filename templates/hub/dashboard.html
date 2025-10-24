@@ -100,6 +100,7 @@
      data-aos="fade-up" data-aos-delay="200">
     {% for tool in tools %}
     <a href="{{ tool.url }}"
+       {% if tool.external %}target="_blank" rel="noopener noreferrer"{% endif %}
        class="glass rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl group relative overflow-hidden"
        data-aos="zoom-in"
        data-aos-delay="{{ loop.index * 50 }}">
@@ -148,7 +149,11 @@
 
             <!-- Arrow Icon -->
             <div class="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
+                {% if tool.external %}
+                <i data-lucide="external-link" class="w-6 h-6 text-primary"></i>
+                {% else %}
                 <i data-lucide="arrow-right" class="w-6 h-6 text-primary"></i>
+                {% endif %}
             </div>
         </div>
     </a>

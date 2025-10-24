@@ -24,27 +24,12 @@ T2_CLOSERS = {
     "Alexander": {
         "calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com",
         "email": "alexander@domain.de",
-        "color": "#FF5722"
-    },
-    "Christian": {
-        "calendar_id": "chmast95@gmail.com",
-        "email": "chmast95@gmail.com",
-        "color": "#4CAF50"
-    },
-    "Daniel": {
-        "calendar_id": "daniel.herbort.zfa@gmail.com",
-        "email": "daniel.herbort.zfa@gmail.com",
         "color": "#2196F3"
     },
     "David": {
         "calendar_id": "david.nehm@googlemail.com",
         "email": "david.nehm@googlemail.com",
         "color": "#9C27B0"
-    },
-    "Tim": {
-        "calendar_id": "tim.kreisel71@gmail.com",
-        "email": "tim.kreisel71@gmail.com",
-        "color": "#FF9800"
     },
     "Jose": {
         "calendar_id": "jtldiw@gmail.com",
@@ -611,7 +596,7 @@ def generate_booking_id() -> str:
 # ========== NEUE AVAILABILITY & CALENDAR API-ENDPOINTS ==========
 
 # Closers list for role detection
-CLOSERS_LIST = ["Jose", "Alexander", "David", "Daniel", "Christian", "Tim"]
+CLOSERS_LIST = ["Jose", "Alexander", "David"]
 
 def is_closer(username: str) -> bool:
     """Check if user is a closer"""

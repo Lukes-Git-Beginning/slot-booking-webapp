@@ -16,10 +16,7 @@ logger = logging.getLogger(__name__)
 # T2 Closer configuration (from t2.py)
 T2_CLOSERS = {
     "Alexander": {"calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com"},
-    "Christian": {"calendar_id": "chmast95@gmail.com"},
-    "Daniel": {"calendar_id": "daniel.herbort.zfa@gmail.com"},
     "David": {"calendar_id": "david.nehm@googlemail.com"},
-    "Tim": {"calendar_id": "tim.kreisel71@gmail.com"},
     "Jose": {"calendar_id": "jtldiw@gmail.com"}
 }
 
