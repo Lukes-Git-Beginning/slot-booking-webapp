@@ -919,10 +919,217 @@ class BookingTracker:
                 ]
             
             return insights
-            
+
         except Exception as e:
             logger.error(f"Fehler bei der Generierung von Erkenntnissen: {e}")
             return {"trends": {}, "comparisons": {}, "recommendations": []}
+
+    def get_last_n_workdays_stats(self, n=5):
+        """
+        Hole Statistiken für die letzten N Werktage (Mo-Fr)
+        Für Admin Tracking-Dashboard
+
+        Args:
+            n: Anzahl der Werktage
+
+        Returns:
+            Liste mit Tages-Statistiken (neueste zuerst)
+        """
+        try:
+            if not os.path.exists(self.metrics_file):
+                return []
+
+            with open(self.metrics_file, "r", encoding="utf-8") as f:
+                all_metrics = json.load(f)
+
+            # Finde letzte N Werktage
+            today = datetime.now(TZ).date()
+            workdays = []
+            current_date = today
+
+            while len(workdays) < n:
+                # Prüfe ob Werktag (0=Montag, 6=Sonntag)
+                if current_date.weekday() < 5:  # Mo-Fr
+                    workdays.append(current_date)
+                current_date -= timedelta(days=1)
+
+                # Sicherheit: Max 20 Tage zurück
+                if (today - current_date).days > 20:
+                    break
+
+            # Hole Metriken für diese Tage
+            stats = []
+            for date in workdays:
+                date_str = str(date)
+                if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
+                    metrics = all_metrics[date_str]
+
+                    # Berechne Auftauchquote
+                    total_slots = metrics.get("total_slots", 0)
+                    completed = metrics.get("completed", 0)
+                    no_shows = metrics.get("no_shows", 0)
+                    cancelled = metrics.get("cancelled", 0)
+
+                    appearance_base = completed + no_shows
+                    if appearance_base > 0:
+                        appearance_rate = round((completed / appearance_base) * 100, 1)
+                    else:
+                        appearance_rate = 0.0
+
+                    stats.append({
+                        "date": date_str,
+                        "weekday": date.strftime("%A"),
+                        "weekday_de": self._get_german_weekday(date.weekday()),
+                        "total_slots": total_slots,
+                        "completed": completed,
+                        "no_shows": no_shows,
+                        "cancelled": cancelled,
+                        "appearance_rate": appearance_rate
+                    })
+                else:
+                    # Keine Daten für diesen Tag
+                    stats.append({
+                        "date": date_str,
+                        "weekday": date.strftime("%A"),
+                        "weekday_de": self._get_german_weekday(date.weekday()),
+                        "total_slots": 0,
+                        "completed": 0,
+                        "no_shows": 0,
+                        "cancelled": 0,
+                        "appearance_rate": 0.0
+                    })
+
+            return stats
+
+        except Exception as e:
+            logger.error(f"Fehler beim Laden der Werktags-Statistiken: {e}")
+            return []
+
+    def get_stats_since_date(self, start_date_str="2025-09-01"):
+        """
+        Hole Gesamt-Statistiken seit einem bestimmten Datum
+        Für Admin Tracking-Dashboard (seit Go-Live)
+
+        Args:
+            start_date_str: Start-Datum im Format YYYY-MM-DD
+
+        Returns:
+            Dict mit aggregierten Statistiken
+        """
+        try:
+            if not os.path.exists(self.metrics_file):
+                return {
+                    "start_date": start_date_str,
+                    "days_tracked": 0,
+                    "total_slots": 0,
+                    "completed": 0,
+                    "no_shows": 0,
+                    "cancelled": 0,
+                    "appearance_rate": 0.0,
+                    "completion_rate": 0.0,
+                    "no_show_rate": 0.0,
+                    "daily_data": []
+                }
+
+            with open(self.metrics_file, "r", encoding="utf-8") as f:
+                all_metrics = json.load(f)
+
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            today = datetime.now(TZ).date()
+
+            # Aggregierte Werte
+            total_slots = 0
+            total_completed = 0
+            total_no_shows = 0
+            total_cancelled = 0
+            days_with_data = 0
+            daily_data = []
+
+            # Iteriere über alle Tage seit Start
+            current_date = start_date
+            while current_date <= today:
+                date_str = str(current_date)
+
+                if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
+                    metrics = all_metrics[date_str]
+                    slots = metrics.get("total_slots", 0)
+
+                    if slots > 0:  # Nur Tage mit Daten zählen
+                        completed = metrics.get("completed", 0)
+                        no_shows = metrics.get("no_shows", 0)
+                        cancelled = metrics.get("cancelled", 0)
+
+                        total_slots += slots
+                        total_completed += completed
+                        total_no_shows += no_shows
+                        total_cancelled += cancelled
+                        days_with_data += 1
+
+                        # Für Trend-Chart
+                        appearance_base = completed + no_shows
+                        if appearance_base > 0:
+                            appearance_rate = round((completed / appearance_base) * 100, 1)
+                        else:
+                            appearance_rate = 0.0
+
+                        daily_data.append({
+                            "date": date_str,
+                            "total_slots": slots,
+                            "completed": completed,
+                            "no_shows": no_shows,
+                            "appearance_rate": appearance_rate
+                        })
+
+                current_date += timedelta(days=1)
+
+            # Berechne Raten
+            appearance_base = total_completed + total_no_shows
+            if appearance_base > 0:
+                appearance_rate = round((total_completed / appearance_base) * 100, 1)
+            else:
+                appearance_rate = 0.0
+
+            if total_slots > 0:
+                completion_rate = round((total_completed / total_slots) * 100, 1)
+                no_show_rate = round((total_no_shows / total_slots) * 100, 1)
+            else:
+                completion_rate = 0.0
+                no_show_rate = 0.0
+
+            return {
+                "start_date": start_date_str,
+                "end_date": str(today),
+                "days_tracked": days_with_data,
+                "total_days": (today - start_date).days + 1,
+                "total_slots": total_slots,
+                "completed": total_completed,
+                "no_shows": total_no_shows,
+                "cancelled": total_cancelled,
+                "appearance_rate": appearance_rate,
+                "completion_rate": completion_rate,
+                "no_show_rate": no_show_rate,
+                "daily_data": daily_data  # Für Charts
+            }
+
+        except Exception as e:
+            logger.error(f"Fehler beim Laden der Statistiken seit {start_date_str}: {e}")
+            return {
+                "start_date": start_date_str,
+                "days_tracked": 0,
+                "total_slots": 0,
+                "completed": 0,
+                "no_shows": 0,
+                "cancelled": 0,
+                "appearance_rate": 0.0,
+                "completion_rate": 0.0,
+                "no_show_rate": 0.0,
+                "daily_data": []
+            }
+
+    def _get_german_weekday(self, weekday_index):
+        """Helper: Englischer Wochentag-Index zu deutschem Namen"""
+        weekdays_de = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+        return weekdays_de[weekday_index]
 
 # ----------------- Utility Funktionen -----------------
 def recalculate_all_outcomes():

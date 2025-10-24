@@ -20,95 +20,82 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 @admin_bp.route("/dashboard")
 @require_admin
 def admin_dashboard():
-    """Main admin dashboard with overview metrics"""
+    """Main admin dashboard with Hub-Style card navigation"""
     try:
-        # Get tracking data
-        tracker = tracking_system if tracking_system else None
+        # Get quick stats for display
+        today_stats = {
+            'total_appointments': 0,
+            'no_show_rate': 0.0,
+            'active_users': 0
+        }
 
-        # Basic metrics
-        total_bookings = 0
-        total_customers = 0
-        recent_activity = []
+        if tracking_system:
+            # Hole Stats für heute
+            today = datetime.now(TZ).date()
+            today_str = str(today)
 
-        dashboard_data = None
-        if tracker:
-            # Get dashboard data from tracking system
-            dashboard_data = tracker.get_performance_dashboard()
-            total_bookings = dashboard_data.get('total_bookings', 0)
-            total_customers = dashboard_data.get('unique_customers', 0)
-            recent_activity = dashboard_data.get('recent_bookings', [])
+            try:
+                import os
+                import json
+                metrics_file = os.path.join("data/tracking", "daily_metrics.json")
+                if os.path.exists(metrics_file):
+                    with open(metrics_file, "r", encoding="utf-8") as f:
+                        all_metrics = json.load(f)
+                        if today_str in all_metrics:
+                            today_metrics = all_metrics[today_str]
+                            today_stats['total_appointments'] = today_metrics.get('total_slots', 0)
+                            today_stats['no_show_rate'] = today_metrics.get('no_show_rate', 0.0)
+            except Exception as e:
+                print(f"Error loading today's stats: {e}")
 
-        # System metrics
-        color_mapping_status = get_color_mapping_status()
+        # Count active users
+        from app.utils.helpers import get_userlist
+        today_stats['active_users'] = len(get_userlist())
 
-        # User scores
-        scores = data_persistence.load_scores()
-        current_month = datetime.now(TZ).strftime("%Y-%m")
-        monthly_scores = []
+        # Admin Tools für Card-Navigation
+        admin_tools = [
+            {
+                'name': 'Tracking Analytics',
+                'description': 'Show/No-Show Statistiken und Termin-Analytics',
+                'url': '/admin/tracking',
+                'icon': 'bar-chart-3',
+                'color': 'from-primary/20 to-secondary/20',
+                'status': 'active'
+            },
+            {
+                'name': 'Telefonie System',
+                'description': 'Weekly Points Management und Reports',
+                'url': '/admin/telefonie',
+                'icon': 'phone',
+                'color': 'from-blue-500/20 to-indigo-500/20',
+                'status': 'active'
+            },
+            {
+                'name': 'User Management',
+                'description': 'Benutzer verwalten und Berechtigungen ändern',
+                'url': '/admin/users',
+                'icon': 'users',
+                'color': 'from-purple-500/20 to-pink-500/20',
+                'status': 'active'
+            },
+            {
+                'name': 'Blocked Dates',
+                'description': 'Zeitslots und Zeiträume sperren',
+                'url': '/admin/blocked-dates',
+                'icon': 'calendar-x',
+                'color': 'from-red-500/20 to-orange-500/20',
+                'status': 'active'
+            }
+        ]
 
-        for user, user_scores in scores.items():
-            if current_month in user_scores:
-                monthly_scores.append({
-                    'user': user,
-                    'score': user_scores[current_month]
-                })
-
-        monthly_scores.sort(key=lambda x: x['score'], reverse=True)
-
-        # Badge statistics
-        try:
-            from app.services.achievement_system import achievement_system
-            # Get all users and their badges
-            all_badges = {}
-            users = ["Dominik", "Ladislav", "Jose", "Ann-Kathrin", "Patrick", "Sonja", "Admin", "Christian", "Sara"]  # Could be loaded from somewhere
-            for user in users:
-                try:
-                    user_badges = achievement_system.get_user_badges(user)
-                    all_badges[user] = user_badges.get('badges', [])
-                except Exception:
-                    all_badges[user] = []
-            total_badges_awarded = sum(len(badges) for badges in all_badges.values())
-        except Exception as e:
-            print(f"Error loading badge statistics: {e}")
-            all_badges = {}
-            total_badges_awarded = 0
-
-        return render_template("admin_dashboard_enhanced.html",
-                             dashboard=dashboard_data,
-                             total_bookings=total_bookings,
-                             total_customers=total_customers,
-                             recent_activity=recent_activity[:10],  # Last 10 activities
-                             color_mapping_status=color_mapping_status,
-                             monthly_scores=monthly_scores[:10],  # Top 10 users
-                             total_badges_awarded=total_badges_awarded,
-                             current_month=current_month)
+        return render_template("admin_dashboard.html",
+                             admin_tools=admin_tools,
+                             today_stats=today_stats,
+                             current_time=datetime.now(TZ).strftime("%H:%M"))
 
     except Exception as e:
         flash(f"Fehler beim Laden des Dashboards: {str(e)}", "danger")
         return redirect(url_for("hub.dashboard"))
 
 
-@admin_bp.route("/insights")
-@require_admin
-def admin_insights():
-    """Admin insights and analytics page"""
-    try:
-        # Get insights data
-        insights_data = {
-            "peak_hours": [],
-            "popular_days": [],
-            "customer_patterns": {},
-            "booking_trends": []
-        }
-
-        if tracking_system:
-            # Get enhanced dashboard with insights
-            dashboard_data = tracking_system.get_enhanced_dashboard()
-            insights_data.update(dashboard_data.get('insights', {}))
-
-        return render_template("admin_insights.html",
-                             insights=insights_data)
-
-    except Exception as e:
-        flash(f"Fehler beim Laden der Insights: {str(e)}", "danger")
-        return redirect(url_for("admin.admin_dashboard"))
+# admin_insights endpoint removed - functionality integrated into tracking dashboard

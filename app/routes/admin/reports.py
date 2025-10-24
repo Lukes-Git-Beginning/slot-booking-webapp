@@ -35,31 +35,7 @@ def weekly_tracking_report():
         return jsonify({"error": f"Report generation failed: {str(e)}"}), 500
 
 
-@admin_bp.route("/analytics/export")
-@require_admin
-def export_analytics():
-    """Export analytics data"""
-    try:
-        if not tracking_system:
-            return jsonify({"error": "Tracking system not available"}), 503
-
-        # Get analytics data
-        dashboard_data = tracking_system.get_performance_dashboard()
-
-        # Create export
-        export_data = {
-            'exported_at': datetime.now(TZ).isoformat(),
-            'analytics': dashboard_data
-        }
-
-        response = make_response(json.dumps(export_data, indent=2))
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Content-Disposition'] = 'attachment; filename=analytics_export.json'
-
-        return response
-
-    except Exception as e:
-        return jsonify({"error": f"Export failed: {str(e)}"}), 500
+# export_analytics endpoint removed - use /admin/export-all-data instead
 
 
 @admin_bp.route("/export/csv")
@@ -579,44 +555,4 @@ def admin_telefonie_export_report(report_type):
         return redirect(url_for("admin.admin_telefonie"))
 
 
-@admin_bp.route("/storage/optimize", methods=["GET", "POST"])
-@require_admin
-def admin_storage_optimize():
-    """Storage optimization and cleanup"""
-    if request.method == "POST":
-        try:
-            # Perform storage optimization
-            from app.core.extensions import data_persistence
-
-            # This would trigger actual optimization
-            optimized_files = []
-
-            # Example: cleanup old backups
-            data_persistence.auto_cleanup_backups()
-            optimized_files.append("backup_cleanup")
-
-            if optimized_files:
-                flash(f"Speicher optimiert: {', '.join(optimized_files)}", "success")
-            else:
-                flash("Keine Optimierung erforderlich", "info")
-
-        except Exception as e:
-            flash(f"Optimierungsfehler: {str(e)}", "danger")
-
-        return redirect(url_for("admin.admin_storage_optimize"))
-
-    # GET - show optimization interface
-    try:
-        # Get storage statistics
-        storage_stats = {
-            'total_size': '0 MB',  # Would be calculated
-            'backup_count': 0,
-            'optimization_suggestions': []
-        }
-
-        return render_template("admin_storage.html",
-                             storage_stats=storage_stats)
-
-    except Exception as e:
-        flash(f"Fehler beim Laden der Speicher-Informationen: {str(e)}", "danger")
-        return redirect(url_for("admin.admin_dashboard"))
+# admin_storage_optimize endpoint removed - not needed

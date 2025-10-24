@@ -55,72 +55,7 @@ def admin_users():
                          online_users=online_users)
 
 
-@admin_bp.route("/fix-points")
-@require_admin
-def admin_fix_points():
-    """Point system maintenance and fixes"""
-    try:
-        # Load current scores
-        scores = data_persistence.load_scores()
-
-        # Perform any necessary fixes
-        fixed_users = []
-
-        # Example fix: Remove negative scores
-        for user, user_scores in scores.items():
-            for month, score in user_scores.items():
-                if score < 0:
-                    scores[user][month] = 0
-                    fixed_users.append(f"{user} ({month})")
-
-        # Save fixed scores
-        if fixed_users:
-            data_persistence.save_scores(scores)
-            flash(f"Negative Punkte korrigiert für: {', '.join(fixed_users)}", "success")
-        else:
-            flash("Keine Probleme im Punktesystem gefunden", "info")
-
-        return redirect(url_for("admin.admin_users"))
-
-    except Exception as e:
-        flash(f"Fehler beim Korrigieren der Punkte: {str(e)}", "danger")
-        return redirect(url_for("admin.admin_users"))
-
-
-@admin_bp.route("/debug-points")
-@require_admin
-def admin_debug_points():
-    """Debug point system - show detailed breakdown"""
-    try:
-        scores = data_persistence.load_scores()
-
-        # Create debug information
-        debug_info = {
-            'total_users': len(scores),
-            'total_months': 0,
-            'score_distribution': {},
-            'user_details': []
-        }
-
-        all_months = set()
-        for user, user_scores in scores.items():
-            all_months.update(user_scores.keys())
-
-            user_total = sum(user_scores.values())
-            debug_info['user_details'].append({
-                'user': user,
-                'total_score': user_total,
-                'months_active': len(user_scores),
-                'monthly_breakdown': user_scores
-            })
-
-        debug_info['total_months'] = len(all_months)
-        debug_info['user_details'].sort(key=lambda x: x['total_score'], reverse=True)
-
-        return jsonify(debug_info)
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# admin_fix_points and admin_debug_points endpoints removed - not needed for production
 
 
 @admin_bp.route("/badges/backfill")

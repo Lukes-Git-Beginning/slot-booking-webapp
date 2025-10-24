@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Tracking Analytics - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- DaisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+  <!-- AOS Animations -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#d4af6a',
+            'primary-dark': '#c2ae7f',
+            'secondary': '#207487',
+            'accent': '#294c5d',
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-card {
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(212, 175, 106, 0.2);
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <!-- Header -->
+  <div class="max-w-7xl mx-auto mb-8" data-aos="fade-down">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-4">
+        <a href="/admin/dashboard" class="btn btn-ghost btn-circle hover:bg-white/10">
+          <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+        </a>
+        <div>
+          <h1 class="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
+            <i data-lucide="bar-chart-3" class="w-10 h-10 text-primary"></i>
+            Tracking Analytics
+          </h1>
+          <p class="text-white/60 mt-1">Show/No-Show Statistiken · Stand: {{ current_date }}</p>
+        </div>
+      </div>
+
+      <!-- Refresh Button -->
+      <button onclick="location.reload()" class="btn btn-circle btn-ghost hover:bg-white/10">
+        <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto space-y-8">
+
+    <!-- Letzte 5 Werktage -->
+    <div class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+          <i data-lucide="calendar-days" class="w-6 h-6 text-primary"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white">Letzte 5 Werktage</h2>
+          <p class="text-white/60 text-sm">Tägliche Termin-Übersicht</p>
+        </div>
+      </div>
+
+      <!-- Tabelle -->
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr class="bg-white/5 border-b border-white/10">
+              <th class="text-white font-bold">Datum</th>
+              <th class="text-white font-bold">Wochentag</th>
+              <th class="text-white font-bold text-center">Gelegte Termine</th>
+              <th class="text-white font-bold text-center">Erschienen</th>
+              <th class="text-white font-bold text-center">Nicht erschienen</th>
+              <th class="text-white font-bold text-center">Abgesagt</th>
+              <th class="text-white font-bold text-center">Auftauchquote</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if last_5_workdays %}
+              {% for day in last_5_workdays %}
+              <tr class="hover:bg-white/5 transition-colors">
+                <td class="text-white font-medium">{{ day.date }}</td>
+                <td class="text-white/80">{{ day.weekday_de }}</td>
+                <td class="text-center">
+                  <span class="badge badge-primary badge-lg">{{ day.total_slots }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-success badge-lg">{{ day.completed }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-error badge-lg">{{ day.no_shows }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-warning badge-lg">{{ day.cancelled }}</span>
+                </td>
+                <td class="text-center">
+                  {% if day.appearance_rate >= 80 %}
+                    <span class="badge badge-success badge-lg font-bold">{{ day.appearance_rate }}%</span>
+                  {% elif day.appearance_rate >= 60 %}
+                    <span class="badge badge-warning badge-lg font-bold">{{ day.appearance_rate }}%</span>
+                  {% else %}
+                    <span class="badge badge-error badge-lg font-bold">{{ day.appearance_rate }}%</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center text-white/60 py-8">
+                  <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                  <p>Keine Daten für die letzten 5 Werktage verfügbar</p>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Seit Go-Live (01.09.2025) -->
+    <div class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="100">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-6 h-6 text-primary"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white">Seit Go-Live (01.09.2025)</h2>
+          <p class="text-white/60 text-sm">Gesamtstatistik · {{ since_golive.days_tracked }} Tage mit Daten</p>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Total Slots -->
+        <div class="stat-card glass rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white/60 text-sm font-medium">Gelegte Termine</span>
+            <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
+          </div>
+          <p class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
+        </div>
+
+        <!-- Erschienen -->
+        <div class="stat-card glass rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white/60 text-sm font-medium">Erschienen</span>
+            <i data-lucide="check-circle-2" class="w-5 h-5 text-success"></i>
+          </div>
+          <p class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
+        </div>
+
+        <!-- No-Shows -->
+        <div class="stat-card glass rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white/60 text-sm font-medium">Nicht erschienen</span>
+            <i data-lucide="x-circle" class="w-5 h-5 text-error"></i>
+          </div>
+          <p class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
+        </div>
+
+        <!-- Auftauchquote -->
+        <div class="stat-card glass rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white/60 text-sm font-medium">Auftauchquote</span>
+            <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
+          </div>
+          {% if since_golive.appearance_rate >= 80 %}
+            <p class="text-4xl font-bold text-success">{{ since_golive.appearance_rate }}%</p>
+          {% elif since_golive.appearance_rate >= 60 %}
+            <p class="text-4xl font-bold text-warning">{{ since_golive.appearance_rate }}%</p>
+          {% else %}
+            <p class="text-4xl font-bold text-error">{{ since_golive.appearance_rate }}%</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Trend Chart -->
+        <div class="glass rounded-xl p-6">
+          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <i data-lucide="line-chart" class="w-5 h-5 text-primary"></i>
+            Auftauchquote im Zeitverlauf
+          </h3>
+          <div id="trendChart"></div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="glass rounded-xl p-6">
+          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i>
+            Terminverteilung
+          </h3>
+          <div id="donutChart"></div>
+        </div>
+      </div>
+
+      <!-- Zusätzliche Metriken -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-white/60 text-sm mb-1">Completion Rate</p>
+          <p class="text-2xl font-bold text-white">{{ since_golive.completion_rate }}%</p>
+        </div>
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-white/60 text-sm mb-1">No-Show Rate</p>
+          <p class="text-2xl font-bold text-white">{{ since_golive.no_show_rate }}%</p>
+        </div>
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-white/60 text-sm mb-1">Abgesagt</p>
+          <p class="text-2xl font-bold text-white">{{ since_golive.cancelled }}</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Initialize Scripts -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Initialize AOS
+    AOS.init({
+      duration: 800,
+      once: true
+    });
+
+    // Trend Chart Data
+    const trendData = {{ since_golive.daily_data | tojson }};
+
+    // Trend Chart
+    const trendOptions = {
+      series: [{
+        name: 'Auftauchquote',
+        data: trendData.map(d => d.appearance_rate)
+      }],
+      chart: {
+        type: 'line',
+        height: 300,
+        background: 'transparent',
+        toolbar: {
+          show: false
+        }
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3,
+        colors: ['#d4af6a']
+      },
+      markers: {
+        size: 4,
+        colors: ['#d4af6a'],
+        strokeColors: '#fff',
+        strokeWidth: 2
+      },
+      xaxis: {
+        categories: trendData.map(d => d.date),
+        labels: {
+          style: {
+            colors: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '10px'
+          },
+          rotate: -45,
+          formatter: function(val) {
+            // Zeige nur jeden 5. Tag
+            const date = new Date(val);
+            return date.getDate() + '.' + (date.getMonth() + 1);
+          }
+        }
+      },
+      yaxis: {
+        min: 0,
+        max: 100,
+        labels: {
+          style: {
+            colors: 'rgba(255, 255, 255, 0.7)'
+          },
+          formatter: function(val) {
+            return val.toFixed(0) + '%';
+          }
+        }
+      },
+      grid: {
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        strokeDashArray: 4
+      },
+      tooltip: {
+        theme: 'dark',
+        y: {
+          formatter: function(val) {
+            return val.toFixed(1) + '%';
+          }
+        }
+      }
+    };
+
+    const trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
+    trendChart.render();
+
+    // Donut Chart
+    const donutOptions = {
+      series: [{{ since_golive.completed }}, {{ since_golive.no_shows }}, {{ since_golive.cancelled }}],
+      chart: {
+        type: 'donut',
+        height: 300,
+        background: 'transparent'
+      },
+      labels: ['Erschienen', 'Nicht erschienen', 'Abgesagt'],
+      colors: ['#10b981', '#ef4444', '#f59e0b'],
+      legend: {
+        position: 'bottom',
+        labels: {
+          colors: 'rgba(255, 255, 255, 0.9)'
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        style: {
+          fontSize: '14px',
+          fontWeight: 'bold',
+          colors: ['#fff']
+        }
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Gesamt',
+                fontSize: '14px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                formatter: function (w) {
+                  return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                }
+              },
+              value: {
+                show: true,
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: '#fff'
+              }
+            }
+          }
+        }
+      },
+      tooltip: {
+        theme: 'dark'
+      }
+    };
+
+    const donutChart = new ApexCharts(document.querySelector("#donutChart"), donutOptions);
+    donutChart.render();
+  </script>
+
+</body>
+</html>
