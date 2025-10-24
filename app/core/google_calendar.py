@@ -158,12 +158,24 @@ class GoogleCalendarService:
                     calendar_logger.error(f"Calendar API call failed permanently: {e}")
                     return None
             except Exception as e:
-                calendar_logger.error(f"Unexpected error in calendar API call: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    continue
+                # Check if it's an SSL error (needs longer retry delay)
+                import ssl
+                is_ssl_error = isinstance(e, (ssl.SSLError, OSError)) or 'SSL' in str(e)
+
+                if is_ssl_error:
+                    wait_time = retry_delay * (2 ** attempt) * 3  # Longer wait for SSL errors
+                    calendar_logger.error(f"SSL/Network error in calendar API call: {e}")
+                    if attempt < max_retries - 1:
+                        calendar_logger.warning(f"Retrying after SSL error, waiting {wait_time}s (attempt {attempt + 1})")
+                        time.sleep(wait_time)
+                        continue
                 else:
-                    return None
+                    calendar_logger.error(f"Unexpected error in calendar API call: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+
+                return None
 
         return None
 

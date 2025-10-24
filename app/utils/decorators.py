@@ -4,15 +4,18 @@ Utility decorators for authentication and authorization
 """
 
 from functools import wraps
-from flask import session, redirect, url_for, flash
+from flask import session, redirect, url_for, flash, jsonify, request
 from app.config.base import config
 
 
 def require_login(f):
-    """Decorator to require user login"""
+    """Decorator to require user login (returns JSON for API routes)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session or not session.get('user'):
+            # For API routes (/api/*), return JSON 401 instead of redirect
+            if request.path.startswith('/api/'):
+                return jsonify({"error": "Not authenticated", "login_required": True}), 401
             return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function

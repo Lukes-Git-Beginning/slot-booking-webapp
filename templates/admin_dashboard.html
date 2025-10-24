@@ -5,18 +5,16 @@
   <title>🛡️ Admin Dashboard - Central Business Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS + DaisyUI (Local) -->
+  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
+  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
 
-  <!-- DaisyUI -->
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
+  <!-- Lucide Icons (Local) -->
+  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- AOS Animations -->
-  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <!-- AOS Animations (Local) -->
+  <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
+  <script src="{{ url_for('static', filename='aos.js') }}"></script>
 
   <!-- Tailwind Config -->
   <script>

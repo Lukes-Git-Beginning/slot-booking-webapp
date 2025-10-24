@@ -369,19 +369,26 @@ def api_user_badges(username):
 def api_user_avatar(username):
     """Get user avatar cosmetics"""
     try:
+        # Normalize username (lowercase + strip)
+        username = username.lower().strip()
+
         from app.services.cosmetics_shop import CosmeticsShop
         cosmetics_shop = CosmeticsShop()
         user_cosmetics = cosmetics_shop.get_user_cosmetics(username)
 
         active = user_cosmetics.get('active', {})
 
-        return jsonify({
+        # Ensure UTF-8 encoding for emoji
+        response_data = {
             'success': True,
             'avatar': active.get('avatar', '🧑‍💼'),
             'theme': active.get('theme', 'default'),
             'title': active.get('title'),
             'effects': active.get('effects', [])
-        })
+        }
+
+        # Force UTF-8 encoding in JSON response
+        return jsonify(response_data), 200, {'Content-Type': 'application/json; charset=utf-8'}
     except Exception as e:
         logger.error(f"Error getting avatar for {username}: {e}")
         return jsonify({
@@ -390,7 +397,7 @@ def api_user_avatar(username):
             'theme': 'default',
             'title': None,
             'effects': []
-        }), 200
+        }), 200, {'Content-Type': 'application/json; charset=utf-8'}
 
 
 @api_gateway_bp.route("/gamification/status")

@@ -5,22 +5,22 @@
   <title>📞 Telefonie Punkte – Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Modern UI Libraries -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
-  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <!-- Modern UI Libraries (Local) -->
+  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
+  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+  <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
 
-  <!-- ApexCharts -->
+  <!-- ApexCharts (CDN - specialized charting library) -->
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons (Local) -->
+  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
 
-  <!-- Alpine.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Alpine.js (Local) -->
+  <script defer src="{{ url_for('static', filename='alpine.min.js') }}"></script>
 
-  <!-- Particles.js -->
-  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <!-- Particles.js (Local) -->
+  <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
   <script>
     tailwind.config = {
@@ -670,7 +670,7 @@
   </div>
 
   <!-- AOS -->
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="{{ url_for('static', filename='aos.js') }}"></script>
 
   <script>
     // Initialize Lucide Icons

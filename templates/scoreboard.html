@@ -358,6 +358,7 @@ function displayUserBadges(container, badges) {
 async function loadUserAvatars() {
   const avatarContainers = document.querySelectorAll('.player-avatar[data-user]');
 
+  // Load avatars sequentially with 100ms delay to avoid rate limiting
   for (const avatar of avatarContainers) {
     const username = avatar.getAttribute('data-user');
     try {
@@ -365,10 +366,22 @@ async function loadUserAvatars() {
       if (response.ok) {
         const data = await response.json();
         applyAvatarCustomization(avatar, data);
+      } else if (response.status === 429) {
+        console.warn(`Rate limited for ${username}, retrying in 1s...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Retry once after rate limit
+        const retryResponse = await fetch(`/api/user/${username}/avatar`);
+        if (retryResponse.ok) {
+          const data = await retryResponse.json();
+          applyAvatarCustomization(avatar, data);
+        }
       }
     } catch (error) {
       console.error(`Failed to load avatar for ${username}:`, error);
     }
+
+    // Small delay between requests to avoid overwhelming the server
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 }
 
