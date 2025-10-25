@@ -22,111 +22,233 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 @calendar_bp.route("/my-calendar")
 @require_login
 def my_calendar():
-    """Display user's personal calendar view"""
-    from datetime import datetime as dt_module
+    """Display user's personal calendar view with Table and Kanban modes"""
+    from datetime import datetime as dt_module, date
+    from app.utils.color_mapping import get_booking_status, get_column_stats
+    from app.utils.helpers import get_username_variants
+    from collections import defaultdict
+    import logging
+
+    logger = logging.getLogger(__name__)
     user = session.get("user")
 
-    # Get user's bookings from the past month and next month
+    # Get view mode parameter (table or kanban)
+    view_mode = request.args.get('view', 'table')
+
+    # Get user's bookings from the past 30 days and next 30 days
     start_date = (dt_module.now(TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
     end_date = (dt_module.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
 
     # Get events from Google Calendar
     google_calendar_service = get_google_calendar_service()
     if not google_calendar_service:
-        # Return empty calendar if Google Calendar is not available
-        return render_template("my_calendar.html", events=[], user=user)
+        logger.warning("Google Calendar service not available")
+        return render_template("my_calendar.html",
+                             my_events=[],
+                             kanban_columns={},
+                             stats={},
+                             view_mode=view_mode,
+                             user=user)
 
     from app.config.base import config
     events_result = google_calendar_service.get_events(
         calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{start_date}T00:00:00+01:00",
         time_max=f"{end_date}T23:59:59+01:00",
-        cache_duration=0  # No cache - always get fresh data for personal calendar
+        cache_duration=0  # No cache - always get fresh data
     )
 
     all_events = events_result.get('items', []) if events_result else []
 
-    # Filter events for this user (events they booked - based on [Booked by: username] tag)
-    my_events = []
-
     # Get all possible username variants for backward compatibility
-    from app.utils.helpers import get_username_variants
     username_variants = get_username_variants(user)
 
-    # DEBUG: Log what we're searching for
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"MY-CALENDAR DEBUG: Looking for bookings by user '{user}'")
-    logger.info(f"MY-CALENDAR DEBUG: Username variants: {username_variants}")
-    logger.info(f"MY-CALENDAR DEBUG: Total events found: {len(all_events)}")
+    logger.info(f"MY-CALENDAR: Looking for bookings by user '{user}'")
+    logger.info(f"MY-CALENDAR: Username variants: {username_variants}")
+    logger.info(f"MY-CALENDAR: Total events in calendar: {len(all_events)}")
+
+    # Initialize data structures
+    my_events = []
+    kanban_columns = defaultdict(list)
+    today = date.today()
+
+    # Week boundaries for weekly stats
+    from app.utils.helpers import get_week_start
+    current_week_start = get_week_start(today)
+    last_week_start = current_week_start - timedelta(weeks=1)
 
     for event in all_events:
         summary = event.get('summary', '')
         description = event.get('description', '')
 
-        # Check if this user booked the event (via [Booked by: username] tag in description)
-        # Check all username variants for backward compatibility
+        # Skip placeholder events (nur Zahlen)
+        if summary.isdigit():
+            continue
+
+        # Check if this user booked the event (via [Booked by: username] tag)
         is_booked_by_user = False
+        matched_variant = None
         for variant in username_variants:
             booked_by_tag = f"[Booked by: {variant}]"
             if booked_by_tag in description:
                 is_booked_by_user = True
+                matched_variant = variant
                 break
 
-        # DEBUG: Log each event
-        if description and '[Booked by:' in description:
-            logger.info(f"MY-CALENDAR DEBUG: Found event '{summary}' with tag in description")
-            logger.info(f"MY-CALENDAR DEBUG: Description contains: {description[:200]}")
-            logger.info(f"MY-CALENDAR DEBUG: Match: {is_booked_by_user}")
+        if not is_booked_by_user:
+            continue
 
-        if is_booked_by_user:
-            # Parse event data for display
-            start_dt = event.get('start', {}).get('dateTime', '')
-            color_id = event.get('colorId', '1')
+        # Parse event data
+        start_dt = event.get('start', {}).get('dateTime', '')
+        color_id = event.get('colorId', '1')
+        event_id = event.get('id', '')
 
-            # Extract date and hour
-            date_str = ""
-            hour_str = ""
-            if start_dt:
-                try:
-                    dt = dt_module.fromisoformat(start_dt.replace('Z', '+00:00'))
-                    date_str = dt.strftime('%d.%m.%Y')
-                    hour_str = dt.strftime('%H:%M')
-                except:
-                    pass
+        if not start_dt:
+            continue
 
-            # Determine outcome/potential from color
-            potential_map = {
-                '2': 'Normales Potential',  # Sage/Green
-                '7': 'Top Potential',        # Peacock/Türkis
-                '5': 'Closer nötig',         # Banana/Yellow
-                '11': 'Nicht erschienen',    # Tomate/Red
-                '6': 'Storniert',            # Mandarine/Orange
-            }
-            potential = potential_map.get(color_id, 'Sonstiges')
+        try:
+            dt = dt_module.fromisoformat(start_dt.replace('Z', '+00:00'))
+            event_date = dt.date()
+            date_str = dt.strftime('%d.%m.%Y')
+            hour_str = dt.strftime('%H:%M')
+        except Exception as e:
+            logger.error(f"Error parsing datetime for event '{summary}': {e}")
+            continue
 
-            # Calculate points (simplified)
+        # Get status information using color_mapping
+        status_info = get_booking_status(color_id, summary, event_date)
+
+        # Extract customer name (remove status markers like "(Ghost)", "(Verschoben)", etc.)
+        customer_name = summary
+        for marker in [' ( Ghost )', ' (Ghost)', ' ( Verschoben )', ' (Verschoben)',
+                      ' ( Abgesagt )', ' (Abgesagt)', ' ( nicht erschienen )',
+                      ' (nicht erschienen)', ' ( erschienen )', ' (erschienen)']:
+            customer_name = customer_name.replace(marker, '')
+        customer_name = customer_name.strip()
+
+        # Calculate customer_showed for compatibility
+        if status_info['is_positive'] is True:
+            customer_showed = True
+        elif status_info['is_positive'] is False:
+            customer_showed = False
+        else:
+            customer_showed = None  # Pending
+
+        # Calculate week flags
+        is_current_week = current_week_start <= event_date < (current_week_start + timedelta(weeks=1))
+        is_last_week = last_week_start <= event_date < current_week_start
+
+        # Calculate days ago/until
+        days_diff = (today - event_date).days
+        if days_diff > 0:
+            days_ago = days_diff
+            days_until = 0
+        elif days_diff < 0:
+            days_ago = 0
+            days_until = abs(days_diff)
+        else:
+            days_ago = 0
+            days_until = 0
+
+        # Extract booked_by initials
+        if matched_variant:
+            parts = matched_variant.split('.')
+            if len(parts) >= 2:
+                booked_by_initials = f"{parts[0][0].upper()}{parts[1][0].upper()}"
+            else:
+                booked_by_initials = matched_variant[:2].upper()
+        else:
+            booked_by_initials = "??"
+
+        # Determine potential type label
+        potential_map = {
+            '2': 'Normal',
+            '7': 'Top',
+            '5': 'Sonderkunde',
+            '3': 'Rückholung',
+            '11': 'No-Show',
+            '6': 'Verschoben',
+            '9': 'Standard',
+            '10': 'Standard'
+        }
+        potential = potential_map.get(color_id, 'Sonstiges')
+
+        # Calculate points (for gamification)
+        points = 3
+        if color_id == '7':  # Top Potential
+            points = 5
+        elif color_id == '5':  # Sonderkunde
+            points = 4
+        elif color_id == '3':  # Rückholung
             points = 3
-            if color_id == '7':  # Top Potential
-                points = 5
-            elif color_id == '5':  # Closer nötig
-                points = 2
+        elif color_id in ['11', '6']:  # No-Show, Verschoben
+            points = 0
 
-            # Clean description (remove booked by tag)
-            clean_desc = description.replace(f"\n\n{booked_by_tag}", "").replace(booked_by_tag, "").strip()
+        # Clean description (remove booked by tag)
+        clean_desc = description
+        for variant in username_variants:
+            booked_by_tag = f"[Booked by: {variant}]"
+            clean_desc = clean_desc.replace(f"\n\n{booked_by_tag}", "").replace(booked_by_tag, "")
+        clean_desc = clean_desc.strip() or '-'
 
-            my_events.append({
-                'summary': summary,
-                'date': date_str,
-                'hour': hour_str,
-                'color_id': color_id,
-                'potential': potential,
-                'points': points,
-                'desc': clean_desc or '-',
-                'source': 'calendar'
-            })
+        # Build event dict
+        event_dict = {
+            'id': event_id,
+            'summary': summary,
+            'customer_name': customer_name,
+            'date': date_str,
+            'hour': hour_str,
+            'date_obj': event_date,
+            'color_id': color_id,
+            'potential': potential,
+            'points': points,
+            'desc': clean_desc,
+            'booked_by': matched_variant,
+            'booked_by_initials': booked_by_initials,
 
-    return render_template("my_calendar.html", my_events=my_events, user=user)
+            # Status information from color_mapping
+            'status': status_info['status'],
+            'status_label': status_info['label'],
+            'badge_class': status_info['badge_class'],
+            'row_bg_class': status_info['bg_class'],
+            'status_icon': status_info['status_icon'],
+            'is_positive': status_info['is_positive'],
+            'column': status_info['column'],
+
+            # Additional flags
+            'customer_showed': customer_showed,
+            'is_future': event_date >= today,
+            'is_current_week': is_current_week,
+            'is_last_week': is_last_week,
+            'days_ago': days_ago,
+            'days_until': days_until,
+        }
+
+        my_events.append(event_dict)
+
+        # Add to kanban column
+        kanban_columns[status_info['column']].append(event_dict)
+
+    # Sort events by date (newest first for table view)
+    my_events.sort(key=lambda x: x['date_obj'], reverse=True)
+
+    # Sort kanban columns by date
+    for column in kanban_columns.values():
+        column.sort(key=lambda x: x['date_obj'], reverse=False)
+
+    # Calculate statistics
+    stats = get_column_stats(kanban_columns)
+
+    logger.info(f"MY-CALENDAR: Found {len(my_events)} bookings for user '{user}'")
+    logger.info(f"MY-CALENDAR: Stats - Total: {stats['total']}, Erschienen: {stats['erschienen']}, "
+               f"No-Show: {stats['nicht_erschienen']}, Ghost: {stats['ghost']}")
+
+    return render_template("my_calendar.html",
+                         my_events=my_events,
+                         kanban_columns=dict(kanban_columns),
+                         stats=stats,
+                         view_mode=view_mode,
+                         user=user)
 
 
 @calendar_bp.route("/my-customers")

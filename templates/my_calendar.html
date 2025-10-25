@@ -19,6 +19,9 @@
     <!-- Particles.js -->
     <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
+    <!-- SortableJS for Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
     <!-- Custom Tailwind Config -->
     <script>
         tailwind.config = {
@@ -38,7 +41,7 @@
 
     <!-- Custom Styles -->
     <style>
-        @import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
@@ -61,14 +64,36 @@
             pointer-events: none;
         }
 
-        /* Color badges */
-        .color-sage { background-color: #b3dc82; }
-        .color-peacock { background-color: #1b887a; }
-        .color-banana { background-color: #fad165; }
+        /* Kanban Card Hover Effects */
+        .kanban-card {
+            transition: all 0.3s ease;
+        }
+
+        .kanban-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(212, 175, 106, 0.2);
+        }
+
+        .kanban-card.sortable-ghost {
+            opacity: 0.4;
+            transform: rotate(3deg) scale(1.05);
+        }
+
+        .kanban-card.sortable-drag {
+            opacity: 1;
+            box-shadow: 0 15px 40px rgba(212, 175, 106, 0.4);
+        }
+
+        /* Kanban Column Scrolling */
+        .kanban-column {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 10px;
+            width: 8px;
+            height: 8px;
         }
 
         ::-webkit-scrollbar-track {
@@ -82,6 +107,27 @@
 
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(212, 175, 106, 0.6);
+        }
+
+        /* Table Row Transitions */
+        tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        /* Undo Button Animation */
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .undo-enter {
+            animation: slideInLeft 0.3s ease;
         }
     </style>
 </head>
@@ -101,7 +147,18 @@
                         Zurück
                     </a>
                     <h1 class="text-xl font-bold">Meine Buchungen</h1>
-                    <div class="w-24"></div>
+
+                    <!-- View Toggle -->
+                    <div class="btn-group">
+                        <a href="?view=table" class="btn btn-sm {% if view_mode == 'table' %}btn-primary{% else %}btn-ghost{% endif %}">
+                            <i data-lucide="table" class="w-4 h-4"></i>
+                            <span class="hidden md:inline ml-2">Tabelle</span>
+                        </a>
+                        <a href="?view=kanban" class="btn btn-sm {% if view_mode == 'kanban' %}btn-primary{% else %}btn-ghost{% endif %}">
+                            <i data-lucide="columns" class="w-4 h-4"></i>
+                            <span class="hidden md:inline ml-2">Kanban</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -121,53 +178,81 @@
                 </div>
             </div>
 
-            <!-- Personal Analytics Dashboard -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up">
-                <!-- Total Bookings -->
-                <div class="glass rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <i data-lucide="calendar-check" class="w-8 h-8 text-primary"></i>
-                        <span class="text-3xl font-bold text-primary">{{ my_events|length }}</span>
+            <!-- Statistics Dashboard -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8" data-aos="fade-up">
+                <!-- Pending (Grau) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-gray-400 hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
+                        <span class="text-xs text-gray-400">Pending</span>
                     </div>
-                    <p class="text-sm text-gray-400">Gebuchte Kunden</p>
+                    <span class="text-2xl font-bold">{{ stats.pending or 0 }}</span>
                 </div>
 
-                <!-- Show Rate -->
-                <div class="glass rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <i data-lucide="user-check" class="w-8 h-8 text-success"></i>
-                        {% set showed = my_events|selectattr('customer_showed', 'equalto', true)|list|length %}
-                        {% set show_rate = (showed / my_events|length * 100)|round(0) if my_events|length > 0 else 0 %}
-                        <span class="text-3xl font-bold text-success">{{ show_rate }}%</span>
+                <!-- Erschienen (Grün) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-success hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-success"></i>
+                        <span class="text-xs text-gray-400">Erschienen</span>
                     </div>
-                    <p class="text-sm text-gray-400">Erscheinungsrate</p>
+                    <span class="text-2xl font-bold text-success">{{ stats.erschienen or 0 }}</span>
+                    <div class="text-xs text-gray-400 mt-1">{{ stats.show_rate or 0 }}%</div>
                 </div>
 
-                <!-- No-Show Rate -->
-                <div class="glass rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <i data-lucide="user-x" class="w-8 h-8 text-error"></i>
-                        {% set no_show = my_events|selectattr('customer_showed', 'equalto', false)|list|length %}
-                        {% set no_show_rate = (no_show / my_events|length * 100)|round(0) if my_events|length > 0 else 0 %}
-                        <span class="text-3xl font-bold text-error">{{ no_show_rate }}%</span>
+                <!-- Rückholung (Purple) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-purple-500 hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 text-purple-400"></i>
+                        <span class="text-xs text-gray-400">Rückholung</span>
                     </div>
-                    <p class="text-sm text-gray-400">No-Show-Rate</p>
+                    <span class="text-2xl font-bold text-purple-400">{{ stats.rückholung or 0 }}</span>
                 </div>
 
-                <!-- Total Points -->
-                <div class="glass rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <i data-lucide="trophy" class="w-8 h-8 text-warning"></i>
-                        {% set total_points = my_events|sum(attribute='points') %}
-                        <span class="text-3xl font-bold text-warning">{{ total_points or 0 }}</span>
+                <!-- Sonderkunden (Gelb) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-warning hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="star" class="w-4 h-4 text-warning"></i>
+                        <span class="text-xs text-gray-400">Sonderkunden</span>
                     </div>
-                    <p class="text-sm text-gray-400">Gesamt Punkte</p>
+                    <span class="text-2xl font-bold text-warning">{{ stats.sonderkunden or 0 }}</span>
+                </div>
+
+                <!-- Verschoben (Info/Orange) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-info hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="calendar-x" class="w-4 h-4 text-info"></i>
+                        <span class="text-xs text-gray-400">Verschoben</span>
+                    </div>
+                    <span class="text-2xl font-bold text-info">{{ stats.verschoben or 0 }}</span>
+                </div>
+
+                <!-- Nicht Erschienen (Rot) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-error hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="x-circle" class="w-4 h-4 text-error"></i>
+                        <span class="text-xs text-gray-400">Nicht ersch.</span>
+                    </div>
+                    <span class="text-2xl font-bold text-error">{{ stats.nicht_erschienen or 0 }}</span>
+                    <div class="text-xs text-gray-400 mt-1">{{ stats.no_show_rate or 0 }}%</div>
+                </div>
+
+                <!-- Ghost (Dunkelrot) -->
+                <div class="glass rounded-xl p-4 border-l-4 border-red-900 hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="user-x" class="w-4 h-4 text-red-300"></i>
+                        <span class="text-xs text-gray-400">Ghost</span>
+                    </div>
+                    <span class="text-2xl font-bold text-red-300">{{ stats.ghost or 0 }}</span>
                 </div>
             </div>
 
             {% if my_events %}
-            <!-- Events Table -->
-            <div class="glass rounded-3xl overflow-hidden mb-8" data-aos="fade-up">
+
+            <!-- ============================================ -->
+            <!-- TABLE VIEW -->
+            <!-- ============================================ -->
+            {% if view_mode == 'table' %}
+            <div class="glass rounded-3xl overflow-hidden" data-aos="fade-up">
                 <div class="overflow-x-auto">
                     <table class="table table-zebra">
                         <thead>
@@ -187,25 +272,25 @@
                                 <th class="bg-primary/20">
                                     <div class="flex items-center gap-2">
                                         <i data-lucide="user" class="w-4 h-4"></i>
-                                        Kundenname
+                                        Kunde
                                     </div>
                                 </th>
                                 <th class="bg-primary/20">
                                     <div class="flex items-center gap-2">
-                                        <i data-lucide="target" class="w-4 h-4"></i>
-                                        Potential
-                                    </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                        <i data-lucide="activity" class="w-4 h-4"></i>
                                         Status
                                     </div>
                                 </th>
                                 <th class="bg-primary/20">
                                     <div class="flex items-center gap-2">
-                                        <i data-lucide="trophy" class="w-4 h-4"></i>
-                                        Punkte
+                                        <i data-lucide="target" class="w-4 h-4"></i>
+                                        Typ
+                                    </div>
+                                </th>
+                                <th class="bg-primary/20">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="user-circle" class="w-4 h-4"></i>
+                                        Telefonist
                                     </div>
                                 </th>
                                 <th class="bg-primary/20">
@@ -218,56 +303,38 @@
                         </thead>
                         <tbody>
                             {% for ev in my_events %}
-                            <tr class="hover:bg-white/5 transition-colors">
+                            <tr class="{{ ev.row_bg_class }} transition-all">
                                 <td>
                                     <span class="font-semibold">{{ ev.date }}</span>
+                                    {% if ev.is_future %}
+                                    <span class="badge badge-ghost badge-xs ml-2">Zukünftig</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="badge badge-ghost badge-lg">{{ ev.hour }}</span>
                                 </td>
                                 <td>
-                                    <span class="font-medium">{{ ev.customer_name or ev.summary }}</span>
+                                    <span class="font-medium">{{ ev.customer_name }}</span>
                                 </td>
                                 <td>
-                                    <div class="flex items-center gap-2">
-                                        {% if ev.color_id == '2' %}
-                                        <div class="w-4 h-4 rounded color-sage"></div>
-                                        <span class="badge badge-success">Normal</span>
-                                        {% elif ev.color_id == '7' %}
-                                        <div class="w-4 h-4 rounded color-peacock"></div>
-                                        <span class="badge badge-info">Top</span>
-                                        {% elif ev.color_id == '5' %}
-                                        <div class="w-4 h-4 rounded color-banana"></div>
-                                        <span class="badge badge-warning">Closer</span>
-                                        {% else %}
-                                        <div class="w-4 h-4 rounded bg-gray-500"></div>
-                                        <span class="badge badge-ghost">Sonstiges</span>
-                                        {% endif %}
+                                    <span class="badge {{ ev.badge_class }} gap-2">
+                                        <i data-lucide="{{ ev.status_icon }}" class="w-3 h-3"></i>
+                                        {{ ev.status_label }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-sm badge-outline">{{ ev.potential }}</span>
+                                </td>
+                                <td>
+                                    <!-- Initialen-Badge -->
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-8 h-8">
+                                            <span class="text-xs font-bold">{{ ev.booked_by_initials }}</span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
-                                    {% if ev.customer_showed is none %}
-                                    <span class="badge badge-ghost gap-2">
-                                        <i data-lucide="clock" class="w-3 h-3"></i>
-                                        Ausstehend
-                                    </span>
-                                    {% elif ev.customer_showed %}
-                                    <span class="badge badge-success gap-2">
-                                        <i data-lucide="check-circle" class="w-3 h-3"></i>
-                                        Erschienen
-                                    </span>
-                                    {% else %}
-                                    <span class="badge badge-error gap-2">
-                                        <i data-lucide="x-circle" class="w-3 h-3"></i>
-                                        No-Show
-                                    </span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="text-2xl font-bold text-primary">{{ ev.points }}</span>
-                                </td>
-                                <td>
-                                    <span class="text-sm text-gray-400">{{ ev.desc or '-' }}</span>
+                                    <span class="text-sm text-gray-400">{{ ev.desc[:50] if ev.desc != '-' else '-' }}{% if ev.desc|length > 50 %}...{% endif %}</span>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -275,98 +342,290 @@
                     </table>
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Detailed Analytics Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" data-aos="fade-up">
-                <!-- Weekly Breakdown -->
-                <div class="glass rounded-3xl p-6">
-                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
-                        <i data-lucide="bar-chart" class="w-6 h-6 text-primary"></i>
-                        Wöchentliche Übersicht
-                    </h3>
-                    <div class="space-y-4">
-                        {% set this_week = my_events|selectattr('is_current_week', 'equalto', true)|list %}
-                        {% set last_week = my_events|selectattr('is_last_week', 'equalto', true)|list %}
+            <!-- ============================================ -->
+            <!-- KANBAN VIEW (HubSpot-Style) -->
+            <!-- ============================================ -->
+            {% if view_mode == 'kanban' %}
+            <div class="overflow-x-auto pb-4" data-aos="fade-up">
+                <div class="inline-flex gap-4 min-w-full" style="min-width: max-content;">
 
-                        <div class="flex justify-between items-center p-4 bg-white/5 rounded-xl">
-                            <div>
-                                <p class="text-sm text-gray-400">Diese Woche</p>
-                                <p class="text-2xl font-bold text-primary">{{ this_week|length }} Buchungen</p>
-                            </div>
-                            <i data-lucide="trending-up" class="w-8 h-8 text-success"></i>
-                        </div>
-
-                        <div class="flex justify-between items-center p-4 bg-white/5 rounded-xl">
-                            <div>
-                                <p class="text-sm text-gray-400">Letzte Woche</p>
-                                <p class="text-2xl font-bold text-gray-300">{{ last_week|length }} Buchungen</p>
-                            </div>
-                            <i data-lucide="calendar" class="w-8 h-8 text-gray-400"></i>
-                        </div>
-
-                        {% set week_diff = this_week|length - last_week|length %}
-                        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-xl border border-primary/30">
-                            <div>
-                                <p class="text-sm text-gray-400">Veränderung</p>
-                                <p class="text-2xl font-bold {% if week_diff > 0 %}text-success{% elif week_diff < 0 %}text-error{% else %}text-gray-300{% endif %}">
-                                    {% if week_diff > 0 %}+{% endif %}{{ week_diff }}
-                                </p>
-                            </div>
-                            <i data-lucide="{% if week_diff > 0 %}arrow-up{% elif week_diff < 0 %}arrow-down{% else %}minus{% endif %}"
-                               class="w-8 h-8 {% if week_diff > 0 %}text-success{% elif week_diff < 0 %}text-error{% else %}text-gray-400{% endif %}"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Customer Quality Breakdown -->
-                <div class="glass rounded-3xl p-6">
-                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
-                        <i data-lucide="pie-chart" class="w-6 h-6 text-secondary"></i>
-                        Kunden-Qualität
-                    </h3>
-                    <div class="space-y-4">
-                        {% set normal_customers = my_events|selectattr('color_id', 'equalto', '2')|list|length %}
-                        {% set top_customers = my_events|selectattr('color_id', 'equalto', '7')|list|length %}
-                        {% set closer_customers = my_events|selectattr('color_id', 'equalto', '5')|list|length %}
-                        {% set total_customers = my_events|length %}
-
-                        <div class="space-y-3">
-                            <!-- Top Potential -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="text-info">Top Potential</span>
-                                    <span class="font-bold">{{ top_customers }} ({{ (top_customers / total_customers * 100)|round(0) if total_customers > 0 else 0 }}%)</span>
+                    <!-- PENDING Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-400/30">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+                                    <h3 class="font-bold text-gray-300 uppercase text-sm">Pending</h3>
                                 </div>
-                                <div class="w-full bg-white/10 rounded-full h-2">
-                                    <div class="bg-info h-2 rounded-full" style="width: {{ (top_customers / total_customers * 100)|round(0) if total_customers > 0 else 0 }}%"></div>
-                                </div>
+                                <span class="badge badge-ghost">{{ kanban_columns.pending|length }}</span>
                             </div>
 
-                            <!-- Normal Potential -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="text-success">Normal Potential</span>
-                                    <span class="font-bold">{{ normal_customers }} ({{ (normal_customers / total_customers * 100)|round(0) if total_customers > 0 else 0 }}%)</span>
-                                </div>
-                                <div class="w-full bg-white/10 rounded-full h-2">
-                                    <div class="bg-success h-2 rounded-full" style="width: {{ (normal_customers / total_customers * 100)|round(0) if total_customers > 0 else 0 }}%"></div>
-                                </div>
-                            </div>
+                            <div class="space-y-3 kanban-column" data-column="pending" id="column-pending">
+                                {% for ev in kanban_columns.pending %}
+                                <div class="kanban-card glass rounded-xl p-4 cursor-move border border-gray-400/20"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
 
-                            <!-- Closer Needed -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="text-warning">Closer nötig</span>
-                                    <span class="font-bold">{{ closer_customers }} ({{ (closer_customers / total_customers * 100)|round(0) if total_customers > 0 else 0 }}%)</span>
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                        <span class="text-xs text-gray-400">{{ ev.booked_by }}</span>
+                                    </div>
+
+                                    {% if ev.days_until > 0 %}
+                                    <div class="text-xs text-warning flex items-center gap-1">
+                                        <i data-lucide="clock" class="w-3 h-3"></i>
+                                        In {{ ev.days_until }} Tag{% if ev.days_until != 1 %}en{% endif %}
+                                    </div>
+                                    {% elif ev.days_until == 0 %}
+                                    <div class="text-xs text-warning font-bold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                                        Heute!
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                <div class="w-full bg-white/10 rounded-full h-2">
-                                    <div class="bg-warning h-2 rounded-full" style="width: {{ (closer_customers / total_customers * 100)|round(0) if total_customers > 0 else 0 }}%"></div>
-                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
+
+                    <!-- ERSCHIENEN Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-success/30">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-success"></div>
+                                    <h3 class="font-bold text-success uppercase text-sm">Erschienen</h3>
+                                </div>
+                                <span class="badge badge-success">{{ kanban_columns.erschienen|length }}</span>
+                            </div>
+
+                            <div class="space-y-3 kanban-column" data-column="erschienen" id="column-erschienen">
+                                {% for ev in kanban_columns.erschienen %}
+                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-success cursor-move"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
+
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {% if ev.days_ago > 0 %}
+                                    <div class="text-xs text-success flex items-center gap-1">
+                                        <i data-lucide="check" class="w-3 h-3"></i>
+                                        Vor {{ ev.days_ago }} Tag{% if ev.days_ago != 1 %}en{% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RÜCKHOLUNG Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-purple-500/30">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                                    <h3 class="font-bold text-purple-400 uppercase text-sm">Rückholung</h3>
+                                </div>
+                                <span class="badge badge-primary">{{ kanban_columns.rückholung|length }}</span>
+                            </div>
+
+                            <div class="space-y-3 kanban-column" data-column="rückholung" id="column-rückholung">
+                                {% for ev in kanban_columns.rückholung %}
+                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-purple-500 cursor-move"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
+
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SONDERKUNDEN Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-warning/30">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-warning"></div>
+                                    <h3 class="font-bold text-warning uppercase text-sm">Sonderkunden</h3>
+                                </div>
+                                <span class="badge badge-warning">{{ kanban_columns.sonderkunden|length }}</span>
+                            </div>
+
+                            <div class="space-y-3 kanban-column" data-column="sonderkunden" id="column-sonderkunden">
+                                {% for ev in kanban_columns.sonderkunden %}
+                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-warning cursor-move"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
+
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VERSCHOBEN Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-info/30">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-info"></div>
+                                    <h3 class="font-bold text-info uppercase text-sm">Verschoben</h3>
+                                </div>
+                                <span class="badge badge-info">{{ kanban_columns.verschoben|length }}</span>
+                            </div>
+
+                            <div class="space-y-3 kanban-column" data-column="verschoben" id="column-verschoben">
+                                {% for ev in kanban_columns.verschoben %}
+                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-info cursor-move"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
+
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NICHT ERSCHIENEN Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-error/30">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-error"></div>
+                                    <h3 class="font-bold text-error uppercase text-sm">Nicht Erschienen</h3>
+                                </div>
+                                <span class="badge badge-error">{{ kanban_columns.nicht_erschienen|length }}</span>
+                            </div>
+
+                            <div class="space-y-3 kanban-column" data-column="nicht_erschienen" id="column-nicht_erschienen">
+                                {% for ev in kanban_columns.nicht_erschienen %}
+                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-error cursor-move"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
+
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GHOST Column -->
+                    <div class="w-80 flex-shrink-0">
+                        <div class="glass rounded-2xl p-4 h-full">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-red-900/50">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-red-900"></div>
+                                    <h3 class="font-bold text-red-300 uppercase text-sm">Ghost</h3>
+                                </div>
+                                <span class="badge bg-red-900 border-red-900 text-red-100">{{ kanban_columns.ghost|length }}</span>
+                            </div>
+
+                            <div class="space-y-3 kanban-column" data-column="ghost" id="column-ghost">
+                                {% for ev in kanban_columns.ghost %}
+                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-red-900 cursor-move"
+                                     data-event-id="{{ ev.id }}"
+                                     data-customer-name="{{ ev.customer_name }}">
+                                    <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
+
+                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar placeholder">
+                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
+            {% endif %}
 
             {% else %}
             <!-- Empty State -->
@@ -375,7 +634,7 @@
                     <i data-lucide="calendar-x" class="w-12 h-12 text-warning"></i>
                 </div>
                 <h3 class="text-2xl font-bold mb-2">Keine Buchungen gefunden</h3>
-                <p class="text-gray-400 mb-6">Du hast aktuell keine gebuchten Kunden.</p>
+                <p class="text-gray-400 mb-6">Du hast aktuell keine gebuchten Kunden in den letzten 30 Tagen.</p>
                 <a href="{{ url_for('main.index') }}" class="btn btn-primary gap-2">
                     <i data-lucide="calendar-plus" class="w-4 h-4"></i>
                     Kunden buchen
@@ -388,7 +647,7 @@
         <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
             <div class="container mx-auto px-4 py-8">
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p class="text-sm text-gray-400">Beraterwelt v3.3.0 • ZFA</p>
+                    <p class="text-sm text-gray-400">Beraterwelt v3.3.4 - ZFA</p>
                     <div class="flex gap-4">
                         <a href="{{ url_for('main.index') }}" class="text-gray-400 hover:text-primary transition-colors">Dashboard</a>
                         <a href="/health" class="text-gray-400 hover:text-primary transition-colors">Status</a>
@@ -397,6 +656,12 @@
             </div>
         </footer>
     </div>
+
+    <!-- Undo Button (Hidden by default) -->
+    <button id="undo-btn" class="btn btn-warning fixed bottom-4 left-4 z-50 hidden gap-2 undo-enter" onclick="undo()">
+        <i data-lucide="undo" class="w-4 h-4"></i>
+        <span id="undo-text">Rückgängig (3s)</span>
+    </button>
 
     <!-- JavaScript -->
     <script>
@@ -414,7 +679,7 @@
         // Initialize Particles.js
         particlesJS('particles-js', {
             particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
+                number: { value: 60, density: { enable: true, value_area: 800 } },
                 color: { value: '#d4af6a' },
                 shape: { type: 'circle' },
                 opacity: {
@@ -453,11 +718,74 @@
                 },
                 modes: {
                     grab: { distance: 140, line_linked: { opacity: 0.5 } },
-                    push: { particles_nb: 4 }
+                    push: { particles_nb: 3 }
                 }
             },
             retina_detect: true
         });
+
+        // ===================================================================
+        // DRAG & DROP FUNCTIONALITY (Kanban Mode Only)
+        // ===================================================================
+        {% if view_mode == 'kanban' %}
+        document.addEventListener('DOMContentLoaded', function() {
+            const columns = document.querySelectorAll('.kanban-column');
+
+            columns.forEach(column => {
+                new Sortable(column, {
+                    group: 'kanban',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+
+                    onEnd: function(evt) {
+                        const eventId = evt.item.dataset.eventId;
+                        const customerName = evt.item.dataset.customerName;
+                        const newColumn = evt.to.dataset.column;
+                        const oldColumn = evt.from.dataset.column;
+
+                        console.log(`Moved ${customerName} from ${oldColumn} to ${newColumn}`);
+
+                        // If dropped into PENDING column -> Show reschedule modal
+                        if (newColumn === 'pending') {
+                            showRescheduleModal(eventId, customerName, evt.item);
+                        } else {
+                            // Otherwise: Update status
+                            updateEventStatus(eventId, customerName, newColumn, oldColumn);
+                        }
+                    }
+                });
+            });
+        });
+        {% endif %}
+
+        function showToast(message, type = 'info') {
+            const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} fixed bottom-4 right-4 w-auto max-w-md z-50 shadow-lg`;
+            toast.innerHTML = `<span>${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function showRescheduleModal(eventId, customerName, cardElement) {
+            showToast('🔜 Reschedule-Modal kommt in Phase 2!', 'info');
+            // TODO: Implement in Phase 2
+            // Für jetzt: Karte zurück zur ursprünglichen Spalte
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        function updateEventStatus(eventId, customerName, newColumn, oldColumn) {
+            showToast('🔜 Status-Update kommt in Phase 2!', 'info');
+            // TODO: Implement in Phase 2
+            console.log('Status update:', { eventId, customerName, newColumn, oldColumn });
+        }
+
+        // Undo functionality placeholder
+        function undo() {
+            showToast('🔄 Undo-Funktion kommt in Phase 2!', 'info');
+            document.getElementById('undo-btn').classList.add('hidden');
+        }
     </script>
 </body>
 </html>

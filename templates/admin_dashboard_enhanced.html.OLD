@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Admin Dashboard - Erweiterte Analytics mit Historischen Daten</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- DaisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
+
+  <!-- AOS Animations -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Particles.js -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+  <!-- ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#d4af6a',
+            'primary-dark': '#c2ae7f',
+            secondary: '#207487',
+            accent: '#294c5d',
+          },
+          animation: {
+            'gradient': 'gradient 15s ease infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite',
+          },
+          keyframes: {
+            gradient: {
+              '0%, 100%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            glow: {
+              '0%, 100%': { boxShadow: '0 0 20px rgba(212,175,106,0.3)' },
+              '50%': { boxShadow: '0 0 40px rgba(212,175,106,0.6)' },
+            },
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Glassmorphism utilities */
+    .glass {
+      background: rgba(18, 24, 32, 0.65);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* Particle Container */
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(212, 175, 106, 0.3);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(212, 175, 106, 0.6);
+    }
+
+    /* ApexCharts dark mode */
+    .apexcharts-theme-dark {
+      --apexcharts-text-color: #e5eef7;
+      --apexcharts-grid-color: rgba(255, 255, 255, 0.1);
+      --apexcharts-background: transparent;
+    }
+
+    /* Custom gradient backgrounds - ZFA Colors */
+    .gradient-purple {
+      background: linear-gradient(135deg, rgba(41, 76, 93, 0.15), rgba(32, 116, 135, 0.15));
+    }
+
+    .gradient-green {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.15));
+    }
+
+    .gradient-blue {
+      background: linear-gradient(135deg, rgba(212, 175, 106, 0.15), rgba(32, 116, 135, 0.15), rgba(41, 76, 93, 0.1));
+    }
+
+    /* Badge animations */
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+      }
+    }
+
+    .historical-badge {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    /* Dark dropdown options */
+    select option {
+      background: #1e293b;
+      color: white;
+    }
+
+    /* Table styles for dark theme */
+    .table-zebra tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 min-h-screen text-white">
+  <!-- Particle Background -->
+  <div id="particles-js"></div>
+
+  <!-- Drawer Container -->
+  <div class="drawer lg:drawer-open">
+    <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+
+    <!-- Main Content -->
+    <div class="drawer-content relative z-10">
+      <!-- Toggle Button for Mobile -->
+      <label for="admin-drawer" class="btn btn-circle btn-primary fixed top-4 left-4 z-50 lg:hidden drawer-button">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </label>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:ml-80" x-data="adminDashboard()">
+
+    <!-- Header -->
+    <div class="glass rounded-2xl p-8 mb-8 text-center shadow-2xl gradient-blue" data-aos="fade-down">
+      <h1 class="text-4xl md:text-5xl font-bold text-primary mb-3 flex items-center justify-center gap-3 flex-wrap">
+        <i data-lucide="bar-chart-3" class="w-10 h-10"></i>
+        Admin Dashboard
+        <span class="inline-block bg-gradient-to-r from-secondary to-primary text-white px-4 py-2 rounded-full text-base md:text-lg font-semibold historical-badge">
+          <i data-lucide="trending-up" class="w-4 h-4 inline"></i>
+          Mit Aktuellen Daten
+        </span>
+      </h1>
+      <p class="text-gray-400 text-lg mb-4">
+        Erweiterte Analytics mit <span class="text-primary font-semibold">Live-Tracking-Daten</span>
+      </p>
+    </div>
+
+    <!-- Letzte 5 Werktage Tracking -->
+    {% if dashboard.last_7_days %}
+    <div class="glass rounded-2xl p-6 md:p-8 mb-8 gradient-blue border border-primary/30" data-aos="fade-up">
+      <h2 class="text-2xl md:text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+        <i data-lucide="calendar-days" class="w-8 h-8"></i>
+        Aktuelle Tracking Daten (Letzte 5 Werktage)
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="100">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            5
+          </div>
+          <div class="text-sm text-gray-400">Tage Daten</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="200">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            {{ dashboard.last_7_days.total_bookings|default(0) }}
+          </div>
+          <div class="text-sm text-gray-400">Termine Gelegt</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="300">
+          <div class="text-3xl md:text-4xl font-bold text-secondary mb-2">
+            {{ (dashboard.last_7_days.total_bookings|default(0) * (dashboard.last_7_days.appearance_rate|default(0)) / 100)|int }}
+          </div>
+          <div class="text-sm text-gray-400">Erschienen</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="400">
+          <div class="text-3xl md:text-4xl font-bold text-red-500 mb-2">
+            {{ (dashboard.last_7_days.total_bookings|default(0) * (dashboard.last_7_days.no_show_rate|default(0)) / 100)|int }}
+          </div>
+          <div class="text-sm text-gray-400">Nicht Erschienen</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="500">
+          <div class="text-3xl md:text-4xl font-bold text-accent mb-2">
+            {{ "%.1f"|format(dashboard.last_7_days.appearance_rate|default(0)) }}%
+          </div>
+          <div class="text-sm text-gray-400">Auftauchquote</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Tracking seit 01.09.2024 -->
+    {% if dashboard.current_totals %}
+    <div class="glass rounded-2xl p-6 md:p-8 mb-8 gradient-purple border border-secondary/30" data-aos="fade-up" data-aos-delay="100">
+      <h2 class="text-2xl md:text-3xl font-bold text-secondary mb-6 flex items-center gap-3">
+        <i data-lucide="database" class="w-8 h-8"></i>
+        Tracking-Daten seit 01.09.2024
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="100">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            {{ dashboard.current_totals.days_tracked }}
+          </div>
+          <div class="text-sm text-gray-400">Tage erfasst</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="200">
+          <div class="text-3xl md:text-4xl font-bold text-primary mb-2">
+            {{ dashboard.current_totals.total_slots }}
+          </div>
+          <div class="text-sm text-gray-400">Termine Gelegt</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="300">
+          <div class="text-3xl md:text-4xl font-bold text-secondary mb-2">
+            {{ dashboard.current_totals.total_appeared }}
+          </div>
+          <div class="text-sm text-gray-400">Erschienen</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="400">
+          <div class="text-3xl md:text-4xl font-bold text-red-500 mb-2">
+            {{ dashboard.current_totals.total_not_appeared }}
+          </div>
+          <div class="text-sm text-gray-400">Nicht Erschienen</div>
+        </div>
+
+        <div class="glass rounded-xl p-6 text-center hover:scale-105 transition-transform duration-300" data-aos="zoom-in" data-aos-delay="500">
+          <div class="text-3xl md:text-4xl font-bold text-accent mb-2">
+            {{ "%.1f"|format(dashboard.current_totals.appearance_rate) }}%
+          </div>
+          <div class="text-sm text-gray-400">Auftauchquote</div>
+        </div>
+      </div>
+
+      <!-- Zusätzliche Metriken -->
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-center p-4 bg-white/5 rounded-xl">
+          <div class="text-sm text-gray-400 mb-1">Erfolgsquote (seit 01.09)</div>
+          <div class="text-2xl font-bold text-secondary">
+            {{ "%.1f"|format((dashboard.current_totals.total_appeared / dashboard.current_totals.total_slots * 100) if dashboard.current_totals.total_slots > 0 else 0) }}%
+          </div>
+        </div>
+        <div class="text-center p-4 bg-white/5 rounded-xl">
+          <div class="text-sm text-gray-400 mb-1">Ø Termine pro Tag</div>
+          <div class="text-2xl font-bold text-primary">
+            {{ "%.1f"|format(dashboard.current_totals.total_slots / dashboard.current_totals.days_tracked if dashboard.current_totals.days_tracked > 0 else 0) }}
+          </div>
+        </div>
+        <div class="text-center p-4 bg-white/5 rounded-xl">
+          <div class="text-sm text-gray-400 mb-1">Abgesagt</div>
+          <div class="text-2xl font-bold text-warning">
+            {{ dashboard.current_totals.total_cancelled|default(0) }}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Aktuelle Dashboard-Daten -->
+    {% if dashboard.last_7_days or dashboard.since_september %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8" data-aos="fade-up">
+      <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-primary/20 transition-all duration-300">
+        <div class="text-4xl font-bold text-primary mb-2">
+          {{ dashboard.last_7_days.total_bookings if dashboard.last_7_days else 0 }}
+        </div>
+        <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
+          <i data-lucide="calendar-check" class="w-4 h-4"></i>
+          Buchungen (7 Tage)
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-secondary/20 transition-all duration-300">
+        <div class="text-4xl font-bold text-secondary mb-2">
+          {{ "%.1f"|format(dashboard.last_7_days.appearance_rate) if dashboard.last_7_days else 0 }}%
+        </div>
+        <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          Auftauchquote (7 Tage)
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-6 text-center hover:shadow-xl hover:shadow-accent/20 transition-all duration-300">
+        <div class="text-4xl font-bold text-accent mb-2">
+          {{ "%.1f"|format(dashboard.last_7_days.success_rate) if dashboard.last_7_days else 0 }}%
+        </div>
+        <div class="text-sm text-gray-400 flex items-center justify-center gap-2">
+          <i data-lucide="trophy" class="w-4 h-4"></i>
+          Erfolgsquote (7 Tage)
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Weekly Trend Chart -->
+      <div class="glass rounded-xl p-6" data-aos="fade-right">
+        <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i data-lucide="activity" class="w-6 h-6 text-primary"></i>
+          Wöchentlicher Trend
+        </h3>
+        <div id="weeklyTrendChart"></div>
+      </div>
+
+      <!-- Appearance Rate Distribution -->
+      <div class="glass rounded-xl p-6" data-aos="fade-left">
+        <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i data-lucide="pie-chart" class="w-6 h-6 text-secondary"></i>
+          Erscheinungsverteilung
+        </h3>
+        <div id="appearanceDistChart"></div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-aos="fade-up">
+      <a href="{{ url_for('hub.dashboard') }}" class="glass rounded-xl p-6 text-center hover:bg-white/10 transition-all duration-300 group">
+        <i data-lucide="home" class="w-8 h-8 mx-auto mb-3 text-primary group-hover:scale-110 transition-transform"></i>
+        <span class="block font-semibold text-white">Zurück zum Hub</span>
+      </a>
+
+      <a href="{{ url_for('admin.admin_dashboard') }}" class="glass rounded-xl p-6 text-center hover:bg-primary/20 transition-all duration-300 group">
+        <i data-lucide="refresh-cw" class="w-8 h-8 mx-auto mb-3 text-primary group-hover:rotate-180 transition-transform duration-500"></i>
+        <span class="block font-semibold text-primary">Aktualisieren</span>
+      </a>
+
+      <a href="/health" class="glass rounded-xl p-6 text-center hover:bg-secondary/20 transition-all duration-300 group">
+        <i data-lucide="activity" class="w-8 h-8 mx-auto mb-3 text-secondary group-hover:scale-110 transition-transform"></i>
+        <span class="block font-semibold text-secondary">System Status</span>
+      </a>
+    </div>
+      </div>
+    </div>
+    <!-- End of drawer-content -->
+
+    <!-- Include Admin Navigation Sidebar -->
+    {% include 'admin_nav.html' %}
+
+  </div>
+  <!-- End of drawer container -->
+
+  <!-- AOS -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Initialize AOS
+    AOS.init({
+      duration: 800,
+      easing: 'ease-in-out',
+      once: true,
+      offset: 50
+    });
+
+    // Initialize Particles.js
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 80, density: { enable: true, value_area: 800 } },
+        color: { value: '#d4af6a' },
+        shape: { type: 'circle' },
+        opacity: {
+          value: 0.3,
+          random: true,
+          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: '#d4af6a',
+          opacity: 0.2,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: 'none',
+          random: false,
+          straight: false,
+          out_mode: 'out',
+          bounce: false
+        }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: {
+          onhover: { enable: true, mode: 'grab' },
+          onclick: { enable: true, mode: 'push' },
+          resize: true
+        },
+        modes: {
+          grab: { distance: 140, line_linked: { opacity: 0.5 } },
+          push: { particles_nb: 4 }
+        }
+      },
+      retina_detect: true
+    });
+
+    // Alpine.js Component
+    function adminDashboard() {
+      return {
+        init() {
+          this.initCharts();
+        },
+
+        initCharts() {
+          // Weekly Trend Line Chart
+          const weeklyOptions = {
+            series: [{
+              name: 'Buchungen',
+              data: [44, 55, 57, 56, 61, 58, 63]
+            }, {
+              name: 'Erschienen',
+              data: [35, 41, 36, 26, 45, 48, 52]
+            }],
+            chart: {
+              type: 'line',
+              height: 300,
+              background: 'transparent',
+              toolbar: {
+                show: false
+              },
+              animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800
+              }
+            },
+            colors: ['#d4af6a', '#207487'],
+            stroke: {
+              curve: 'smooth',
+              width: 3
+            },
+            xaxis: {
+              categories: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+              labels: {
+                style: {
+                  colors: '#9ca3af'
+                }
+              }
+            },
+            yaxis: {
+              labels: {
+                style: {
+                  colors: '#9ca3af'
+                }
+              }
+            },
+            grid: {
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              strokeDashArray: 4
+            },
+            tooltip: {
+              theme: 'dark',
+              y: {
+                formatter: function(value) {
+                  return value + ' Termine'
+                }
+              }
+            },
+            legend: {
+              labels: {
+                colors: '#e5eef7'
+              }
+            }
+          };
+
+          const weeklyChart = new ApexCharts(document.querySelector("#weeklyTrendChart"), weeklyOptions);
+          weeklyChart.render();
+
+          // Appearance Distribution Donut Chart
+          const distributionOptions = {
+            series: [
+              {{ dashboard.current_totals.total_appeared if dashboard.current_totals else 0 }},
+              {{ dashboard.current_totals.total_not_appeared if dashboard.current_totals else 0 }}
+            ],
+            chart: {
+              type: 'donut',
+              height: 300,
+              background: 'transparent',
+              animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800
+              }
+            },
+            labels: ['Erschienen', 'Nicht Erschienen'],
+            colors: ['#10b981', '#ef4444'],
+            plotOptions: {
+              pie: {
+                donut: {
+                  size: '70%',
+                  labels: {
+                    show: true,
+                    total: {
+                      show: true,
+                      label: 'Gesamt',
+                      color: '#e5eef7',
+                      formatter: function (w) {
+                        return w.globals.seriesTotals.reduce((a, b) => {
+                          return a + b
+                        }, 0)
+                      }
+                    },
+                    value: {
+                      color: '#e5eef7'
+                    }
+                  }
+                }
+              }
+            },
+            dataLabels: {
+              enabled: true,
+              style: {
+                colors: ['#fff']
+              }
+            },
+            legend: {
+              position: 'bottom',
+              labels: {
+                colors: '#e5eef7'
+              }
+            },
+            tooltip: {
+              theme: 'dark',
+              y: {
+                formatter: function(value) {
+                  return value + ' Termine'
+                }
+              }
+            }
+          };
+
+          const distributionChart = new ApexCharts(document.querySelector("#appearanceDistChart"), distributionOptions);
+          distributionChart.render();
+        }
+      }
+    }
+
+    // Responsive layout updates
+    function updateLayout() {
+      const isMobile = window.innerWidth < 768;
+      // Mobile-specific adjustments can be added here if needed
+    }
+
+    window.addEventListener('resize', updateLayout);
+    updateLayout();
+  </script>
+
+</body>
+</html>
