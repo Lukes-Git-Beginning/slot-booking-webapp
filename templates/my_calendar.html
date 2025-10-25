@@ -759,6 +759,9 @@
         });
         {% endif %}
 
+        // ===================================================================
+        // TOAST NOTIFICATIONS
+        // ===================================================================
         function showToast(message, type = 'info') {
             const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
             const toast = document.createElement('div');
@@ -768,24 +771,367 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        function showRescheduleModal(eventId, customerName, cardElement) {
-            showToast('🔜 Reschedule-Modal kommt in Phase 2!', 'info');
-            // TODO: Implement in Phase 2
-            // Für jetzt: Karte zurück zur ursprünglichen Spalte
-            setTimeout(() => location.reload(), 1000);
+        // ===================================================================
+        // UNDO FUNCTIONALITY
+        // ===================================================================
+        let undoData = null;
+        let undoTimer = null;
+
+        function showUndoButton(data) {
+            undoData = data;
+            const undoBtn = document.getElementById('undo-btn');
+            undoBtn.classList.remove('hidden');
+
+            let secondsLeft = 3;
+            document.getElementById('undo-text').textContent = `Rückgängig (${secondsLeft}s)`;
+
+            undoTimer = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearInterval(undoTimer);
+                    undoBtn.classList.add('hidden');
+                    undoData = null;
+                } else {
+                    document.getElementById('undo-text').textContent = `Rückgängig (${secondsLeft}s)`;
+                }
+            }, 1000);
         }
 
-        function updateEventStatus(eventId, customerName, newColumn, oldColumn) {
-            showToast('🔜 Status-Update kommt in Phase 2!', 'info');
-            // TODO: Implement in Phase 2
-            console.log('Status update:', { eventId, customerName, newColumn, oldColumn });
-        }
-
-        // Undo functionality placeholder
         function undo() {
-            showToast('🔄 Undo-Funktion kommt in Phase 2!', 'info');
+            if (!undoData) return;
+
+            clearInterval(undoTimer);
             document.getElementById('undo-btn').classList.add('hidden');
+
+            showToast('🔄 Änderung wird rückgängig gemacht...', 'info');
+
+            // Revert the status change
+            fetch('/api/update-event-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_id: undoData.eventId,
+                    new_status: undoData.oldColumn
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('✅ Änderung rückgängig gemacht!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('❌ Fehler beim Rückgängigmachen: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('❌ Netzwerkfehler beim Rückgängigmachen', 'error');
+                console.error('Undo error:', error);
+            });
+
+            undoData = null;
         }
+
+        // ===================================================================
+        // STATUS UPDATE (Drag & Drop)
+        // ===================================================================
+        function updateEventStatus(eventId, customerName, newColumn, oldColumn) {
+            showToast(`🔄 Status wird aktualisiert...`, 'info');
+
+            fetch('/api/update-event-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    new_status: newColumn
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✅ Status auf "${data.new_status_label}" aktualisiert!`, 'success');
+
+                    // Show Undo button for 3 seconds
+                    showUndoButton({
+                        eventId: eventId,
+                        oldColumn: oldColumn,
+                        newColumn: newColumn,
+                        customerName: customerName
+                    });
+
+                    // Reload after undo window closes
+                    setTimeout(() => location.reload(), 3500);
+                } else {
+                    showToast('❌ Fehler: ' + data.error, 'error');
+                    setTimeout(() => location.reload(), 1500);
+                }
+            })
+            .catch(error => {
+                showToast('❌ Netzwerkfehler beim Status-Update', 'error');
+                console.error('Status update error:', error);
+                setTimeout(() => location.reload(), 1500);
+            });
+        }
+
+        // ===================================================================
+        // RESCHEDULE MODAL
+        // ===================================================================
+        let currentRescheduleData = null;
+
+        function showRescheduleModal(eventId, customerName, cardElement) {
+            currentRescheduleData = { eventId, customerName, cardElement };
+
+            // Create modal HTML
+            const modalHTML = `
+                <dialog id="reschedule-modal" class="modal modal-open">
+                    <div class="modal-box glass w-11/12 max-w-2xl">
+                        <h3 class="font-bold text-2xl mb-4 flex items-center gap-2">
+                            <i data-lucide="calendar-clock" class="w-6 h-6 text-primary"></i>
+                            Termin umbuchen
+                        </h3>
+                        <p class="text-gray-400 mb-6">Kunde: <span class="font-bold text-white">${customerName}</span></p>
+
+                        <!-- Date Picker -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Neues Datum</span>
+                            </label>
+                            <input type="date" id="reschedule-date"
+                                   class="input input-bordered"
+                                   min="${new Date().toISOString().split('T')[0]}"
+                                   required />
+                        </div>
+
+                        <!-- Time Slots (dynamically loaded) -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Verfügbare Zeitslots</span>
+                            </label>
+                            <div id="time-slots-container" class="grid grid-cols-3 gap-2">
+                                <div class="col-span-3 text-center text-gray-400 py-4">
+                                    Bitte wähle zuerst ein Datum
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Consultant Dropdown (dynamically loaded) -->
+                        <div class="form-control mb-4" id="consultant-container" style="display:none;">
+                            <label class="label">
+                                <span class="label-text">Berater</span>
+                            </label>
+                            <select id="reschedule-consultant" class="select select-bordered">
+                                <option value="">Auto-Auswahl</option>
+                            </select>
+                        </div>
+
+                        <!-- Optional Note -->
+                        <div class="form-control mb-6">
+                            <label class="label">
+                                <span class="label-text">Notiz (optional)</span>
+                            </label>
+                            <textarea id="reschedule-note" class="textarea textarea-bordered"
+                                      placeholder="Grund für Umbuchung..."></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="modal-action">
+                            <button class="btn btn-ghost" onclick="closeRescheduleModal()">Abbrechen</button>
+                            <button class="btn btn-primary" id="confirm-reschedule-btn" disabled>
+                                <i data-lucide="check" class="w-4 h-4"></i>
+                                Umbuchen
+                            </button>
+                        </div>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button onclick="closeRescheduleModal()">close</button>
+                    </form>
+                </dialog>
+            `;
+
+            // Inject modal
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            lucide.createIcons();
+
+            // Add event listeners
+            document.getElementById('reschedule-date').addEventListener('change', loadAvailableSlots);
+            document.getElementById('confirm-reschedule-btn').addEventListener('click', confirmReschedule);
+        }
+
+        function closeRescheduleModal() {
+            const modal = document.getElementById('reschedule-modal');
+            if (modal) {
+                modal.remove();
+            }
+            // Reload to restore original card position
+            setTimeout(() => location.reload(), 300);
+        }
+
+        function loadAvailableSlots() {
+            const date = document.getElementById('reschedule-date').value;
+            if (!date) return;
+
+            const container = document.getElementById('time-slots-container');
+            container.innerHTML = '<div class="col-span-3 text-center"><span class="loading loading-spinner"></span></div>';
+
+            fetch(`/api/get-available-slots?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        container.innerHTML = `<div class="col-span-3 text-center text-error">${data.error}</div>`;
+                        return;
+                    }
+
+                    if (data.slots.length === 0) {
+                        container.innerHTML = '<div class="col-span-3 text-center text-warning">Keine verfügbaren Slots an diesem Tag</div>';
+                        return;
+                    }
+
+                    // Display available slots
+                    let slotsHTML = '';
+                    data.slots.forEach(slot => {
+                        const consultantsText = slot.consultants.length > 0
+                            ? slot.consultants.join(', ')
+                            : 'Alle belegt';
+                        const disabled = slot.consultants.length === 0 ? 'disabled' : '';
+
+                        slotsHTML += `
+                            <button type="button"
+                                    class="btn btn-sm btn-outline ${disabled ? 'btn-disabled' : ''}"
+                                    data-time="${slot.time}"
+                                    data-consultants='${JSON.stringify(slot.consultants)}'
+                                    onclick="selectTimeSlot(this)"
+                                    ${disabled}>
+                                ${slot.time}
+                                ${slot.consultants.length > 0 ? `<span class="badge badge-xs">${slot.consultants.length}</span>` : ''}
+                            </button>
+                        `;
+                    });
+
+                    container.innerHTML = slotsHTML;
+                })
+                .catch(error => {
+                    console.error('Error loading slots:', error);
+                    container.innerHTML = '<div class="col-span-3 text-center text-error">Fehler beim Laden der Slots</div>';
+                });
+        }
+
+        function selectTimeSlot(button) {
+            // Deselect all
+            document.querySelectorAll('#time-slots-container .btn').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline');
+            });
+
+            // Select this one
+            button.classList.add('btn-primary');
+            button.classList.remove('btn-outline');
+
+            // Store selected time
+            button.dataset.selected = 'true';
+
+            // Update consultant dropdown
+            const consultants = JSON.parse(button.dataset.consultants);
+            const consultantContainer = document.getElementById('consultant-container');
+            const consultantSelect = document.getElementById('reschedule-consultant');
+
+            consultantSelect.innerHTML = '<option value="">Auto-Auswahl</option>';
+            consultants.forEach(c => {
+                consultantSelect.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+
+            consultantContainer.style.display = 'block';
+
+            // Enable confirm button
+            document.getElementById('confirm-reschedule-btn').disabled = false;
+        }
+
+        function confirmReschedule() {
+            const date = document.getElementById('reschedule-date').value;
+            const selectedSlotBtn = document.querySelector('#time-slots-container .btn[data-selected="true"]');
+            const time = selectedSlotBtn ? selectedSlotBtn.dataset.time : null;
+            const consultant = document.getElementById('reschedule-consultant').value;
+            const note = document.getElementById('reschedule-note').value;
+
+            if (!date || !time) {
+                showToast('❌ Bitte Datum und Zeitslot auswählen', 'error');
+                return;
+            }
+
+            // Disable button during request
+            const btn = document.getElementById('confirm-reschedule-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Umbuchen...';
+
+            fetch('/api/reschedule-booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_id: currentRescheduleData.eventId,
+                    new_date: date,
+                    new_time: time,
+                    consultant: consultant,
+                    note: note
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✅ Termin erfolgreich umgebucht auf ${date} ${time}!`, 'success');
+                    closeRescheduleModal();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('❌ Fehler: ' + data.error, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Umbuchen';
+                    lucide.createIcons();
+                }
+            })
+            .catch(error => {
+                console.error('Reschedule error:', error);
+                showToast('❌ Netzwerkfehler beim Umbuchen', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Umbuchen';
+                lucide.createIcons();
+            });
+        }
+
+        // ===================================================================
+        // AUTO-REFRESH (every 5 minutes when page is visible)
+        // ===================================================================
+        let autoRefreshInterval = null;
+
+        function startAutoRefresh() {
+            // Refresh every 5 minutes (300,000 ms)
+            autoRefreshInterval = setInterval(() => {
+                if (!document.hidden) {
+                    console.log('Auto-refreshing my-calendar...');
+                    location.reload();
+                }
+            }, 5 * 60 * 1000);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Start auto-refresh when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startAutoRefresh();
+        });
+
+        // Stop auto-refresh when page is hidden/closed
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+            }
+        });
+
+        // Stop on page unload
+        window.addEventListener('beforeunload', stopAutoRefresh);
     </script>
 </body>
 </html>

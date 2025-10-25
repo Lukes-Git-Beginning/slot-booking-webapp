@@ -500,3 +500,300 @@ def calendar_view():
                          week_start=week_start,
                          week_end=week_end,
                          weekdays_data=weekdays_data)
+
+
+# ============================================================================
+# MY CALENDAR - PHASE 2 API ENDPOINTS (Drag & Drop, Reschedule)
+# ============================================================================
+
+@calendar_bp.route('/api/update-event-status', methods=['POST'])
+@require_login
+def api_update_event_status():
+    """
+    Update event status via drag & drop (changes color in Google Calendar)
+
+    Request JSON:
+        {
+            "event_id": "abc123",
+            "new_status": "erschienen" | "ghost" | "verschoben" | etc.
+        }
+
+    Returns:
+        {"success": True, "message": "Status updated"}
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        data = request.get_json()
+        event_id = data.get('event_id')
+        new_status = data.get('new_status')
+        user = session.get('user')
+
+        if not event_id or not new_status:
+            return jsonify({'success': False, 'error': 'Missing event_id or new_status'}), 400
+
+        # Map status to Google Calendar colorId
+        status_to_color = {
+            'pending': '1',         # Lavendel (future events)
+            'erschienen': '2',      # Grün (appeared)
+            'rückholung': '3',      # Weintraube (recall)
+            'sonderkunde': '5',     # Gelb (special customer)
+            'verschoben': '6',      # Orange (rescheduled/cancelled)
+            'nicht_erschienen': '11', # Rot (no-show)
+            'ghost': '11'           # Rot (ghost - will add marker to title)
+        }
+
+        color_id = status_to_color.get(new_status)
+        if not color_id:
+            return jsonify({'success': False, 'error': f'Invalid status: {new_status}'}), 400
+
+        # Get Google Calendar service
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return jsonify({'success': False, 'error': 'Calendar service not available'}), 503
+
+        from app.config.base import config
+
+        # Get event to check permissions
+        try:
+            event = calendar_service.service.events().get(
+                calendarId=config.CENTRAL_CALENDAR_ID,
+                eventId=event_id
+            ).execute()
+        except Exception as e:
+            logger.error(f"Error fetching event {event_id}: {e}")
+            return jsonify({'success': False, 'error': 'Event not found'}), 404
+
+        # Update event color
+        update_body = {'colorId': color_id}
+
+        # Special handling for "ghost" status - add marker to summary
+        if new_status == 'ghost':
+            current_summary = event.get('summary', '')
+            if '( Ghost )' not in current_summary and '(Ghost)' not in current_summary:
+                # Remove other status markers first
+                clean_summary = current_summary
+                for marker in [' ( Verschoben )', ' (Verschoben)', ' ( Abgesagt )', ' (Abgesagt)',
+                              ' ( nicht erschienen )', ' (nicht erschienen)', ' ( erschienen )', ' (erschienen)']:
+                    clean_summary = clean_summary.replace(marker, '')
+                update_body['summary'] = f"{clean_summary.strip()} ( Ghost )"
+
+        # Execute update
+        try:
+            calendar_service.service.events().patch(
+                calendarId=config.CENTRAL_CALENDAR_ID,
+                eventId=event_id,
+                body=update_body
+            ).execute()
+
+            logger.info(f"MY-CALENDAR: Status updated for event {event_id} to {new_status} by {user}")
+
+            # Invalidate cache
+            from app.core.extensions import cache_manager
+            cache_manager.clear_pattern('calendar_events_*')
+
+            return jsonify({
+                'success': True,
+                'message': f'Status updated to {new_status}',
+                'new_color_id': color_id
+            })
+
+        except Exception as e:
+            logger.error(f"Error updating event {event_id}: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as e:
+        logger.error(f"API error in update-event-status: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+
+@calendar_bp.route('/api/get-available-slots', methods=['GET'])
+@require_login
+def api_get_available_slots():
+    """
+    Get available time slots for a specific date (for reschedule modal)
+
+    Query params:
+        date: YYYY-MM-DD (optional, defaults to tomorrow)
+
+    Returns:
+        {
+            "success": True,
+            "date": "2025-10-26",
+            "slots": [
+                {"time": "14:00", "consultants": ["christian.mast", "luke.hoppe"], "count": 2},
+                ...
+            ]
+        }
+    """
+    import logging
+    from datetime import datetime as dt_module, date as date_class
+    from app.services.booking_service import get_effective_availability
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get date parameter or use tomorrow
+        date_param = request.args.get('date')
+        if date_param:
+            try:
+                check_date = dt_module.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid date format (use YYYY-MM-DD)'}), 400
+        else:
+            check_date = dt_module.now(TZ).date() + timedelta(days=1)
+
+        # Get availability for common time slots
+        time_slots = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00']
+        available_slots = []
+
+        date_str = check_date.strftime('%Y-%m-%d')
+
+        for time_slot in time_slots:
+            consultants = get_effective_availability(date_str, time_slot)
+
+            if consultants:  # Only include slots with availability
+                available_slots.append({
+                    'time': time_slot,
+                    'consultants': consultants,
+                    'count': len(consultants)
+                })
+
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'slots': available_slots
+        })
+
+    except Exception as e:
+        logger.error(f"API error in get-available-slots: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+
+@calendar_bp.route('/api/reschedule-booking', methods=['POST'])
+@require_login
+def api_reschedule_booking():
+    """
+    Reschedule a booking (mark old as verschoben, create new)
+
+    Request JSON:
+        {
+            "old_event_id": "abc123",
+            "customer_name": "Müller, Hans",
+            "new_date": "2025-10-26",
+            "new_time": "14:00",
+            "consultant": "christian.mast",  # optional, auto-select if empty
+            "note": "Kunde hat angerufen"    # optional
+        }
+
+    Returns:
+        {"success": True, "new_event_id": "xyz789", "message": "..."}
+    """
+    import logging
+    from datetime import datetime as dt_module
+    from app.services.booking_service import book_slot_for_user, get_effective_availability
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        data = request.get_json()
+        old_event_id = data.get('old_event_id')
+        customer_name = data.get('customer_name')
+        new_date = data.get('new_date')
+        new_time = data.get('new_time')
+        consultant = data.get('consultant', '')
+        note = data.get('note', '')
+        user = session.get('user')
+
+        # Validation
+        if not all([old_event_id, customer_name, new_date, new_time]):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        # Parse customer name (format: "Nachname, Vorname" or "Vorname Nachname")
+        if ',' in customer_name:
+            parts = customer_name.split(',', 1)
+            last_name = parts[0].strip()
+            first_name = parts[1].strip() if len(parts) > 1 else ''
+        else:
+            parts = customer_name.split(' ', 1)
+            first_name = parts[0].strip()
+            last_name = parts[1].strip() if len(parts) > 1 else ''
+
+        # Auto-select consultant if not provided
+        if not consultant:
+            available_consultants = get_effective_availability(new_date, new_time)
+            if not available_consultants:
+                return jsonify({'success': False, 'error': f'No availability at {new_date} {new_time}'}), 400
+            consultant = available_consultants[0]  # Pick first available
+
+        # Step 1: Mark old event as "Verschoben"
+        calendar_service = get_google_calendar_service()
+        if calendar_service:
+            try:
+                from app.config.base import config
+
+                # Get old event
+                old_event = calendar_service.service.events().get(
+                    calendarId=config.CENTRAL_CALENDAR_ID,
+                    eventId=old_event_id
+                ).execute()
+
+                # Update to verschoben (Orange colorId=6)
+                old_summary = old_event.get('summary', '')
+                if '( Verschoben )' not in old_summary:
+                    new_summary = f"{old_summary.strip()} ( Verschoben )"
+                else:
+                    new_summary = old_summary
+
+                calendar_service.service.events().patch(
+                    calendarId=config.CENTRAL_CALENDAR_ID,
+                    eventId=old_event_id,
+                    body={
+                        'colorId': '6',  # Orange
+                        'summary': new_summary
+                    }
+                ).execute()
+
+                logger.info(f"MY-CALENDAR: Marked old event {old_event_id} as verschoben by {user}")
+
+            except Exception as e:
+                logger.warning(f"Could not update old event {old_event_id}: {e}")
+                # Continue anyway
+
+        # Step 2: Book new slot
+        reschedule_note = f"Umbuchung von altem Termin.\n{note}" if note else "Umbuchung von altem Termin."
+
+        booking_result = book_slot_for_user(
+            user=user,
+            date_str=new_date,
+            time_str=new_time,
+            berater=consultant,
+            first_name=first_name,
+            last_name=last_name,
+            description=reschedule_note,
+            color_id='2'  # Normal (Grün) for new booking
+        )
+
+        if booking_result.get('success'):
+            logger.info(f"MY-CALENDAR: Rescheduled booking for {customer_name} to {new_date} {new_time} by {user}")
+
+            # Invalidate cache
+            from app.core.extensions import cache_manager
+            cache_manager.clear_pattern('calendar_events_*')
+
+            return jsonify({
+                'success': True,
+                'message': f'Termin erfolgreich umgebucht auf {new_date} {new_time}',
+                'new_event_id': booking_result.get('event_id'),
+                'consultant': consultant
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': booking_result.get('error', 'Booking failed')
+            }), 400
+
+    except Exception as e:
+        logger.error(f"API error in reschedule-booking: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
