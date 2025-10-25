@@ -65,13 +65,9 @@ def list_recent_weeks(num_weeks: int = 8) -> List[str]:
 
 
 def is_in_commit_window(check_dt: Optional[datetime] = None) -> bool:
-    """Einträge zwischen 10:00 und 22:00 (inklusive 22:00) verbuchen."""
-    if check_dt is None:
-        check_dt = datetime.now(TZ)
-    local = check_dt.astimezone(TZ)
-    start = time(10, 0)
-    end = time(22, 0)
-    return start <= local.time() <= end
+    """Einträge sind jetzt 24/7 erlaubt (Zeitbeschränkung entfernt)."""
+    # Zeitbeschränkung entfernt - Admin kann rund um die Uhr Einträge vornehmen
+    return True
 
 
 def load_data() -> Dict:
@@ -239,10 +235,7 @@ def record_activity(week_key: str, user: str, kind: str, points: int, set_by: st
     if vacation_status["on_vacation"]:
         return {"success": False, "error": f"Warning: User {user} is on vacation ({vacation_status['reason']}). Activity recorded but will not count toward goals."}
 
-    # Check for duplicates
-    duplicate_check = check_duplicate_activity(week_key, user, kind, points)
-    if duplicate_check["duplicate"]:
-        return {"success": False, "error": duplicate_check["error"]}
+    # Duplicate-Check entfernt - Admin kann mehrere gleiche Termine für einen Berater eintragen
 
     try:
         points = min(100, max(0, int(points)))
@@ -276,6 +269,60 @@ def record_activity(week_key: str, user: str, kind: str, points: int, set_by: st
 
     except Exception as e:
         return {"success": False, "error": f"Failed to record activity: {str(e)}"}
+
+
+def delete_activity(week_key: str, user: str, activity_index: int, deleted_by: str) -> Dict[str, Union[bool, str]]:
+    """
+    Löscht eine Aktivität anhand des Index.
+
+    Args:
+        week_key: Woche im Format YYYY-WW
+        user: Benutzername
+        activity_index: Index der zu löschenden Aktivität im activities-Array
+        deleted_by: Wer die Löschung durchführt (z.B. "admin")
+
+    Returns:
+        Dict mit success und optional error
+    """
+    try:
+        data = load_data()
+
+        # Check if week and user exist
+        if week_key not in data["weeks"]:
+            return {"success": False, "error": f"Week {week_key} not found"}
+
+        if user not in data["weeks"][week_key]["users"]:
+            return {"success": False, "error": f"User {user} not found in week {week_key}"}
+
+        user_entry = data["weeks"][week_key]["users"][user]
+        activities = user_entry.get("activities", [])
+
+        # Check if index is valid
+        if activity_index < 0 or activity_index >= len(activities):
+            return {"success": False, "error": f"Invalid activity index {activity_index}"}
+
+        # Get activity details before deletion for audit
+        deleted_activity = activities[activity_index]
+
+        # Delete the activity
+        del activities[activity_index]
+
+        # Add audit entry
+        user_entry.setdefault("audit", []).append({
+            "type": "activity_deleted",
+            "kind": deleted_activity.get("kind", "unknown"),
+            "points": deleted_activity.get("points", 0),
+            "note": deleted_activity.get("note", ""),
+            "original_by": deleted_activity.get("by", "unknown"),
+            "deleted_by": deleted_by,
+            "ts": datetime.now(TZ).isoformat()
+        })
+
+        save_data(data)
+        return {"success": True, "error": None}
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to delete activity: {str(e)}"}
 
 
 def apply_pending(week_key: str) -> Tuple[int, int]:

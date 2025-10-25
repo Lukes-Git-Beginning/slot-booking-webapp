@@ -604,13 +604,9 @@ class BookingTracker:
                             total_cancelled += metrics.get("cancelled", 0)
 
                     if total_slots > 0:
-                        # Neue Definition: Auftauchquote = erschienen / (erschienen + no_show)
-                        appearance_base = total_completed + total_no_shows
-                        if appearance_base > 0:
-                            appearance_rate = min(100, round((total_completed / appearance_base) * 100, 2))
-                        else:
-                            appearance_rate = 0
-
+                        # Auftauchquote = Erschienene / Alle gelegten Termine
+                        # Abgesagt und Verschoben zählen als "nicht erschienen"
+                        appearance_rate = min(100, round((total_completed / total_slots) * 100, 2))
                         success_rate = min(100, round((total_completed / total_slots) * 100, 2))
                         no_show_rate = min(100, round((total_no_shows / total_slots) * 100, 2))
 
@@ -648,16 +644,12 @@ class BookingTracker:
                             total_cancelled_30 += metrics.get("cancelled", 0)
                     
                     if total_slots_30 > 0:
-                        # Neue Definition: Auftauchquote = erschienen / (erschienen + no_show)
-                        appearance_base_30 = total_completed_30 + total_no_shows_30
-                        if appearance_base_30 > 0:
-                            appearance_rate_30 = min(100, round((total_completed_30 / appearance_base_30) * 100, 2))
-                        else:
-                            appearance_rate_30 = 0
-
+                        # Auftauchquote = Erschienene / Alle gelegten Termine
+                        # Abgesagt und Verschoben zählen als "nicht erschienen"
+                        appearance_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
                         success_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
                         no_show_rate_30 = min(100, round((total_no_shows_30 / total_slots_30) * 100, 2))
-                        
+
                         dashboard["since_september"] = {
                             "total_bookings": total_slots_30,
                             "appearance_rate": appearance_rate_30,
@@ -687,11 +679,9 @@ class BookingTracker:
                             pass
 
                     if all_total_slots > 0:
-                        all_appearance_base = all_total_completed + all_total_no_shows
-                        if all_appearance_base > 0:
-                            all_appearance_rate = round((all_total_completed / all_appearance_base) * 100, 2)
-                        else:
-                            all_appearance_rate = 0
+                        # Auftauchquote = Erschienene / Alle gelegten Termine
+                        # Abgesagt und Verschoben zählen als "nicht erschienen"
+                        all_appearance_rate = round((all_total_completed / all_total_slots) * 100, 2)
 
                         dashboard["current_totals"] = {
                             "total_slots": all_total_slots,
@@ -1001,9 +991,10 @@ class BookingTracker:
                     cancelled = metrics.get("cancelled", 0)
                     rescheduled = metrics.get("rescheduled", 0)
 
-                    appearance_base = completed + no_shows
-                    if appearance_base > 0:
-                        appearance_rate = round((completed / appearance_base) * 100, 1)
+                    # Auftauchquote = Erschienene / Alle gelegten Termine
+                    # Abgesagt und Verschoben zählen als "nicht erschienen"
+                    if total_slots > 0:
+                        appearance_rate = round((completed / total_slots) * 100, 1)
                     else:
                         appearance_rate = 0.0
 
@@ -1103,26 +1094,30 @@ class BookingTracker:
                         days_with_data += 1
 
                         # Für Trend-Chart
-                        appearance_base = completed + no_shows
-                        if appearance_base > 0:
-                            appearance_rate = round((completed / appearance_base) * 100, 1)
+                        # Auftauchquote = Erschienene / Alle gelegten Termine
+                        if slots > 0:
+                            appearance_rate = round((completed / slots) * 100, 1)
                         else:
                             appearance_rate = 0.0
 
-                        daily_data.append({
-                            "date": date_str,
-                            "total_slots": slots,
-                            "completed": completed,
-                            "no_shows": no_shows,
-                            "appearance_rate": appearance_rate
-                        })
+                        # Nur Werktage (Mo-Fr) zum Chart hinzufügen, keine Wochenenden
+                        # current_date.weekday(): 0=Montag, 4=Freitag, 5=Samstag, 6=Sonntag
+                        if current_date.weekday() < 5:  # Nur Mo-Fr
+                            daily_data.append({
+                                "date": date_str,
+                                "total_slots": slots,
+                                "completed": completed,
+                                "no_shows": no_shows,
+                                "appearance_rate": appearance_rate
+                            })
 
                 current_date += timedelta(days=1)
 
             # Berechne Raten
-            appearance_base = total_completed + total_no_shows
-            if appearance_base > 0:
-                appearance_rate = round((total_completed / appearance_base) * 100, 1)
+            # Auftauchquote = Erschienene / Alle gelegten Termine
+            # Abgesagt und Verschoben zählen als "nicht erschienen"
+            if total_slots > 0:
+                appearance_rate = round((total_completed / total_slots) * 100, 1)
             else:
                 appearance_rate = 0.0
 

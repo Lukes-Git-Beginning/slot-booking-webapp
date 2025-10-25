@@ -19,6 +19,7 @@ from app.services.weekly_points import (
     set_participants,
     set_week_goal,
     record_activity,
+    delete_activity,
     apply_pending,
     compute_week_stats,
     set_vacation_period,
@@ -112,6 +113,18 @@ def admin_telefonie():
                 else:
                     flash("Alle Felder sind erforderlich", "danger")
 
+            elif action == "delete_activity":
+                user = request.form.get("user")
+                activity_index = request.form.get("activity_index")
+                if user and activity_index is not None:
+                    result = delete_activity(week_key, user, int(activity_index), "admin")
+                    if result["success"]:
+                        flash(f"Aktivität für {user} wurde gelöscht", "success")
+                    else:
+                        flash(f"Fehler: {result['error']}", "danger")
+                else:
+                    flash("User und Activity-Index sind erforderlich", "danger")
+
         except Exception as e:
             flash(f"Fehler: {str(e)}", "danger")
 
@@ -142,30 +155,14 @@ def admin_telefonie():
 @admin_bp.route("/telefonie/export")
 @require_admin
 def admin_telefonie_export():
-    """Export telefonie data"""
+    """Export telefonie data as professional PDF"""
     week_key = request.args.get("week", get_week_key(datetime.now(TZ)))
 
     try:
-        # Get week data
-        participants = get_participants()
-        stats = compute_week_stats(week_key)
-        audit = get_week_audit(week_key)
-
-        # Create export data
-        export_data = {
-            'week': week_key,
-            'participants': participants,
-            'stats': stats,
-            'audit': audit,
-            'exported_at': datetime.now(TZ).isoformat()
-        }
-
-        # For now, return JSON - could be enhanced to PDF
-        response = make_response(str(export_data))
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Content-Disposition'] = f'attachment; filename=telefonie_week_{week_key}.json'
-
-        return response
+        # Redirect to the professional PDF export route
+        return redirect(url_for("admin.admin_telefonie_export_report",
+                              report_type="weekly",
+                              week=week_key))
 
     except Exception as e:
         flash(f"Export error: {str(e)}", "danger")
