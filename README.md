@@ -37,7 +37,10 @@ Eine professionelle Multi-Tool-Plattform mit Slot-Booking, T2-Closer-System, Gam
 ### 📊 Business Intelligence & Analytics
 - **Umfassendes Tracking**: Echtzeit-Überwachung aller Buchungsaktivitäten
 - **Erweiterte Kundenprofilierung**: Risikobewertung und Zuverlässigkeits-Scoring
-- **Consultant Analytics**: Show/No-Show-Tracking für Telefonisten
+- **Consultant Analytics (My Calendar)**: Show/No-Show-Tracking für Telefonisten mit Drag & Drop Kanban
+- **7-Spalten Kanban-Board**: HubSpot-Style Status-Management (Pending, Erschienen, Rückholung, Sonderkunden, Verschoben, Nicht Erschienen, Ghost)
+- **Drag & Drop Status-Updates**: Visuelle Termin-Status-Verwaltung mit Undo-Funktion (3s)
+- **Reschedule-Modal**: Vollständige Umbuchungs-Funktionalität mit dynamischen Zeitslots
 - **Performance-Dashboards**: Echtzeit-KPI-Überwachung
 - **Team-Analytics**: Vergleichende Leistungsanalyse zwischen Beratern
 
@@ -211,7 +214,10 @@ DATA_DIR=/opt/business-hub/data/persistent
 #### Slot-Booking
 - `/slots` - Terminbuchungsinterface
 - `/calendar-view` - Kalenderübersicht
-- `/my-calendar` - Consultant Analytics
+- `/my-calendar` - Consultant Analytics mit Kanban-Board & Drag & Drop
+- `/api/update-event-status` - Status-Update via Drag & Drop
+- `/api/reschedule-booking` - Termin-Umbuchung
+- `/api/get-available-slots` - Verfügbare Zeitslots abfragen
 
 #### Gamification
 - `/scoreboard` - Leaderboards und Rankings
@@ -560,6 +566,33 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 ```
 
 ## 📝 Changelog
+
+### v3.3.4 - My Calendar Phase 2: Drag & Drop Kanban (LIVE - 2025-10-25)
+- ✅ **7-Spalten Kanban-Board**: HubSpot-Style Status-Management
+  - Pending, Erschienen, Rückholung, Sonderkunden, Verschoben, Nicht Erschienen, Ghost
+- ✅ **Drag & Drop Funktionalität**:
+  - SortableJS-Integration für alle Kanban-Spalten
+  - Visuelle Status-Updates mit Ghost-Effekt
+  - Automatische Google Calendar colorId-Synchronisation
+- ✅ **Reschedule-Modal** (Termin umbuchen):
+  - Date-Picker mit Min-Date-Validation
+  - Dynamische Zeitslot-Anzeige per AJAX (`/api/get-available-slots`)
+  - Berater-Dropdown mit Auto-Auswahl
+  - Optionale Notiz-Textarea
+  - Vollständige Fehlerbehandlung
+- ✅ **3-Sekunden Undo-Funktion**:
+  - Countdown-Timer nach Status-Updates
+  - Revert-API-Call bei Klick
+  - Automatisches Ausblenden nach Timeout
+- ✅ **Auto-Refresh (5 Minuten)**:
+  - Intelligenter Refresh nur bei sichtbarem Tab (Visibility API)
+  - Automatischer Start/Stop
+- ✅ **Backend API Endpoints**:
+  - `/api/update-event-status`: Status-Update via Drag & Drop
+  - `/api/reschedule-booking`: Alte Termin → Verschoben, neuer Termin anlegen
+  - `/api/get-available-slots`: Verfügbarkeits-Abfrage für gewähltes Datum
+- ✅ **Toast-Benachrichtigungen**: Success/Error/Info für alle User-Aktionen
+- ✅ **Backfill-Script**: `backfill_booked_by_tags.py` für retroaktives Tagging alter Events
 
 ### v3.3.3 - Dark Mode Logo & Username Migration (LIVE - 2025-10-23)
 - ✅ **Dark Mode Logo optimiert**:
