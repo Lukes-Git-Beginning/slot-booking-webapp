@@ -189,7 +189,9 @@ LOG_FILE=/var/log/business-hub/app.log
 # ========================================
 # DATA PERSISTENCE
 # ========================================
-DATA_DIR=/opt/business-hub/data/persistent
+# WICHTIG: PERSIST_BASE darf NICHT /persistent enthalten!
+# Der Code fügt automatisch /persistent hinzu.
+PERSIST_BASE=/opt/business-hub/data
 ```
 
 ### Google Service Account-Setup
@@ -566,6 +568,22 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 ```
 
 ## 📝 Changelog
+
+### v3.3.5 - KRITISCHER BUGFIX: PERSIST_BASE Pfad-Verschachtelung (LIVE - 2025-10-27)
+- ✅ **KRITISCHER BUGFIX**: Systematische Doppelverschachtelung aller Datenbanken behoben
+  - `.env` korrigiert: `PERSIST_BASE=/opt/business-hub/data` (war: `/opt/business-hub/data/persistent`)
+  - Problem: Code fügt automatisch `/persistent` hinzu → führte zu `/persistent/persistent/`
+  - Alle 10 kritischen JSON-Dateien konsolidiert (user_badges, scores, t2_bucket_system, etc.)
+  - Vollständiges Backup erstellt vor Änderungen
+- ✅ **T2-Bucket-System Konfiguration**:
+  - Standard-Wahrscheinlichkeiten auf 9-9-2 gesetzt (Alex: 9.0, David: 9.0, Jose: 2.0)
+  - Max Draws auf 20 erhöht (war: 10)
+  - Degressive Wahrscheinlichkeit: Mit jedem Draw sinkt Probability um 1
+  - Min Probability: 0.0 (Closer kann nicht mehr gezogen werden wenn auf 0)
+- ⚠️ **WICHTIG für zukünftige Deployments**:
+  - `PERSIST_BASE` darf NIEMALS `/persistent` am Ende enthalten
+  - Korrekt: `PERSIST_BASE=/opt/business-hub/data`
+  - Falsch: `PERSIST_BASE=/opt/business-hub/data/persistent`
 
 ### v3.3.4 - My Calendar Phase 2: Drag & Drop Kanban (LIVE - 2025-10-25)
 - ✅ **7-Spalten Kanban-Board**: HubSpot-Style Status-Management
