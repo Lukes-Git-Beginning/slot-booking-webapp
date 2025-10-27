@@ -212,7 +212,7 @@
                 <div class="glass rounded-xl p-4 border-l-4 border-warning hover:scale-105 transition-transform">
                     <div class="flex items-center gap-2 mb-1">
                         <i data-lucide="star" class="w-4 h-4 text-warning"></i>
-                        <span class="text-xs text-gray-400">Sonderkunden</span>
+                        <span class="text-xs text-warning/70">Sonderkunden</span>
                     </div>
                     <span class="text-2xl font-bold text-warning">{{ stats.sonderkunden or 0 }}</span>
                 </div>
@@ -221,7 +221,7 @@
                 <div class="glass rounded-xl p-4 border-l-4 border-info hover:scale-105 transition-transform">
                     <div class="flex items-center gap-2 mb-1">
                         <i data-lucide="calendar-x" class="w-4 h-4 text-info"></i>
-                        <span class="text-xs text-gray-400">Verschoben</span>
+                        <span class="text-xs text-info/70">Verschoben</span>
                     </div>
                     <span class="text-2xl font-bold text-info">{{ stats.verschoben or 0 }}</span>
                 </div>
@@ -230,10 +230,10 @@
                 <div class="glass rounded-xl p-4 border-l-4 border-error hover:scale-105 transition-transform">
                     <div class="flex items-center gap-2 mb-1">
                         <i data-lucide="x-circle" class="w-4 h-4 text-error"></i>
-                        <span class="text-xs text-gray-400">Nicht ersch.</span>
+                        <span class="text-xs text-error/70">Nicht ersch.</span>
                     </div>
                     <span class="text-2xl font-bold text-error">{{ stats.nicht_erschienen or 0 }}</span>
-                    <div class="text-xs text-gray-400 mt-1">{{ stats.no_show_rate or 0 }}%</div>
+                    <div class="text-xs text-error/50 mt-1">{{ stats.no_show_rate or 0 }}%</div>
                 </div>
 
                 <!-- Ghost (Dunkelrot) -->
@@ -413,7 +413,7 @@
 
                             <div class="space-y-3 kanban-column" data-column="erschienen" id="column-erschienen">
                                 {% for ev in kanban_columns.erschienen %}
-                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-success cursor-move"
+                                <div class="kanban-card glass rounded-xl bg-success/5 p-4 border-l-4 border-success cursor-move"
                                      data-event-id="{{ ev.id }}"
                                      data-customer-name="{{ ev.customer_name }}">
                                     <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
@@ -492,7 +492,7 @@
 
                             <div class="space-y-3 kanban-column" data-column="sonderkunden" id="column-sonderkunden">
                                 {% for ev in kanban_columns.sonderkunden %}
-                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-warning cursor-move"
+                                <div class="kanban-card glass rounded-xl bg-warning/5 p-4 border-l-4 border-warning cursor-move"
                                      data-event-id="{{ ev.id }}"
                                      data-customer-name="{{ ev.customer_name }}">
                                     <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
@@ -528,7 +528,7 @@
 
                             <div class="space-y-3 kanban-column" data-column="verschoben" id="column-verschoben">
                                 {% for ev in kanban_columns.verschoben %}
-                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-info cursor-move"
+                                <div class="kanban-card glass rounded-xl bg-info/5 p-4 border-l-4 border-info cursor-move"
                                      data-event-id="{{ ev.id }}"
                                      data-customer-name="{{ ev.customer_name }}">
                                     <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>
@@ -564,7 +564,7 @@
 
                             <div class="space-y-3 kanban-column" data-column="nicht_erschienen" id="column-nicht_erschienen">
                                 {% for ev in kanban_columns.nicht_erschienen %}
-                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-error cursor-move"
+                                <div class="kanban-card glass rounded-xl bg-error/5 p-4 border-l-4 border-error cursor-move"
                                      data-event-id="{{ ev.id }}"
                                      data-customer-name="{{ ev.customer_name }}">
                                     <h4 class="font-bold text-lg mb-2 line-clamp-1">{{ ev.customer_name }}</h4>

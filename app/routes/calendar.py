@@ -67,6 +67,19 @@ def my_calendar():
     logger.info(f"MY-CALENDAR: Username variants: {username_variants}")
     logger.info(f"MY-CALENDAR: Total events in calendar: {len(all_events)}")
 
+    # DEBUG: Analyze how many events have [Booked by:] tags
+    events_with_tags = [e for e in all_events if '[Booked by:' in e.get('description', '')]
+    logger.info(f"MY-CALENDAR DEBUG: Events with [Booked by:] tag: {len(events_with_tags)}")
+
+    # DEBUG: Log sample descriptions
+    if events_with_tags:
+        logger.info(f"MY-CALENDAR DEBUG: Sample events with tags:")
+        for i, e in enumerate(events_with_tags[:3]):
+            desc = e.get('description', '')[:100]
+            logger.info(f"MY-CALENDAR DEBUG Sample {i+1}: {e.get('summary')} - Desc: {desc}...")
+    else:
+        logger.warning(f"MY-CALENDAR DEBUG: No events with [Booked by:] tags found! This means historical events need backfilling.")
+
     # Initialize data structures
     my_events = []
     kanban_columns = defaultdict(list)
@@ -555,7 +568,7 @@ def api_update_event_status():
 
         from app.config.base import config
 
-        # Get event to check permissions
+        # Get event to check permissions and preserve [Booked by:] tag
         try:
             event = calendar_service.service.events().get(
                 calendarId=config.CENTRAL_CALENDAR_ID,
@@ -564,6 +577,18 @@ def api_update_event_status():
         except Exception as e:
             logger.error(f"Error fetching event {event_id}: {e}")
             return jsonify({'success': False, 'error': 'Event not found'}), 404
+
+        # Preserve [Booked by:] tag from description
+        current_description = event.get('description', '')
+        booked_by_tag = None
+
+        if '[Booked by:' in current_description:
+            # Extract the tag to preserve it
+            tag_start = current_description.find('[Booked by:')
+            tag_end = current_description.find(']', tag_start)
+            if tag_end != -1:
+                booked_by_tag = current_description[tag_start:tag_end+1]
+                logger.info(f"MY-CALENDAR: Preserving tag: {booked_by_tag}")
 
         # Update event color
         update_body = {'colorId': color_id}
@@ -578,6 +603,11 @@ def api_update_event_status():
                               ' ( nicht erschienen )', ' (nicht erschienen)', ' ( erschienen )', ' (erschienen)']:
                     clean_summary = clean_summary.replace(marker, '')
                 update_body['summary'] = f"{clean_summary.strip()} ( Ghost )"
+
+        # If we have a booked_by_tag and we're not setting a new description, preserve it
+        if booked_by_tag and 'description' not in update_body:
+            # Keep the original description with the tag intact
+            update_body['description'] = current_description
 
         # Execute update
         try:
