@@ -38,6 +38,10 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+
+# Debugging
+scripts/debug_*.py
 
 # Sensitive credentials
 service_account.json
@@ -59,6 +63,8 @@ deployment/*.pub
 # Temporary files
 *.tmp
 *.temp
+*.bak
+*.swp
 
 # IMPORTANT: Allow tracking data to be committed by workflow
 # REMOVED: data/tracking/*.jsonl  (was blocking workflow commits)

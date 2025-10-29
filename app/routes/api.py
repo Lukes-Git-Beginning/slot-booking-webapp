@@ -40,13 +40,12 @@ def api_user_badges_by_username(username):
     try:
         from app.services.achievement_system import achievement_system
         user_badges = achievement_system.get_user_badges(username)
-        print(f"DEBUG: Badge API for {username} returning: {user_badges}")
         return jsonify(user_badges)
     except ImportError as e:
-        print(f"Achievement system import error: {e}")
+        logger.error(f"Achievement system import error: {e}")
         return jsonify({"badges": [], "total_badges": 0, "error": "Achievement system not available"}), 200
     except Exception as e:
-        print(f"Badge API error for {username}: {e}")
+        logger.error(f"Badge API error for {username}: {e}")
         return jsonify({"badges": [], "total_badges": 0, "error": str(e)}), 200
 
 

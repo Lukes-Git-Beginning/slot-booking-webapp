@@ -41,7 +41,7 @@ T2_CLOSERS = {
 
 # System Configuration
 BUCKET_CONFIG = {
-    "max_draws_before_reset": 10,  # Bucket wird nach 10 Draws zurückgesetzt
+    "max_draws_before_reset": 20,  # Bucket wird nach 20 Draws zurückgesetzt
     "t1_timeout_minutes": 0,        # T1: Kein Timeout
     "t2_timeout_minutes": 1,        # T2: 1 Minute Timeout
     "min_probability": 0.0,         # Minimum probability (kann auch 0 sein!)
@@ -309,8 +309,10 @@ def draw_closer(username: str, draw_type: str = "T2", customer_name: str = None)
     bucket = data.get("bucket", [])
 
     if not bucket:
-        # Bucket is empty - reset it
-        data["bucket"] = _create_initial_bucket(data.get("probabilities", {}))
+        # Bucket is empty - reset it with DEFAULT probabilities (not current!)
+        default_probs = data.get("default_probabilities", {name: info["default_probability"] for name, info in T2_CLOSERS.items()})
+        data["probabilities"] = default_probs.copy()
+        data["bucket"] = _create_initial_bucket(data["probabilities"])
         data["total_draws"] = 0
         data["last_reset"] = datetime.now(TZ).isoformat()
         bucket = data["bucket"]

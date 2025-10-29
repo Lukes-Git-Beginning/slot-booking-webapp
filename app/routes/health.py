@@ -252,6 +252,85 @@ def metrics():
         }), 500
 
 
+@health_bp.route("/health/detailed")
+def health_detailed():
+    """
+    Detailed health check with extended diagnostics
+    Returns comprehensive system information for debugging
+    """
+    try:
+        details = {}
+
+        # Google Calendar detailed check
+        try:
+            cal_service = GoogleCalendarService()
+            details['google_calendar'] = {
+                'configured': cal_service.service is not None,
+                'has_credentials': cal_service.credentials is not None if hasattr(cal_service, 'credentials') else False,
+                'status': 'operational' if cal_service.service else 'not_configured'
+            }
+        except Exception as e:
+            details['google_calendar'] = {
+                'configured': False,
+                'error': str(e),
+                'status': 'error'
+            }
+
+        # Database files check
+        try:
+            persist_dir = data_persistence.data_dir
+            json_files = list(persist_dir.glob('*.json')) if persist_dir.exists() else []
+            details['database'] = {
+                'type': 'JSON Files',
+                'location': str(persist_dir),
+                'files_count': len(json_files),
+                'files': [f.name for f in json_files],
+                'status': 'operational' if persist_dir.exists() else 'error'
+            }
+        except Exception as e:
+            details['database'] = {
+                'error': str(e),
+                'status': 'error'
+            }
+
+        # Memory usage detailed
+        try:
+            memory = psutil.virtual_memory()
+            details['memory'] = {
+                'total_gb': memory.total / (1024 * 1024 * 1024),
+                'available_gb': memory.available / (1024 * 1024 * 1024),
+                'used_gb': memory.used / (1024 * 1024 * 1024),
+                'percent': memory.percent,
+                'status': 'healthy' if memory.percent < 90 else 'warning'
+            }
+        except Exception as e:
+            details['memory'] = {'error': str(e), 'status': 'error'}
+
+        # Disk space detailed
+        try:
+            disk = psutil.disk_usage('/')
+            details['disk_space'] = {
+                'total_gb': disk.total / (1024 * 1024 * 1024),
+                'free_gb': disk.free / (1024 * 1024 * 1024),
+                'used_gb': disk.used / (1024 * 1024 * 1024),
+                'percent': disk.percent,
+                'status': 'healthy' if disk.percent < 80 else 'warning'
+            }
+        except Exception as e:
+            details['disk_space'] = {'error': str(e), 'status': 'error'}
+
+        return jsonify({
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'version': '3.3.5',
+            'details': details
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'error': f'Health detailed check failed: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        }), 500
+
+
 @health_bp.route("/health/ping")
 def ping():
     """

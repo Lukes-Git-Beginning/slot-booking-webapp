@@ -67,19 +67,6 @@ def my_calendar():
     logger.info(f"MY-CALENDAR: Username variants: {username_variants}")
     logger.info(f"MY-CALENDAR: Total events in calendar: {len(all_events)}")
 
-    # DEBUG: Analyze how many events have [Booked by:] tags
-    events_with_tags = [e for e in all_events if '[Booked by:' in e.get('description', '')]
-    logger.info(f"MY-CALENDAR DEBUG: Events with [Booked by:] tag: {len(events_with_tags)}")
-
-    # DEBUG: Log sample descriptions
-    if events_with_tags:
-        logger.info(f"MY-CALENDAR DEBUG: Sample events with tags:")
-        for i, e in enumerate(events_with_tags[:3]):
-            desc = e.get('description', '')[:100]
-            logger.info(f"MY-CALENDAR DEBUG Sample {i+1}: {e.get('summary')} - Desc: {desc}...")
-    else:
-        logger.warning(f"MY-CALENDAR DEBUG: No events with [Booked by:] tags found! This means historical events need backfilling.")
-
     # Initialize data structures
     my_events = []
     kanban_columns = defaultdict(list)
