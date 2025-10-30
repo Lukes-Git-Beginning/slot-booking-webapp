@@ -1095,18 +1095,18 @@
         }
 
         // ===================================================================
-        // AUTO-REFRESH (every 5 minutes when page is visible)
+        // AUTO-REFRESH (every 10 minutes when page is visible)
         // ===================================================================
         let autoRefreshInterval = null;
 
         function startAutoRefresh() {
-            // Refresh every 5 minutes (300,000 ms)
+            // Increased from 5 to 10 minutes to reduce server load
             autoRefreshInterval = setInterval(() => {
                 if (!document.hidden) {
                     console.log('Auto-refreshing my-calendar...');
                     location.reload();
                 }
-            }, 5 * 60 * 1000);
+            }, 10 * 60 * 1000); // Changed from 5 to 10 minutes
         }
 
         function stopAutoRefresh() {
@@ -1126,6 +1126,8 @@
             if (document.hidden) {
                 stopAutoRefresh();
             } else {
+                // Don't immediately start refresh when returning to tab
+                // User might just be checking something
                 startAutoRefresh();
             }
         });

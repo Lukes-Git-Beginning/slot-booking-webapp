@@ -658,7 +658,7 @@ h6, .h6 {
   padding: var(--spacing-md);
   min-width: 300px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
   z-index: 1000;
   transform: translateX(400px);
   opacity: 0;
@@ -1155,7 +1155,7 @@ a:hover {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   margin-bottom: 30px;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
 }
 
 .admin-nav-container {
@@ -1674,7 +1674,7 @@ body.themed {
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
 }
 
@@ -1725,7 +1725,7 @@ body.themed {
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   text-align: center;
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
   transition: all 0.3s ease;
   position: relative;
@@ -1761,7 +1761,7 @@ body.themed {
   border: 1px solid var(--box-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
   transition: all 0.3s ease;
 }
@@ -1791,7 +1791,7 @@ body.themed {
   background: var(--box-bg);
   border: 1px solid var(--box-border);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
   transition: all 0.3s ease;
   overflow: hidden;
@@ -1894,7 +1894,7 @@ body.themed {
   border: 1px solid var(--box-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
   margin-bottom: var(--spacing-lg);
 }
@@ -2017,7 +2017,7 @@ body.themed {
   border: 1px solid var(--box-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
 }
 
@@ -2085,7 +2085,7 @@ body.themed {
   background: var(--box-bg);
   border: 1px solid var(--box-border);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   color: var(--text-color);
   overflow: hidden;
 }
@@ -2218,7 +2218,7 @@ body.themed {
   background: var(--box-bg);
   border: 1px solid var(--box-border);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
   box-shadow: var(--shadow);
 }
 

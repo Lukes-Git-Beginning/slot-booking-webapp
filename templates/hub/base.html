@@ -504,21 +504,21 @@
             offset: 50
         });
 
-        // Initialize Particles.js
+        // Initialize Particles.js with optimized settings
         particlesJS('particles-js', {
             particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
+                number: { value: 30, density: { enable: true, value_area: 800 } }, // Reduced from 80 to 30
                 color: { value: '#d4af6a' },
                 shape: { type: 'circle' },
                 opacity: {
                     value: 0.3,
                     random: true,
-                    anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+                    anim: { enable: false } // Disabled animation for performance
                 },
                 size: {
                     value: 3,
                     random: true,
-                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                    anim: { enable: false } // Disabled animation for performance
                 },
                 line_linked: {
                     enable: true,
@@ -529,7 +529,7 @@
                 },
                 move: {
                     enable: true,
-                    speed: 1,
+                    speed: 0.5, // Reduced from 1 to 0.5
                     direction: 'none',
                     random: false,
                     straight: false,
@@ -540,8 +540,8 @@
             interactivity: {
                 detect_on: 'canvas',
                 events: {
-                    onhover: { enable: true, mode: 'grab' },
-                    onclick: { enable: true, mode: 'push' },
+                    onhover: { enable: false }, // Disabled for performance
+                    onclick: { enable: false }, // Disabled for performance
                     resize: true
                 },
                 modes: {
@@ -549,7 +549,7 @@
                     push: { particles_nb: 4 }
                 }
             },
-            retina_detect: true
+            retina_detect: false // Disabled for performance
         });
 
         // Auto-refresh dashboard stats
@@ -559,7 +559,12 @@
             }
         }
 
-        setInterval(updateDashboardStats, 30000);
+        // Update dashboard stats with visibility awareness
+        setInterval(() => {
+            if (!document.hidden) {
+                updateDashboardStats();
+            }
+        }, 30000);
 
         // Smooth scroll
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -572,7 +577,7 @@
             });
         });
 
-        // Live clock
+        // Live clock with 5s interval and visibility awareness
         function updateClock() {
             const now = new Date();
             const clockElement = document.getElementById('live-clock');
@@ -585,7 +590,11 @@
             }
         }
 
-        setInterval(updateClock, 1000);
+        setInterval(() => {
+            if (!document.hidden) {
+                updateClock();
+            }
+        }, 5000); // Changed from 1000ms to 5000ms
         updateClock();
     </script>
 

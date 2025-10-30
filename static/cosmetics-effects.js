@@ -9,6 +9,12 @@ class CosmeticsEffects {
         this.canvas = null;
         this.ctx = null;
         this.particles = [];
+        this.animationFrameId = null;
+        this.isAnimating = false;
+        this.lastFrameTime = 0;
+        this.targetFPS = 30; // Limit to 30 FPS instead of 60
+        this.frameInterval = 1000 / this.targetFPS;
+        this.eventListeners = []; // Track listeners for cleanup
         this.init();
     }
 
@@ -28,10 +34,14 @@ class CosmeticsEffects {
         this.ctx = this.canvas.getContext('2d');
         this.resizeCanvas();
 
-        window.addEventListener('resize', () => this.resizeCanvas());
-
-        // Start animation loop
-        this.animate();
+        // Debounce resize events
+        let resizeTimeout;
+        const resizeHandler = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => this.resizeCanvas(), 150);
+        };
+        window.addEventListener('resize', resizeHandler);
+        this.eventListeners.push({ target: window, type: 'resize', handler: resizeHandler });
 
         // Load user's active effects from backend
         this.loadActiveEffects();
@@ -79,11 +89,14 @@ class CosmeticsEffects {
 
     // ===== SPARKLE TRAIL EFFECT =====
     enableSparkleTrail() {
-        document.addEventListener('click', (e) => {
+        const clickHandler = (e) => {
             for (let i = 0; i < 8; i++) {
                 this.createSparkle(e.clientX, e.clientY);
             }
-        });
+            this.startAnimation(); // Start animation only when particles are created
+        };
+        document.addEventListener('click', clickHandler);
+        this.eventListeners.push({ target: document, type: 'click', handler: clickHandler });
     }
 
     createSparkle(x, y) {
@@ -103,14 +116,18 @@ class CosmeticsEffects {
     // ===== CONFETTI EXPLOSION EFFECT =====
     enableConfettiExplosion() {
         // Listen for achievement events
-        document.addEventListener('achievement-unlocked', (e) => {
+        const achievementHandler = (e) => {
             this.triggerConfetti(window.innerWidth / 2, window.innerHeight / 2);
-        });
+        };
+        document.addEventListener('achievement-unlocked', achievementHandler);
+        this.eventListeners.push({ target: document, type: 'achievement-unlocked', handler: achievementHandler });
 
         // Also trigger on booking success
-        document.addEventListener('booking-success', (e) => {
+        const bookingHandler = (e) => {
             this.triggerConfetti(window.innerWidth / 2, window.innerHeight / 2);
-        });
+        };
+        document.addEventListener('booking-success', bookingHandler);
+        this.eventListeners.push({ target: document, type: 'booking-success', handler: bookingHandler });
     }
 
     triggerConfetti(x, y) {
@@ -133,13 +150,16 @@ class CosmeticsEffects {
                 rotationSpeed: (Math.random() - 0.5) * 0.2
             });
         }
+        this.startAnimation(); // Start animation when confetti is triggered
     }
 
     // ===== SCREEN SHAKE EFFECT =====
     enableScreenShake() {
-        document.addEventListener('achievement-unlocked', () => {
+        const shakeHandler = () => {
             this.triggerScreenShake();
-        });
+        };
+        document.addEventListener('achievement-unlocked', shakeHandler);
+        this.eventListeners.push({ target: document, type: 'achievement-unlocked', handler: shakeHandler });
     }
 
     triggerScreenShake() {
@@ -172,19 +192,23 @@ class CosmeticsEffects {
             'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuFzvHalj0JHmm98OScTgwJUb...',
         ];
 
-        document.addEventListener('keydown', () => {
+        const keyHandler = () => {
             // Play subtle click sound (simplified for demo)
             const audio = new Audio();
             audio.volume = 0.1;
             // In production, load actual sound files
-        });
+        };
+        document.addEventListener('keydown', keyHandler);
+        this.eventListeners.push({ target: document, type: 'keydown', handler: keyHandler });
     }
 
     // ===== BOOKING FANFARE =====
     enableBookingFanfare() {
-        document.addEventListener('booking-success', () => {
+        const fanfareHandler = () => {
             this.playFanfare();
-        });
+        };
+        document.addEventListener('booking-success', fanfareHandler);
+        this.eventListeners.push({ target: document, type: 'booking-success', handler: fanfareHandler });
     }
 
     playFanfare() {
@@ -205,7 +229,36 @@ class CosmeticsEffects {
     }
 
     // ===== ANIMATION LOOP =====
+    startAnimation() {
+        if (!this.isAnimating && this.particles.length > 0) {
+            this.isAnimating = true;
+            this.lastFrameTime = performance.now();
+            this.animate();
+        }
+    }
+
+    stopAnimation() {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        this.isAnimating = false;
+    }
+
     animate() {
+        if (!this.isAnimating) return;
+
+        const currentTime = performance.now();
+        const deltaTime = currentTime - this.lastFrameTime;
+
+        // FPS throttling - only render if enough time has passed
+        if (deltaTime < this.frameInterval) {
+            this.animationFrameId = requestAnimationFrame(() => this.animate());
+            return;
+        }
+
+        this.lastFrameTime = currentTime - (deltaTime % this.frameInterval);
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Update and draw particles
@@ -245,11 +298,37 @@ class CosmeticsEffects {
 
                 this.ctx.restore();
             } else {
+                // Remove dead particles
                 this.particles.splice(i, 1);
             }
         }
 
-        requestAnimationFrame(() => this.animate());
+        // Stop animation when no particles left
+        if (this.particles.length === 0) {
+            this.stopAnimation();
+        } else {
+            this.animationFrameId = requestAnimationFrame(() => this.animate());
+        }
+    }
+
+    // ===== CLEANUP =====
+    cleanup() {
+        // Remove all event listeners
+        this.eventListeners.forEach(({ target, type, handler }) => {
+            target.removeEventListener(type, handler);
+        });
+        this.eventListeners = [];
+
+        // Stop animation
+        this.stopAnimation();
+
+        // Clear particles
+        this.particles = [];
+
+        // Remove canvas
+        if (this.canvas && this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
+        }
     }
 
     // ===== TRIGGER EVENTS (for testing) =====
