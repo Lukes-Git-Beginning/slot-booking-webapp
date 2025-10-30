@@ -106,10 +106,10 @@ def booking_page():
 
     # Aktuell zugewiesener Closer
     assigned_closer = session.get('t2_current_closer')
-    if not assigned_closer:
-        # Automatisch einen Closer zuweisen
-        assigned_closer = assign_fair_closer(user)
-        session['t2_current_closer'] = assigned_closer
+    if not assigned_closer or assigned_closer not in T2_CLOSERS:
+        # Kein Closer in Session -> Redirect zum Draw
+        flash('Bitte ziehe zuerst einen Closer im Würfelsystem.', 'warning')
+        return redirect(url_for('t2.draw_page'))
 
     tickets_remaining = get_user_tickets_remaining(user)
 
@@ -425,15 +425,11 @@ def get_closer_availability(closer_name: str, date_str: str) -> List[Dict]:
     available_slots = []
 
     for time_str in T2_CONFIG['booking_hours']:
-        # TODO: Echte Google Calendar-Integration
-        # Aktuell: Mock mit Random
-        import random
-        available = random.random() > 0.3
-
+        # Alle Slots verfügbar (kein Google Calendar für T2)
         available_slots.append({
             'time': time_str,
             'duration': 120,
-            'available': available
+            'available': True
         })
 
     return available_slots
