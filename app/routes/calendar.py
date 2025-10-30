@@ -33,7 +33,7 @@ def is_user_booking(event, username, username_variants, consultants_dict):
     Args:
         event: Google Calendar event dict
         username: Current user's username (e.g., "christian.mast")
-        username_variants: List of username variants (e.g., ["christian.mast", "christian", "c.mast"])
+        username_variants: List of username variants (e.g., ["christian.mast", "christian"])
         consultants_dict: Dictionary mapping consultant names to emails
 
     Returns:
@@ -85,18 +85,27 @@ def is_user_booking(event, username, username_variants, consultants_dict):
             if attendee.get('email', '').lower() == user_email.lower():
                 return (True, 'attendee', username)
 
-    # Stage 4: Fuzzy Match (username appears in description or summary)
-    # This is a last resort - prone to false positives
+    # Stage 4: Fuzzy Match (username appears in description or location)
+    # IMPORTANT: Do NOT search in summary (customer name) - that would match customers named "Christian"
+    # Only search in description and location where the telefonist name should appear
+    # IMPORTANT: Only search for FULL usernames (with dot) to avoid false positives
+    # e.g., "christian.mast" YES, "christian" NO (would match customer names)
     description_lower = description.lower()
-    summary_lower = summary.lower()
+    location = event.get('location', '')
+    location_lower = location.lower()
 
     for variant in username_variants:
+        # Skip single-name variants (firstname only) to prevent false positives
+        # "Wolf, Christian" description shouldn't match user "christian.mast"
+        if '.' not in variant:
+            continue
+
         variant_lower = variant.lower()
         # Only match whole words to reduce false positives
         # Check if variant appears as a word (with word boundaries)
         import re
         pattern = r'\b' + re.escape(variant_lower) + r'\b'
-        if re.search(pattern, description_lower) or re.search(pattern, summary_lower):
+        if re.search(pattern, description_lower) or re.search(pattern, location_lower):
             return (True, 'fuzzy', variant)
 
     # No match found

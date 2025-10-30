@@ -112,11 +112,10 @@ USERNAME_NORMALIZATION_MAP = {
     "david": "david.nehm",
     "alexander": "alexander.nehm",
 
-    # Alte Kurzformen → Volle Namen
+    # Alte Kurzformen → Volle Namen (deprecated, nur für Legacy-Support)
     "l.heka": "ladislav.heka",
     "p.woltschleger": "patrick.woltschleger",
     "a.scharrschmidt": "alexandra.scharrschmidt",
-    "c.mast": "christian.mast",
     "t.kreisel": "tim.kreisel",
     "d.mikic": "dominik.mikic",
     "y.schumacher": "yasmine.schumacher",
