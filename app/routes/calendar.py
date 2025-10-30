@@ -19,6 +19,90 @@ calendar_bp = Blueprint('calendar', __name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
 
+def is_user_booking(event, username, username_variants, consultants_dict):
+    """
+    Multi-stage fallback filtering to determine if an event belongs to a user.
+
+    This function implements a 5-stage matching strategy:
+    1. Exact Tag Match: [Booked by: username] in description
+    2. Consultant Calendar Match: Event organizer/creator is user's email
+    3. Attendee Match: User's email is in event attendees
+    4. Fuzzy Match: Username appears anywhere in description/summary
+    5. Unclaimed: No match found (returns False)
+
+    Args:
+        event: Google Calendar event dict
+        username: Current user's username (e.g., "christian.mast")
+        username_variants: List of username variants (e.g., ["christian.mast", "christian", "c.mast"])
+        consultants_dict: Dictionary mapping consultant names to emails
+
+    Returns:
+        tuple: (is_match: bool, match_reason: str or None, matched_variant: str or None)
+               match_reason can be: 'tag', 'calendar', 'attendee', 'fuzzy', or None
+    """
+    description = event.get('description', '')
+    summary = event.get('summary', '')
+
+    # Stage 1: Exact Tag Match [Booked by: username]
+    # This is the most reliable method - tags are added by the booking system
+    for variant in username_variants:
+        booked_by_tag = f"[Booked by: {variant}]"
+        if booked_by_tag in description:
+            return (True, 'tag', variant)
+
+    # Stage 2: Consultant Email Match (organizer/creator)
+    # Check if the event was created by/organized by the user's calendar
+    # Find user's email from consultants config
+    user_email = None
+    for consultant_name, consultant_email in consultants_dict.items():
+        # Match consultant name with any username variant (case-insensitive)
+        consultant_name_lower = consultant_name.lower()
+        for variant in username_variants:
+            # Handle both "christian.mast" and "christian" formats
+            variant_parts = variant.lower().split('.')
+            first_name = variant_parts[0]
+
+            if consultant_name_lower == first_name or consultant_name_lower in variant.lower():
+                user_email = consultant_email
+                break
+        if user_email:
+            break
+
+    if user_email:
+        # Check organizer
+        organizer_email = event.get('organizer', {}).get('email', '')
+        if user_email.lower() == organizer_email.lower():
+            return (True, 'calendar', username)
+
+        # Check creator
+        creator_email = event.get('creator', {}).get('email', '')
+        if user_email.lower() == creator_email.lower():
+            return (True, 'calendar', username)
+
+        # Stage 3: Attendee Match
+        # Check if user's email is in the attendees list
+        for attendee in event.get('attendees', []):
+            if attendee.get('email', '').lower() == user_email.lower():
+                return (True, 'attendee', username)
+
+    # Stage 4: Fuzzy Match (username appears in description or summary)
+    # This is a last resort - prone to false positives
+    description_lower = description.lower()
+    summary_lower = summary.lower()
+
+    for variant in username_variants:
+        variant_lower = variant.lower()
+        # Only match whole words to reduce false positives
+        # Check if variant appears as a word (with word boundaries)
+        import re
+        pattern = r'\b' + re.escape(variant_lower) + r'\b'
+        if re.search(pattern, description_lower) or re.search(pattern, summary_lower):
+            return (True, 'fuzzy', variant)
+
+    # No match found
+    return (False, None, None)
+
+
 @calendar_bp.route("/my-calendar")
 @require_login
 def my_calendar():
@@ -63,6 +147,10 @@ def my_calendar():
     # Get all possible username variants for backward compatibility
     username_variants = get_username_variants(user)
 
+    # Get consultants dictionary for email matching
+    from app.config.base import consultant_config
+    consultants_dict = consultant_config.get_consultants()
+
     logger.info(f"MY-CALENDAR: Looking for bookings by user '{user}'")
     logger.info(f"MY-CALENDAR: Username variants: {username_variants}")
     logger.info(f"MY-CALENDAR: Total events in calendar: {len(all_events)}")
@@ -85,18 +173,18 @@ def my_calendar():
         if summary.isdigit():
             continue
 
-        # Check if this user booked the event (via [Booked by: username] tag)
-        is_booked_by_user = False
-        matched_variant = None
-        for variant in username_variants:
-            booked_by_tag = f"[Booked by: {variant}]"
-            if booked_by_tag in description:
-                is_booked_by_user = True
-                matched_variant = variant
-                break
+        # Multi-stage filtering: Check if this user booked the event
+        # Uses: Tag match → Calendar match → Attendee match → Fuzzy match
+        is_booked_by_user, match_reason, matched_variant = is_user_booking(
+            event, user, username_variants, consultants_dict
+        )
 
         if not is_booked_by_user:
             continue
+
+        # Log match reason for debugging (especially useful for non-tag matches)
+        if match_reason != 'tag':
+            logger.info(f"MY-CALENDAR: Event '{summary[:30]}...' matched via {match_reason} for user {user}")
 
         # Parse event data
         start_dt = event.get('start', {}).get('dateTime', '')
@@ -205,6 +293,7 @@ def my_calendar():
             'desc': clean_desc,
             'booked_by': matched_variant,
             'booked_by_initials': booked_by_initials,
+            'match_reason': match_reason,  # How this event was matched (tag/calendar/attendee/fuzzy)
 
             # Status information from color_mapping
             'status': status_info['status'],

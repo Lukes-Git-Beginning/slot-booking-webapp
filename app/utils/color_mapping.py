@@ -192,8 +192,11 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'pending'
         }
 
-    # 2. GHOST: Rot + "Ghost" im Titel
-    if color_id == '11' and 'ghost' in summary_lower:
+    # 2. TITLE-BASED DETECTION (Priority over color)
+    # Diese Keywords überschreiben die Farbe, falls im Titel vorhanden
+
+    # 2a. GHOST: "Ghost" im Titel (unabhängig von Farbe)
+    if 'ghost' in summary_lower or ' ( ghost )' in summary_lower or '(ghost)' in summary_lower:
         return {
             'status': 'ghost',
             'label': 'Ghost',
@@ -204,8 +207,9 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'ghost'
         }
 
-    # 3. NICHT ERSCHIENEN: Rot (11) ohne "Ghost"
-    if color_id == '11':
+    # 2b. NICHT ERSCHIENEN: "Nicht erschienen" oder "No Show" im Titel
+    if ('nicht erschienen' in summary_lower or 'no show' in summary_lower or
+        'noshow' in summary_lower or '( nicht erschienen )' in summary_lower):
         return {
             'status': 'nicht_erschienen',
             'label': 'Nicht erschienen',
@@ -216,14 +220,13 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'nicht_erschienen'
         }
 
-    # 4. VERSCHOBEN/ABGESAGT: Orange (6)
-    if color_id == '6':
+    # 2c. VERSCHOBEN/ABGESAGT: Keywords im Titel
+    if ('verschoben' in summary_lower or 'abgesagt' in summary_lower or
+        '( verschoben )' in summary_lower or '( abgesagt )' in summary_lower):
         if 'verschoben' in summary_lower:
             label = 'Verschoben'
-        elif 'abgesagt' in summary_lower:
-            label = 'Abgesagt'
         else:
-            label = 'Verschoben/Abgesagt'
+            label = 'Abgesagt'
 
         return {
             'status': 'verschoben',
@@ -235,7 +238,46 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'verschoben'
         }
 
-    # 5. RÜCKHOLUNG: Weintraube (3)
+    # 2d. ERSCHIENEN: "erschienen" im Titel (auch wenn Farbe falsch ist)
+    if ('erschienen' in summary_lower or '( erschienen )' in summary_lower) and 'nicht erschienen' not in summary_lower:
+        return {
+            'status': 'erschienen',
+            'label': 'Erschienen (Titel)',
+            'badge_class': 'badge-success',
+            'bg_class': 'bg-success/10 hover:bg-success/20',
+            'status_icon': 'check-circle',
+            'is_positive': True,
+            'column': 'erschienen'
+        }
+
+    # 3. COLOR-BASED DETECTION (Fallback if no title keywords found)
+    # Diese Regeln greifen nur wenn keine Titel-Keywords gefunden wurden
+
+    # 3a. NICHT ERSCHIENEN: Rot (11) als Fallback
+    if color_id == '11':
+        return {
+            'status': 'nicht_erschienen',
+            'label': 'Nicht erschienen',
+            'badge_class': 'badge-error',
+            'bg_class': 'bg-error/10 hover:bg-error/20',
+            'status_icon': 'x-circle',
+            'is_positive': False,
+            'column': 'nicht_erschienen'
+        }
+
+    # 3b. VERSCHOBEN/ABGESAGT: Orange (6) als Fallback
+    if color_id == '6':
+        return {
+            'status': 'verschoben',
+            'label': 'Verschoben',
+            'badge_class': 'badge-info',
+            'bg_class': 'bg-info/10 hover:bg-info/20',
+            'status_icon': 'calendar-x',
+            'is_positive': False,
+            'column': 'verschoben'
+        }
+
+    # 3c. RÜCKHOLUNG: Weintraube (3)
     if color_id == '3':
         return {
             'status': 'rückholung',
@@ -247,7 +289,7 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'rückholung'
         }
 
-    # 6. SONDERKUNDEN: Gelb (5)
+    # 3d. SONDERKUNDEN: Gelb (5)
     if color_id == '5':
         return {
             'status': 'sonderkunde',
@@ -259,7 +301,7 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'sonderkunden'
         }
 
-    # 7. ERSCHIENEN: Grün (2), Türkis (7), oder andere positive Farben
+    # 3e. ERSCHIENEN: Grün (2), Türkis (7), oder andere positive Farben
     if color_id in ['2', '7', '9', '10']:
         # Bestimme Potential-Typ für Label
         if color_id == '7':
@@ -279,7 +321,7 @@ def get_booking_status(color_id, summary, event_date):
             'column': 'erschienen'
         }
 
-    # Default: Erschienen
+    # 4. DEFAULT: Erschienen (wenn keine Regeln greifen)
     return {
         'status': 'erschienen',
         'label': 'Erschienen',

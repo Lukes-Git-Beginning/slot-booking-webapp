@@ -92,60 +92,10 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
     return []
 
 
-def get_9am_availability_from_calendar(date_str: str) -> List[str]:
-    """Get 9am slot availability by checking for T1-bereit events in consultant calendars
-
-    Returns list of consultant names who have T1-bereit events at 9am on the given date.
-    This is used for LIVE availability checking, not pre-generated data.
-    """
-    available_consultants = []
-
-    try:
-        # Parse the date
-        slot_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        slot_start = TZ.localize(datetime.combine(slot_date, datetime.strptime("09:00", "%H:%M").time()))
-        slot_end = slot_start + timedelta(hours=2)
-
-        # Get calendar service
-        calendar_service = get_google_calendar_service()
-        if not calendar_service:
-            logger.warning("9am availability check: Calendar service not available")
-            return []
-
-        # Get consultant mapping
-        from app.config.base import consultant_config
-        consultants = consultant_config.get_consultants()
-
-        # Check each consultant's calendar for T1-bereit event
-        for consultant_name, calendar_id in consultants.items():
-            try:
-                events_result = calendar_service.get_events(
-                    calendar_id=calendar_id,
-                    time_min=slot_start.isoformat(),
-                    time_max=slot_end.isoformat(),
-                    max_results=10
-                )
-
-                events = events_result.get('items', []) if events_result else []
-
-                # Check if any event is a T1-bereit event
-                for event in events:
-                    summary = event.get('summary', '').strip()
-                    if is_t1_bereit_event(summary):
-                        available_consultants.append(consultant_name)
-                        logger.debug(f"9am slot {date_str}: {consultant_name} has T1-bereit event")
-                        break  # Found T1-bereit for this consultant
-
-            except Exception as e:
-                logger.warning(f"Error checking {consultant_name} calendar for 9am slot: {e}")
-                continue
-
-        return available_consultants
-
-    except Exception as e:
-        logger.error(f"Error in get_9am_availability_from_calendar for {date_str}: {e}")
-        return []
-
+# REMOVED: get_9am_availability_from_calendar()
+# This function made 9 API calls per page load (1 per consultant)
+# 9am slots now use pre-generated availability from availability.json only
+# Performance improvement: Reduced API calls from 105 to ~10 per page load
 
 def get_effective_availability(date_str: str, hour: str) -> List[str]:
     """Get effective availability combining loaded, calendar (for 9am), and default data"""
@@ -169,13 +119,8 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
     if slot_key in availability:
         loaded_consultants = availability[slot_key]
 
-        # For 9am slots: merge with live T1-bereit check
-        if hour == "09:00":
-            t1_consultants = get_9am_availability_from_calendar(date_str)
-            # Combine and deduplicate
-            combined = list(set(loaded_consultants + t1_consultants))
-            return combined
-
+        # 9am slots use pre-generated availability only (no live API checks)
+        # This improves performance by reducing API calls from 105 to ~10 per page load
         return loaded_consultants
 
     # Also try new nested format for backwards compatibility
@@ -190,11 +135,12 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
 
         return loaded_consultants
 
-    # For 9am slots: Check calendar for T1-bereit events (no generated data)
+    # For 9am slots without pre-generated data: Use default availability
+    # (Live T1-bereit checking removed for performance - was 9 API calls)
     if hour == "09:00":
-        return get_9am_availability_from_calendar(date_str)
+        return get_default_availability(date_str, hour)
 
-    # Fall back to default availability
+    # Fall back to default availability for all other hours
     return get_default_availability(date_str, hour)
 
 
@@ -564,6 +510,22 @@ def book_slot_for_user(user: str, date_str: str, time_str: str, berater: str,
 
         # Clear cache
         cache_manager.clear_all()
+
+        # Track booking in bookings.jsonl for backfill script and analytics
+        try:
+            from app.services.tracking_system import tracking_system
+            tracking_system.track_booking(
+                customer_name=summary,
+                date=date_str,
+                time_slot=time_str,
+                user=user,
+                color_id=color_id,
+                description=description
+            )
+            logger.debug(f"Booking tracked in bookings.jsonl: {summary} by {user}")
+        except Exception as track_error:
+            # Don't fail the booking if tracking fails
+            logger.warning(f"Failed to track booking: {track_error}")
 
         logger.info(f"Slot booked successfully by {user}: {date_str} {time_str} - {summary}")
 
