@@ -65,8 +65,9 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
         check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         from app.services.holiday_service import holiday_service
 
-        if holiday_service.is_blocked_date(check_date):
-            return []  # No availability on blocked dates
+        # Check with time to respect time-range blocks
+        if holiday_service.is_blocked_date(check_date, check_time=hour):
+            return []  # No availability on blocked dates/times
     except Exception as e:
         # If there's any error checking holidays, log it but continue
         from app.utils.logging import booking_logger
@@ -105,8 +106,9 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
         check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         from app.services.holiday_service import holiday_service
 
-        if holiday_service.is_blocked_date(check_date):
-            return []  # No availability on blocked dates
+        # Check with time to respect time-range blocks
+        if holiday_service.is_blocked_date(check_date, check_time=hour):
+            return []  # No availability on blocked dates/times
     except Exception as e:
         # If there's any error checking holidays, log it but continue
         from app.utils.logging import booking_logger

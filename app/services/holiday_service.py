@@ -46,16 +46,56 @@ class HolidayService:
             return None
         return self.german_holidays.get(check_date)
 
-    def is_blocked_date(self, check_date: date) -> bool:
-        """Prüft, ob ein Datum gesperrt ist (Feiertag oder benutzerdefinierte Sperrung)"""
+    def is_blocked_date(self, check_date: date, check_time: str = None) -> bool:
+        """
+        Prüft, ob ein Datum (und optional eine Uhrzeit) gesperrt ist
+
+        Args:
+            check_date: Das zu prüfende Datum
+            check_time: Optional - Uhrzeit im Format "HH:MM" (z.B. "14:30")
+
+        Returns:
+            True wenn das Datum (oder die Zeit) gesperrt ist
+        """
         # Prüfen ob es ein deutscher NRW-Feiertag ist
         if self.is_holiday(check_date):
             return True
 
         # Benutzerdefinierte gesperrte Termine prüfen
         blocked_dates = self._get_blocked_dates()
+        custom_blocks = blocked_dates.get('custom_blocks', {})
         date_str = check_date.strftime('%Y-%m-%d')
-        return date_str in blocked_dates.get('custom_blocks', {})
+
+        # Check for full day blocks
+        if date_str in custom_blocks:
+            block = custom_blocks[date_str]
+            if block.get('block_type', 'full_day') == 'full_day':
+                return True
+
+        # Check for date range blocks
+        for key, block in custom_blocks.items():
+            if block.get('block_type') == 'date_range':
+                try:
+                    start_date = datetime.strptime(block['start_date'], '%Y-%m-%d').date()
+                    end_date = datetime.strptime(block['end_date'], '%Y-%m-%d').date()
+                    if start_date <= check_date <= end_date:
+                        return True
+                except (KeyError, ValueError):
+                    continue
+
+        # Check for time range blocks (only if check_time is provided)
+        if check_time:
+            for key, block in custom_blocks.items():
+                if block.get('block_type') == 'time_range' and block.get('date') == date_str:
+                    try:
+                        start_time = block['start_time']
+                        end_time = block['end_time']
+                        if start_time <= check_time <= end_time:
+                            return True
+                    except KeyError:
+                        continue
+
+        return False
 
     def get_blocked_reason(self, check_date: date) -> Optional[str]:
         """Get the reason why a date is blocked"""
@@ -74,8 +114,20 @@ class HolidayService:
 
         return None
 
-    def add_custom_block(self, block_date: date, reason: str, user: str) -> bool:
-        """Add a custom blocked date"""
+    def add_custom_block(self, block_date: date, reason: str, user: str,
+                        block_type: str = 'full_day', **kwargs) -> bool:
+        """
+        Add a custom blocked date with support for different block types
+
+        Args:
+            block_date: The date to block (for full_day and time_range)
+            reason: Reason for blocking
+            user: User who created the block
+            block_type: 'full_day', 'time_range', or 'date_range'
+            **kwargs: Additional parameters:
+                - For time_range: start_time (str), end_time (str)
+                - For date_range: end_date (date)
+        """
         try:
             blocked_dates = self._get_blocked_dates()
 
@@ -83,32 +135,84 @@ class HolidayService:
                 blocked_dates['custom_blocks'] = {}
 
             date_str = block_date.strftime('%Y-%m-%d')
-            blocked_dates['custom_blocks'][date_str] = {
+
+            # Base block data
+            block_data = {
                 'reason': reason,
                 'added_by': user,
-                'added_at': datetime.now(TZ).isoformat()
+                'added_at': datetime.now(TZ).isoformat(),
+                'block_type': block_type
             }
 
+            # Generate key and add type-specific data
+            if block_type == 'full_day':
+                key = date_str
+
+            elif block_type == 'time_range':
+                start_time = kwargs.get('start_time')
+                end_time = kwargs.get('end_time')
+                if not start_time or not end_time:
+                    logger.error("time_range requires start_time and end_time")
+                    return False
+
+                key = f"{date_str}_{start_time}-{end_time}"
+                block_data['date'] = date_str
+                block_data['start_time'] = start_time
+                block_data['end_time'] = end_time
+
+            elif block_type == 'date_range':
+                end_date = kwargs.get('end_date')
+                if not end_date:
+                    logger.error("date_range requires end_date")
+                    return False
+
+                end_date_str = end_date.strftime('%Y-%m-%d')
+                key = f"range_{date_str}_{end_date_str}"
+                block_data['start_date'] = date_str
+                block_data['end_date'] = end_date_str
+
+            else:
+                logger.error(f"Unknown block_type: {block_type}")
+                return False
+
+            blocked_dates['custom_blocks'][key] = block_data
             return self._save_blocked_dates(blocked_dates)
 
         except Exception as e:
             logger.error(f"Error adding custom block", extra={'error': str(e)})
             return False
 
-    def remove_custom_block(self, block_date: date) -> bool:
-        """Remove a custom blocked date"""
+    def remove_custom_block(self, block_key: str = None, block_date: date = None) -> bool:
+        """
+        Remove a custom blocked date by key or date
+
+        Args:
+            block_key: The exact key of the block to remove
+            block_date: Alternative - remove by date (for backward compatibility)
+        """
         try:
             blocked_dates = self._get_blocked_dates()
 
             if 'custom_blocks' not in blocked_dates:
                 return True  # Nothing to remove
 
-            date_str = block_date.strftime('%Y-%m-%d')
-            if date_str in blocked_dates['custom_blocks']:
-                del blocked_dates['custom_blocks'][date_str]
-                return self._save_blocked_dates(blocked_dates)
+            # If key is provided, use it directly
+            if block_key:
+                if block_key in blocked_dates['custom_blocks']:
+                    del blocked_dates['custom_blocks'][block_key]
+                    return self._save_blocked_dates(blocked_dates)
+                return True  # Already not present
 
-            return True  # Already not present
+            # Fallback to date-based removal for backward compatibility
+            if block_date:
+                date_str = block_date.strftime('%Y-%m-%d')
+                if date_str in blocked_dates['custom_blocks']:
+                    del blocked_dates['custom_blocks'][date_str]
+                    return self._save_blocked_dates(blocked_dates)
+                return True
+
+            logger.error("Either block_key or block_date must be provided")
+            return False
 
         except Exception as e:
             logger.error(f"Error removing custom block", extra={'error': str(e)})
@@ -163,22 +267,69 @@ class HolidayService:
         blocked_dates = self._get_blocked_dates()
         custom_blocks = []
 
-        for date_str, block_info in blocked_dates.get('custom_blocks', {}).items():
+        for block_key, block_info in blocked_dates.get('custom_blocks', {}).items():
             try:
-                block_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                if block_date.year == year:
-                    custom_blocks.append({
-                        'date': block_date,
-                        'date_str': date_str,
-                        'formatted_date': block_date.strftime('%d.%m.%Y'),
-                        'name': block_info.get('reason', 'Gesperrt'),
-                        'weekday': block_date.strftime('%A'),
-                        'type': 'custom',
-                        'added_by': block_info.get('added_by', 'Unbekannt'),
-                        'added_at': block_info.get('added_at', '')
-                    })
-            except ValueError:
-                continue  # Skip invalid dates
+                block_type = block_info.get('block_type', 'full_day')
+
+                if block_type == 'full_day':
+                    block_date = datetime.strptime(block_key, '%Y-%m-%d').date()
+                    if block_date.year == year:
+                        custom_blocks.append({
+                            'key': block_key,
+                            'date': block_date,
+                            'date_str': block_key,
+                            'formatted_date': block_date.strftime('%d.%m.%Y'),
+                            'name': block_info.get('reason', 'Gesperrt'),
+                            'weekday': block_date.strftime('%A'),
+                            'type': 'custom',
+                            'block_type': 'full_day',
+                            'added_by': block_info.get('added_by', 'Unbekannt'),
+                            'added_at': block_info.get('added_at', '')
+                        })
+
+                elif block_type == 'time_range':
+                    block_date = datetime.strptime(block_info['date'], '%Y-%m-%d').date()
+                    if block_date.year == year:
+                        custom_blocks.append({
+                            'key': block_key,
+                            'date': block_date,
+                            'date_str': block_info['date'],
+                            'formatted_date': block_date.strftime('%d.%m.%Y'),
+                            'name': block_info.get('reason', 'Gesperrt'),
+                            'weekday': block_date.strftime('%A'),
+                            'type': 'custom',
+                            'block_type': 'time_range',
+                            'start_time': block_info.get('start_time', ''),
+                            'end_time': block_info.get('end_time', ''),
+                            'time_display': f"{block_info.get('start_time', '')} - {block_info.get('end_time', '')}",
+                            'added_by': block_info.get('added_by', 'Unbekannt'),
+                            'added_at': block_info.get('added_at', '')
+                        })
+
+                elif block_type == 'date_range':
+                    start_date = datetime.strptime(block_info['start_date'], '%Y-%m-%d').date()
+                    end_date = datetime.strptime(block_info['end_date'], '%Y-%m-%d').date()
+                    # Include if range overlaps with the year
+                    if start_date.year <= year <= end_date.year:
+                        custom_blocks.append({
+                            'key': block_key,
+                            'date': start_date,
+                            'date_str': block_info['start_date'],
+                            'formatted_date': f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}",
+                            'name': block_info.get('reason', 'Gesperrt'),
+                            'weekday': f"{start_date.strftime('%A')} - {end_date.strftime('%A')}",
+                            'type': 'custom',
+                            'block_type': 'date_range',
+                            'start_date': block_info['start_date'],
+                            'end_date': block_info['end_date'],
+                            'days_count': (end_date - start_date).days + 1,
+                            'added_by': block_info.get('added_by', 'Unbekannt'),
+                            'added_at': block_info.get('added_at', '')
+                        })
+
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Invalid block entry: {block_key} - {str(e)}")
+                continue  # Skip invalid entries
 
         # Sort both lists by date
         year_holidays.sort(key=lambda x: x['date'])
