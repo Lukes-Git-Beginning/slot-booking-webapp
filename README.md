@@ -569,6 +569,28 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 
 ## 📝 Changelog
 
+### v3.3.6 - Advanced Blocked Dates System (DEV - 2025-11-04)
+- ✅ **3 Block-Typen für Sperrzeiten**:
+  - `full_day`: Ganztägige Sperrung (bestehende Funktionalität)
+  - `time_range`: Zeitbereich-Sperrung (z.B. 14:00-16:00 Mittagspause)
+  - `date_range`: Datumsbereich-Sperrung (z.B. 2025-12-24 bis 2025-12-31 Weihnachtsurlaub)
+- ✅ **Tab-basierte Admin-UI**:
+  - Intuitive Formulare für jeden Block-Typ
+  - Automatische Tage-Berechnung für Date Ranges
+  - Visuelle Indicators für Block-Typen (Icons & Badges)
+- ✅ **Block-Key-System**:
+  - Eindeutige Identifikation für alle Block-Typen
+  - Format: `YYYY-MM-DD` (full_day), `YYYY-MM-DD_HH:MM-HH:MM` (time_range), `range_YYYY-MM-DD_YYYY-MM-DD` (date_range)
+  - Backward compatible mit alten full_day Blocks
+- ✅ **Booking Service Integration**:
+  - `is_blocked_date()` prüft jetzt optional Zeitbereiche
+  - `get_default_availability()` respektiert time_range Blocks
+  - Verhindert Buchungen in gesperrten Zeitfenstern
+- ✅ **Admin Interface Updates**:
+  - 3 separate Formulare mit Tab-Navigation
+  - Delete-Funktionalität mit Block-Key-Support
+  - Detaillierte Anzeige mit Zeit- und Datumsbereichen
+
 ### v3.3.5 - KRITISCHER BUGFIX: PERSIST_BASE Pfad-Verschachtelung (LIVE - 2025-10-27)
 - ✅ **KRITISCHER BUGFIX**: Systematische Doppelverschachtelung aller Datenbanken behoben
   - `.env` korrigiert: `PERSIST_BASE=/opt/business-hub/data` (war: `/opt/business-hub/data/persistent`)
