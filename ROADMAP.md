@@ -1,7 +1,7 @@
 # 📊 SLOT-BOOKING-WEBAPP - ROADMAP & TECHNICAL DEBT ANALYSIS
 
-**Analysedatum**: 2025-10-29
-**Version**: v3.3.5 (LIVE - Production)
+**Analysedatum**: 2025-11-05
+**Version**: v3.3.6 (LIVE - Production)
 **Deployment**: Hetzner VPS (91.98.192.233)
 **Status**: PRODUCTION-READY mit mittlerem Technical Debt
 

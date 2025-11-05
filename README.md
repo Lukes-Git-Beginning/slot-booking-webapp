@@ -569,7 +569,27 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 
 ## 📝 Changelog
 
-### v3.3.6 - Advanced Blocked Dates System (DEV - 2025-11-04)
+### v3.3.6 - Pagination System & Critical Bugfixes (LIVE - 2025-11-05)
+- ✅ **Pagination-System für 4,800+ Events**:
+  - `get_all_events_paginated()` Methode in google_calendar.py implementiert
+  - Lädt ALLE Events in 2,500-Event-Pages (max 10 Pages = 25,000 Events)
+  - 5-Minuten Cache für Performance-Optimierung
+  - Vollständiges Rate Limiting & Quota Management
+  - My Calendar & My Customers nutzen jetzt Pagination statt fixer Limits
+- ✅ **API Quota Future-Proofing**:
+  - Unterstützt problemlos 80 Events/Tag × 60 Tage = 4,800 Events
+  - ~2 API Calls pro Load statt 1 (mit Cache: <100 Requests/Tag)
+  - Usage: 0.01% vom Google Calendar Limit (1M/Tag)
+- ✅ **Critical Bugfix: booking.py 500er Fehler**:
+  - Lokaler `booking_logger` Import entfernt (verursachte `UnboundLocalError`)
+  - 17 gescheiterte Buchungen von Yasmine behoben
+  - Booking-System wieder voll funktionsfähig
+- ✅ **Debug-Logs vollständig entfernt**:
+  - Alle 🔍-Debug-Statements aus calendar.py entfernt
+  - Alle BOOKING DEBUG-Logs aus booking.py entfernt
+  - Production-ready Code-Qualität
+
+### v3.3.6-beta - Advanced Blocked Dates System (DEV - 2025-11-04)
 - ✅ **3 Block-Typen für Sperrzeiten**:
   - `full_day`: Ganztägige Sperrung (bestehende Funktionalität)
   - `time_range`: Zeitbereich-Sperrung (z.B. 14:00-16:00 Mittagspause)
