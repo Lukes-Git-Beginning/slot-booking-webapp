@@ -240,14 +240,15 @@ def get_user_tools(username):
         {
             'id': 'onboarding',
             'name': 'Onboarding',
-            'description': 'T4-Termin buchen',
+            'description': 'Termin-Optionen auswählen',
             'lucide_icon': 'plane',
-            'url': 'https://meetings-eu1.hubspot.com/meetings/david-nehm/t4?uuid=2503fdf7-e2aa-425c-ba34-1da08f536b8e',
+            'url': '#',
             'status': 'active',
             'users': 0,
             'color': '#d4af6a',
-            'features': ['T4-Termine', 'HubSpot', 'Externe Buchung'],
-            'external': True,
+            'features': ['T4-Termine', 'Service-Buchung', 'HubSpot'],
+            'external': False,
+            'modal': 'onboardingModal',
             'last_used': None
         },
         {
@@ -500,6 +501,14 @@ def has_tool_access(username, tool_id):
             'christian.mast', 'daniel.herbort',
             'tim.kreisel', 'yasmine.schumacher',
             'alexandra.börner'
+        ]
+        return username in allowed_users
+
+    # Onboarding für spezifische Benutzer (zusätzlich zu Admins)
+    if tool_id == 'onboarding':
+        allowed_users = [
+            'alexandra.scharrschmidt',
+            'vanessa.howald'
         ]
         return username in allowed_users
 

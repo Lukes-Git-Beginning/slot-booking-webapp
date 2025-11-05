@@ -99,11 +99,20 @@
      }"
      data-aos="fade-up" data-aos-delay="200">
     {% for tool in tools %}
+    {% if tool.modal %}
+    <!-- Tool with Modal Trigger -->
+    <div onclick="{{ tool.modal }}.showModal()"
+       class="glass rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl group relative overflow-hidden cursor-pointer"
+       data-aos="zoom-in"
+       data-aos-delay="{{ loop.index * 50 }}">
+    {% else %}
+    <!-- Tool with Direct Link -->
     <a href="{{ tool.url }}"
        {% if tool.external %}target="_blank" rel="noopener noreferrer"{% endif %}
        class="glass rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl group relative overflow-hidden"
        data-aos="zoom-in"
        data-aos-delay="{{ loop.index * 50 }}">
+    {% endif %}
 
         <!-- Gradient Overlay on Hover -->
         <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
@@ -149,14 +158,20 @@
 
             <!-- Arrow Icon -->
             <div class="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
-                {% if tool.external %}
+                {% if tool.modal %}
+                <i data-lucide="mouse-pointer-click" class="w-6 h-6 text-primary"></i>
+                {% elif tool.external %}
                 <i data-lucide="external-link" class="w-6 h-6 text-primary"></i>
                 {% else %}
                 <i data-lucide="arrow-right" class="w-6 h-6 text-primary"></i>
                 {% endif %}
             </div>
         </div>
+    {% if tool.modal %}
+    </div>
+    {% else %}
     </a>
+    {% endif %}
     {% endfor %}
 </div>
 
@@ -193,6 +208,87 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Onboarding Modal -->
+<dialog id="onboardingModal" class="modal">
+    <div class="modal-box bg-base-200 max-w-2xl">
+        <!-- Modal Header -->
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                <i data-lucide="plane" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-white">Onboarding-Termin buchen</h3>
+                <p class="text-sm text-white/60">Wähle die passende Option für deinen Termin</p>
+            </div>
+        </div>
+
+        <!-- Link Options -->
+        <div class="space-y-3 mb-6">
+            <!-- Option 1: Grundsätzliches Onboarding -->
+            <a href="https://meetings-eu1.hubspot.com/david-nehm/t4" target="_blank" rel="noopener noreferrer"
+               class="block glass p-6 hover:bg-white/10 rounded-xl transition-all group cursor-pointer border border-white/10 hover:border-primary/40">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <i data-lucide="calendar-plus" class="w-5 h-5 text-primary"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-white mb-1 group-hover:text-primary transition-colors">Grundsätzliches Onboarding</h4>
+                        <p class="text-sm text-white/70">Buche deinen ersten Onboarding-Termin mit David Nehm</p>
+                    </div>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="external-link" class="w-5 h-5 text-primary"></i>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Option 2: Service < 2 Wochen -->
+            <a href="https://meetings-eu1.hubspot.com/meetings/david-nehm/service?uuid=2503fdf7-e2aa-425c-ba34-1da08f536b8e" target="_blank" rel="noopener noreferrer"
+               class="block glass p-6 hover:bg-white/10 rounded-xl transition-all group cursor-pointer border border-white/10 hover:border-secondary/40">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <i data-lucide="clock" class="w-5 h-5 text-secondary"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-white mb-1 group-hover:text-secondary transition-colors">Service - Verschiebung (< 2 Wochen)</h4>
+                        <p class="text-sm text-white/70">Für kurzfristige Terminverschiebungen innerhalb von 2 Wochen</p>
+                    </div>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="external-link" class="w-5 h-5 text-secondary"></i>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Option 3: T4 Onboarding > 2 Wochen -->
+            <a href="https://meetings-eu1.hubspot.com/meetings/david-nehm/t4?uuid=2503fdf7-e2aa-425c-ba34-1da08f536b8e" target="_blank" rel="noopener noreferrer"
+               class="block glass p-6 hover:bg-white/10 rounded-xl transition-all group cursor-pointer border border-white/10 hover:border-accent/40">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <i data-lucide="calendar-clock" class="w-5 h-5 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-white mb-1 group-hover:text-accent transition-colors">T4 Onboarding - Verschiebung (> 2 Wochen)</h4>
+                        <p class="text-sm text-white/70">Für Terminverschiebungen länger als 2 Wochen in der Zukunft</p>
+                    </div>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="external-link" class="w-5 h-5 text-accent"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-action">
+            <button type="button" class="btn btn-ghost" onclick="onboardingModal.close()">
+                <i data-lucide="x" class="w-4 h-4 mr-2"></i>
+                Schließen
+            </button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 
 {% endblock %}
 
@@ -303,5 +399,14 @@
     setTimeout(initLucideIcons, 500);
     setTimeout(initLucideIcons, 1000);
     setTimeout(initLucideIcons, 2000);
+
+    // Reinitialize Lucide icons when modal opens
+    const onboardingModal = document.getElementById('onboardingModal');
+    if (onboardingModal) {
+        onboardingModal.addEventListener('click', function(e) {
+            // Reinitialize icons when modal is shown
+            setTimeout(initLucideIcons, 50);
+        });
+    }
 </script>
 {% endblock %}
