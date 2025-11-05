@@ -25,6 +25,16 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 os.chdir(project_root)
 
+# Load .env file for environment variables (Google credentials, etc.)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(project_root, '.env'))
+    print(f"✓ Loaded environment variables from {project_root}/.env")
+except ImportError:
+    print("Warning: python-dotenv not installed, relying on system environment variables")
+except Exception as e:
+    print(f"Warning: Could not load .env file: {e}")
+
 # Fix Windows console encoding
 if sys.platform == 'win32':
     import codecs
@@ -83,9 +93,25 @@ def main():
                     time = booking['time']
                     user = booking['user']
 
-                    # Normalize key
-                    key = f"{customer}_{date}_{time}".lower().replace(' ', '_')
-                    booking_map[key] = user
+                    # Create MULTIPLE keys per booking for different name formats
+                    # This handles: "Nachname, Vorname" → "Nachname Vorname" (Calendar format change)
+
+                    # Key 1: Original format (e.g., "Sungur, Maria")
+                    key1 = f"{customer}_{date}_{time}".lower().replace(' ', '_')
+                    booking_map[key1] = user
+
+                    # Key 2: Without comma (e.g., "Sungur Maria")
+                    customer_no_comma = customer.replace(',', '')  # "Sungur, Maria" → "Sungur Maria"
+                    key2 = f"{customer_no_comma}_{date}_{time}".lower().replace(' ', '_')
+                    booking_map[key2] = user
+
+                    # Key 3: Swap first/last name (e.g., "Maria Sungur")
+                    if ',' in customer:
+                        parts = [p.strip() for p in customer.split(',', 1)]
+                        if len(parts) == 2:
+                            customer_swapped = f"{parts[1]} {parts[0]}"  # "Maria Sungur"
+                            key3 = f"{customer_swapped}_{date}_{time}".lower().replace(' ', '_')
+                            booking_map[key3] = user
 
                 except Exception as e:
                     print(f"WARNING: Error parsing booking line: {e}")
@@ -159,17 +185,30 @@ def main():
                 continue
 
             # Try to match with bookings.jsonl
-            key = f"{summary}_{event_date}_{event_time}".lower().replace(' ', '_')
+            # Normalize summary: remove status markers like " ( erschienen )", " ( Verschoben )", etc.
+            import re
+            summary_normalized = re.sub(r'\s*\([^)]*\)\s*$', '', summary).strip()
 
-            if key in booking_map:
-                username = booking_map[key]
+            # Try to match (we have multiple keys per booking, so just normalize the summary and try)
+            key = f"{summary_normalized}_{event_date}_{event_time}".lower().replace(' ', '_')
+            matched_username = booking_map.get(key)
+
+            # 🔍 DEBUG: Show first 5 non-matches
+            if not matched_username and stats['no_match'] < 5:
+                print(f"  DEBUG: No match for '{summary[:40]}...' on {event_date} {event_time}")
+                print(f"         Normalized: '{summary_normalized}'")
+                print(f"         Key: '{key}'")
+                print(f"         Sample booking keys: {list(booking_map.keys())[:3]}")
+                print()
+
+            if matched_username:
                 stats['matched'] += 1
                 stats['to_update'].append({
                     'event_id': event_id,
                     'summary': summary,
                     'date': event_date,
                     'time': event_time,
-                    'username': username,
+                    'username': matched_username,
                     'current_description': description
                 })
             else:

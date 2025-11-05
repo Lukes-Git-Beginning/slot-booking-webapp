@@ -112,6 +112,189 @@ def is_user_booking(event, username, username_variants, consultants_dict):
     return (False, None, None)
 
 
+def get_user_bookings_from_jsonl(username, days_back=30):
+    """
+    Read user's bookings directly from bookings.jsonl
+    This is more reliable than parsing Google Calendar tags.
+
+    Args:
+        username: The user to get bookings for
+        days_back: How many days back to read (default: 30)
+
+    Returns:
+        List of booking dicts with customer, date, time, etc.
+    """
+    import json
+    import os
+    from datetime import date, timedelta
+
+    bookings_file = "data/tracking/bookings.jsonl"
+    if not os.path.exists(bookings_file):
+        return []
+
+    cutoff_date = date.today() - timedelta(days=days_back)
+    user_bookings = []
+
+    try:
+        with open(bookings_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    booking = json.loads(line.strip())
+
+                    # Check if this booking belongs to the user
+                    if booking.get('user') != username:
+                        continue
+
+                    # Check if booking is within date range
+                    booking_date_str = booking.get('date')
+                    if booking_date_str:
+                        booking_date = date.fromisoformat(booking_date_str)
+                        if booking_date < cutoff_date:
+                            continue
+
+                    user_bookings.append(booking)
+
+                except (json.JSONDecodeError, ValueError) as e:
+                    continue
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error reading bookings.jsonl: {e}")
+
+    return user_bookings
+
+
+def extract_status_from_title(title: str):
+    """
+    Extract status marker from event title (case-insensitive).
+
+    Event titles have format: "Customer Name ( Status )"
+
+    Args:
+        title: Event title like "Müller, Hans ( Verschoben )"
+
+    Returns:
+        tuple: (status_marker, clean_customer_name, should_display)
+        - status_marker: "erschienen", "verschoben", "ghost", etc. (lowercase)
+        - clean_customer_name: "Müller, Hans" (without marker)
+        - should_display: False for "Exit" events (filter out)
+    """
+    import re
+
+    # Pattern: ( Status ) at end of title (case-insensitive)
+    pattern = r'\s*\(\s*(Exit|Verschoben|Nicht\s+Erschienen|Ghost|Erschienen|Abgesagt|Vorbehalt)\s*\)\s*$'
+    match = re.search(pattern, title, re.IGNORECASE)
+
+    if match:
+        status = match.group(1).lower().strip()
+        clean_title = re.sub(pattern, '', title, flags=re.IGNORECASE).strip()
+
+        # Filter out "Exit" events
+        if status == 'exit':
+            return (status, clean_title, False)
+
+        return (status, clean_title, True)
+
+    # No marker found → Pending
+    return ('pending', title.strip(), True)
+
+
+def map_status_to_column(status_marker: str) -> str:
+    """
+    Map status marker to kanban column name.
+
+    Args:
+        status_marker: Status from title (lowercase)
+
+    Returns:
+        Column name for kanban board
+    """
+    STATUS_TO_COLUMN = {
+        'pending': 'pending',
+        'vorbehalt': 'pending',
+        'erschienen': 'erschienen',
+        'abgesagt': 'abgesagt',
+        'verschoben': 'verschoben',
+        'nicht erschienen': 'nicht_erschienen',
+        'ghost': 'ghost',
+        'exit': None  # Don't display
+    }
+
+    return STATUS_TO_COLUMN.get(status_marker, 'pending')
+
+
+def determine_status_from_color_and_date(color_id: str, event_date, summary: str):
+    """
+    Determine booking status based on Title Marker (Priority 1), Color ID, and Date.
+
+    Priority Order:
+    1. Title Marker: "( erschienen )", "( Verschoben )", "( Ghost )", etc.
+    2. Color ID: Google Calendar colors (manually set)
+    3. Date: Past events → Erschienen, Future → Pending
+
+    Google Calendar Color Mapping (Fallback):
+    - Tomate (11/Rot): Exit, Nicht Erschienen, Ghost
+    - Mandarine (6/Orange): Abgesagt, Verschoben
+    - Salbei (2/Grün Hell): Normal Potential Unbestätigt
+    - Basilikum (10/Grün): Normal Potential Bestätigt
+    - Pfau (9/Türkis): Top Potential Unbestätigt
+    - Heidelbeere (7/Blau): Top Potential Bestätigt
+    - Weintraube (3/Lila): Rückholung (als Pending)
+    - Grafit (8/Grau): Verschoben (Berater-Mangel, als Pending)
+
+    Args:
+        color_id: Google Calendar Color ID (may be incorrect due to API issue)
+        event_date: Date of the event
+        summary: Event title with status markers
+
+    Returns:
+        Column name or None (to filter out)
+    """
+    from datetime import date
+
+    today = date.today()
+    is_past = event_date < today
+
+    # 🔥 PRIORITY 1: Check title marker (most reliable - manually set in Calendar!)
+    status_from_title, _, should_display = extract_status_from_title(summary)
+
+    # Filter Exit events
+    if status_from_title == 'exit' or not should_display or 'exit' in summary.lower():
+        return None  # Don't display
+
+    # If title has explicit status marker, use it! (Priority 1)
+    if status_from_title in ['erschienen', 'verschoben', 'abgesagt', 'ghost', 'vorbehalt']:
+        if status_from_title == 'vorbehalt':
+            return 'pending'
+        return status_from_title
+
+    # Special case: "nicht erschienen" needs underscore
+    if status_from_title == 'nicht erschienen':
+        return 'nicht_erschienen'
+
+    # 🔥 PRIORITY 2: Use Color ID if no title marker (fallback)
+    if color_id == '11':  # Tomate (Rot) - Exit/Nicht Erschienen/Ghost
+        if 'ghost' in summary.lower():
+            return 'ghost'
+        return 'nicht_erschienen'
+
+    elif color_id == '6':  # Mandarine (Orange) - Abgesagt/Verschoben
+        if 'verschoben' in summary.lower():
+            return 'verschoben'
+        return 'abgesagt'
+
+    # 🔥 PRIORITY 3: Use Date for Potential colors (no explicit status)
+    elif color_id in ['2', '10', '9', '7', '3', '8', '1']:  # All potential colors + default
+        if is_past:
+            return 'erschienen'  # Past event → Customer showed up
+        else:
+            return 'pending'  # Future event → Pending
+
+    else:
+        # Default: Use date logic
+        return 'pending' if not is_past else 'erschienen'
+
+
 @calendar_bp.route("/my-calendar")
 @require_login
 def my_calendar():
@@ -121,6 +304,7 @@ def my_calendar():
     from app.utils.helpers import get_username_variants
     from collections import defaultdict
     import logging
+    import re
 
     logger = logging.getLogger(__name__)
     user = session.get("user")
@@ -131,6 +315,11 @@ def my_calendar():
     # Get user's bookings from the past 30 days and next 30 days
     start_date = (dt_module.now(TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
     end_date = (dt_module.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
+
+    # 🆕 NEW APPROACH: Read bookings directly from bookings.jsonl
+    logger.info(f"MY-CALENDAR (NEW): Reading bookings from jsonl for user '{user}'")
+    user_bookings = get_user_bookings_from_jsonl(user, days_back=30)
+    logger.info(f"MY-CALENDAR (NEW): Found {len(user_bookings)} bookings in jsonl")
 
     # Get events from Google Calendar
     google_calendar_service = get_google_calendar_service()
@@ -143,26 +332,53 @@ def my_calendar():
                              view_mode=view_mode,
                              user=user)
 
+    # Fetch ALL events from Google Calendar using pagination (no limit!)
     from app.config.base import config
-    events_result = google_calendar_service.get_events(
+    events_result = google_calendar_service.get_all_events_paginated(
         calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{start_date}T00:00:00+01:00",
         time_max=f"{end_date}T23:59:59+01:00",
-        cache_duration=0  # No cache - always get fresh data
+        cache_duration=300  # 5 minute cache for performance
     )
 
-    all_events = events_result.get('items', []) if events_result else []
+    all_calendar_events = events_result.get('items', []) if events_result else []
+    total_pages = events_result.get('total_pages', 0) if events_result else 0
+    logger.info(f"MY-CALENDAR: Fetched {len(all_calendar_events)} events from {total_pages} pages ({start_date} to {end_date})")
 
-    # Get all possible username variants for backward compatibility
-    username_variants = get_username_variants(user)
+    # Create a lookup map for events by date+customer name
+    event_lookup = {}
+    for evt in all_calendar_events:
+        summary = evt.get('summary', '')
+        start_dt = evt.get('start', {}).get('dateTime', '')
 
-    # Get consultants dictionary for email matching
-    from app.config.base import consultant_config
-    consultants_dict = consultant_config.get_consultants()
+        # Skip invalid events
+        if not start_dt or summary.isdigit():
+            continue
 
-    logger.info(f"MY-CALENDAR: Looking for bookings by user '{user}'")
-    logger.info(f"MY-CALENDAR: Username variants: {username_variants}")
-    logger.info(f"MY-CALENDAR: Total events in calendar: {len(all_events)}")
+        try:
+            dt = dt_module.fromisoformat(start_dt.replace('Z', '+00:00'))
+            evt_date = dt.strftime('%Y-%m-%d')
+            evt_time = dt.strftime('%H:%M')
+
+            # Normalize summary (remove status markers for matching)
+            summary_normalized = re.sub(r'\s*\([^)]*\)\s*$', '', summary).strip()
+
+            # Create lookup keys: Name + Date ONLY (ignore time for flexibility!)
+            # This allows matching even if event time changed (e.g., 20:00 → 20:15)
+            keys = [
+                f"{summary}_{evt_date}",  # Original + Date
+                f"{summary_normalized}_{evt_date}",  # Normalized + Date (IMPORTANT!)
+                f"{summary.replace(',', '')}_{evt_date}",  # No comma + Date
+                f"{summary_normalized.replace(',', '')}_{evt_date}",  # Normalized + no comma + Date
+            ]
+
+            for key in keys:
+                event_lookup[key.lower()] = evt
+
+        except Exception as e:
+            continue
+
+    logger.info(f"MY-CALENDAR (NEW): Created lookup with {len(event_lookup)} keys")
 
     # Initialize data structures
     my_events = []
@@ -174,31 +390,44 @@ def my_calendar():
     current_week_start = get_week_start(today)
     last_week_start = current_week_start - timedelta(weeks=1)
 
-    for event in all_events:
-        summary = event.get('summary', '')
-        description = event.get('description', '')
+    # Process bookings from jsonl and enrich with Calendar event data
+    for booking in user_bookings:
+        customer = booking.get('customer', '')
+        booking_date_str = booking.get('date', '')
+        booking_time = booking.get('time', '')
 
-        # Skip placeholder events (nur Zahlen)
-        if summary.isdigit():
+        if not all([customer, booking_date_str, booking_time]):
             continue
 
-        # Multi-stage filtering: Check if this user booked the event
-        # Uses: Tag match → Calendar match → Attendee match → Fuzzy match
-        is_booked_by_user, match_reason, matched_variant = is_user_booking(
-            event, user, username_variants, consultants_dict
-        )
+        # Try to find matching event: Name + Date ONLY (time ignored!)
+        # This matches events even if time changed (e.g., verschoben from 20:00 to 20:15)
+        lookup_keys = [
+            f"{customer}_{booking_date_str}".lower(),  # Name + Date
+            f"{customer.replace(',', '')}_{booking_date_str}".lower(),  # No comma + Date
+        ]
 
-        if not is_booked_by_user:
-            continue
+        calendar_event = None
+        for key in lookup_keys:
+            if key in event_lookup:
+                calendar_event = event_lookup[key]
+                break
 
-        # Log match reason for debugging (especially useful for non-tag matches)
-        if match_reason != 'tag':
-            logger.info(f"MY-CALENDAR: Event '{summary[:30]}...' matched via {match_reason} for user {user}")
+        # If no match, use default values
+        if calendar_event:
+            color_id = calendar_event.get('colorId', '1')
+            event_id = calendar_event.get('id', '')
+            summary = calendar_event.get('summary', customer)
+            description = calendar_event.get('description', '')
+        else:
+            # Booking exists in jsonl but not in Calendar (deleted?)
+            color_id = '1'  # Default grey
+            event_id = ''
+            summary = customer
+            description = ''
+            logger.warning(f"MY-CALENDAR (NEW): Booking not found in Calendar: {customer} on {booking_date_str} {booking_time}")
 
         # Parse event data
-        start_dt = event.get('start', {}).get('dateTime', '')
-        color_id = event.get('colorId', '1')
-        event_id = event.get('id', '')
+        start_dt = f"{booking_date_str}T{booking_time}:00+01:00"
 
         if not start_dt:
             continue
@@ -212,16 +441,22 @@ def my_calendar():
             logger.error(f"Error parsing datetime for event '{summary}': {e}")
             continue
 
-        # Get status information using color_mapping
-        status_info = get_booking_status(color_id, summary, event_date)
+        # Determine status from Color ID + Date (primary) with title fallback
+        column = determine_status_from_color_and_date(color_id, event_date, summary)
 
-        # Extract customer name (remove status markers like "(Ghost)", "(Verschoben)", etc.)
-        customer_name = summary
-        for marker in [' ( Ghost )', ' (Ghost)', ' ( Verschoben )', ' (Verschoben)',
-                      ' ( Abgesagt )', ' (Abgesagt)', ' ( nicht erschienen )',
-                      ' (nicht erschienen)', ' ( erschienen )', ' (erschienen)']:
-            customer_name = customer_name.replace(marker, '')
-        customer_name = customer_name.strip()
+        # Filter out "Exit" events or unmapped status
+        if column is None:
+            logger.info(f"MY-CALENDAR: Filtering out event: {summary} (Exit or unmapped)")
+            continue
+
+        # Extract customer name (remove status markers if present)
+        _, customer_name, _ = extract_status_from_title(summary)
+        if not customer_name:
+            customer_name = summary  # Fallback to full summary
+
+        # Get status information for display (color_mapping for UI labels)
+        # NOTE: Title status has priority, colorId is just for verification
+        status_info = get_booking_status(color_id, summary, event_date)
 
         # Calculate customer_showed for compatibility
         if status_info['is_positive'] is True:
@@ -247,15 +482,13 @@ def my_calendar():
             days_ago = 0
             days_until = 0
 
-        # Extract booked_by initials
-        if matched_variant:
-            parts = matched_variant.split('.')
-            if len(parts) >= 2:
-                booked_by_initials = f"{parts[0][0].upper()}{parts[1][0].upper()}"
-            else:
-                booked_by_initials = matched_variant[:2].upper()
+        # Extract booked_by initials (from booking data, not from matching)
+        booking_user = booking.get('user', user)
+        parts = booking_user.split('.')
+        if len(parts) >= 2:
+            booked_by_initials = f"{parts[0][0].upper()}{parts[1][0].upper()}"
         else:
-            booked_by_initials = "??"
+            booked_by_initials = booking_user[:2].upper()
 
         # Determine potential type label
         potential_map = {
@@ -281,11 +514,10 @@ def my_calendar():
         elif color_id in ['11', '6']:  # No-Show, Verschoben
             points = 0
 
-        # Clean description (remove booked by tag)
+        # Clean description (remove booked by tag if present)
         clean_desc = description
-        for variant in username_variants:
-            booked_by_tag = f"[Booked by: {variant}]"
-            clean_desc = clean_desc.replace(f"\n\n{booked_by_tag}", "").replace(booked_by_tag, "")
+        import re
+        clean_desc = re.sub(r'\[Booked by: [^\]]+\]', '', clean_desc)
         clean_desc = clean_desc.strip() or '-'
 
         # Build event dict
@@ -300,9 +532,9 @@ def my_calendar():
             'potential': potential,
             'points': points,
             'desc': clean_desc,
-            'booked_by': matched_variant,
+            'booked_by': booking_user,
             'booked_by_initials': booked_by_initials,
-            'match_reason': match_reason,  # How this event was matched (tag/calendar/attendee/fuzzy)
+            'match_reason': 'jsonl',  # Matched via bookings.jsonl (new approach)
 
             # Status information from color_mapping
             'status': status_info['status'],
@@ -371,12 +603,11 @@ def my_customers():
         return render_template("my_customers.html", customers=[], stats={}, user=user)
 
     from app.config.base import config
-    events_result = google_calendar_service.get_events(
+    events_result = google_calendar_service.get_all_events_paginated(
         calendar_id=config.CENTRAL_CALENDAR_ID,
         time_min=f"{start_date}T00:00:00+01:00",
         time_max=f"{end_date}T23:59:59+01:00",
-        max_results=2500,
-        cache_duration=0  # No cache - always get fresh data for customer analytics
+        cache_duration=300  # 5 minute cache for customer analytics
     )
 
     all_events = events_result.get('items', []) if events_result else []
