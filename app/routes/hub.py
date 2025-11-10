@@ -508,7 +508,9 @@ def has_tool_access(username, tool_id):
     if tool_id == 'onboarding':
         allowed_users = [
             'alexandra.scharrschmidt',
-            'vanessa.howald'
+            'alexandra.börner',
+            'vanessa.howald',
+            'vanessa.wagner'
         ]
         return username in allowed_users
 
