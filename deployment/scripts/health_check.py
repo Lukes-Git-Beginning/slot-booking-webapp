@@ -58,7 +58,9 @@ def check_service(name, command):
 def check_http_endpoint():
     """Check if Flask app responds"""
     try:
-        response = requests.get("http://127.0.0.1:5000/health", timeout=5)
+        # Use env var or default to localhost
+        health_url = os.getenv("HEALTH_CHECK_URL", "http://127.0.0.1:5000/health")
+        response = requests.get(health_url, timeout=5)
         return response.status_code == 200, response.status_code
     except Exception as e:
         return False, str(e)

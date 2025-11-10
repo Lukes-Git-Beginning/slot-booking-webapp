@@ -189,5 +189,6 @@ def is_rate_limited(key: str, limit: int, window: int = 60) -> bool:
     # Use limiter's internal check
     try:
         return _limiter.test(key)
-    except:
+    except (AttributeError, RuntimeError) as e:
+        # Rate limiter nicht initialisiert oder Redis-Problem
         return False

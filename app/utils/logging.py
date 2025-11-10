@@ -120,8 +120,9 @@ class StructuredLogger:
                     "ip": request.remote_addr,
                     "request_id": request_id or getattr(g, "request_id", None)
                 }
-        except:
-            pass  # Flask-Kontext nicht verfügbar
+        except (RuntimeError, AttributeError):
+            # Flask-Kontext nicht verfügbar (außerhalb Request-Lifecycle)
+            pass
         
         # Performance-Metriken
         if duration_ms is not None:

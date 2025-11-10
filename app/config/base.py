@@ -20,8 +20,10 @@ class Config:
     CENTRAL_CALENDAR_ID: str = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
     SCOPES: List[str] = ["https://www.googleapis.com/auth/calendar"]
 
-    # Datenbank/Persistenz
-    PERSIST_BASE: str = os.getenv("PERSIST_BASE", "/opt/render/project/src/persist")
+    # Datenbank/Persistenz (Auto-detect: Check VPS, dann Local fallback)
+    PERSIST_BASE: str = os.getenv("PERSIST_BASE") or (
+        "/opt/business-hub/data" if os.path.exists("/opt/business-hub/data") else "data"
+    )
 
     # Benutzer-Management
     USERLIST: str = os.getenv("USERLIST", "")

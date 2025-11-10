@@ -327,7 +327,7 @@ def register_template_context(app: Flask) -> None:
         if isinstance(dt, str):
             try:
                 dt = datetime.fromisoformat(dt)
-            except:
+            except (ValueError, TypeError):
                 return dt
         return dt.strftime('%d.%m.%Y %H:%M')
 
@@ -337,7 +337,7 @@ def register_template_context(app: Flask) -> None:
         if isinstance(dt, str):
             try:
                 dt = datetime.fromisoformat(dt)
-            except:
+            except (ValueError, TypeError):
                 return dt
         return dt.strftime('%d.%m.%Y')
 
@@ -422,7 +422,7 @@ def get_admin_users():
     try:
         from app.config.base import Config
         return Config.get_admin_users()
-    except:
+    except (ImportError, AttributeError):
         return ['admin', 'Jose', 'Simon', 'Alex', 'David']  # Fallback
 
 
@@ -507,13 +507,16 @@ def get_available_tools():
 
 
 def get_tool_user_count(tool_id: str) -> int:
-    """Aktive Benutzer-Anzahl für Tool ermitteln"""
-    # Hier würde später echte User-Activity-Tracking implementiert
-    if tool_id == 'slots':
-        return 25  # Dummy-Wert
-    elif tool_id == 't2':
-        return 8   # Dummy-Wert
-    return 0
+    """Aktive Benutzer-Anzahl für Tool ermitteln (zählt User mit Tool-Zugriff)"""
+    try:
+        from app.config.base import Config
+        all_users = Config.get_all_users()
+        # Zähle User die Zugriff auf dieses Tool haben
+        count = sum(1 for user in all_users if user_has_tool_access(user, tool_id))
+        return count
+    except (ImportError, AttributeError):
+        # Fallback auf geschätzte Werte wenn Config nicht verfügbar
+        return 0
 
 
 def user_has_tool_access(username: str, tool_id: str) -> bool:

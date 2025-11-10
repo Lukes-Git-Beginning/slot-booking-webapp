@@ -729,7 +729,8 @@ def is_admin_user(username: str) -> bool:
         from app.config.base import Config
         admin_users = Config.get_admin_users()
         return username in admin_users
-    except:
+    except (ImportError, AttributeError) as e:
+        # Fallback auf hardcoded Admin-Liste
         return username in ['admin', 'Jose', 'Simon', 'Alex', 'David']
 
 

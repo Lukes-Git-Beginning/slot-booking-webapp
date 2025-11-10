@@ -340,7 +340,7 @@ def is_maintenance_mode() -> bool:
         import os
         maintenance_file = os.path.join(os.getcwd(), '.maintenance')
         return os.path.exists(maintenance_file)
-    except:
+    except (OSError, IOError):
         return False
 
 
@@ -349,7 +349,8 @@ def is_development_mode() -> bool:
     try:
         from flask import current_app
         return current_app.debug or current_app.config.get('ENV') == 'development'
-    except:
+    except (RuntimeError, AttributeError):
+        # Kein App-Context verfügbar
         return False
 
 
