@@ -7,7 +7,16 @@ Processes weekly points rollover and resets
 
 import sys
 import os
+import logging
 from datetime import datetime
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # Add project root to Python path (works from /opt/business-hub/scripts/)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +28,7 @@ os.chdir(project_root)
 def main():
     """Process weekly reset for all users"""
     try:
-        print(f"[{datetime.now().isoformat()}] Starting weekly reset...")
+        logger.info("Starting weekly reset...")
 
         # Create Flask app context
         from app import create_app
@@ -31,10 +40,10 @@ def main():
 
             # Get all users
             users = Config.get_all_users()
-            print(f"Processing weekly reset for {len(users)} users...")
+            logger.info(f"Processing weekly reset for {len(users)} users...")
 
             if not users:
-                print("WARNING: No users found. Check USERLIST environment variable.")
+                logger.warning("No users found. Check USERLIST environment variable.")
                 return 0
 
             success_count = 0
@@ -45,23 +54,23 @@ def main():
                     # Process weekly reset
                     weekly_points.process_weekly_reset(user)
                     success_count += 1
-                    print(f"✓ {user}: Weekly reset completed")
+                    logger.info(f"✓ {user}: Weekly reset completed")
                 except Exception as e:
                     error_count += 1
-                    print(f"✗ {user}: Error - {e}")
+                    logger.error(f"✗ {user}: Error - {e}")
 
-            print(f"\n📊 Weekly Reset Summary:")
-            print(f"   Success: {success_count}")
-            print(f"   Errors: {error_count}")
-            print(f"   Total: {len(users)}")
-            print(f"[{datetime.now().isoformat()}] Weekly reset completed")
+            logger.info("=" * 50)
+            logger.info("Weekly Reset Summary:")
+            logger.info(f"  Success: {success_count}")
+            logger.info(f"  Errors: {error_count}")
+            logger.info(f"  Total: {len(users)}")
+            logger.info("=" * 50)
+            logger.info("Weekly reset completed")
 
             return 0 if error_count == 0 else 1
 
     except Exception as e:
-        print(f"[{datetime.now().isoformat()}] FATAL ERROR: Weekly reset failed: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.critical(f"FATAL ERROR: Weekly reset failed: {e}", exc_info=True)
         return 1
 
 if __name__ == "__main__":

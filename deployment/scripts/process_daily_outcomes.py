@@ -7,7 +7,16 @@ Processes daily outcomes, no-shows, and updates user statistics
 
 import sys
 import os
+import logging
 from datetime import datetime, timedelta
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # Add project root to Python path (works from /opt/business-hub/scripts/)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +28,7 @@ os.chdir(project_root)
 def main():
     """Process daily outcomes and statistics"""
     try:
-        print(f"[{datetime.now().isoformat()}] Starting daily outcome check...")
+        logger.info("Starting daily outcome check...")
 
         # Create Flask app context
         from app import create_app
@@ -32,21 +41,21 @@ def main():
             # Initialize services
             try:
                 calendar_service = GoogleCalendarService()
-                print("✓ Google Calendar service initialized")
+                logger.info("✓ Google Calendar service initialized")
             except Exception as e:
-                print(f"WARNING: Google Calendar not configured: {e}")
+                logger.warning(f"Google Calendar not configured: {e}")
                 return 0
 
             # Process yesterday's outcomes
             yesterday = datetime.now() - timedelta(days=1)
-            print(f"Processing outcomes for: {yesterday.strftime('%Y-%m-%d')}")
+            logger.info(f"Processing outcomes for: {yesterday.strftime('%Y-%m-%d')}")
 
             # Get all consultants
             try:
                 consultants = ConsultantConfig.get_consultants()
-                print(f"✓ Loaded {len(consultants)} consultants")
+                logger.info(f"✓ Loaded {len(consultants)} consultants")
             except Exception as e:
-                print(f"WARNING: Could not load consultants: {e}")
+                logger.warning(f"Could not load consultants: {e}")
                 consultants = {}
 
             total_no_shows = 0
@@ -69,33 +78,33 @@ def main():
                         if any(keyword in summary for keyword in ['ghost', 'abgesagt', 'verschoben', 'nicht erschienen']):
                             total_no_shows += 1
                             event_time = event.get('start', {}).get('dateTime', 'Unknown')
-                            print(f"  No-Show: {event.get('summary', 'Unknown')} at {event_time}")
+                            logger.info(f"  No-Show: {event.get('summary', 'Unknown')} at {event_time}")
 
-                    print(f"  {consultant_name}: {consultant_events} events")
+                    logger.info(f"  {consultant_name}: {consultant_events} events")
 
                 except Exception as e:
-                    print(f"✗ Error processing outcomes for {consultant_name}: {e}")
+                    logger.error(f"✗ Error processing outcomes for {consultant_name}: {e}")
 
             # Calculate no-show rate
             if total_events > 0:
                 no_show_rate = (total_no_shows / total_events) * 100
-                print(f"\n📊 Daily Statistics:")
-                print(f"   Total Events: {total_events}")
-                print(f"   No-Shows: {total_no_shows}")
-                print(f"   No-Show Rate: {no_show_rate:.2f}%")
+                logger.info("=" * 50)
+                logger.info("Daily Statistics:")
+                logger.info(f"  Total Events: {total_events}")
+                logger.info(f"  No-Shows: {total_no_shows}")
+                logger.info(f"  No-Show Rate: {no_show_rate:.2f}%")
+                logger.info("=" * 50)
 
                 if no_show_rate > 50:
-                    print(f"⚠️  ALERT: High no-show rate: {no_show_rate:.2f}%")
+                    logger.warning(f"ALERT: High no-show rate: {no_show_rate:.2f}%")
             else:
-                print("ℹ️  No events found for yesterday")
+                logger.info("No events found for yesterday")
 
-            print(f"[{datetime.now().isoformat()}] Daily outcome check completed")
+            logger.info("Daily outcome check completed")
             return 0
 
     except Exception as e:
-        print(f"[{datetime.now().isoformat()}] FATAL ERROR: Daily outcome check failed: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.critical(f"FATAL ERROR: Daily outcome check failed: {e}", exc_info=True)
         return 1
 
 if __name__ == "__main__":

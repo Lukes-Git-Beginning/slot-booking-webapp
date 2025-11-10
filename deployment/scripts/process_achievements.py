@@ -7,7 +7,16 @@ Processes daily achievements and badges for all users
 
 import sys
 import os
+import logging
 from datetime import datetime
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # Add project root to Python path (works from /opt/business-hub/scripts/)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +28,7 @@ os.chdir(project_root)
 def main():
     """Process achievements for all users"""
     try:
-        print(f"[{datetime.now().isoformat()}] Starting achievement processing...")
+        logger.info("Starting achievement processing...")
 
         # Create Flask app context
         from app import create_app
@@ -30,18 +39,18 @@ def main():
             from app.config.base import Config
 
             # Auto-check MVP badges
-            print("Checking MVP badges...")
+            logger.info("Checking MVP badges...")
             try:
                 achievement_system.auto_check_mvp_badges()
             except Exception as e:
-                print(f"MVP badge check warning: {e}")
+                logger.warning(f"MVP badge check warning: {e}")
 
             # Get all users
             users = Config.get_all_users()
-            print(f"Processing achievements for {len(users)} users...")
+            logger.info(f"Processing achievements for {len(users)} users...")
 
             if not users:
-                print("WARNING: No users found. Check USERLIST environment variable.")
+                logger.warning("No users found. Check USERLIST environment variable.")
                 return 0
 
             total_new_badges = 0
@@ -50,20 +59,20 @@ def main():
                     new_badges = achievement_system.process_user_achievements(user)
                     if new_badges:
                         badge_names = ', '.join([b.get('name', 'Unknown') for b in new_badges])
-                        print(f"✓ {user} earned {len(new_badges)} new badges: {badge_names}")
+                        logger.info(f"✓ {user} earned {len(new_badges)} new badges: {badge_names}")
                         total_new_badges += len(new_badges)
                     else:
-                        print(f"  {user}: No new badges")
+                        logger.debug(f"{user}: No new badges")
                 except Exception as e:
-                    print(f"✗ Error processing achievements for {user}: {e}")
+                    logger.error(f"✗ Error processing achievements for {user}: {e}")
 
-            print(f"[{datetime.now().isoformat()}] Achievement processing completed: {total_new_badges} badges awarded")
+            logger.info("=" * 50)
+            logger.info(f"Achievement processing completed: {total_new_badges} badges awarded")
+            logger.info("=" * 50)
             return 0
 
     except Exception as e:
-        print(f"[{datetime.now().isoformat()}] FATAL ERROR: Achievement processing failed: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.critical(f"FATAL ERROR: Achievement processing failed: {e}", exc_info=True)
         return 1
 
 if __name__ == "__main__":

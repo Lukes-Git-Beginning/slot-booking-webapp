@@ -157,12 +157,54 @@ def health_check():
             'message': f'Could not check resources: {str(e)}'
         }
 
+    # 7. Sentry Error Tracking Check
+    try:
+        sentry_dsn = os.environ.get('SENTRY_DSN')
+        if sentry_dsn:
+            checks['sentry'] = {
+                'status': 'healthy',
+                'message': 'Sentry error tracking enabled',
+                'configured': True
+            }
+        else:
+            checks['sentry'] = {
+                'status': 'info',
+                'message': 'Sentry not configured (optional)',
+                'configured': False
+            }
+    except Exception as e:
+        checks['sentry'] = {
+            'status': 'unknown',
+            'message': f'Sentry check failed: {str(e)}'
+        }
+
+    # 8. Google Calendar API Quota Check
+    try:
+        cal_service = GoogleCalendarService()
+        if cal_service.service:
+            quota_used = cal_service._daily_quota_used
+            quota_limit = cal_service._quota_limit
+            quota_pct = (quota_used / quota_limit * 100) if quota_limit > 0 else 0
+
+            checks['calendar_quota'] = {
+                'status': 'healthy' if quota_pct < 80 else 'warning',
+                'message': f'{quota_used}/{quota_limit} requests used ({quota_pct:.1f}%)',
+                'quota_used': quota_used,
+                'quota_limit': quota_limit,
+                'quota_percent': round(quota_pct, 2)
+            }
+    except Exception as e:
+        checks['calendar_quota'] = {
+            'status': 'unknown',
+            'message': f'Could not check quota: {str(e)}'
+        }
+
     # Build response
     response = {
         'status': 'healthy' if overall_healthy else 'unhealthy',
         'timestamp': datetime.utcnow().isoformat() + 'Z',
         'checks': checks,
-        'version': '3.2.0',  # Business Tool Hub version
+        'version': '3.3.6',  # Business Tool Hub version
         'uptime': get_uptime()
     }
 
