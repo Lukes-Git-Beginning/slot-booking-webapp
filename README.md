@@ -43,6 +43,7 @@ Eine professionelle Multi-Tool-Plattform mit Slot-Booking, T2-Closer-System, Gam
 - **Reschedule-Modal**: Vollständige Umbuchungs-Funktionalität mit dynamischen Zeitslots
 - **Performance-Dashboards**: Echtzeit-KPI-Überwachung
 - **Team-Analytics**: Vergleichende Leistungsanalyse zwischen Beratern
+- **Professional PDF Reports**: Executive Reports mit vollständigem Team-Overview, deutscher Übersetzung und ZFA-Branding
 
 ### 🎨 Anpassung & Personalisierung
 - **Cosmetics Shop**: Vollständiger Marktplatz mit Titeln, Themes, Avataren und Effekten
@@ -568,6 +569,18 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 ```
 
 ## 📝 Changelog
+
+### v3.3.7 - Professional PDF Reports & T2 Analytics (LIVE - 2025-11-12)
+- ✅ **PDF Telefonie-System komplett überarbeitet**:
+  - **Vollständige Team-Übersicht**: ALLE Telefonisten werden angezeigt (High/Medium/Low Performer)
+  - **Deutsche Übersetzung**: ~50 englische Textstellen auf Deutsch übersetzt
+  - **ZFA-Branding**: Modernes Design mit Gold (#d4af6a) und ZFA-Blau (#207487)
+  - **Design-Verbesserungen**: Größere Schriften (Title: 28pt), besseres Padding (12px), dickere Grid-Linien
+  - **Professioneller Footer**: Goldene Trennlinie + ZFA-Branding
+  - **Farbcodierung**: Grün (Top-Leister), Blau (Solide Leister), Rot (Entwicklungspotenzial)
+  - **Maßnahmen-Bereich entfernt**: Fokus auf Performance-Daten
+- ✅ **T2 Analytics Dashboard**: ApexCharts-Integration für Team-Visualisierungen
+- ✅ **Dateien**: `app/routes/admin/reports.py`, `app/services/executive_reports.py`
 
 ### v3.3.6 - Pagination System & Critical Bugfixes (LIVE - 2025-11-05)
 - ✅ **Pagination-System für 4,800+ Events**:
