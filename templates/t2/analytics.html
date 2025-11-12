@@ -1,0 +1,272 @@
+{% extends "t2/base.html" %}
+
+{% block title %}Meine Analytics{% endblock %}
+
+{% block content %}
+<!-- Analytics Dashboard mit ZFA Branding -->
+<div class="min-h-screen p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8" data-aos="fade-down">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-4xl font-bold text-primary flex items-center gap-3">
+            <i data-lucide="bar-chart-3" class="w-10 h-10"></i>
+            Meine Analytics
+          </h1>
+          <p class="text-base-content/70 mt-2">Deine persönliche Übersicht über Würfel-Historie und Aktivitäten</p>
+        </div>
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-ghost">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          Zurück zum T2
+        </a>
+      </div>
+    </div>
+
+    <!-- Combined Stats - Quick Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up">
+      <!-- T1 Slots -->
+      <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+        <div class="flex items-center justify-between mb-3">
+          <i data-lucide="calendar-check" class="w-8 h-8 text-green-400"></i>
+          <span class="text-2xl font-bold text-primary">{{ combined_stats.t1_slots.total }}</span>
+        </div>
+        <h3 class="text-sm font-semibold text-base-content/80">T1 Slot-Buchungen</h3>
+        <p class="text-xs text-base-content/60 mt-1">{{ combined_stats.t1_slots.this_week }} diese Woche</p>
+      </div>
+
+      <!-- T2 Buchungen -->
+      <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+        <div class="flex items-center justify-between mb-3">
+          <i data-lucide="user-check" class="w-8 h-8 text-blue-400"></i>
+          <span class="text-2xl font-bold text-primary">{{ combined_stats.t2_bookings.total }}</span>
+        </div>
+        <h3 class="text-sm font-semibold text-base-content/80">T2-Termine</h3>
+        <p class="text-xs text-base-content/60 mt-1">{{ combined_stats.t2_bookings.this_week }} diese Woche</p>
+      </div>
+
+      <!-- Würfel-Aktivität -->
+      <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+        <div class="flex items-center justify-between mb-3">
+          <i data-lucide="dices" class="w-8 h-8 text-purple-400"></i>
+          <span class="text-2xl font-bold text-primary">{{ draw_stats.total_draws }}</span>
+        </div>
+        <h3 class="text-sm font-semibold text-base-content/80">Würfe Gesamt</h3>
+        <p class="text-xs text-base-content/60 mt-1">{{ draw_stats.this_week }} diese Woche</p>
+      </div>
+
+      <!-- Total Activity -->
+      <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform duration-300 border-2 border-primary/30">
+        <div class="flex items-center justify-between mb-3">
+          <i data-lucide="activity" class="w-8 h-8 text-primary"></i>
+          <span class="text-2xl font-bold text-primary">{{ combined_stats.combined.total_activities }}</span>
+        </div>
+        <h3 class="text-sm font-semibold text-base-content/80">Gesamt-Aktivität</h3>
+        <p class="text-xs text-base-content/60 mt-1">{{ combined_stats.combined.this_week_activities }} diese Woche</p>
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="glass rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="100">
+      <h2 class="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+        <i data-lucide="external-link" class="w-6 h-6"></i>
+        Quick Links
+      </h2>
+      <div class="grid grid-cols-1 gap-4">
+        <!-- My Calendar (T1 Slots) -->
+        <a href="/slots/my-calendar" class="group glass rounded-xl p-5 hover:border-primary/50 border-2 border-transparent transition-all duration-300 hover:scale-105">
+          <div class="flex items-center gap-4">
+            <div class="p-3 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
+              <i data-lucide="calendar-days" class="w-8 h-8 text-green-400"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-base-content group-hover:text-primary transition-colors">My Calendar</h3>
+              <p class="text-sm text-base-content/60">Kanban-Board mit T1-Slot-Buchungen und Status-Management</p>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Würfel-Historie Section -->
+    <div class="glass rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="200">
+      <h2 class="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+        <i data-lucide="history" class="w-7 h-7"></i>
+        Würfel-Historie
+      </h2>
+
+      <!-- Filter & Search Bar -->
+      <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4" x-data="{ searchQuery: '', closerFilter: 'all', startDate: '', endDate: '' }">
+        <!-- Search -->
+        <div class="md:col-span-2">
+          <label class="label">
+            <span class="label-text">Suche nach Kunde/Closer</span>
+          </label>
+          <div class="relative">
+            <input type="text"
+                   x-model="searchQuery"
+                   @input.debounce.500ms="filterDraws()"
+                   placeholder="Kundenname oder Closer..."
+                   class="input input-bordered w-full pl-10">
+            <i data-lucide="search" class="w-5 h-5 absolute left-3 top-3.5 text-base-content/50"></i>
+          </div>
+        </div>
+
+        <!-- Closer Filter -->
+        <div>
+          <label class="label">
+            <span class="label-text">Closer</span>
+          </label>
+          <select x-model="closerFilter" @change="filterDraws()" class="select select-bordered w-full">
+            <option value="all">Alle Closer</option>
+            <option value="Alex">Alexander</option>
+            <option value="David">David</option>
+            <option value="Jose">José</option>
+          </select>
+        </div>
+
+        <!-- Date Range -->
+        <div>
+          <label class="label">
+            <span class="label-text">Zeitraum</span>
+          </label>
+          <select @change="handleDateRange($event)" class="select select-bordered w-full">
+            <option value="all">Alle</option>
+            <option value="week">Letzte Woche</option>
+            <option value="month">Letzter Monat</option>
+            <option value="90days">Letzte 90 Tage</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Historie Tabelle -->
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th class="text-base-content/80">Datum</th>
+              <th class="text-base-content/80">Uhrzeit</th>
+              <th class="text-base-content/80">Kunde</th>
+              <th class="text-base-content/80">Closer</th>
+              <th class="text-base-content/80">Bucket</th>
+              <th class="text-base-content/80">Type</th>
+            </tr>
+          </thead>
+          <tbody id="draw-history-body">
+            <!-- Loading State -->
+            <tr>
+              <td colspan="6" class="text-center py-8">
+                <div class="flex items-center justify-center gap-3">
+                  <span class="loading loading-spinner loading-md text-primary"></span>
+                  <span class="text-base-content/60">Lade Historie...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between mt-6">
+        <div class="text-sm text-base-content/60">
+          Zeige <span id="pagination-info">0</span> Einträge
+        </div>
+        <div class="join" id="pagination-controls">
+          <!-- Pagination buttons werden via JS generiert -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Closer Distribution (Pie Chart) -->
+      <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+        <h3 class="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+          <i data-lucide="pie-chart" class="w-6 h-6"></i>
+          Closer-Verteilung
+        </h3>
+        <div id="chart-closer-distribution" class="h-80"></div>
+      </div>
+
+      <!-- Draw Timeline (Line Chart) -->
+      <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="400">
+        <h3 class="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+          <i data-lucide="trending-up" class="w-6 h-6"></i>
+          Würfel-Timeline (30 Tage)
+        </h3>
+        <div id="chart-draw-timeline" class="h-80"></div>
+      </div>
+    </div>
+
+    <!-- Additional Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" data-aos="fade-up" data-aos-delay="500">
+      <!-- Favoriten-Closer -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="star" class="w-6 h-6 text-yellow-400"></i>
+          <h3 class="text-lg font-semibold text-base-content/80">Favoriten-Closer</h3>
+        </div>
+        <p class="text-2xl font-bold text-primary">{{ draw_stats.favorite_closer or 'N/A' }}</p>
+        <p class="text-sm text-base-content/60 mt-1">Am häufigsten gewürfelt</p>
+      </div>
+
+      <!-- Average per Week -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="trending-up" class="w-6 h-6 text-green-400"></i>
+          <h3 class="text-lg font-semibold text-base-content/80">Durchschnitt/Woche</h3>
+        </div>
+        <p class="text-2xl font-bold text-primary">{{ draw_stats.average_per_week }}</p>
+        <p class="text-sm text-base-content/60 mt-1">Würfe pro Woche</p>
+      </div>
+
+      <!-- Last Draw -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="clock" class="w-6 h-6 text-blue-400"></i>
+          <h3 class="text-lg font-semibold text-base-content/80">Letzter Wurf</h3>
+        </div>
+        {% if draw_stats.last_draw %}
+          <p class="text-lg font-bold text-primary">{{ draw_stats.last_draw.closer }}</p>
+          <p class="text-sm text-base-content/60 mt-1">{{ draw_stats.last_draw.formatted }}</p>
+        {% else %}
+          <p class="text-lg text-base-content/60">Noch keine Würfe</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ApexCharts -->
+<script src="{{ url_for('static', filename='js/apexcharts.min.js') }}"></script>
+
+<!-- T2 Analytics JavaScript -->
+<script src="{{ url_for('static', filename='js/t2_analytics.js') }}"></script>
+
+<script>
+  // Initialize with server-side data
+  const initialDrawStats = {{ draw_stats | tojson | safe }};
+  const initialCombinedStats = {{ combined_stats | tojson | safe }};
+
+  // Initialize Analytics Dashboard
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Initialize AOS
+    AOS.init({
+      duration: 800,
+      easing: 'ease-in-out',
+      once: true
+    });
+
+    // Initialize T2 Analytics
+    if (typeof T2Analytics !== 'undefined') {
+      T2Analytics.init(initialDrawStats, initialCombinedStats);
+    }
+  });
+</script>
+
+{% endblock %}

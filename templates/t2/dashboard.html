@@ -20,9 +20,9 @@
 
 <!-- Quick Navigation -->
 <div class="flex gap-4 mb-8 flex-wrap" data-aos="fade-up" data-aos-delay="100">
-    <a href="{{ url_for('t2.stats_page') }}" class="btn btn-primary gap-2">
-        <i data-lucide="bar-chart" class="w-5 h-5"></i>
-        Statistiken
+    <a href="{{ url_for('t2.my_analytics') }}" class="btn btn-primary gap-2 border-2 border-primary/50">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        Meine Analytics
     </a>
     {% if is_admin %}
     <a href="{{ url_for('t2.admin_bucket_config') }}" class="btn btn-warning gap-2">

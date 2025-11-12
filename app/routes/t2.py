@@ -49,6 +49,7 @@ T2_CONFIG = {
 
 from app.utils.decorators import require_login
 from app.utils.rate_limiting import rate_limit_t2, rate_limit_api
+from app.services.t2_analytics_service import t2_analytics_service
 
 # ========== HAUPTROUTEN ==========
 
@@ -150,19 +151,18 @@ def calendar_view():
                          **calendar_data)
 
 
-@t2_bp.route("/stats")
-@require_login
-def stats_page():
-    """T2-Statistiken"""
-    user = session.get('user')
-    is_admin = is_admin_user(user)
-
-    stats_data = get_stats_data(user, is_admin)
-
-    return render_template('t2/stats.html',
-                         user=user,
-                         is_admin=is_admin,
-                         **stats_data)
+# DEPRECATED: Alte /stats Route wurde durch /my-analytics ersetzt
+# @t2_bp.route("/stats")
+# @require_login
+# def stats_page():
+#     """T2-Statistiken (DEPRECATED - use /my-analytics instead)"""
+#     user = session.get('user')
+#     is_admin = is_admin_user(user)
+#     stats_data = get_stats_data(user, is_admin)
+#     return render_template('t2/stats.html',
+#                          user=user,
+#                          is_admin=is_admin,
+#                          **stats_data)
 
 
 # ========== API-ENDPOINTS ==========
@@ -811,4 +811,155 @@ def api_my_upcoming_bookings():
 
     except Exception as e:
         logger.error(f"Error getting upcoming bookings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========== ANALYTICS ROUTES ==========
+
+@t2_bp.route("/my-analytics")
+@require_login
+def my_analytics():
+    """
+    Personal Analytics Hub - Würfel-Historie, Combined Stats, Quick Links
+    """
+    user = session.get('user')
+
+    # Get initial stats for page load
+    draw_stats = t2_analytics_service.get_user_draw_stats(user)
+    combined_stats = t2_analytics_service.get_combined_user_stats(user)
+
+    return render_template('t2/analytics.html',
+                         user=user,
+                         is_admin=is_admin_user(user),
+                         draw_stats=draw_stats,
+                         combined_stats=combined_stats)
+
+
+@t2_bp.route("/api/my-draw-history")
+@require_login
+def api_my_draw_history():
+    """
+    API: Get user's draw history with pagination and filters
+    Query params: limit, offset, start_date, end_date, closer
+    """
+    try:
+        user = session.get('user')
+
+        # Parse query params
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        closer_filter = request.args.get('closer')
+
+        # Get draw history
+        history = t2_analytics_service.get_user_draw_history(
+            username=user,
+            limit=limit,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+            closer_filter=closer_filter
+        )
+
+        return jsonify({
+            'success': True,
+            **history
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting draw history: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/my-draw-stats")
+@require_login
+def api_my_draw_stats():
+    """
+    API: Get aggregated draw statistics for user
+    """
+    try:
+        user = session.get('user')
+        stats = t2_analytics_service.get_user_draw_stats(user)
+
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting draw stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/combined-stats")
+@require_login
+def api_combined_stats():
+    """
+    API: Get combined statistics (T1 Slots + T2 Bookings + Draw Activity)
+    """
+    try:
+        user = session.get('user')
+        combined = t2_analytics_service.get_combined_user_stats(user)
+
+        return jsonify({
+            'success': True,
+            'stats': combined
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting combined stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/search-draws")
+@require_login
+def api_search_draws():
+    """
+    API: Search draws by customer name or closer name
+    Query params: q (query string)
+    """
+    try:
+        user = session.get('user')
+        query = request.args.get('q', '')
+
+        if not query or len(query) < 2:
+            return jsonify({
+                'success': False,
+                'error': 'Query must be at least 2 characters'
+            }), 400
+
+        results = t2_analytics_service.search_draws(user, query)
+
+        return jsonify({
+            'success': True,
+            'results': results,
+            'count': len(results)
+        })
+
+    except Exception as e:
+        logger.error(f"Error searching draws: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route("/api/draw-timeline")
+@require_login
+def api_draw_timeline():
+    """
+    API: Get draw timeline data for charts (last N days)
+    Query params: days (default: 30)
+    """
+    try:
+        user = session.get('user')
+        days = int(request.args.get('days', 30))
+
+        timeline = t2_analytics_service.get_draw_timeline_data(user, days)
+
+        return jsonify({
+            'success': True,
+            **timeline
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting draw timeline: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

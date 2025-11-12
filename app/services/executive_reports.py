@@ -112,11 +112,11 @@ class ExecutiveReports:
 
         # Traffic light logic
         if achievement_rate >= 90:
-            status = {"color": "green", "status": "Excellent", "icon": "🟢"}
+            status = {"color": "green", "status": "Ausgezeichnet", "icon": "🟢"}
         elif achievement_rate >= 70:
-            status = {"color": "yellow", "status": "Good", "icon": "🟡"}
+            status = {"color": "yellow", "status": "Gut", "icon": "🟡"}
         else:
-            status = {"color": "red", "status": "Needs Attention", "icon": "🔴"}
+            status = {"color": "red", "status": "Aufmerksamkeit erforderlich", "icon": "🔴"}
 
         return {
             "overall_status": status,
@@ -128,9 +128,9 @@ class ExecutiveReports:
                 "team_performance": status["status"]
             },
             "highlights": [
-                f"Team achieved {total_achieved} of {total_goal} points ({achievement_rate:.1f}%)",
-                f"Performance status: {status['icon']} {status['status']}",
-                f"{len([u for u in stats['users'] if u['balance'] >= 0])} of {len(stats['users'])} team members meeting/exceeding goals"
+                f"Team erreichte {total_achieved} von {total_goal} Punkten ({achievement_rate:.1f}%)",
+                f"Leistungsstatus: {status['icon']} {status['status']}",
+                f"{len([u for u in stats['users'] if u['balance'] >= 0])} von {len(stats['users'])} Teammitgliedern erfüllen/übertreffen Ziele"
             ]
         }
 
@@ -169,7 +169,7 @@ class ExecutiveReports:
                 "low_performers": len(performers["low"])
             },
             "performers": performers,
-            "team_health": "Excellent" if len(performers["low"]) == 0 else "Good" if len(performers["low"]) <= 2 else "Needs Attention"
+            "team_health": "Ausgezeichnet" if len(performers["low"]) == 0 else "Gut" if len(performers["low"]) <= 2 else "Aufmerksamkeit erforderlich"
         }
 
     def _generate_absence_analysis(self, participants: List[str], week_key: str) -> Dict:
@@ -223,7 +223,7 @@ class ExecutiveReports:
         if len(weekly_performance) >= 2:
             current_rate = weekly_performance[-1]["achievement_rate"]
             previous_rate = weekly_performance[-2]["achievement_rate"]
-            trend_direction = "improving" if current_rate > previous_rate else "declining" if current_rate < previous_rate else "stable"
+            trend_direction = "steigend" if current_rate > previous_rate else "fallend" if current_rate < previous_rate else "stabil"
             trend_change = round(current_rate - previous_rate, 1)
         else:
             trend_direction = "insufficient_data"
@@ -246,23 +246,23 @@ class ExecutiveReports:
 
         # Overall performance actions
         if achievement_rate < 70:
-            actions.append("🎯 Review team goals and adjust if necessary - current achievement rate below 70%")
-            actions.append("🗣️ Schedule individual performance discussions with underperforming team members")
+            actions.append("🎯 Teamziele überprüfen und bei Bedarf anpassen - aktuelle Erreichungsrate unter 70%")
+            actions.append("🗣️ Individuelle Leistungsgespräche mit unterdurchschnittlichen Teammitgliedern planen")
 
         # Individual performance actions
         low_performers = [u for u in stats["users"] if u["goal"] > 0 and (u["achieved"] / u["goal"] * 100) < 60]
         if low_performers:
-            actions.append(f"👥 Focus support on {len(low_performers)} team members falling significantly behind goals")
+            actions.append(f"👥 Unterstützung auf {len(low_performers)} Teammitglieder fokussieren, die deutlich hinter den Zielen zurückliegen")
 
         # High performers recognition
         high_performers = [u for u in stats["users"] if u["goal"] > 0 and (u["achieved"] / u["goal"] * 100) >= 110]
         if high_performers:
-            actions.append(f"🏆 Recognize and celebrate {len(high_performers)} high-performing team members exceeding goals")
+            actions.append(f"🏆 {len(high_performers)} Top-Leister anerkennen und feiern, die Ziele übertreffen")
 
         # Goal setting
         users_without_goals = [u for u in stats["users"] if u["goal"] == 0 and not u.get("on_vacation")]
         if users_without_goals:
-            actions.append(f"📋 Set goals for {len(users_without_goals)} team members currently without targets")
+            actions.append(f"📋 Ziele für {len(users_without_goals)} Teammitglieder festlegen, die aktuell keine Ziele haben")
 
         return actions
 
@@ -329,11 +329,11 @@ class ExecutiveReports:
 
         # Monthly status
         if achievement_rate >= 85:
-            status = {"color": "green", "status": "Excellent Month", "icon": "🟢"}
+            status = {"color": "green", "status": "Ausgezeichneter Monat", "icon": "🟢"}
         elif achievement_rate >= 70:
-            status = {"color": "yellow", "status": "Good Month", "icon": "🟡"}
+            status = {"color": "yellow", "status": "Guter Monat", "icon": "🟡"}
         else:
-            status = {"color": "red", "status": "Challenging Month", "icon": "🔴"}
+            status = {"color": "red", "status": "Herausfordernder Monat", "icon": "🔴"}
 
         return {
             "overall_status": status,
@@ -345,9 +345,9 @@ class ExecutiveReports:
                 "average_weekly_performance": round(achievement_rate, 1)
             },
             "month_highlights": [
-                f"Monthly team achievement: {total_achieved} of {total_goal} points ({achievement_rate:.1f}%)",
-                f"Performance across {monthly_stats['weeks_count']} weeks: {status['icon']} {status['status']}",
-                f"Average weekly achievement rate: {achievement_rate:.1f}%"
+                f"Monatliche Teamleistung: {total_achieved} von {total_goal} Punkten ({achievement_rate:.1f}%)",
+                f"Leistung über {monthly_stats['weeks_count']} Wochen: {status['icon']} {status['status']}",
+                f"Durchschnittliche wöchentliche Erreichungsrate: {achievement_rate:.1f}%"
             ]
         }
 
@@ -395,11 +395,11 @@ class ExecutiveReports:
 
             # Performance rating
             if achievement_rate >= 90:
-                rating = {"level": "Excellent", "icon": "🏆", "color": "green"}
+                rating = {"level": "Ausgezeichnet", "icon": "🏆", "color": "green"}
             elif achievement_rate >= 75:
-                rating = {"level": "Good", "icon": "👍", "color": "yellow"}
+                rating = {"level": "Gut", "icon": "👍", "color": "yellow"}
             else:
-                rating = {"level": "Needs Improvement", "icon": "📈", "color": "red"}
+                rating = {"level": "Verbesserungsbedarf", "icon": "📈", "color": "red"}
 
             individual_analysis[user] = {
                 "monthly_goal": goal,
@@ -419,18 +419,18 @@ class ExecutiveReports:
         return {
             "total_absence_days": 0,
             "most_absent_reason": "Urlaub",
-            "absence_impact": "Low",
-            "planning_insights": ["Consider absence patterns for future planning"]
+            "absence_impact": "Niedrig",
+            "planning_insights": ["Abwesenheitsmuster für zukünftige Planung berücksichtigen"]
         }
 
     def _generate_monthly_trends(self, year: int, month: int) -> Dict:
         """Generate monthly trends and forecasting"""
         return {
-            "trend_direction": "stable",
-            "predicted_next_month": "Similar performance expected",
+            "trend_direction": "stabil",
+            "predicted_next_month": "Ähnliche Leistung erwartet",
             "growth_opportunities": [
-                "Focus on consistency across all weeks",
-                "Support team members with variable performance"
+                "Fokus auf Konsistenz über alle Wochen",
+                "Unterstützung für Teammitglieder mit variabler Leistung"
             ]
         }
 
@@ -443,14 +443,14 @@ class ExecutiveReports:
         achievement_rate = (total_achieved / total_goal * 100) if total_goal > 0 else 0
 
         if achievement_rate < 80:
-            recommendations.append("🎯 Review and adjust monthly goal-setting process")
-            recommendations.append("📊 Implement weekly check-ins to track progress")
+            recommendations.append("🎯 Monatlichen Zielsetzungsprozess überprüfen und anpassen")
+            recommendations.append("📊 Wöchentliche Check-ins implementieren, um Fortschritt zu verfolgen")
 
         if monthly_stats["weeks_count"] < 4:
-            recommendations.append("📅 Ensure consistent goal-setting across all weeks in the month")
+            recommendations.append("📅 Konsistente Zielsetzung über alle Wochen des Monats sicherstellen")
 
-        recommendations.append("🏆 Continue recognizing high performers to maintain motivation")
-        recommendations.append("📈 Focus on supporting team members with variable performance")
+        recommendations.append("🏆 Top-Leister weiterhin anerkennen, um Motivation aufrechtzuerhalten")
+        recommendations.append("📈 Fokus auf Unterstützung von Teammitgliedern mit variabler Leistung")
 
         return recommendations
 

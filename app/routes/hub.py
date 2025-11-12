@@ -238,6 +238,18 @@ def get_user_tools(username):
             'last_used': get_tool_last_used(username, 't2')
         },
         {
+            'id': 'my-analytics',
+            'name': 'Meine Analytics',
+            'description': 'Persönliche Statistiken & Historie',
+            'lucide_icon': 'bar-chart-3',
+            'url': '/t2/my-analytics',
+            'status': 'active',
+            'users': 17,
+            'color': '#d4af6a',
+            'features': ['Würfel-Historie', 'T1/T2 Stats', 'Charts'],
+            'last_used': get_tool_last_used(username, 'my-analytics')
+        },
+        {
             'id': 'onboarding',
             'name': 'Onboarding',
             'description': 'Termin-Optionen auswählen',
@@ -514,8 +526,8 @@ def has_tool_access(username, tool_id):
         ]
         return username in allowed_users
 
-    # Standard-Benutzer haben Zugang zu Slots und T2
-    if tool_id in ['slots', 't2']:
+    # Standard-Benutzer haben Zugang zu Slots, T2 und Meine Analytics
+    if tool_id in ['slots', 't2', 'my-analytics']:
         return True
 
     # Andere Tools nur für Admins

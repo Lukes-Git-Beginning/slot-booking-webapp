@@ -107,25 +107,28 @@ def admin_export_pdf():
         elements = []
         styles = getSampleStyleSheet()
 
-        # Custom styles
+        # Custom styles mit ZFA-Branding
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=24,
+            fontSize=28,
             spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#2563eb'),
-            fontName='Helvetica-Bold'
+            textColor=colors.HexColor('#d4af6a'),  # ZFA Gold
+            fontName='Helvetica-Bold',
+            leading=34
         )
 
         heading_style = ParagraphStyle(
             'CustomHeading',
             parent=styles['Heading2'],
-            fontSize=16,
-            spaceAfter=12,
-            spaceBefore=20,
-            textColor=colors.HexColor('#1e40af'),
-            fontName='Helvetica-Bold'
+            fontSize=18,
+            spaceAfter=15,
+            spaceBefore=25,
+            textColor=colors.HexColor('#207487'),  # ZFA Blau
+            fontName='Helvetica-Bold',
+            borderPadding=(10, 5, 10, 5),
+            backColor=colors.HexColor('#f0f9ff')  # Subtiler Hintergrund
         )
 
         body_style = ParagraphStyle(
@@ -139,12 +142,12 @@ def admin_export_pdf():
 
         # Header
         elements.append(Paragraph("TELEFONIE POINTS SYSTEM", title_style))
-        elements.append(Paragraph("Administrative Summary Report", heading_style))
-        elements.append(Paragraph(f"Generated: {datetime.now(TZ).strftime('%d.%m.%Y at %H:%M')}", body_style))
+        elements.append(Paragraph("Administrativer Übersichtsbericht", heading_style))
+        elements.append(Paragraph(f"Erstellt: {datetime.now(TZ).strftime('%d.%m.%Y um %H:%M Uhr')}", body_style))
         elements.append(Spacer(1, 30))
 
         # System Overview
-        elements.append(Paragraph("📊 SYSTEM OVERVIEW", heading_style))
+        elements.append(Paragraph("📊 SYSTEMÜBERSICHT", heading_style))
 
         # Get some basic stats
         try:
@@ -164,40 +167,44 @@ def admin_export_pdf():
 
             overview_table = Table(overview_data, colWidths=[3*inch, 2*inch])
             overview_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4af6a')),  # ZFA Gold Header
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('FONTSIZE', (0, 1), (-1, -1), 11),
+                ('GRID', (0, 0), (-1, -1), 1.5, colors.HexColor('#207487')),  # ZFA Blau Grid
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafaf9')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12)
             ]))
 
             elements.append(overview_table)
             elements.append(Spacer(1, 20))
 
             # Participant List
-            elements.append(Paragraph("👥 ACTIVE PARTICIPANTS", heading_style))
+            elements.append(Paragraph("👥 AKTIVE TEILNEHMER", heading_style))
 
-            participant_text = ", ".join(participants) if participants else "No participants found"
+            participant_text = ", ".join(participants) if participants else "Keine Teilnehmer gefunden"
             elements.append(Paragraph(participant_text, body_style))
             elements.append(Spacer(1, 20))
 
         except Exception as e:
-            elements.append(Paragraph(f"Error loading system data: {str(e)}", body_style))
+            elements.append(Paragraph(f"Fehler beim Laden der Systemdaten: {str(e)}", body_style))
             elements.append(Spacer(1, 20))
 
         # System Information
-        elements.append(Paragraph("⚙️ SYSTEM INFORMATION", heading_style))
+        elements.append(Paragraph("⚙️ SYSTEMINFORMATIONEN", heading_style))
 
         system_info = [
-            "• Telefonie Points Management System",
-            "• Weekly goal tracking and performance monitoring",
-            "• Automated reporting and analytics",
-            "• Executive dashboard and insights",
-            "• Professional PDF export capabilities"
+            "• Telefonie-Punktesystem",
+            "• Wöchentliches Ziel-Tracking und Leistungsüberwachung",
+            "• Automatisierte Berichte und Analytics",
+            "• Executive Dashboard und Insights",
+            "• Professionelle PDF-Export-Funktionen"
         ]
 
         for info in system_info:
@@ -206,14 +213,14 @@ def admin_export_pdf():
         elements.append(Spacer(1, 30))
 
         # Usage Instructions
-        elements.append(Paragraph("📋 QUICK ACCESS GUIDE", heading_style))
+        elements.append(Paragraph("📋 SCHNELLZUGRIFF", heading_style))
 
         instructions = [
-            "• Use 'Weekly Executive Report' for detailed weekly analysis",
-            "• Use 'Monthly Executive Report' for comprehensive monthly overview",
-            "• Export professional PDFs using the dedicated export buttons",
-            "• Manage goals and participants in the main admin interface",
-            "• Monitor real-time progress through the dashboard"
+            "• 'Wöchentlicher Executive Report' für detaillierte Wochenanalysen",
+            "• 'Monatlicher Executive Report' für umfassende Monatsübersichten",
+            "• Professionelle PDFs über die Export-Buttons exportieren",
+            "• Ziele und Teilnehmer im Admin-Interface verwalten",
+            "• Echtzeit-Fortschritt über das Dashboard überwachen"
         ]
 
         for instruction in instructions:
@@ -223,7 +230,7 @@ def admin_export_pdf():
         elements.append(Spacer(1, 30))
         elements.append(Paragraph("―" * 50, ParagraphStyle('line', alignment=TA_CENTER)))
         elements.append(Paragraph(
-            f"Report generated on {datetime.now(TZ).strftime('%d.%m.%Y at %H:%M')} | Telefonie Points Management System",
+            f"Bericht erstellt am {datetime.now(TZ).strftime('%d.%m.%Y um %H:%M Uhr')} | Telefonie-Punktesystem",
             ParagraphStyle('footer', fontSize=9, alignment=TA_CENTER, textColor=colors.HexColor('#6b7280'))
         ))
 
@@ -291,13 +298,13 @@ def admin_telefonie_export_report(report_type):
         if report_type == "weekly":
             week = request.args.get("week")
             report = reports.generate_weekly_executive_report(week)
-            title = f"Weekly Executive Report - Week {report['meta']['week']}"
+            title = f"Wöchentlicher Executive Report - Woche {report['meta']['week']}"
             filename_prefix = "weekly_executive"
         elif report_type == "monthly":
             year = request.args.get("year", type=int)
             month = request.args.get("month", type=int)
             report = reports.generate_monthly_executive_report(year, month)
-            title = f"Monthly Executive Report - {report['meta']['month_name']}"
+            title = f"Monatlicher Executive Report - {report['meta']['month_name']}"
             filename_prefix = "monthly_executive"
         else:
             flash("Ungültiger Report-Typ", "danger")
@@ -317,34 +324,37 @@ def admin_telefonie_export_report(report_type):
         elements = []
         styles = getSampleStyleSheet()
 
-        # Custom styles for professional appearance
+        # Custom styles for professional appearance mit ZFA-Branding
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=24,
+            fontSize=28,
             spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#2563eb'),
-            fontName='Helvetica-Bold'
+            textColor=colors.HexColor('#d4af6a'),  # ZFA Gold
+            fontName='Helvetica-Bold',
+            leading=34
         )
 
         heading_style = ParagraphStyle(
             'CustomHeading',
             parent=styles['Heading2'],
-            fontSize=16,
-            spaceAfter=12,
-            spaceBefore=20,
-            textColor=colors.HexColor('#1e40af'),
-            fontName='Helvetica-Bold'
+            fontSize=18,
+            spaceAfter=15,
+            spaceBefore=25,
+            textColor=colors.HexColor('#207487'),  # ZFA Blau
+            fontName='Helvetica-Bold',
+            borderPadding=(10, 5, 10, 5),
+            backColor=colors.HexColor('#f0f9ff')
         )
 
         subheading_style = ParagraphStyle(
             'CustomSubheading',
             parent=styles['Heading3'],
             fontSize=14,
-            spaceAfter=10,
-            spaceBefore=15,
-            textColor=colors.HexColor('#374151'),
+            spaceAfter=12,
+            spaceBefore=18,
+            textColor=colors.HexColor('#294c5d'),  # ZFA Dunkelblau
             fontName='Helvetica-Bold'
         )
 
@@ -369,11 +379,11 @@ def admin_telefonie_export_report(report_type):
         # Header with company branding
         elements.append(Paragraph("TELEFONIE POINTS SYSTEM", title_style))
         elements.append(Paragraph(title, heading_style))
-        elements.append(Paragraph(f"Generated: {report['meta']['generated_at']}", body_style))
+        elements.append(Paragraph(f"Erstellt: {report['meta']['generated_at']}", body_style))
         elements.append(Spacer(1, 20))
 
         # Executive Summary Section
-        elements.append(Paragraph("📊 EXECUTIVE SUMMARY", heading_style))
+        elements.append(Paragraph("📊 ZUSAMMENFASSUNG", heading_style))
 
         summary = report['executive_summary']
         status = summary['overall_status']
@@ -387,131 +397,190 @@ def admin_telefonie_export_report(report_type):
         ]
 
         status_table = Table(status_data, colWidths=[2.5*inch, 2.5*inch])
+
+        # Dynamische Farbe basierend auf Status
+        if status['color'] == 'green':
+            status_bg = colors.HexColor('#10b981')
+            status_text = colors.white
+        elif status['color'] == 'yellow':
+            status_bg = colors.HexColor('#f59e0b')
+            status_text = colors.white
+        else:
+            status_bg = colors.HexColor('#ef4444')
+            status_text = colors.white
+
         status_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#374151')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4af6a')),  # ZFA Gold
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            # Status-Zeile mit dynamischer Farbe
+            ('BACKGROUND', (0, 1), (-1, 1), status_bg),
+            ('TEXTCOLOR', (0, 1), (-1, 1), status_text),
+            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+            # Rest
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTNAME', (0, 2), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
+            ('GRID', (0, 0), (-1, -1), 1.5, colors.HexColor('#207487')),  # ZFA Blau Grid
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+            ('ROWBACKGROUNDS', (0, 2), (-1, -1), [colors.white, colors.HexColor('#fafaf9')]),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12)
         ]))
 
         elements.append(status_table)
         elements.append(Spacer(1, 15))
 
         # Key Highlights
-        elements.append(Paragraph("Key Highlights:", subheading_style))
+        elements.append(Paragraph("Wichtigste Kennzahlen:", subheading_style))
         for highlight in summary['highlights']:
             elements.append(Paragraph(f"• {highlight}", body_style))
         elements.append(Spacer(1, 20))
 
         # Performance Overview Section
         if 'performance_overview' in report:
-            elements.append(Paragraph("👥 TEAM PERFORMANCE", heading_style))
+            elements.append(Paragraph("👥 TEAMLEISTUNG", heading_style))
 
             perf = report['performance_overview']
             dist = perf['team_distribution']
 
             # Performance distribution table
             perf_data = [
-                ['Performance Level', 'Team Members', 'Percentage'],
-                ['🏆 High Performers (90%+)', str(dist['high_performers']), f"{(dist['high_performers']/report['meta']['total_participants']*100):.0f}%"],
-                ['👍 Medium Performers (70-89%)', str(dist['medium_performers']), f"{(dist['medium_performers']/report['meta']['total_participants']*100):.0f}%"],
-                ['📈 Developing (< 70%)', str(dist['low_performers']), f"{(dist['low_performers']/report['meta']['total_participants']*100):.0f}%"]
+                ['Leistungsstufe', 'Teammitglieder', 'Prozent'],
+                ['🏆 Top-Leister (90%+)', str(dist['high_performers']), f"{(dist['high_performers']/report['meta']['total_participants']*100):.0f}%"],
+                ['👍 Solide Leister (70-89%)', str(dist['medium_performers']), f"{(dist['medium_performers']/report['meta']['total_participants']*100):.0f}%"],
+                ['📈 Entwicklungspotenzial (< 70%)', str(dist['low_performers']), f"{(dist['low_performers']/report['meta']['total_participants']*100):.0f}%"]
             ]
 
             perf_table = Table(perf_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
             perf_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4af6a')),  # ZFA Gold Header
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
+                ('GRID', (0, 0), (-1, -1), 1.5, colors.HexColor('#207487')),  # ZFA Blau Grid
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')])
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafaf9')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12)
             ]))
 
             elements.append(perf_table)
             elements.append(Spacer(1, 15))
 
-            elements.append(Paragraph(f"Team Health Assessment: <b>{perf['team_health']}</b>", highlight_style))
+            elements.append(Paragraph(f"Team-Gesundheit: <b>{perf['team_health']}</b>", highlight_style))
             elements.append(Spacer(1, 20))
 
-        # Individual Performance Details
+        # Individual Performance Details - VOLLSTÄNDIGE TEAM-ÜBERSICHT (alle Telefonisten)
         if 'performers' in report.get('performance_overview', {}):
-            elements.append(Paragraph("Individual Performance Breakdown:", subheading_style))
+            elements.append(Paragraph("Individuelle Leistungsübersicht:", subheading_style))
 
             performers = report['performance_overview']['performers']
 
-            # High Performers
-            if performers['high']:
-                elements.append(Paragraph("🏆 High Performers:", subheading_style))
-                high_data = [['Name', 'Goal', 'Achieved', 'Rate']]
-                for p in performers['high']:
-                    high_data.append([p['name'], str(p['goal']), str(p['achieved']), f"{p['rate']}%"])
+            # NEUE SEKTION: Vollständige Team-Tabelle mit ALLEN Telefonisten
+            # Kombiniere High, Medium & Low Performer in EINER Tabelle
+            all_team_members = []
 
-                high_table = Table(high_data, colWidths=[1.5*inch, 1*inch, 1*inch, 1*inch])
-                high_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#059669')),
+            # High Performers (90%+)
+            for p in performers['high']:
+                all_team_members.append((p, '🏆 Top', 'high'))
+
+            # Medium Performers (70-89%) - JETZT AUCH ANGEZEIGT!
+            for p in performers['medium']:
+                all_team_members.append((p, '👍 Gut', 'medium'))
+
+            # Low Performers (<70%)
+            for p in performers['low']:
+                all_team_members.append((p, '📈 Entwicklung', 'low'))
+
+            # Sortiere nach Achievement Rate (absteigend)
+            all_team_members.sort(key=lambda x: x[0]['rate'], reverse=True)
+
+            if all_team_members:
+                elements.append(Paragraph("👥 VOLLSTÄNDIGE TEAM-ÜBERSICHT", subheading_style))
+
+                # Erstelle Tabelle mit allen Telefonisten
+                team_data = [['Name', 'Ziel', 'Erreicht', 'Rate', 'Status']]
+                for member, status, category in all_team_members:
+                    team_data.append([
+                        member['name'],
+                        str(member['goal']),
+                        str(member['achieved']),
+                        f"{member['rate']}%",
+                        status
+                    ])
+
+                team_table = Table(team_data, colWidths=[1.5*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1.3*inch])
+
+                # Basis-Style
+                base_style = [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4af6a')),  # ZFA Gold Header
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Namen linksbündig
+                    ('ALIGN', (1, 0), (-1, -1), 'CENTER'),  # Rest zentriert
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0fdf4')])
-                ]))
-                elements.append(high_table)
-                elements.append(Spacer(1, 10))
+                    ('FONTSIZE', (0, 0), (-1, -1), 11),
+                    ('GRID', (0, 0), (-1, -1), 1.2, colors.HexColor('#207487')),  # ZFA Blau Grid
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafaf9')]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12)
+                ]
 
-            # Low Performers (if any)
-            if performers['low']:
-                elements.append(Paragraph("📈 Development Opportunities:", subheading_style))
-                low_data = [['Name', 'Goal', 'Achieved', 'Rate', 'Gap']]
-                for p in performers['low']:
-                    gap = p['goal'] - p['achieved'] if p['goal'] > 0 else 0
-                    low_data.append([p['name'], str(p['goal']), str(p['achieved']), f"{p['rate']}%", str(gap)])
+                team_table.setStyle(TableStyle(base_style))
 
-                low_table = Table(low_data, colWidths=[1.2*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch])
-                low_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dc2626')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fef2f2')])
-                ]))
-                elements.append(low_table)
-                elements.append(Spacer(1, 15))
+                # Farbliche Hervorhebung der Status-Spalte nach Performance
+                for i, (member, status, category) in enumerate(all_team_members, start=1):
+                    if category == 'high':
+                        # Grün für Top-Leister
+                        team_table.setStyle(TableStyle([
+                            ('BACKGROUND', (4, i), (4, i), colors.HexColor('#dcfce7')),
+                            ('TEXTCOLOR', (4, i), (4, i), colors.HexColor('#166534')),
+                            ('FONTNAME', (4, i), (4, i), 'Helvetica-Bold')
+                        ]))
+                    elif category == 'medium':
+                        # Blau für solide Leister
+                        team_table.setStyle(TableStyle([
+                            ('BACKGROUND', (4, i), (4, i), colors.HexColor('#dbeafe')),
+                            ('TEXTCOLOR', (4, i), (4, i), colors.HexColor('#1e40af')),
+                            ('FONTNAME', (4, i), (4, i), 'Helvetica-Bold')
+                        ]))
+                    elif category == 'low':
+                        # Rot für Entwicklungspotenzial
+                        team_table.setStyle(TableStyle([
+                            ('BACKGROUND', (4, i), (4, i), colors.HexColor('#fee2e2')),
+                            ('TEXTCOLOR', (4, i), (4, i), colors.HexColor('#991b1b')),
+                            ('FONTNAME', (4, i), (4, i), 'Helvetica-Bold')
+                        ]))
 
-        # Action Items Section
-        if 'action_items' in report:
-            elements.append(Paragraph("🎯 ACTION ITEMS", heading_style))
-            for i, action in enumerate(report['action_items'], 1):
-                elements.append(Paragraph(f"{i}. {action}", body_style))
-            elements.append(Spacer(1, 20))
+                elements.append(team_table)
+                elements.append(Spacer(1, 20))
 
         # Trends Analysis (if available)
         if 'trends_analysis' in report:
             trends = report['trends_analysis']
-            elements.append(Paragraph("📈 TRENDS ANALYSIS", heading_style))
+            elements.append(Paragraph("📈 TRENDANALYSE", heading_style))
 
             if trends['trend_direction'] != 'insufficient_data':
-                trend_text = f"Performance is <b>{trends['trend_direction']}</b>"
+                # Übersetze Trend-Richtung
+                trend_direction_de = {
+                    'improving': 'steigend',
+                    'declining': 'fallend',
+                    'stable': 'stabil'
+                }.get(trends['trend_direction'], trends['trend_direction'])
+
+                trend_text = f"Leistung ist <b>{trend_direction_de}</b>"
                 if trends['trend_change'] != 0:
-                    trend_text += f" by {abs(trends['trend_change'])}% compared to previous period"
+                    trend_text += f" um {abs(trends['trend_change'])}% gegenüber der Vorperiode"
                 elements.append(Paragraph(trend_text, body_style))
 
                 if trends['weekly_data']:
-                    elements.append(Paragraph("Recent Performance History:", subheading_style))
-                    trend_data = [['Week', 'Achievement Rate', 'Points Achieved']]
+                    elements.append(Paragraph("Aktuelle Leistungshistorie:", subheading_style))
+                    trend_data = [['Woche', 'Erreichungsrate', 'Erreichte Punkte']]
                     for week_data in trends['weekly_data'][-4:]:  # Last 4 weeks
                         trend_data.append([
                             week_data['week'],
@@ -521,25 +590,45 @@ def admin_telefonie_export_report(report_type):
 
                     trend_table = Table(trend_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch])
                     trend_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6366f1')),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#294c5d')),  # ZFA Dunkelblau
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                        ('FONTSIZE', (0, 0), (-1, -1), 10),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
-                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')])
+                        ('FONTSIZE', (0, 0), (-1, -1), 11),
+                        ('GRID', (0, 0), (-1, -1), 1.2, colors.HexColor('#207487')),  # ZFA Blau Grid
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+                        ('TOPPADDING', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
                     ]))
                     elements.append(trend_table)
             else:
-                elements.append(Paragraph("Insufficient historical data for trend analysis", body_style))
+                elements.append(Paragraph("Unzureichende historische Daten für Trendanalyse", body_style))
 
-        # Footer
-        elements.append(Spacer(1, 30))
-        elements.append(Paragraph("―" * 50, ParagraphStyle('line', alignment=TA_CENTER)))
+        # Footer mit ZFA-Branding
+        elements.append(Spacer(1, 40))
+
+        # Goldene Trennlinie
+        from reportlab.platypus import HRFlowable
+        hr = HRFlowable(
+            width="100%",
+            thickness=2,
+            color=colors.HexColor('#d4af6a'),  # ZFA Gold
+            spaceBefore=10,
+            spaceAfter=15
+        )
+        elements.append(hr)
+
+        footer_text = f"Bericht erstellt am {datetime.now(TZ).strftime('%d.%m.%Y um %H:%M Uhr')} | Zentrum für Finanzielle Aufklärung - Telefonie-Punktesystem"
         elements.append(Paragraph(
-            f"Report generated on {datetime.now(TZ).strftime('%d.%m.%Y at %H:%M')} | Telefonie Points Management System",
-            ParagraphStyle('footer', fontSize=9, alignment=TA_CENTER, textColor=colors.HexColor('#6b7280'))
+            footer_text,
+            ParagraphStyle(
+                'footer',
+                fontSize=9,
+                alignment=TA_CENTER,
+                textColor=colors.HexColor('#6b7280'),
+                fontName='Helvetica-Oblique'
+            )
         ))
 
         # Build PDF
