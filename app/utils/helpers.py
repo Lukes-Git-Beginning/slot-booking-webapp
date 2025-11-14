@@ -32,20 +32,18 @@ def get_userlist() -> Dict[str, str]:
 
 
 def get_week_days(anchor_date):
-    """Get week days centered around anchor date - only weekdays (Mon-Fri)"""
-    # Generate extended range to ensure we have enough weekdays
-    all_days = [anchor_date + timedelta(days=i-10) for i in range(21)]
+    """Get week days starting from Monday of the anchor date's week - only weekdays (Mon-Fri)"""
+    # Find Monday of the anchor date's week
+    week_start = anchor_date - timedelta(days=anchor_date.weekday())
+
+    # Generate 14 days starting from Monday (2 weeks = 10 weekdays)
+    all_days = [week_start + timedelta(days=i) for i in range(14)]
 
     # Filter out Saturdays (5) and Sundays (6)
     weekdays = [day for day in all_days if day.weekday() < 5]
 
-    # Find closest weekdays around anchor_date
-    # Take 3 weekdays before + anchor (if weekday) + 3 after = up to 7 weekdays
-    anchor_idx = min(range(len(weekdays)), key=lambda i: abs((weekdays[i] - anchor_date).days))
-    start_idx = max(0, anchor_idx - 3)
-    end_idx = min(len(weekdays), start_idx + 7)
-
-    return weekdays[start_idx:end_idx]
+    # Return first 7 weekdays (Mon-Fri of current week + Mon-Tue of next week)
+    return weekdays[:7]
 
 
 def get_week_start(d):
