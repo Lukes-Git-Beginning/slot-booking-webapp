@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}ZFA Beraterwelt{% endblock %}</title>
 
     <!-- Favicon -->
@@ -596,6 +597,30 @@
             }
         }, 5000); // Changed from 1000ms to 5000ms
         updateClock();
+
+        // CSRF Protection Helper - Auto-inject CSRF token into all POST requests
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        // Override fetch to automatically include CSRF token in POST requests
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            let [resource, config] = args;
+
+            // Add CSRF token to POST, PUT, PATCH, DELETE requests
+            if (config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method?.toUpperCase())) {
+                // If body is FormData, append csrf_token
+                if (config.body instanceof FormData) {
+                    config.body.append('csrf_token', csrfToken);
+                }
+                // If headers exist, add X-CSRFToken header
+                else {
+                    config.headers = config.headers || {};
+                    config.headers['X-CSRFToken'] = csrfToken;
+                }
+            }
+
+            return originalFetch.apply(this, args);
+        };
     </script>
 
     {% block extra_js %}{% endblock %}

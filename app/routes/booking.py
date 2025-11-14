@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, url_for, flash, session
 
 from app.config.base import config, slot_config
+from app.core.extensions import csrf
 from app.core.extensions import cache_manager, data_persistence, tracking_system, limiter
 from app.core.google_calendar import get_google_calendar_service
 from app.services.booking_service import get_effective_availability, get_slot_status, get_slot_points
@@ -97,6 +98,7 @@ def add_points_to_user(user, points):
 
 
 @booking_bp.route("/book", methods=["POST"])
+@csrf.exempt  # CSRF exempt for booking endpoint (legacy form without token)
 @require_login
 @apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)

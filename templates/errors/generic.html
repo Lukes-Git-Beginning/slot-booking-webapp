@@ -148,7 +148,7 @@
                             <i class="fas fa-home me-2"></i>Business Hub
                         </a></li>
                         {% if session.get('user') %}
-                        <li><a href="{{ url_for('slots.index') }}" class="text-decoration-none">
+                        <li><a href="{{ url_for('main.index') }}" class="text-decoration-none">
                             <i class="fas fa-calendar me-2"></i>Slot-Booking
                         </a></li>
                         <li><a href="{{ url_for('t2.dashboard') }}" class="text-decoration-none">
@@ -160,10 +160,10 @@
                 <div class="col-md-6">
                     <ul class="list-unstyled">
                         {% if session.get('user') %}
-                        <li><a href="{{ url_for('slots.profile') }}" class="text-decoration-none">
+                        <li><a href="{{ url_for('user_profile.profile') }}" class="text-decoration-none">
                             <i class="fas fa-user me-2"></i>Mein Profil
                         </a></li>
-                        <li><a href="{{ url_for('slots.gamification') }}" class="text-decoration-none">
+                        <li><a href="{{ url_for('gamification.index') }}" class="text-decoration-none">
                             <i class="fas fa-trophy me-2"></i>Gamification
                         </a></li>
                         {% else %}

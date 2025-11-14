@@ -10,6 +10,7 @@ from app.core.extensions import data_persistence  # limiter wird zur Laufzeit im
 from app.config.base import gamification_config
 from app.services.security_service import security_service
 from app.services.audit_service import audit_service
+from app.services.account_lockout import account_lockout
 from datetime import datetime, timedelta
 import pytz
 from app.config.base import slot_config
@@ -70,6 +71,13 @@ def login():
             flash("Eingabe zu lang.", "danger")
             return redirect(url_for("auth.login"))
 
+        # Account Lockout Check
+        is_locked, minutes_remaining = account_lockout.is_locked_out(username)
+        if is_locked:
+            flash(f"Account gesperrt. Versuche es in {minutes_remaining} Minuten erneut.", "danger")
+            logger.warning(f"Locked account {username} attempted login")
+            return redirect(url_for("auth.login"))
+
         # Verify password using security service
         if security_service.verify_password(username, password):
             # Check if 2FA is enabled
@@ -83,10 +91,15 @@ def login():
                     flash("Ungültiger 2FA-Code.", "danger")
                     return render_template("login.html", show_2fa=True, username=username)
 
-            # Login successful
+            # Login successful - Clear old session (Session Fixation Protection)
+            session.clear()
+            session.permanent = True  # Use PERMANENT_SESSION_LIFETIME (8 hours)
             session.update({"logged_in": True, "user": username})
             champ = check_and_set_champion()
             session["is_champion"] = (champ == username)
+
+            # Clear failed login attempts on successful login
+            account_lockout.record_successful_login(username)
 
             # Audit-Log: Erfolgreicher Login
             audit_service.log_login_success(username)
@@ -103,7 +116,14 @@ def login():
         # Audit-Log: Fehlgeschlagener Login
         audit_service.log_login_failure(username, reason='invalid_credentials')
 
-        flash("Falscher Benutzername oder Passwort.", "danger")
+        # Record failed attempt (may trigger lockout)
+        is_locked, lockout_minutes = account_lockout.record_failed_attempt(username)
+
+        if is_locked:
+            flash(f"Zu viele fehlgeschlagene Versuche. Account für {lockout_minutes} Minuten gesperrt.", "danger")
+        else:
+            flash("Falscher Benutzername oder Passwort.", "danger")
+
         return redirect(url_for("auth.login"))
 
     return render_template("login.html")

@@ -370,6 +370,22 @@ def register_request_hooks(app: Flask) -> None:
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
 
+        # Content Security Policy (CSP)
+        # NOTE: unsafe-inline/unsafe-eval required for current inline scripts
+        # TODO: Refactor to nonce-based CSP for better security
+        csp_directives = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Allows inline scripts (needed for Tailwind/Alpine)
+            "style-src 'self' 'unsafe-inline'",  # Allows inline styles
+            "img-src 'self' data: https:",  # Allows base64 images and external HTTPS images
+            "font-src 'self' data:",  # Allows web fonts
+            "connect-src 'self'",  # AJAX requests to same origin only
+            "frame-ancestors 'none'",  # Prevents clickjacking (stronger than X-Frame-Options)
+            "base-uri 'self'",  # Restricts <base> tag
+            "form-action 'self'",  # Forms can only submit to same origin
+        ]
+        response.headers['Content-Security-Policy'] = "; ".join(csp_directives)
+
         return response
 
 

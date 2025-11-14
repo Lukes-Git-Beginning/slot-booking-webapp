@@ -32,9 +32,20 @@ def get_userlist() -> Dict[str, str]:
 
 
 def get_week_days(anchor_date):
-    """Get week days centered around anchor date for better navigation"""
-    # Show 3 days before and 3 days after the current date for better navigation
-    return [anchor_date + timedelta(days=i-3) for i in range(7)]
+    """Get week days centered around anchor date - only weekdays (Mon-Fri)"""
+    # Generate extended range to ensure we have enough weekdays
+    all_days = [anchor_date + timedelta(days=i-10) for i in range(21)]
+
+    # Filter out Saturdays (5) and Sundays (6)
+    weekdays = [day for day in all_days if day.weekday() < 5]
+
+    # Find closest weekdays around anchor_date
+    # Take 3 weekdays before + anchor (if weekday) + 3 after = up to 7 weekdays
+    anchor_idx = min(range(len(weekdays)), key=lambda i: abs((weekdays[i] - anchor_date).days))
+    start_idx = max(0, anchor_idx - 3)
+    end_idx = min(len(weekdays), start_idx + 7)
+
+    return weekdays[start_idx:end_idx]
 
 
 def get_week_start(d):

@@ -511,6 +511,10 @@ class DataPersistence:
     def load_data(self, filename: str, default: Any = None) -> Any:
         """Generische Methode zum Laden von JSON-Daten"""
         try:
+            # Path Traversal Protection: Remove any path components
+            import os.path
+            filename = os.path.basename(filename)  # Strips '../' attacks
+
             if not filename.endswith('.json'):
                 filename += '.json'
 
@@ -535,6 +539,10 @@ class DataPersistence:
     def save_data(self, filename: str, data: Any) -> bool:
         """Generische Methode zum Speichern von JSON-Daten"""
         try:
+            # Path Traversal Protection: Remove any path components
+            import os.path
+            filename = os.path.basename(filename)  # Strips '../' attacks
+
             if not filename.endswith('.json'):
                 filename += '.json'
 

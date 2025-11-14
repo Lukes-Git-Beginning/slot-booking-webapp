@@ -18,11 +18,12 @@ error_handler = None
 level_system = None
 tracking_system = None
 limiter = None
+csrf = None  # CSRF Protection
 
 
 def init_extensions(app: Flask) -> None:
     """Initialize all Flask extensions and external services"""
-    global cache_manager, data_persistence, error_handler, level_system, tracking_system, limiter
+    global cache_manager, data_persistence, error_handler, level_system, tracking_system, limiter, csrf
 
     # Import and initialize cache manager
     from app.core.cache_manager import cache_manager as cm
@@ -56,6 +57,15 @@ def init_extensions(app: Flask) -> None:
         logger.warning(f"Could not initialize tracking system", extra={'error': str(e)})
         tracking_system = None
 
+    # Initialize CSRF Protection (Security Critical)
+    try:
+        from flask_wtf.csrf import CSRFProtect
+        csrf = CSRFProtect(app)
+        logger.info("✓ CSRF Protection initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ CRITICAL: Could not initialize CSRF Protection: {e}")
+        csrf = None
+
     # Initialize Flask-Limiter for rate limiting (security)
     try:
         from flask_limiter import Limiter
@@ -76,9 +86,9 @@ def init_extensions(app: Flask) -> None:
         # Initialize rate limiting module
         init_rate_limiter(limiter)
 
-        logger.info("Rate limiting initialized successfully")
+        logger.info("✓ Rate limiting initialized successfully")
     except Exception as e:
         logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
         limiter = None
 
-    logger.info("All extensions initialized successfully")
+    logger.info("✓ All extensions initialized successfully")
