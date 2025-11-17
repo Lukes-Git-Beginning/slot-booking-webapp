@@ -14,6 +14,7 @@ from app.config.base import slot_config
 from app.services.booking_service import (
     load_availability,
     get_effective_availability,
+    get_day_availability,
     get_slot_status,
     extract_weekly_summary,
     extract_detailed_summary,
@@ -64,7 +65,7 @@ def day_view(date_str):
     availability = load_availability()
 
     # Check cache for effective availability
-    effective_availability = get_effective_availability(date_str)
+    effective_availability = get_day_availability(date_str)
 
     # Get weekly data for navigation and summary
     current_week_start = get_week_start(date_obj)
@@ -243,7 +244,7 @@ def update_profile():
 def api_availability(date_str):
     """API: Verfügbarkeit für spezifischen Tag"""
     try:
-        availability = get_effective_availability(date_str)
+        availability = get_day_availability(date_str)
         return jsonify({'success': True, 'availability': availability})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

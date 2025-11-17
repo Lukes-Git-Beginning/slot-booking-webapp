@@ -98,6 +98,39 @@ def get_default_availability(date_str: str, hour: str) -> List[str]:
 # 9am slots now use pre-generated availability from availability.json only
 # Performance improvement: Reduced API calls from 105 to ~10 per page load
 
+def get_day_availability(date_str: str) -> Dict[str, List[str]]:
+    """
+    Get all availability slots for a specific day
+    Wrapper around get_effective_availability() for full day data
+    Returns: Dict with time slots as keys, consultant lists as values
+    """
+    from app.services.holiday_service import holiday_service
+    from datetime import datetime
+
+    # Check if entire day is blocked
+    try:
+        check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if holiday_service.is_blocked_date(check_date):
+            return {}  # No slots available on blocked dates
+    except Exception:
+        pass
+
+    availability = load_availability()
+    day_slots = {}
+
+    # Standard time slots
+    time_slots = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+
+    for hour in time_slots:
+        # Use existing get_effective_availability for each slot
+        # This respects holiday blocks, time-range blocks, etc.
+        consultants = get_effective_availability(date_str, hour)
+        if consultants:  # Only include non-empty slots
+            day_slots[hour] = consultants
+
+    return day_slots
+
+
 def get_effective_availability(date_str: str, hour: str) -> List[str]:
     """Get effective availability combining loaded, calendar (for 9am), and default data"""
     # Check if date is blocked (holidays or custom blocks)

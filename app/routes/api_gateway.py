@@ -85,8 +85,8 @@ def unified_availability(date_str):
 
         if tool in ['all', 'slots']:
             # Slot-System Verfügbarkeit
-            from app.routes.slots import get_effective_availability
-            slots_availability = get_effective_availability(date_str)
+            from app.services.booking_service import get_day_availability
+            slots_availability = get_day_availability(date_str)
             availability_data['slots'] = slots_availability
 
         if tool in ['all', 't2']:

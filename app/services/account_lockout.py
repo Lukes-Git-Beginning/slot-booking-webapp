@@ -52,9 +52,9 @@ class AccountLockoutService:
             return False, None
 
         user_data = lockout_data[username]
-        locked_until = datetime.fromisoformat(user_data.get('locked_until', ''))
+        locked_until = datetime.fromisoformat(user_data.get('locked_until', '')) if user_data.get('locked_until') else None
 
-        if datetime.now() < locked_until:
+        if locked_until and datetime.now() < locked_until:
             # Noch gesperrt
             remaining = (locked_until - datetime.now()).total_seconds() / 60
             return True, int(remaining)
