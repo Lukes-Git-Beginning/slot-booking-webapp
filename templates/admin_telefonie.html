@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>📞 Telefonie Punkte – Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <!-- Modern UI Libraries (Local) -->
   <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
@@ -198,6 +199,7 @@
 
         <!-- Quick Action: Apply Pending -->
         <form method="post" class="flex-shrink-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="apply_pending">
           <input type="hidden" name="week" value="{{ week }}">
           <button type="submit" class="btn btn-warning text-white border-0">
@@ -269,6 +271,7 @@
           Ziele setzen
         </h3>
         <form method="post" x-data="{ user: '{{ participants[0] if participants else '' }}', goal: '' }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="set_goal">
           <input type="hidden" name="week" value="{{ week }}">
 
@@ -309,6 +312,7 @@
           Aktivität erfassen
         </h3>
         <form method="post" x-data="{ user: '{{ participants[0] if participants else '' }}', kind: 'T1', points: '', note: '' }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="record_activity">
           <input type="hidden" name="week" value="{{ week }}">
 
@@ -368,6 +372,7 @@
         </h3>
 
         <form method="post" class="mb-4" x-data="{ name: '' }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="add_participant">
           <div class="form-control">
             <label class="label">
@@ -385,6 +390,7 @@
         </form>
 
         <form method="post" class="mb-4" x-data="{ name: '{{ participants[0] if participants else '' }}' }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="remove_participant">
           <div class="form-control">
             <label class="label">
@@ -405,6 +411,7 @@
         </form>
 
         <form method="post" class="mb-6" x-data="{ user: '{{ participants[0] if participants else '' }}', vacation: '0' }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="set_vacation">
           <input type="hidden" name="week" value="{{ week }}">
           <div class="form-control">
@@ -436,6 +443,7 @@
           Urlaubszeitraum setzen
         </h3>
         <form method="post" x-data="{ user: '{{ participants[0] if participants else '' }}', start: '', end: '', reason: 'Urlaub' }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="set_vacation_period">
 
           <div class="form-control mb-4">
@@ -624,6 +632,7 @@
                 <span class="text-white/50 text-xs">von {{ activity.by }}</span>
               </div>
               <form method="post" class="inline" onsubmit="return confirm('Aktivität wirklich löschen?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="delete_activity">
                 <input type="hidden" name="user" value="{{ u.user }}">
                 <input type="hidden" name="activity_index" value="{{ loop.index0 }}">
@@ -780,6 +789,7 @@
     });
 
     // Chart data from backend
+    {% if stats and stats.users and stats.users|length > 0 %}
     const chartLabels = [{% for u in stats.users %}'{{ u.user }}'{% if not loop.last %}, {% endif %}{% endfor %}];
     const goalData = [{% for u in stats.users %}{{ u.goal }}{% if not loop.last %}, {% endif %}{% endfor %}];
     const achievedData = [{% for u in stats.users %}{{ u.achieved }}{% if not loop.last %}, {% endif %}{% endfor %}];
@@ -915,6 +925,10 @@
     // Render chart
     const chart = new ApexCharts(document.querySelector("#weeklyChart"), options);
     chart.render();
+    {% else %}
+    // No data available
+    document.querySelector("#weeklyChart").innerHTML = '<p class="text-center text-white/60 py-20">Keine Daten verfügbar</p>';
+    {% endif %}
   </script>
 </body>
 </html>

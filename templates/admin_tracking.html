@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>📊 Tracking Analytics - Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <!-- Tailwind CSS + DaisyUI (Local) -->
   <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
@@ -269,77 +270,81 @@
     const trendData = {{ since_golive.daily_data | tojson }};
 
     // Trend Chart
-    const trendOptions = {
-      series: [{
-        name: 'Auftauchquote',
-        data: trendData.map(d => d.appearance_rate)
-      }],
-      chart: {
-        type: 'line',
-        height: 300,
-        background: 'transparent',
-        toolbar: {
-          show: false
-        }
-      },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
-        colors: ['#d4af6a']
-      },
-      markers: {
-        size: 4,
-        colors: ['#d4af6a'],
-        strokeColors: '#fff',
-        strokeWidth: 2
-      },
-      xaxis: {
-        categories: trendData.map(d => d.date),
-        labels: {
-          style: {
-            colors: 'rgba(255, 255, 255, 0.7)',
-            fontSize: '10px'
-          },
-          rotate: -45,
-          formatter: function(val) {
-            // Zeige nur jeden 5. Tag
-            const date = new Date(val);
-            return date.getDate() + '.' + (date.getMonth() + 1);
+    if (trendData && trendData.length > 0) {
+      const trendOptions = {
+        series: [{
+          name: 'Auftauchquote',
+          data: trendData.map(d => d.appearance_rate)
+        }],
+        chart: {
+          type: 'line',
+          height: 300,
+          background: 'transparent',
+          toolbar: {
+            show: false
+          }
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3,
+          colors: ['#d4af6a']
+        },
+        markers: {
+          size: 4,
+          colors: ['#d4af6a'],
+          strokeColors: '#fff',
+          strokeWidth: 2
+        },
+        xaxis: {
+          categories: trendData.map(d => d.date),
+          labels: {
+            style: {
+              colors: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '10px'
+            },
+            rotate: -45,
+            formatter: function(val) {
+              // Zeige nur jeden 5. Tag
+              const date = new Date(val);
+              return date.getDate() + '.' + (date.getMonth() + 1);
+            }
+          }
+        },
+        yaxis: {
+          min: 0,
+          max: 100,
+          labels: {
+            style: {
+              colors: 'rgba(255, 255, 255, 0.7)'
+            },
+            formatter: function(val) {
+              return val.toFixed(0) + '%';
+            }
+          }
+        },
+        grid: {
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          strokeDashArray: 4
+        },
+        tooltip: {
+          theme: 'dark',
+          y: {
+            formatter: function(val) {
+              return val.toFixed(1) + '%';
+            }
           }
         }
-      },
-      yaxis: {
-        min: 0,
-        max: 100,
-        labels: {
-          style: {
-            colors: 'rgba(255, 255, 255, 0.7)'
-          },
-          formatter: function(val) {
-            return val.toFixed(0) + '%';
-          }
-        }
-      },
-      grid: {
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        strokeDashArray: 4
-      },
-      tooltip: {
-        theme: 'dark',
-        y: {
-          formatter: function(val) {
-            return val.toFixed(1) + '%';
-          }
-        }
-      }
-    };
+      };
 
-    const trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
-    trendChart.render();
+      const trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
+      trendChart.render();
+    } else {
+      document.querySelector("#trendChart").innerHTML = '<p class="text-center text-white/60 py-20">Keine Daten verfügbar</p>';
+    }
 
     // Donut Chart
     const donutOptions = {
-      series: [{{ since_golive.completed }}, {{ since_golive.no_shows }}, {{ since_golive.cancelled }}, {{ since_golive.get('rescheduled', 0) }}],
+      series: [{{ since_golive.completed }}, {{ since_golive.no_shows }}, {{ since_golive.cancelled }}, {{ since_golive.rescheduled | default(0) }}],
       chart: {
         type: 'donut',
         height: 300,

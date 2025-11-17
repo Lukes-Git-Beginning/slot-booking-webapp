@@ -160,7 +160,7 @@
                 <div class="col-md-6">
                     <ul class="list-unstyled">
                         {% if session.get('user') %}
-                        <li><a href="{{ url_for('user_profile.profile') }}" class="text-decoration-none">
+                        <li><a href="{{ url_for('hub.profile') }}" class="text-decoration-none">
                             <i class="fas fa-user me-2"></i>Mein Profil
                         </a></li>
                         <li><a href="{{ url_for('gamification.index') }}" class="text-decoration-none">
