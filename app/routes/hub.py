@@ -516,15 +516,17 @@ def has_tool_access(username, tool_id):
         ]
         return username in allowed_users
 
-    # Onboarding für spezifische Benutzer (zusätzlich zu Admins)
+    # Onboarding für alle Benutzer AUSSER Blocklist
     if tool_id == 'onboarding':
-        allowed_users = [
-            'alexandra.scharrschmidt',
-            'alexandra.börner',
-            'vanessa.howald',
-            'vanessa.wagner'
+        blocked_users = [
+            'ann-kathrin.welge',
+            'dominik.mikic',
+            'sara.mast',
+            'ladislav.heka',
+            'patrick.woltschleger',
+            'sonja.mast'
         ]
-        return username in allowed_users
+        return username not in blocked_users
 
     # Standard-Benutzer haben Zugang zu Slots, T2 und Meine Analytics
     if tool_id in ['slots', 't2', 'my-analytics']:
