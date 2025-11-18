@@ -19,6 +19,12 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
 
 # Virtual Environment
 venv/
@@ -46,6 +52,9 @@ scripts/debug_*.py
 # Sensitive credentials
 service_account.json
 .env
+.env.*
+.env.local
+.env.*.local
 deployment/.env.production
 deployment/*.env
 
@@ -65,6 +74,21 @@ deployment/*.pub
 *.temp
 *.bak
 *.swp
+
+# Node modules (if using npm for frontend tools)
+node_modules/
+package-lock.json
+yarn.lock
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # IMPORTANT: Allow tracking data to be committed by workflow
 # REMOVED: data/tracking/*.jsonl  (was blocking workflow commits)

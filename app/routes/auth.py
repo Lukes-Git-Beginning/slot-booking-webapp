@@ -4,6 +4,7 @@ Authentication routes
 Login, logout, and session management
 """
 
+import logging
 from flask import Blueprint, request, render_template, redirect, url_for, flash, session
 from app.utils.helpers import get_userlist
 from app.core.extensions import data_persistence  # limiter wird zur Laufzeit importiert
@@ -11,9 +12,12 @@ from app.config.base import gamification_config
 from app.services.security_service import security_service
 from app.services.audit_service import audit_service
 from app.services.account_lockout import account_lockout
+from app.services.activity_tracking import activity_tracking
 from datetime import datetime, timedelta
 import pytz
 from app.config.base import slot_config
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -104,6 +108,17 @@ def login():
             # Audit-Log: Erfolgreicher Login
             audit_service.log_login_success(username)
 
+            # Track successful login activity
+            activity_tracking.track_login(
+                username=username,
+                ip_address=request.remote_addr or 'unknown',
+                user_agent=request.headers.get('User-Agent', 'unknown'),
+                success=True
+            )
+
+            # Update online status
+            activity_tracking.update_online_status(username, session.sid, action='active')
+
             if champ == username:
                 flash("🏆 Glückwunsch! Du warst Top-Telefonist des letzten Monats!", "success")
 
@@ -115,6 +130,14 @@ def login():
 
         # Audit-Log: Fehlgeschlagener Login
         audit_service.log_login_failure(username, reason='invalid_credentials')
+
+        # Track failed login activity
+        activity_tracking.track_login(
+            username=username,
+            ip_address=request.remote_addr or 'unknown',
+            user_agent=request.headers.get('User-Agent', 'unknown'),
+            success=False
+        )
 
         # Record failed attempt (may trigger lockout)
         is_locked, lockout_minutes = account_lockout.record_failed_attempt(username)
@@ -136,6 +159,9 @@ def logout():
     username = session.get('user')
     if username:
         audit_service.log_logout(username)
+
+        # Update online status to offline
+        activity_tracking.update_online_status(username, session.sid, action='logout')
 
     session.clear()
     return redirect(url_for("auth.login"))

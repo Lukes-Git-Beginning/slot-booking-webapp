@@ -66,4 +66,7 @@ Flask-WTF==1.2.2
 bcrypt==4.2.1
 
 # Error Tracking & Monitoring
+# WARNING: Sentry is OPTIONAL and requires SENTRY_DSN environment variable
+# Free Tier: 5,000 events/month | Paid: from €26/month
+# Remove this line if not using Sentry
 sentry-sdk[flask]==2.18.0

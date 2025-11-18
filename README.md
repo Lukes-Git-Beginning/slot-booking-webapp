@@ -36,6 +36,11 @@ Eine professionelle Multi-Tool-Plattform mit Slot-Booking, T2-Closer-System, Gam
 
 ### 📊 Business Intelligence & Analytics
 - **Umfassendes Tracking**: Echtzeit-Überwachung aller Buchungsaktivitäten
+- **Activity-Tracking-System**: Vollständiges Login- und Online-Status-Tracking
+  - Login-History mit IP, Browser, Device-Typ
+  - Echtzeit Online-User-Monitoring (15-Min Timeout)
+  - Admin-Dashboards für Login-Analytics
+  - Statistiken: Peak-Hours, Unique-IPs, Failed-Logins
 - **Erweiterte Kundenprofilierung**: Risikobewertung und Zuverlässigkeits-Scoring
 - **Consultant Analytics (My Calendar)**: Show/No-Show-Tracking für Telefonisten mit Drag & Drop Kanban
 - **7-Spalten Kanban-Board**: HubSpot-Style Status-Management (Pending, Erschienen, Rückholung, Sonderkunden, Verschoben, Nicht Erschienen, Ghost)
@@ -569,6 +574,30 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 ```
 
 ## 📝 Changelog
+
+### v3.3.8 - Activity Tracking & Code Quality Improvements (DEV - 2025-11-18)
+- ✅ **Login Activity Tracking System**:
+  - **Login-History-Tracking**: Vollständiges Tracking aller Login-Versuche (Success/Fail)
+  - **Tracking-Details**: IP-Adresse, Browser, Device-Typ (Desktop/Mobile/Tablet), Timestamp
+  - **Online-Status-Monitoring**: Echtzeit-Tracking aktiver User (15-Min Timeout)
+  - **Admin-Dashboards**: Neue Seiten für Login-History und Online-Users
+  - **API-Endpoints**: 5 REST-APIs für AJAX-Updates und Statistiken
+  - **Login-Statistiken**: Peak-Hours, Unique-IPs, Failed-Logins, Logins pro Stunde/Tag
+  - **Service-Datei**: `app/services/activity_tracking.py`
+  - **Datenformat**: JSON-basiert (`login_history.json`, `online_sessions.json`)
+- ✅ **Code-Cleanup & Quality Improvements**:
+  - **.gitignore erweitert**: Pytest-Cache, Coverage-Reports, Node-Modules, .env-Varianten
+  - **Health-Check aktualisiert**: Version 3.3.7 → 3.3.8 in `/health` Endpoint
+  - **Sentry-Warning**: Dokumentation in requirements.txt (Free: 5K Events/Monat, Paid: €26+)
+  - **Logger-Bug gefixt**: Fehlender Logger-Import in `auth.py` behoben (verhinderte Lockout-Logging)
+  - **requirements.txt**: Bereits gut strukturiert mit Kommentaren (keine Änderungen nötig)
+- ✅ **Deployment-Ready**:
+  - Alle Änderungen lokal getestet
+  - Keine Breaking Changes
+  - Bereit für Hetzner-Production-Deployment
+- 📦 **Dateien**:
+  - Neu: `app/services/activity_tracking.py`
+  - Geändert: `app/routes/auth.py`, `app/routes/admin/dashboard.py`, `.gitignore`, `app/routes/health.py`, `requirements.txt`
 
 ### v3.3.7 - Professional PDF Reports & T2 Analytics (LIVE - 2025-11-12)
 - ✅ **PDF Telefonie-System komplett überarbeitet**:
