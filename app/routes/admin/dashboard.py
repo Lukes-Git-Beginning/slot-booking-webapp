@@ -80,6 +80,22 @@ def admin_dashboard():
                 'status': 'active'
             },
             {
+                'name': 'Online Users',
+                'description': 'Live-Tracking aktuell eingeloggter Benutzer',
+                'url': '/admin/activity/online-users',
+                'icon': 'activity',
+                'color': 'from-green-500/20 to-emerald-500/20',
+                'status': 'active'
+            },
+            {
+                'name': 'Login History',
+                'description': 'Audit-Log aller Login-Versuche und Aktivitäten',
+                'url': '/admin/activity/login-history',
+                'icon': 'history',
+                'color': 'from-cyan-500/20 to-blue-500/20',
+                'status': 'active'
+            },
+            {
                 'name': 'Blocked Dates',
                 'description': 'Zeitslots und Zeiträume sperren',
                 'url': '/admin/blocked-dates',

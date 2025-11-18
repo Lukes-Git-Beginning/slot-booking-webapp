@@ -94,7 +94,7 @@
   <div class="max-w-7xl mx-auto mb-8" data-aos="fade-down">
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
-        <a href="/hub" class="btn btn-ghost btn-circle hover:bg-white/10">
+        <a href="{{ url_for('hub.dashboard') }}" class="btn btn-ghost btn-circle hover:bg-white/10">
           <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
         </a>
         <div>
@@ -229,7 +229,7 @@
           <span class="text-white/90 text-sm font-medium">Daten Export</span>
         </a>
 
-        <a href="/hub" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+        <a href="{{ url_for('hub.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
           <i data-lucide="home" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
           <span class="text-white/90 text-sm font-medium">Zurück zum Hub</span>
         </a>

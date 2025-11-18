@@ -5,6 +5,7 @@ Login, logout, and session management
 """
 
 import logging
+import hashlib
 from flask import Blueprint, request, render_template, redirect, url_for, flash, session
 from app.utils.helpers import get_userlist
 from app.core.extensions import data_persistence  # limiter wird zur Laufzeit importiert
@@ -116,8 +117,13 @@ def login():
                 success=True
             )
 
+            # Generate session ID for activity tracking
+            session_id = hashlib.sha256(
+                f"{username}:{request.remote_addr}:{datetime.now(TZ).timestamp()}".encode()
+            ).hexdigest()[:16]
+
             # Update online status
-            activity_tracking.update_online_status(username, session.sid, action='active')
+            activity_tracking.update_online_status(username, session_id, action='active')
 
             if champ == username:
                 flash("🏆 Glückwunsch! Du warst Top-Telefonist des letzten Monats!", "success")
@@ -160,8 +166,13 @@ def logout():
     if username:
         audit_service.log_logout(username)
 
+        # Generate session ID for activity tracking
+        session_id = hashlib.sha256(
+            f"{username}:{request.remote_addr}:{datetime.now(TZ).timestamp()}".encode()
+        ).hexdigest()[:16]
+
         # Update online status to offline
-        activity_tracking.update_online_status(username, session.sid, action='logout')
+        activity_tracking.update_online_status(username, session_id, action='logout')
 
     session.clear()
     return redirect(url_for("auth.login"))
