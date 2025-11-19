@@ -138,6 +138,49 @@ python run.py
 
 Die Anwendung ist verfügbar unter `http://localhost:5000`
 
+## 🧪 Testen
+
+### Test-Suite ausführen
+
+```bash
+# Alle Tests ausführen
+python -m pytest tests/ -v
+
+# Nur Unit-Tests (schnell)
+python -m pytest tests/ -m unit
+
+# Mit Coverage-Report
+python -m pytest tests/ --cov=app/services --cov-report=term-missing
+
+# Coverage als HTML-Report
+python -m pytest tests/ --cov=app/services --cov-report=html
+```
+
+### Test-Struktur
+
+| Datei | Tests | Coverage | Beschreibung |
+|-------|-------|----------|--------------|
+| `test_data_persistence.py` | 33 | 59% | Backup, Validation, Unicode, Path-Traversal |
+| `test_t2_bucket_system.py` | 36 | 89% | Probability, Draws, Timeout, Persistence |
+| `test_booking_service.py` | 27 | 52% | Slot-Status, Booking, Points, Availability |
+| `test_security_service.py` | 31 | 98% | Password Hashing, 2FA, Backup-Codes |
+
+### Test-Markers
+
+- `@pytest.mark.unit` - Schnelle Unit-Tests ohne externe Dependencies
+- `@pytest.mark.integration` - Integration-Tests mit Mocking
+- `@pytest.mark.slow` - Langsame Tests (skip mit `-m "not slow"`)
+
+### Fixtures
+
+Die wichtigsten Test-Fixtures in `conftest.py`:
+
+- `app` - Flask-Application für Tests
+- `client` / `logged_in_client` / `admin_client` - Test-Clients
+- `mock_data_persistence` - Gemockte Datenpersistenz
+- `mock_google_calendar` - Gemockter Google Calendar Service
+- `sample_*` - Vordefinierte Test-Daten
+
 ## 🔧 Konfiguration
 
 ### Umgebungsvariablen
