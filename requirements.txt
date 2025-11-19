@@ -70,3 +70,9 @@ bcrypt==4.2.1
 # Free Tier: 5,000 events/month | Paid: from €26/month
 # Remove this line if not using Sentry
 sentry-sdk[flask]==2.18.0
+
+# Testing
+pytest==8.3.3
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+freezegun==1.4.0
