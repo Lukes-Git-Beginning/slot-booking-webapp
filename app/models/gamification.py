@@ -70,7 +70,7 @@ class UserBadge(Base):
 
     # Zusätzliche Daten
     requirements_met: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    badge_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Unique Constraint: Ein User kann ein Badge nur einmal verdienen
     __table_args__ = (
