@@ -46,7 +46,7 @@ class UserCosmetic(Base):
         Index('idx_username_item', 'username', 'item_id', unique=True),
         Index('idx_item_type', 'item_type'),
         Index('idx_owned', 'is_owned'),
-        Index('idx_active', 'is_active'),
+        Index('idx_user_cosmetics_active', 'is_active'),
     )
 
     def __repr__(self) -> str:
@@ -86,7 +86,7 @@ class CustomizationAchievement(Base):
     # Unique Constraint
     __table_args__ = (
         Index('idx_username_achievement', 'username', 'achievement_id', unique=True),
-        Index('idx_completed', 'is_completed'),
+        Index('idx_customization_achievements_completed', 'is_completed'),
     )
 
     def __repr__(self) -> str:

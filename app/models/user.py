@@ -61,7 +61,7 @@ class User(Base):
     __table_args__ = (
         Index('idx_username', 'username'),
         Index('idx_email', 'email'),
-        Index('idx_active', 'is_active'),
+        Index('idx_users_active', 'is_active'),
         Index('idx_role', 'role'),
     )
 

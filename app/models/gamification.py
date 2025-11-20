@@ -118,7 +118,7 @@ class DailyQuest(Base):
     # Indexes
     __table_args__ = (
         Index('idx_quest_date', 'quest_date'),
-        Index('idx_active', 'is_active'),
+        Index('idx_daily_quests_active', 'is_active'),
     )
 
     def __repr__(self) -> str:
@@ -158,7 +158,7 @@ class QuestProgress(Base):
     # Unique Constraint
     __table_args__ = (
         Index('idx_username_quest', 'username', 'quest_id', unique=True),
-        Index('idx_completed', 'is_completed'),
+        Index('idx_quest_progress_completed', 'is_completed'),
     )
 
     def __repr__(self) -> str:
