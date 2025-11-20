@@ -126,16 +126,3 @@ def is_postgres_enabled() -> bool:
         True wenn USE_POSTGRES=true gesetzt ist
     """
     return os.getenv('USE_POSTGRES', 'false').lower() == 'true'
-
-
-# Connection Pool Event Listeners (für besseres Logging)
-@event.listens_for(_engine, "connect", insert=True) if _engine else lambda: None
-def receive_connect(dbapi_conn, connection_record):
-    """Log erfolgreiche DB-Connections"""
-    logger.debug("📊 PostgreSQL Connection etabliert")
-
-
-@event.listens_for(_engine, "close", insert=True) if _engine else lambda: None
-def receive_close(dbapi_conn, connection_record):
-    """Log geschlossene DB-Connections"""
-    logger.debug("📊 PostgreSQL Connection geschlossen")
