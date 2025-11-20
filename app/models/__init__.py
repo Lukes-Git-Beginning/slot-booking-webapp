@@ -8,8 +8,9 @@ Architektur:
 - gamification.py: Score, UserBadge, DailyQuest, QuestProgress, PersonalGoal, Champion, MasteryData
 - cosmetics.py: UserCosmetic, CustomizationAchievement
 - weekly.py: WeeklyPointsParticipant, WeeklyPoints, WeeklyActivity, PrestigeData, MinigameData, PersistentData
+- booking.py: Booking, BookingOutcome
 
-JSON-Mapping (20 Dateien → 23 Models):
+JSON-Mapping (22 Dateien → 25 Models):
 1. scores.json → Score
 2. user_badges.json → UserBadge
 3. user_profiles.json → User
@@ -28,6 +29,8 @@ JSON-Mapping (20 Dateien → 23 Models):
 16. minigame_data.json → MinigameData
 17. persistent_data.json → PersistentData
 18. user_coins.json → User.total_coins
+19. bookings.jsonl → Booking
+20. outcomes.jsonl → BookingOutcome
 """
 
 # Base & Database
@@ -75,6 +78,12 @@ from app.models.weekly import (
     PersistentData
 )
 
+# Booking Models
+from app.models.booking import (
+    Booking,
+    BookingOutcome
+)
+
 __all__ = [
     # Base
     'Base',
@@ -106,4 +115,7 @@ __all__ = [
     'PrestigeData',
     'MinigameData',
     'PersistentData',
+    # Booking
+    'Booking',
+    'BookingOutcome',
 ]

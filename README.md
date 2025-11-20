@@ -618,6 +618,49 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 
 ## 📝 Changelog
 
+### v3.3.10 - PostgreSQL Booking-System Migration (LIVE - 2025-11-20)
+- ✅ **Vollständige PostgreSQL-Migration des Booking-Systems**:
+  - **2 neue SQLAlchemy Models**: `Booking` (16 Felder) + `BookingOutcome` (10 Felder)
+  - **24 Database Tables gesamt** mit 121 Performance-Indizes (vorher: 22 Tables, 101 Indizes)
+  - **Dual-Write Pattern implementiert**: Neue Buchungen werden gleichzeitig in PostgreSQL + JSON geschrieben
+  - **Smart Wrapper mit Fallback**: My Calendar nutzt PostgreSQL, fällt bei Fehler automatisch auf JSON zurück
+  - **20 Performance-Indizes**: Optimiert für username+date, customer, week_number, booking_id Queries
+  - **Alembic Migration**: `57a8e7357e0c` erfolgreich deployed auf Production-Server
+  - **Tracking-System erweitert**: `track_booking()` schreibt nun beide Systeme parallel
+- ✅ **Index-Konflikte in bestehenden Models behoben**:
+  - **gamification.py**: Umbenennung von idx_active → idx_daily_quests_active, idx_completed → idx_quest_progress_completed, idx_active_goals → idx_personal_goals_active
+  - **weekly.py**: Umbenennung von idx_pending → idx_weekly_activities_pending
+  - Verhindert Naming-Konflikte zwischen verschiedenen Tabellen
+- ✅ **Backfill-Script erstellt** (TODO: Indentation fix):
+  - `scripts/backfill_bookings_to_postgres.py`: Historische Buchungen aus Google Calendar extrahieren
+  - `scripts/run_backfill.py`: Flask-Context-Wrapper für einfache Ausführung
+  - Analysiert [Booked by: username] Tags und migriert historische Daten
+- ✅ **My Calendar umgebaut auf PostgreSQL**:
+  - Neue Funktion `get_user_bookings_from_db()` liest direkt aus PostgreSQL
+  - Neue Funktion `get_user_bookings()` als Smart Wrapper mit Auto-Detection
+  - Fallback-Mechanismus: Bei PostgreSQL-Fehler wird automatisch auf JSONL zurückgegriffen
+  - Christian's Statistiken funktionieren wieder mit neuen Buchungen ✅
+- ✅ **Deployment auf Hetzner VPS**:
+  - 9 Dateien deployed (Models, Services, Routes, Scripts, Migrations)
+  - PostgreSQL User-Passwort aktualisiert für Stabilität
+  - Service läuft stabil: 4 Gunicorn Workers, 294MB RAM (vorher: 225MB)
+  - Alle neuen Buchungen werden erfolgreich in PostgreSQL gespeichert
+- 📦 **Neue Dateien**:
+  - `app/models/booking.py` (Booking + BookingOutcome Models mit 26 Feldern total)
+  - `scripts/backfill_bookings_to_postgres.py` (benötigt Indentation-Fix)
+  - `scripts/run_backfill.py` (Flask-Context-Wrapper)
+  - `alembic/versions/20251120_1740_57a8e7357e0c_*.py` (Database Migration)
+- 📦 **Geänderte Dateien**:
+  - `app/models/__init__.py` (Booking Model Exports)
+  - `app/models/gamification.py`, `app/models/weekly.py` (Index-Namen gefixt)
+  - `app/services/tracking_system.py` (PostgreSQL Dual-Write Pattern)
+  - `app/routes/calendar.py` (PostgreSQL Read mit JSON-Fallback)
+  - `scripts/migrate_json_to_postgres.py` (Booking-Migration-Methoden)
+- 🔄 **Nächste Schritte**:
+  - Backfill-Script Indentation-Fehler beheben (ab Zeile 147)
+  - Historische Buchungsdaten aus Google Calendar migrieren
+  - Christian's vollständige Statistik-Historie wiederherstellen
+
 ### v3.3.8 - Activity Tracking & Code Quality Improvements (DEV - 2025-11-18)
 - ✅ **Login Activity Tracking System**:
   - **Login-History-Tracking**: Vollständiges Tracking aller Login-Versuche (Success/Fail)

@@ -111,7 +111,7 @@ class WeeklyActivity(Base):
     # Indexes
     __table_args__ = (
         Index('idx_week_participant_activity', 'week_id', 'participant_name'),
-        Index('idx_pending', 'is_pending'),
+        Index('idx_weekly_activities_pending', 'is_pending'),
     )
 
     def __repr__(self) -> str:

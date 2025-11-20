@@ -33,7 +33,8 @@ from app.models import (
     Score, UserBadge, DailyQuest, QuestProgress, PersonalGoal, Champion, MasteryData,
     UserCosmetic, CustomizationAchievement,
     WeeklyPointsParticipant, WeeklyPoints, WeeklyActivity,
-    PrestigeData, MinigameData, PersistentData
+    PrestigeData, MinigameData, PersistentData,
+    Booking, BookingOutcome
 )
 
 # Setup Logging
@@ -353,6 +354,157 @@ class JSONToPostgresMigrator:
         self.stats['prestige_data'] = stats
         return stats
 
+    def migrate_bookings(self) -> MigrationStats:
+        """
+        Migriert bookings.jsonl → Booking Model
+
+        Format: JSONL (jede Zeile = 1 JSON-Objekt)
+        Felder: id, timestamp, customer, date, time, weekday, week_number, user,
+                potential_type, color_id, description_length, has_description,
+                booking_lead_time, booked_at_hour, booked_on_weekday
+        """
+        logger.info("\n📅 Migriere Bookings...")
+        stats = MigrationStats()
+
+        # JSONL-Datei (in data/tracking/, nicht data/persistent/)
+        bookings_file = self.data_dir.parent / 'tracking' / 'bookings.jsonl'
+
+        if not bookings_file.exists():
+            logger.warning(f"⚠️ Datei nicht gefunden: {bookings_file}")
+            logger.info("  ℹ️ Falls leer: Nutze Backfill-Script aus Google Calendar")
+            return stats
+
+        try:
+            with open(bookings_file, 'r', encoding='utf-8') as f:
+                for line_num, line in enumerate(f, start=1):
+                    if not line.strip():
+                        continue
+
+                    stats.total_records += 1
+
+                    try:
+                        booking_data = json.loads(line)
+
+                        if not self.dry_run:
+                            # Parse date string to date object
+                            date_obj = datetime.strptime(booking_data['date'], '%Y-%m-%d').date()
+
+                            booking = Booking(
+                                booking_id=booking_data.get('id', f"unknown_{line_num}"),
+                                customer=booking_data.get('customer', 'Unknown'),
+                                date=date_obj,
+                                time=booking_data.get('time', '00:00'),
+                                weekday=booking_data.get('weekday', 'Monday'),
+                                week_number=booking_data.get('week_number', 1),
+                                username=booking_data.get('user', 'unknown'),
+                                potential_type=booking_data.get('potential_type', 'unknown'),
+                                color_id=booking_data.get('color_id', '9'),
+                                description_length=booking_data.get('description_length', 0),
+                                has_description=booking_data.get('has_description', False),
+                                booking_lead_time=booking_data.get('booking_lead_time', 0),
+                                booked_at_hour=booking_data.get('booked_at_hour', 0),
+                                booked_on_weekday=booking_data.get('booked_on_weekday', 'Monday'),
+                                booking_timestamp=datetime.fromisoformat(
+                                    booking_data.get('timestamp', datetime.utcnow().isoformat()).replace('Z', '+00:00')
+                                )
+                            )
+                            self.session.merge(booking)
+
+                        stats.migrated_records += 1
+
+                        if stats.migrated_records % 100 == 0:
+                            logger.debug(f"  ✓ {stats.migrated_records} Bookings migriert...")
+
+                    except Exception as e:
+                        stats.failed_records += 1
+                        stats.errors.append(f"Booking Line {line_num}: {e}")
+                        logger.error(f"  ❌ Line {line_num}: {e}")
+
+            if not self.dry_run:
+                self.session.commit()
+
+            logger.info(f"✅ Bookings: {stats.migrated_records}/{stats.total_records} migriert")
+            self.stats['bookings'] = stats
+            return stats
+
+        except Exception as e:
+            logger.error(f"❌ Fehler beim Laden von bookings.jsonl: {e}")
+            stats.errors.append(f"File read error: {e}")
+            return stats
+
+    def migrate_outcomes(self) -> MigrationStats:
+        """
+        Migriert outcomes.jsonl → BookingOutcome Model
+
+        Format: JSONL (jede Zeile = 1 JSON-Objekt)
+        Felder: id, timestamp, customer, date, time, outcome, color_id,
+                potential_type, checked_at, description, alert (optional)
+        """
+        logger.info("\n📊 Migriere Outcomes...")
+        stats = MigrationStats()
+
+        # JSONL-Datei (in data/tracking/, nicht data/persistent/)
+        outcomes_file = self.data_dir.parent / 'tracking' / 'outcomes.jsonl'
+
+        if not outcomes_file.exists():
+            logger.warning(f"⚠️ Datei nicht gefunden: {outcomes_file}")
+            return stats
+
+        try:
+            with open(outcomes_file, 'r', encoding='utf-8') as f:
+                for line_num, line in enumerate(f, start=1):
+                    if not line.strip():
+                        continue
+
+                    stats.total_records += 1
+
+                    try:
+                        outcome_data = json.loads(line)
+
+                        if not self.dry_run:
+                            # Parse date string to date object
+                            date_obj = datetime.strptime(outcome_data['date'], '%Y-%m-%d').date()
+
+                            outcome = BookingOutcome(
+                                outcome_id=outcome_data.get('id', f"unknown_{line_num}"),
+                                booking_id=None,  # Kann später verknüpft werden
+                                customer=outcome_data.get('customer', 'Unknown'),
+                                date=date_obj,
+                                time=outcome_data.get('time', '00:00'),
+                                outcome=outcome_data.get('outcome', 'unknown'),
+                                color_id=outcome_data.get('color_id', '9'),
+                                potential_type=outcome_data.get('potential_type', 'unknown'),
+                                description=outcome_data.get('description', ''),
+                                is_alert=outcome_data.get('alert') is not None,
+                                checked_at=outcome_data.get('checked_at', '00:00'),
+                                outcome_timestamp=datetime.fromisoformat(
+                                    outcome_data.get('timestamp', datetime.utcnow().isoformat()).replace('Z', '+00:00')
+                                )
+                            )
+                            self.session.merge(outcome)
+
+                        stats.migrated_records += 1
+
+                        if stats.migrated_records % 100 == 0:
+                            logger.debug(f"  ✓ {stats.migrated_records} Outcomes migriert...")
+
+                    except Exception as e:
+                        stats.failed_records += 1
+                        stats.errors.append(f"Outcome Line {line_num}: {e}")
+                        logger.error(f"  ❌ Line {line_num}: {e}")
+
+            if not self.dry_run:
+                self.session.commit()
+
+            logger.info(f"✅ Outcomes: {stats.migrated_records}/{stats.total_records} migriert")
+            self.stats['outcomes'] = stats
+            return stats
+
+        except Exception as e:
+            logger.error(f"❌ Fehler beim Laden von outcomes.jsonl: {e}")
+            stats.errors.append(f"File read error: {e}")
+            return stats
+
     # ==================== MAIN MIGRATION ====================
 
     def run_full_migration(self) -> Dict[str, MigrationStats]:
@@ -371,6 +523,10 @@ class JSONToPostgresMigrator:
             self.migrate_weekly_points()
             self.migrate_user_cosmetics()
             self.migrate_prestige_data()
+
+            # Booking-Tracking Daten
+            self.migrate_bookings()
+            self.migrate_outcomes()
 
             # TODO: Weitere Migrations hinzufügen
             # self.migrate_user_stats()

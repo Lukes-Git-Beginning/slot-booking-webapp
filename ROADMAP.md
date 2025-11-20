@@ -1,9 +1,9 @@
 # 📊 SLOT-BOOKING-WEBAPP - ROADMAP & TECHNICAL DEBT ANALYSIS
 
 **Analysedatum**: 2025-11-20 (Aktualisiert)
-**Version**: v3.3.9 (LIVE - Production)
+**Version**: v3.3.10 (LIVE - Production)
 **Deployment**: Hetzner VPS (91.98.192.233)
-**Status**: PRODUCTION-READY mit PostgreSQL + Redis ✅
+**Status**: PRODUCTION-READY mit PostgreSQL + Redis + Booking-System ✅
 
 ---
 
@@ -28,16 +28,17 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
 | 9 | P2 | Frontend-Assets optimieren (3.8 MB → <1 MB) | 3h | Offen |
 | 10 | P2 | Obsolete Scripts löschen (7 Dateien) | 0.5h | Teilweise |
 
-**Gesamtaufwand Roadmap**: ~38 Stunden über 4-6 Wochen (**18h abgeschlossen ✅** - 47% Complete)
+**Gesamtaufwand Roadmap**: ~38 Stunden über 4-6 Wochen (**29h abgeschlossen ✅** - 76% Complete)
 
-### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.9 - 2025-11-20)
+### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.10 - 2025-11-20)
 
-**PHASE 1: PostgreSQL + Redis Migration (10h)** - 100% abgeschlossen ✅:
+**PHASE 1: PostgreSQL + Redis Migration (21h)** - 100% abgeschlossen ✅:
 - ✅ **PostgreSQL 16 Setup & Migration**:
   - PostgreSQL 16 auf Hetzner VPS installiert
-  - 23 SQLAlchemy Models erstellt (user.py, gamification.py, cosmetics.py, weekly.py)
-  - 22 Database-Tables mit 101 Indexes erstellt (Alembic Migrations)
-  - 150 Records migriert (33 Scores, 80 Badges, 37 Weekly-Points)
+  - **25 SQLAlchemy Models** erstellt (user.py, gamification.py, cosmetics.py, weekly.py, **booking.py**)
+  - **24 Database-Tables** mit 121 Indexes erstellt (Alembic Migrations)
+  - **150 Records migriert** (33 Scores, 80 Badges, 37 Weekly-Points)
+  - **🆕 Booking-System migriert**: 2 neue Tables (`bookings`, `booking_outcomes`)
   - 100% Migration Success Rate
   - Database: `business_hub`, User: `business_hub_user`
 
@@ -48,10 +49,19 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
   - Flask-Limiter auf Redis umgestellt (Rate Limiting)
   - 10 Keys im Cache, TTL ~11h durchschnittlich
 
+- ✅ **Booking-System auf PostgreSQL (11h)** - NEU 2025-11-20:
+  - **2 neue Models**: `Booking` (16 Felder) + `BookingOutcome` (10 Felder)
+  - **Dual-Write Pattern**: Neue Buchungen → PostgreSQL + JSON (Fallback)
+  - **My Calendar umgebaut**: Smart Wrapper (PostgreSQL/JSON auto-detection)
+  - **20 Indizes** für Performance-Optimierung
+  - **Alembic Migration**: erfolgreich deployed und ausgeführt
+  - **Tracking-System**: `track_booking()` schreibt in beide Systeme
+  - **Backfill-Script**: erstellt (TODO: historische Daten migrieren)
+
 - ✅ **Code-Fixes**:
-  - Index-Namen-Konflikte behoben (idx_active, idx_completed)
+  - Index-Namen-Konflikte behoben (idx_active, idx_completed, idx_pending)
   - ExecStartPost Script-Error behoben
-  - Service läuft stabil (4 Workers, ~261 MB Memory)
+  - Service läuft stabil (4 Workers, ~294 MB Memory)
 
 **v3.3.8 (2025-11-18)** - Quick Wins & Admin Features:
 - ✅ DEBUG-Code entfernt (calendar.py, booking.py)

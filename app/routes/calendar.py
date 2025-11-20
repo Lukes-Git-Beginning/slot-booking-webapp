@@ -112,6 +112,61 @@ def is_user_booking(event, username, username_variants, consultants_dict):
     return (False, None, None)
 
 
+def get_user_bookings_from_db(username, days_back=30):
+    """
+    Read user's bookings from PostgreSQL database
+
+    Args:
+        username: The user to get bookings for
+        days_back: How many days back to read (default: 30)
+
+    Returns:
+        List of booking dicts with customer, date, time, etc.
+    """
+    from datetime import date, timedelta
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        from app.models import get_db_session, Booking
+
+        cutoff_date = date.today() - timedelta(days=days_back)
+        session = get_db_session()
+
+        # Query bookings for this user within date range
+        bookings = session.query(Booking).filter(
+            Booking.username == username,
+            Booking.date >= cutoff_date
+        ).order_by(Booking.date.desc()).all()
+
+        # Convert to dict format (same as JSONL)
+        user_bookings = []
+        for booking in bookings:
+            user_bookings.append({
+                'id': booking.booking_id,
+                'user': booking.username,
+                'customer': booking.customer,
+                'date': booking.date.strftime('%Y-%m-%d'),
+                'time': booking.time,
+                'weekday': booking.weekday,
+                'week_number': booking.week_number,
+                'color_id': booking.color_id,
+                'potential_type': booking.potential_type,
+                'description_length': booking.description_length,
+                'has_description': booking.has_description,
+                'timestamp': booking.booking_timestamp.isoformat()
+            })
+
+        session.close()
+        logger.debug(f"Loaded {len(user_bookings)} bookings from PostgreSQL for {username}")
+        return user_bookings
+
+    except Exception as e:
+        logger.error(f"Error reading bookings from PostgreSQL: {e}")
+        return []
+
+
 def get_user_bookings_from_jsonl(username, days_back=30):
     """
     Read user's bookings directly from bookings.jsonl
@@ -162,6 +217,38 @@ def get_user_bookings_from_jsonl(username, days_back=30):
         logger.error(f"Error reading bookings.jsonl: {e}")
 
     return user_bookings
+
+
+def get_user_bookings(username, days_back=30):
+    """
+    Smart wrapper: Uses PostgreSQL if enabled, falls back to JSONL
+
+    Args:
+        username: The user to get bookings for
+        days_back: How many days back to read (default: 30)
+
+    Returns:
+        List of booking dicts
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        from app.models import is_postgres_enabled
+
+        if is_postgres_enabled():
+            logger.info(f"Using PostgreSQL for booking data (user: {username})")
+            bookings = get_user_bookings_from_db(username, days_back)
+            if bookings:  # Nur wenn Daten gefunden wurden
+                return bookings
+            else:
+                logger.warning("PostgreSQL returned no bookings, trying JSONL fallback")
+    except Exception as e:
+        logger.warning(f"PostgreSQL not available, using JSONL fallback: {e}")
+
+    # Fallback zu JSONL
+    logger.info(f"Using JSONL for booking data (user: {username})")
+    return get_user_bookings_from_jsonl(username, days_back)
 
 
 def extract_status_from_title(title: str):
@@ -316,10 +403,10 @@ def my_calendar():
     start_date = (dt_module.now(TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
     end_date = (dt_module.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
 
-    # 🆕 NEW APPROACH: Read bookings directly from bookings.jsonl
-    logger.info(f"MY-CALENDAR (NEW): Reading bookings from jsonl for user '{user}'")
-    user_bookings = get_user_bookings_from_jsonl(user, days_back=30)
-    logger.info(f"MY-CALENDAR (NEW): Found {len(user_bookings)} bookings in jsonl")
+    # 🆕 SMART APPROACH: Read bookings from PostgreSQL or JSONL (auto-detection)
+    logger.info(f"MY-CALENDAR: Loading bookings for user '{user}'")
+    user_bookings = get_user_bookings(user, days_back=30)
+    logger.info(f"MY-CALENDAR: Found {len(user_bookings)} bookings")
 
     # Get events from Google Calendar
     google_calendar_service = get_google_calendar_service()

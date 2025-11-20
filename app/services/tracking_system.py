@@ -16,6 +16,15 @@ from collections import defaultdict
 from googleapiclient.discovery import build
 from app.utils.credentials import load_google_credentials
 
+# PostgreSQL Models
+try:
+    from app.models import Booking, is_postgres_enabled, get_db_session
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("PostgreSQL Models nicht verfügbar - Fallback zu JSON")
+
 # ----------------- Setup -----------------
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 TZ = pytz.timezone("Europe/Berlin")
@@ -63,36 +72,73 @@ class BookingTracker:
         self.service = build("calendar", "v3", credentials=creds)
     
     def track_booking(self, customer_name, date, time_slot, user, color_id, description=""):
-        """Tracke eine neue Buchung"""
+        """
+        Tracke eine neue Buchung mit Dual-Write Pattern
+
+        Schreibt in:
+        1. PostgreSQL (wenn USE_POSTGRES=true und verfügbar)
+        2. JSONL-Datei (immer als Fallback)
+        """
         try:
+            booking_date = datetime.strptime(date, "%Y-%m-%d")
+            booking_id = f"{date}_{time_slot}_{customer_name}".replace(" ", "_")
+
             booking_data = {
-                "id": f"{date}_{time_slot}_{customer_name}".replace(" ", "_"),
+                "id": booking_id,
                 "timestamp": datetime.now(TZ).isoformat(),
                 "customer": customer_name,
                 "date": date,
                 "time": time_slot,
-                "weekday": datetime.strptime(date, "%Y-%m-%d").strftime("%A"),
-                "week_number": datetime.strptime(date, "%Y-%m-%d").isocalendar()[1],
+                "weekday": booking_date.strftime("%A"),
+                "week_number": booking_date.isocalendar()[1],
                 "user": user,
                 "potential_type": self._get_potential_type(color_id),
                 "color_id": color_id,
                 "description_length": len(description) if description else 0,
                 "has_description": bool(description),
-                "booking_lead_time": (datetime.strptime(date, "%Y-%m-%d").date() - datetime.now(TZ).date()).days,
+                "booking_lead_time": (booking_date.date() - datetime.now(TZ).date()).days,
                 "booked_at_hour": datetime.now(TZ).hour,
                 "booked_on_weekday": datetime.now(TZ).strftime("%A")
             }
-            
-            # Stelle sicher, dass das Verzeichnis existiert
+
+            # ========== DUAL-WRITE: PostgreSQL + JSON ==========
+
+            # 1. PostgreSQL schreiben (wenn aktiviert)
+            if POSTGRES_AVAILABLE and is_postgres_enabled():
+                try:
+                    session = get_db_session()
+                    booking = Booking(
+                        booking_id=booking_id,
+                        customer=customer_name,
+                        date=booking_date.date(),
+                        time=time_slot,
+                        weekday=booking_data["weekday"],
+                        week_number=booking_data["week_number"],
+                        username=user,
+                        potential_type=booking_data["potential_type"],
+                        color_id=color_id,
+                        description_length=booking_data["description_length"],
+                        has_description=booking_data["has_description"],
+                        booking_lead_time=booking_data["booking_lead_time"],
+                        booked_at_hour=booking_data["booked_at_hour"],
+                        booked_on_weekday=booking_data["booked_on_weekday"],
+                        booking_timestamp=datetime.now(TZ)
+                    )
+                    session.merge(booking)  # Update if exists
+                    session.commit()
+                    session.close()
+                    logger.debug(f"Booking tracked to PostgreSQL: {booking_id}")
+                except Exception as e:
+                    logger.error(f"PostgreSQL write failed, using JSON fallback: {e}")
+
+            # 2. JSONL schreiben (immer, als Fallback)
             os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
-            
-            # Append to JSONL file mit Error Handling
             with open(self.bookings_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
-            
+
             logger.info(f"Booking tracked: {customer_name} on {date} at {time_slot}")
             return booking_data
-            
+
         except Exception as e:
             logger.error(f"Error tracking booking: {e}")
             return None

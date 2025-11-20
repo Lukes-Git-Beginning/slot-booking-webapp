@@ -200,7 +200,7 @@ class PersonalGoal(Base):
     # Indexes
     __table_args__ = (
         Index('idx_username_goal', 'username', 'goal_id', unique=True),
-        Index('idx_active_goals', 'is_active'),
+        Index('idx_personal_goals_active', 'is_active'),
     )
 
     def __repr__(self) -> str:
