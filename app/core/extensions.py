@@ -19,11 +19,12 @@ level_system = None
 tracking_system = None
 limiter = None
 csrf = None  # CSRF Protection
+sess = None  # Flask-Session with Redis
 
 
 def init_extensions(app: Flask) -> None:
     """Initialize all Flask extensions and external services"""
-    global cache_manager, data_persistence, error_handler, level_system, tracking_system, limiter, csrf
+    global cache_manager, data_persistence, error_handler, level_system, tracking_system, limiter, csrf, sess
 
     # Import and initialize cache manager
     from app.core.cache_manager import cache_manager as cm
@@ -71,12 +72,17 @@ def init_extensions(app: Flask) -> None:
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
         from app.utils.rate_limiting import init_rate_limiter, handle_rate_limit_error
+        import os
+
+        # Use Redis for rate limiting if available
+        redis_url = os.getenv('REDIS_URL')
+        storage_uri = redis_url if redis_url else "memory://"
 
         limiter = Limiter(
             app=app,
             key_func=get_remote_address,
             default_limits=["10000 per day", "500 per hour"],
-            storage_uri="memory://",  # In-memory storage (use Redis for production scaling)
+            storage_uri=storage_uri,
             strategy="fixed-window"
         )
 
@@ -86,9 +92,61 @@ def init_extensions(app: Flask) -> None:
         # Initialize rate limiting module
         init_rate_limiter(limiter)
 
-        logger.info("✓ Rate limiting initialized successfully")
+        if redis_url:
+            logger.info("✓ Rate limiting initialized with Redis backend")
+        else:
+            logger.info("✓ Rate limiting initialized with memory backend")
     except Exception as e:
         logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
         limiter = None
 
+    # Initialize Flask-Session with Redis backend (if available)
+    init_session_storage(app)
+
     logger.info("✓ All extensions initialized successfully")
+
+
+def init_session_storage(app: Flask) -> None:
+    """Initialize Flask-Session with Redis backend (if available)"""
+    global sess
+    import os
+
+    redis_url = os.getenv('REDIS_URL')
+
+    if redis_url:
+        try:
+            from flask_session import Session
+            import redis
+
+            # Configure Flask-Session to use Redis
+            app.config['SESSION_TYPE'] = 'redis'
+            app.config['SESSION_PERMANENT'] = True
+            app.config['SESSION_USE_SIGNER'] = True
+            app.config['SESSION_KEY_PREFIX'] = 'session:'
+
+            # Create Redis connection for sessions
+            app.config['SESSION_REDIS'] = redis.from_url(
+                redis_url,
+                decode_responses=False,  # Store pickled session data
+                socket_connect_timeout=5,
+                socket_timeout=5
+            )
+
+            # Initialize Flask-Session
+            sess = Session(app)
+            logger.info("✅ Redis Session-Storage aktiviert")
+
+            # Also update Flask-Limiter to use Redis
+            global limiter
+            if limiter:
+                logger.info("✅ Flask-Limiter auf Redis umgestellt")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Redis-Session nicht verfügbar, nutze Filesystem-Sessions: {e}")
+            # Fallback to filesystem sessions (Flask default)
+            app.config['SESSION_TYPE'] = 'filesystem'
+            sess = None
+    else:
+        logger.info("ℹ️ REDIS_URL nicht gesetzt, nutze Filesystem-Sessions")
+        app.config['SESSION_TYPE'] = 'filesystem'
+        sess = None
