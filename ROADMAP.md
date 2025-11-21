@@ -1,9 +1,9 @@
 # 📊 SLOT-BOOKING-WEBAPP - ROADMAP & TECHNICAL DEBT ANALYSIS
 
-**Analysedatum**: 2025-11-20 (Aktualisiert)
+**Analysedatum**: 2025-11-21 (Aktualisiert)
 **Version**: v3.3.10 (LIVE - Production)
 **Deployment**: Hetzner VPS (91.98.192.233)
-**Status**: PRODUCTION-READY mit PostgreSQL + Redis + Booking-System ✅
+**Status**: PRODUCTION-READY mit PostgreSQL + Redis + Booking-System KOMPLETT ✅
 
 ---
 
@@ -17,7 +17,7 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
 
 | # | Priorität | Issue | Aufwand | Status |
 |---|-----------|-------|---------|--------|
-| 1 | P0 | ~~PostgreSQL Migration (aktuell JSON-Files)~~ | 8h | ✅ ERLEDIGT (2025-11-20) |
+| 1 | P0 | ~~PostgreSQL Migration (aktuell JSON-Files)~~ | 14h | ✅ ERLEDIGT (2025-11-21) |
 | 2 | P0 | Template-Framework-Chaos (3 → 1) | 6h | Offen |
 | 3 | P0 | Legacy-Routing-Chaos (3 Systeme) | 4h | Offen |
 | 4 | P1 | ~~Redis für Caching~~ | 2h | ✅ ERLEDIGT (2025-11-20) |
@@ -28,17 +28,18 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
 | 9 | P2 | Frontend-Assets optimieren (3.8 MB → <1 MB) | 3h | Offen |
 | 10 | P2 | Obsolete Scripts löschen (7 Dateien) | 0.5h | Teilweise |
 
-**Gesamtaufwand Roadmap**: ~38 Stunden über 4-6 Wochen (**29h abgeschlossen ✅** - 76% Complete)
+**Gesamtaufwand Roadmap**: ~44 Stunden über 4-6 Wochen (**35h abgeschlossen ✅** - 80% Complete)
 
-### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.10 - 2025-11-20)
+### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.10 - 2025-11-21)
 
-**PHASE 1: PostgreSQL + Redis Migration (21h)** - 100% abgeschlossen ✅:
+**PHASE 1: PostgreSQL + Redis Migration (27h)** - 100% abgeschlossen ✅:
 - ✅ **PostgreSQL 16 Setup & Migration**:
   - PostgreSQL 16 auf Hetzner VPS installiert
   - **25 SQLAlchemy Models** erstellt (user.py, gamification.py, cosmetics.py, weekly.py, **booking.py**)
   - **24 Database-Tables** mit 121 Indexes erstellt (Alembic Migrations)
-  - **150 Records migriert** (33 Scores, 80 Badges, 37 Weekly-Points)
+  - **514 Records migriert** (33 Scores, 80 Badges, 37 Weekly-Points, **364 Bookings**)
   - **🆕 Booking-System migriert**: 2 neue Tables (`bookings`, `booking_outcomes`)
+  - **364 Historische Buchungen** aus JSONL (26) + Google Calendar (338) migriert
   - 100% Migration Success Rate
   - Database: `business_hub`, User: `business_hub_user`
 
@@ -49,14 +50,19 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
   - Flask-Limiter auf Redis umgestellt (Rate Limiting)
   - 10 Keys im Cache, TTL ~11h durchschnittlich
 
-- ✅ **Booking-System auf PostgreSQL (11h)** - NEU 2025-11-20:
+- ✅ **Booking-System auf PostgreSQL (17h)** - KOMPLETT 2025-11-21:
   - **2 neue Models**: `Booking` (16 Felder) + `BookingOutcome` (10 Felder)
   - **Dual-Write Pattern**: Neue Buchungen → PostgreSQL + JSON (Fallback)
-  - **My Calendar umgebaut**: Smart Wrapper (PostgreSQL/JSON auto-detection)
-  - **20 Indizes** für Performance-Optimierung
+  - **My Calendar komplett migriert**: Smart Wrapper + init_db() Fix
+  - **20 Indizes** für Performance-Optimierung (username+date, customer, week_number)
   - **Alembic Migration**: erfolgreich deployed und ausgeführt
   - **Tracking-System**: `track_booking()` schreibt in beide Systeme
-  - **Backfill-Script**: erstellt (TODO: historische Daten migrieren)
+  - **364 Historische Buchungen migriert**:
+    - Phase 1: 26 Buchungen aus JSONL (`bookings.jsonl`)
+    - Phase 2: 338 Buchungen aus Google Calendar (`[Booked by: username]` Pattern)
+    - Phase 3: Täglicher Cronjob für manuelle Kalender-Änderungen (23:00 UTC)
+  - **My Calendar Bug gefixt**: `init_db()` fehlte → PostgreSQL-Fallback aktiviert
+  - **Erweiterte Zeitfenster**: 60 Tage zurück + 90 Tage voraus (statt 30 Tage)
 
 - ✅ **Code-Fixes**:
   - Index-Namen-Konflikte behoben (idx_active, idx_completed, idx_pending)
@@ -70,8 +76,9 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
 - ✅ Documentation erneuert (README, CLAUDE, DEVELOPER_GUIDE)
 
 **Deployment**: Alle Änderungen LIVE auf Production-Server ✅
+**Neue Scripts**: `migrate_bookings_only.py`, `backfill_from_calendar.py`, `run_calendar_sync.sh`
 
-**Verbleibender Aufwand**: ~20 Stunden
+**Verbleibender Aufwand**: ~9 Stunden (Phase 2-4)
 
 ---
 
@@ -653,20 +660,21 @@ static/fontawesome.min.css                 # 102 KB (Legacy)
 
 ---
 
-## 📅 TIMELINE (Aktualisiert 2025-11-18)
+## 📅 TIMELINE (Aktualisiert 2025-11-21)
 
 ```
 ✅ Woche 1-2 (Nov 2025):   Quick Wins + Activity Tracking (ABGESCHLOSSEN)
-🔜 Woche 3-4 (Dez 2025):   Phase 1 - PostgreSQL + Redis + Testing
-🔜 Woche 5 (Dez 2025):     Phase 1 - Testing
+✅ Woche 3-4 (Nov 2025):   Phase 1 - PostgreSQL + Redis + Booking-Migration (ABGESCHLOSSEN)
+🔜 Woche 5 (Dez 2025):     Phase 1 - Testing Framework
 🔜 Woche 6 (Dez 2025):     Phase 2 - Template + Routing Cleanup
 🔜 Woche 7-8 (Jan 2026):   Phase 3 - TODOs + Performance
 🔜 Woche 9 (Jan 2026):     Phase 4 - CI/CD + Monitoring
 ```
 
-**Gesamtaufwand**: ~38 Stunden (8h abgeschlossen ✅, 30h verbleibend)
+**Gesamtaufwand**: ~44 Stunden (35h abgeschlossen ✅, 9h verbleibend)
 **Quick Wins**: ✅ ABGESCHLOSSEN (54 Min - v3.3.8)
 **Activity Tracking**: ✅ ABGESCHLOSSEN (4h - v3.3.8)
+**PostgreSQL + Redis + Booking-Migration**: ✅ ABGESCHLOSSEN (27h - v3.3.10)
 **ROI**: Hoch (Wartbarkeit +200%, Performance +30%, Stabilität +100%)
 
 ---
@@ -682,13 +690,13 @@ static/fontawesome.min.css                 # 102 KB (Legacy)
 
 ---
 
-**Status**: PRODUCTION-READY mit reduziertem Technical Debt ✅
-**Letztes Update**: 2025-11-18 (v3.3.8 deployed)
-**Nächster Schritt**: T2 Calendar Integration ODER PostgreSQL Migration
+**Status**: PRODUCTION-READY mit PostgreSQL + Redis KOMPLETT ✅
+**Letztes Update**: 2025-11-21 (v3.3.10 deployed - PostgreSQL Migration abgeschlossen)
+**Nächster Schritt**: Testing Framework ODER T2 Calendar Integration
 
 ---
 
 **Erstellt**: 2025-10-29
-**Letztes Update**: 2025-11-18
+**Letztes Update**: 2025-11-21
 **Autor**: Claude Code Codebase-Analyse
-**Version**: 2.0
+**Version**: 2.1

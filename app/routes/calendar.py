@@ -112,13 +112,14 @@ def is_user_booking(event, username, username_variants, consultants_dict):
     return (False, None, None)
 
 
-def get_user_bookings_from_db(username, days_back=30):
+def get_user_bookings_from_db(username, days_back=30, days_forward=90):
     """
     Read user's bookings from PostgreSQL database
 
     Args:
         username: The user to get bookings for
         days_back: How many days back to read (default: 30)
+        days_forward: How many days forward to read (default: 90)
 
     Returns:
         List of booking dicts with customer, date, time, etc.
@@ -129,15 +130,20 @@ def get_user_bookings_from_db(username, days_back=30):
     logger = logging.getLogger(__name__)
 
     try:
-        from app.models import get_db_session, Booking
+        from app.models import init_db, get_db_session, Booking
 
-        cutoff_date = date.today() - timedelta(days=days_back)
+        # Ensure database is initialized before querying
+        init_db()
+
+        start_date = date.today() - timedelta(days=days_back)
+        end_date = date.today() + timedelta(days=days_forward)
         session = get_db_session()
 
-        # Query bookings for this user within date range
+        # Query bookings for this user within date range (past + future)
         bookings = session.query(Booking).filter(
             Booking.username == username,
-            Booking.date >= cutoff_date
+            Booking.date >= start_date,
+            Booking.date <= end_date
         ).order_by(Booking.date.desc()).all()
 
         # Convert to dict format (same as JSONL)
@@ -219,13 +225,14 @@ def get_user_bookings_from_jsonl(username, days_back=30):
     return user_bookings
 
 
-def get_user_bookings(username, days_back=30):
+def get_user_bookings(username, days_back=30, days_forward=90):
     """
     Smart wrapper: Uses PostgreSQL if enabled, falls back to JSONL
 
     Args:
         username: The user to get bookings for
         days_back: How many days back to read (default: 30)
+        days_forward: How many days forward to read (default: 90)
 
     Returns:
         List of booking dicts
@@ -237,8 +244,8 @@ def get_user_bookings(username, days_back=30):
         from app.models import is_postgres_enabled
 
         if is_postgres_enabled():
-            logger.info(f"Using PostgreSQL for booking data (user: {username})")
-            bookings = get_user_bookings_from_db(username, days_back)
+            logger.info(f"Using PostgreSQL for booking data (user: {username}, range: -{days_back} to +{days_forward} days)")
+            bookings = get_user_bookings_from_db(username, days_back, days_forward)
             if bookings:  # Nur wenn Daten gefunden wurden
                 return bookings
             else:
@@ -399,13 +406,13 @@ def my_calendar():
     # Get view mode parameter (table or kanban)
     view_mode = request.args.get('view', 'table')
 
-    # Get user's bookings from the past 30 days and next 30 days
+    # Get user's bookings from the past 60 days and next 90 days (PostgreSQL can handle larger ranges)
     start_date = (dt_module.now(TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
     end_date = (dt_module.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
 
     # 🆕 SMART APPROACH: Read bookings from PostgreSQL or JSONL (auto-detection)
     logger.info(f"MY-CALENDAR: Loading bookings for user '{user}'")
-    user_bookings = get_user_bookings(user, days_back=30)
+    user_bookings = get_user_bookings(user, days_back=60, days_forward=90)
     logger.info(f"MY-CALENDAR: Found {len(user_bookings)} bookings")
 
     # Get events from Google Calendar

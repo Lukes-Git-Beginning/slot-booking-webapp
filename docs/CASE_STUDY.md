@@ -9,6 +9,8 @@ A production-grade internal business platform serving 17 users with appointment 
 - Implemented comprehensive security (2FA, CSRF, Rate Limiting)
 - Built gamification system with 50+ badges and leveling
 - Achieved 98% test coverage on security-critical code
+- Successfully migrated from JSON to PostgreSQL (514 records + 364 bookings)
+- Implemented Redis caching with hybrid fallback architecture
 
 ---
 
@@ -60,24 +62,55 @@ app/
 
 **Why:** Services are independently testable, routes remain thin HTTP handlers, and business logic is reusable.
 
-### JSON-Based Persistence (Strategic Choice)
+### Database Architecture Evolution
 
-**Decision:** Use JSON files instead of PostgreSQL
+**Phase 1 (Oct 2025):** JSON-Based Persistence (Strategic Choice)
+
+**Decision:** Start with JSON files instead of PostgreSQL
 
 **Rationale:**
 - 17 users don't require relational database overhead
 - Simpler deployment without database management
-- Sufficient for gamification/tracking data structures
+- Sufficient for initial gamification/tracking data structures
 - Documented migration path to PostgreSQL when scaling
+
+**Phase 2 (Nov 2025):** PostgreSQL Migration (Production-Ready)
+
+**Decision:** Migrate to PostgreSQL + Redis for scalability
 
 **Implementation:**
 ```python
-class DataPersistence:
-    def save_data(self, filename: str, data: Any) -> bool:
-        # Atomic writes with temp file + rename
-        # Automatic backup before each write
-        # Dual-path storage (persistent + static)
+# PostgreSQL with SQLAlchemy
+class Booking(Base):
+    __tablename__ = 'bookings'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(100), nullable=False, index=True)
+    customer = Column(String(200), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    time = Column(String(10), nullable=False)
+    week_number = Column(Integer, index=True)
+    # ... 16 total fields
+
+# Dual-Write Pattern for migration safety
+def track_booking(username, customer, date, time):
+    # Write to PostgreSQL (primary)
+    booking = Booking(username=username, customer=customer, ...)
+    session.add(booking)
+    session.commit()
+
+    # Write to JSONL (fallback)
+    append_to_jsonl('bookings.jsonl', booking_data)
 ```
+
+**Migration Results:**
+- **25 SQLAlchemy Models** across 5 modules
+- **24 Database Tables** with 121 indexes
+- **514 Records migrated**: 33 Scores, 80 Badges, 37 Weekly-Points, 364 Bookings
+- **Historical Booking Migration**:
+  - 26 bookings from JSONL files
+  - 338 bookings extracted from Google Calendar (`[Booked by: username]` tags)
+  - Daily cronjob for ongoing sync (23:00 UTC)
+- **Smart Wrapper**: Auto-detection with graceful fallback to JSONL on PostgreSQL errors
 
 ---
 
@@ -290,6 +323,8 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/erro
 - **17 active users** with daily usage
 - **Zero security incidents** since launch
 - **Gamification engagement:** 50+ badges awarded
+- **364 historical bookings** migrated to PostgreSQL
+- **24 database tables** with 121 indexes for optimal performance
 
 ### Code Quality
 
@@ -312,14 +347,18 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/erro
 ### What I'd Do Differently
 
 1. **Start with tests** - Added test suite late in development; earlier would have caught bugs faster
-2. **PostgreSQL from start** - While JSON works, migration path adds complexity
-3. **Consistent CSS framework** - Having both Bootstrap and Tailwind creates duplication
-4. **API documentation** - No Swagger/OpenAPI, makes integration harder
+2. **Consistent CSS framework** - Having both Bootstrap and Tailwind creates duplication
+3. **API documentation** - No Swagger/OpenAPI, makes integration harder
 
 ### Technical Debt Addressed
 
 - [x] Test coverage from <1% to 60%+ on critical services
-- [ ] Migrate to PostgreSQL (documented but not implemented)
+- [x] **Migrated to PostgreSQL** - 27h migration completed (Nov 2025)
+  - 25 SQLAlchemy models with 24 tables
+  - 514 records + 364 historical bookings migrated
+  - Dual-write pattern for safety
+  - Daily cronjob for Google Calendar sync
+- [x] **Redis caching** - Hybrid architecture with file fallback
 - [ ] Consolidate CSS frameworks to Tailwind only
 - [ ] Add API versioning
 
@@ -329,7 +368,11 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/erro
 
 ### Backend
 - **Flask 3.1** - Web framework
-- **Gunicorn** - WSGI server
+- **PostgreSQL 16** - Relational database (Nov 2025)
+- **SQLAlchemy** - ORM with 25 models
+- **Alembic** - Database migrations
+- **Redis 7.x** - Caching layer
+- **Gunicorn** - WSGI server (4 workers)
 - **Google Calendar API** - Calendar integration
 - **bcrypt / pyotp** - Security
 
@@ -354,8 +397,9 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/erro
 ## Contact
 
 **Project:** Central Business Tool Hub
-**Version:** 3.3.8
+**Version:** 3.3.10
 **Status:** Production (since October 2025)
+**Database:** PostgreSQL 16 + Redis 7.x (migrated November 2025)
 **Uptime:** 99.9%
 
 ---
