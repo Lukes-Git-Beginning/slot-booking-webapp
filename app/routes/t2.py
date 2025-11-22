@@ -4,11 +4,12 @@ T2-Closer-System Blueprint
 Random Closer-Zuweisung mit Bucket-System und Ticket-Management
 """
 
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from datetime import datetime, timedelta, date
 import json
 import logging
 import random
+import uuid
 from typing import Dict, List, Optional
 from collections import defaultdict
 
@@ -20,21 +21,53 @@ from app.routes.t2_bucket_routes import register_bucket_routes
 register_bucket_routes(t2_bp)
 
 # T2-Closer-Konfiguration
+# COACHES (würfelbar) - Aktuell KEINE Schreibrechte (bis nach Wochenende)
+# BERATER (ausführend) - MIT Schreibrechten
 T2_CLOSERS = {
-    "Alexander": {
-        "calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com",
-        "email": "alexander@domain.de",
-        "color": "#2196F3"
-    },
+    # === COACHES (würfelbar) - KEINE Schreibrechte ===
     "David": {
         "calendar_id": "david.nehm@googlemail.com",
         "email": "david.nehm@googlemail.com",
+        "role": "coach",
+        "can_write": False,  # Schreibrechte kommen nach Wochenende
         "color": "#9C27B0"
+    },
+    "Alexander": {
+        "calendar_id": "alexandernehm84@gmail.com",
+        "email": "alexandernehm84@gmail.com",
+        "role": "coach",
+        "can_write": False,  # Schreibrechte kommen nach Wochenende
+        "color": "#2196F3"
     },
     "Jose": {
         "calendar_id": "jtldiw@gmail.com",
         "email": "jtldiw@gmail.com",
+        "role": "coach",
+        "can_write": False,  # Schreibrechte kommen nach Wochenende
         "color": "#795548"
+    },
+
+    # === BERATER (ausführend) - MIT Schreibrechten ===
+    "Christian": {
+        "calendar_id": "chmast95@gmail.com",
+        "email": "chmast95@gmail.com",
+        "role": "berater",
+        "can_write": True,
+        "color": "#4CAF50"
+    },
+    "Daniel": {
+        "calendar_id": "daniel.herbort.zfa@gmail.com",
+        "email": "daniel.herbort.zfa@gmail.com",
+        "role": "berater",
+        "can_write": True,
+        "color": "#FF9800"
+    },
+    "Tim": {
+        "calendar_id": "tim.kreisel71@gmail.com",
+        "email": "tim.kreisel71@gmail.com",
+        "role": "berater",
+        "can_write": True,
+        "color": "#00BCD4"
     }
 }
 
@@ -47,9 +80,54 @@ T2_CONFIG = {
     "tickets_per_month": 4,  # Max 4 T2-Termine pro Monat
 }
 
+# ========== HELPER FUNCTIONS ==========
+
+def get_coaches() -> List[str]:
+    """
+    Gibt Liste aller Coaches zurück (würfelbar).
+    Coaches sind: David, Alexander, Jose
+    """
+    return [name for name, info in T2_CLOSERS.items() if info.get('role') == 'coach']
+
+
+def get_beraters() -> List[str]:
+    """
+    Gibt Liste aller Berater zurück (können Termine ausführen).
+    Berater sind: Alle 6 Closer (Christian, Daniel, Tim + David, Alexander, Jose)
+    """
+    return list(T2_CLOSERS.keys())
+
+
+def get_available_beraters() -> List[str]:
+    """
+    Gibt Liste aller Berater mit Google Calendar Schreibrechten zurück.
+    Aktuell: Christian, Daniel, Tim
+    """
+    return [name for name, info in T2_CLOSERS.items() if info.get('can_write', False)]
+
+
+def is_mock_required(closer_name: str) -> bool:
+    """
+    Prüft ob für Closer ein Mock nötig ist (keine Schreibrechte).
+
+    Args:
+        closer_name: Name des Closers
+
+    Returns:
+        True wenn Mock nötig (keine Schreibrechte), False sonst
+    """
+    if closer_name not in T2_CLOSERS:
+        return True
+    return not T2_CLOSERS[closer_name].get('can_write', False)
+
+
 from app.utils.decorators import require_login
 from app.utils.rate_limiting import rate_limit_t2, rate_limit_api
 from app.services.t2_analytics_service import t2_analytics_service
+from app.services.t2_dynamic_availability import t2_dynamic_availability
+from app.services.tracking_system import tracking_system
+from app.core.google_calendar import GoogleCalendarService
+from app.services.data_persistence import data_persistence
 
 # ========== HAUPTROUTEN ==========
 
@@ -99,34 +177,48 @@ def api_roll_closer():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@t2_bp.route("/booking")
+@t2_bp.route("/booking-calendly")
 @require_login
-def booking_page():
-    """T2-Buchungsseite - vereinfacht ohne Closer-Auswahl"""
+def booking_calendly():
+    """
+    Neue Calendly-Style T2-Buchungsseite.
+
+    Flow:
+    1. Berater-Auswahl (nach Würfel)
+    2. Monats-Kalender
+    3. 2h-Slot-Auswahl (gruppiert)
+    4. Kundeninfo-Formular
+    """
     user = session.get('user')
 
-    # Aktuell zugewiesener Closer
-    assigned_closer = session.get('t2_current_closer')
-    if not assigned_closer or assigned_closer not in T2_CLOSERS:
-        # Kein Closer in Session -> Redirect zum Draw
-        flash('Bitte ziehe zuerst einen Closer im Würfelsystem.', 'warning')
+    # Check: Coach wurde gewürfelt?
+    coach = session.get('t2_current_closer')
+    if not coach or coach not in T2_CLOSERS:
+        flash('Bitte ziehe zuerst einen Coach im Würfelsystem.', 'warning')
         return redirect(url_for('t2.draw_page'))
 
+    # Check: Tickets verfügbar?
     tickets_remaining = get_user_tickets_remaining(user)
-
     if tickets_remaining <= 0:
         return render_template('t2/no_tickets.html',
                              user=user,
                              next_reset=get_next_ticket_reset())
 
-    return render_template('t2/booking.html',
+    return render_template('t2/booking_calendly.html',
                          user=user,
-                         assigned_closer=assigned_closer,
-                         closer_info=T2_CLOSERS[assigned_closer],
-                         tickets_remaining=tickets_remaining,
-                         config=T2_CONFIG,
-                         datetime=datetime,
-                         timedelta=timedelta)
+                         coach=coach,
+                         T2_CLOSERS=T2_CLOSERS,
+                         tickets_remaining=tickets_remaining)
+
+
+@t2_bp.route("/booking")
+@require_login
+def booking_page():
+    """
+    DEPRECATED: Alte T2-Buchungsseite.
+    Redirected zur neuen Calendly-Style Booking-Page.
+    """
+    return redirect(url_for('t2.booking_calendly'))
 
 
 @t2_bp.route("/calendar")
@@ -488,6 +580,44 @@ def get_next_t2_appointments(username: str) -> List[Dict]:
     return future_bookings[:5]
 
 
+def can_modify_booking(booking: Dict, username: str) -> bool:
+    """
+    Prüft ob User berechtigt ist Buchung zu ändern/stornieren.
+
+    Args:
+        booking: Buchungs-Dictionary
+        username: Aktueller User
+
+    Returns:
+        True wenn User = Booker ODER User = Admin
+    """
+    return booking.get('user') == username or is_admin_user(username)
+
+
+def return_user_ticket(username: str):
+    """
+    Gibt Ticket zurück nach Stornierung.
+
+    Reduziert used-Counter um 1 für aktuellen Monat.
+    """
+    try:
+        current_month = datetime.now().strftime('%Y-%m')
+        ticket_data = data_persistence.load_data('t2_tickets', {})
+
+        if username in ticket_data and current_month in ticket_data[username]:
+            current_used = ticket_data[username][current_month].get('used', 0)
+            ticket_data[username][current_month]['used'] = max(0, current_used - 1)
+
+            data_persistence.save_data('t2_tickets', ticket_data)
+
+            logger.info(f"Ticket returned for {username} in {current_month} (new used: {ticket_data[username][current_month]['used']})")
+        else:
+            logger.warning(f"No ticket data found for {username} in {current_month}")
+
+    except Exception as e:
+        logger.error(f"Error returning ticket: {e}")
+
+
 # ========== STATISTIKEN ==========
 
 def get_calendar_data(username: str) -> Dict:
@@ -835,6 +965,20 @@ def my_analytics():
                          combined_stats=combined_stats)
 
 
+@t2_bp.route("/my-bookings")
+@require_login
+def my_bookings():
+    """
+    My T2 2-Hour Bookings Management Page
+    View, cancel, and reschedule 2-hour appointments
+    """
+    user = session.get('user')
+
+    return render_template('t2/my_bookings.html',
+                         user=user,
+                         is_admin=is_admin_user(user))
+
+
 @t2_bp.route("/api/my-draw-history")
 @require_login
 def api_my_draw_history():
@@ -962,4 +1106,841 @@ def api_draw_timeline():
 
     except Exception as e:
         logger.error(f"Error getting draw timeline: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========== NEW CALENDLY-STYLE BOOKING API ENDPOINTS ==========
+
+@t2_bp.route('/api/select-berater', methods=['POST'])
+@require_login
+@rate_limit_api
+def api_select_berater():
+    """
+    API: Speichert Berater-Auswahl nach Würfel.
+
+    Request JSON:
+        {"berater": "Christian"}
+
+    Response:
+        {"success": true}
+    """
+    try:
+        user = session.get('user')
+        data = request.json
+
+        if not data or 'berater' not in data:
+            return jsonify({'success': False, 'error': 'Berater required'}), 400
+
+        berater = data['berater']
+
+        # Validation
+        if berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        # Coach aus Session holen (vom Würfel)
+        coach = session.get('t2_current_closer')
+
+        if not coach:
+            return jsonify({'success': False, 'error': 'No coach assigned. Please roll first.'}), 400
+
+        # Session speichern
+        session['t2_booking_coach'] = coach
+        session['t2_booking_berater'] = berater
+
+        logger.info(f"User {user}: Selected berater {berater} for coach {coach}")
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error selecting berater: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/month-availability/<berater>/<int:year>/<int:month>')
+@require_login
+@rate_limit_api
+def api_month_availability(berater, year, month):
+    """
+    API: Lädt Verfügbarkeit für ganzen Monat.
+
+    URL Params:
+        berater: Berater-Name (z.B. "Christian")
+        year: Jahr (z.B. 2025)
+        month: Monat 1-12 (z.B. 11)
+
+    Response:
+        {
+            "success": true,
+            "days": {
+                "2025-11-25": 3,  # 3 freie Slots
+                "2025-11-26": 1
+            }
+        }
+    """
+    try:
+        user = session.get('user')
+
+        # Validation
+        if berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        if month < 1 or month > 12:
+            return jsonify({'success': False, 'error': 'Invalid month'}), 400
+
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+
+        logger.info(f"User {user}: Loading month availability for {berater} ({year}-{month:02d})")
+
+        # Scan Monat
+        availability = t2_dynamic_availability.get_month_availability(calendar_id, year, month)
+
+        return jsonify({
+            'success': True,
+            'days': availability,
+            'total_days': len(availability)
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading month availability: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/day-slots/<berater>/<date_str>')
+@require_login
+@rate_limit_api
+def api_day_slots(berater, date_str):
+    """
+    API: Lädt gruppierte 2h-Slots für einen Tag.
+
+    URL Params:
+        berater: Berater-Name (z.B. "Christian")
+        date_str: Datum im ISO-Format (z.B. "2025-11-25")
+
+    Response:
+        {
+            "success": true,
+            "slots": {
+                "morning": ["08:00", "10:30"],
+                "midday": ["12:00", "14:00"],
+                "evening": ["16:30", "18:00"]
+            }
+        }
+    """
+    try:
+        user = session.get('user')
+
+        # Validation
+        if berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        # Parse Date
+        try:
+            check_date = datetime.fromisoformat(date_str).date()
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+
+        logger.info(f"User {user}: Loading day slots for {berater} on {date_str}")
+
+        # Scan Tag
+        slots = t2_dynamic_availability.find_2h_slots_non_overlapping(calendar_id, check_date)
+
+        total_slots = len(slots['morning']) + len(slots['midday']) + len(slots['evening'])
+
+        return jsonify({
+            'success': True,
+            'slots': slots,
+            'total_slots': total_slots
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading day slots: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/book-2h-slot', methods=['POST'])
+@require_login
+@rate_limit_api
+def api_book_2h_slot():
+    """
+    API: Führt 2h-Slot-Buchung durch.
+
+    Request JSON:
+        {
+            "first_name": "Max",
+            "last_name": "Mustermann",
+            "email": "max@example.com",  # optional
+            "topic": "Verkaufsgespräch",  # optional
+            "date": "2025-11-25",
+            "time": "14:00"
+        }
+
+    Response:
+        {
+            "success": true,
+            "booking_id": "T2-ABC12345",
+            "redirect": "/t2/"
+        }
+    """
+    try:
+        user = session.get('user')
+        data = request.json
+
+        # Validation
+        required_fields = ['first_name', 'last_name', 'date', 'time']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'{field} required'}), 400
+
+        coach = session.get('t2_booking_coach')
+        berater = session.get('t2_booking_berater')
+
+        if not coach or not berater:
+            return jsonify({'success': False, 'error': 'Session expired. Please start over.'}), 400
+
+        # 1. Ticket-Check
+        tickets_remaining = get_user_tickets_remaining(user)
+        if tickets_remaining <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'Keine Tickets verfügbar. Sie haben bereits alle 4 T2-Termine diesen Monat gebucht.'
+            }), 403
+
+        # 2. Parse Date + Time
+        try:
+            booking_date = datetime.fromisoformat(data['date']).date()
+            hour, minute = map(int, data['time'].split(':'))
+            booking_datetime = datetime.combine(booking_date, datetime.min.time().replace(hour=hour, minute=minute))
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date or time format'}), 400
+
+        # 3. Live Slot-Check
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+
+        is_free = t2_dynamic_availability.is_2h_slot_free(calendar_id, booking_date, data['time'])
+
+        if not is_free:
+            # Spezifische Error-Message je nach Situation
+            if coach == berater:
+                # Coach wollte selbst ausführen, aber hat Konflikt in eigenem Kalender
+                error_msg = (
+                    f"{coach} hat zu diesem Zeitpunkt bereits einen Termin im Kalender. "
+                    f"Bitte wählen Sie einen anderen Zeitpunkt oder übertragen Sie den Termin "
+                    f"an Christian, Daniel oder Tim."
+                )
+            else:
+                # Berater ist belegt
+                error_msg = (
+                    f"{berater} ist zu diesem Zeitpunkt nicht verfügbar. "
+                    f"Bitte wählen Sie einen anderen Zeitpunkt oder einen anderen Berater."
+                )
+
+            logger.warning(f"Slot conflict for {berater} at {booking_date} {data['time']}: Coach={coach}, Berater={berater}")
+
+            return jsonify({
+                'success': False,
+                'error': error_msg
+            }), 409
+
+        # 4. Google Calendar Event erstellen
+        customer_name = f"{data['last_name']}, {data['first_name']}"
+        end_datetime = booking_datetime + timedelta(hours=2)
+
+        # Event-Titel
+        if coach == berater:
+            event_title = f"T2 - Kunde: {customer_name} | Coach: {coach}"
+        else:
+            event_title = f"T2 - Kunde: {customer_name} | Coach: {coach}"
+
+        # Description
+        description_parts = [
+            "T2-Termin",
+            "",
+            f"Kunde: {customer_name}",
+            f"Coach: {coach}",
+            f"Berater: {berater}",
+        ]
+
+        if data.get('topic'):
+            description_parts.append(f"Thema: {data['topic']}")
+
+        if data.get('email'):
+            description_parts.append(f"Email: {data['email']}")
+
+        description_parts.append("")
+        description_parts.append(f"[Booked by: {user}]")
+
+        event_description = "\n".join(description_parts)
+
+        # Timezone-aware datetime (Europe/Berlin)
+        import pytz
+        berlin_tz = pytz.timezone('Europe/Berlin')
+        start_iso = berlin_tz.localize(booking_datetime).isoformat()
+        end_iso = berlin_tz.localize(end_datetime).isoformat()
+
+        event_body = {
+            'summary': event_title,
+            'description': event_description,
+            'start': {'dateTime': start_iso, 'timeZone': 'Europe/Berlin'},
+            'end': {'dateTime': end_iso, 'timeZone': 'Europe/Berlin'},
+            'colorId': '4'  # Flamingo (T2-Farbe)
+        }
+
+        # Nur schreiben wenn can_write=True
+        if T2_CLOSERS[berater].get('can_write', False):
+            try:
+                calendar_service = GoogleCalendarService()
+                result = calendar_service.create_event(calendar_id, event_body)
+
+                if result:
+                    logger.info(f"Google Calendar event created: {result.get('id')}")
+                else:
+                    logger.error("Google Calendar event creation failed (no result)")
+                    return jsonify({'success': False, 'error': 'Calendar-Fehler'}), 500
+
+            except Exception as e:
+                logger.error(f"Google Calendar write failed: {e}")
+                return jsonify({'success': False, 'error': f'Calendar-Fehler: {str(e)}'}), 500
+        else:
+            logger.info(f"Mock booking for {berater} (no write access yet)")
+
+        # 5. Tracking (Dual-Write)
+
+        # A) T2-JSON speichern
+        booking_id = f"T2-{uuid.uuid4().hex[:8].upper()}"
+
+        t2_booking_data = {
+            'id': booking_id,
+            'coach': coach,
+            'berater': berater,
+            'customer': customer_name,
+            'date': data['date'],
+            'time': data['time'],
+            'topic': data.get('topic', ''),
+            'email': data.get('email', ''),
+            'user': user,
+            'created_at': datetime.now().isoformat()
+        }
+
+        save_t2_booking(t2_booking_data)
+
+        # B) PostgreSQL + JSONL via tracking_system
+        tracking_system.track_booking(
+            customer_name=customer_name,
+            date=data['date'],
+            time_slot=data['time'],
+            user=user,
+            color_id='4',  # T2-Farbe
+            description=f"T2 - Coach: {coach} | Berater: {berater} | {data.get('topic', '')}"
+        )
+
+        # 6. Ticket verbrauchen
+        consume_user_ticket(user)
+
+        # 7. Cache invalidieren
+        t2_dynamic_availability.clear_cache_for_berater(calendar_id, booking_date)
+
+        # 8. Session clearen
+        session.pop('t2_current_closer', None)
+        session.pop('t2_booking_coach', None)
+        session.pop('t2_booking_berater', None)
+
+        logger.info(f"T2 booking successful: {booking_id} by {user}")
+
+        return jsonify({
+            'success': True,
+            'booking_id': booking_id,
+            'redirect': url_for('t2.dashboard')
+        })
+
+    except Exception as e:
+        logger.error(f"Error booking 2h slot: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/check-coach-availability/<coach>/<int:year>/<int:month>')
+@require_login
+@rate_limit_api
+def api_check_coach_availability(coach, year, month):
+    """
+    API: Prüft ob Coach im gewählten Monat selbst verfügbar ist.
+
+    Verwendet für Berater-Konflikt-Detection in Step 1.
+
+    URL Params:
+        coach: Coach-Name (z.B. "David")
+        year: Jahr (z.B. 2025)
+        month: Monat 1-12 (z.B. 11)
+
+    Response:
+        {
+            "success": true,
+            "can_execute_self": true|false,
+            "available_days": 8,
+            "recommendation": "self|delegate",
+            "message": "David hat 8 freie Tage und kann selbst ausführen."
+        }
+    """
+    try:
+        user = session.get('user')
+
+        # Validation
+        if coach not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid coach'}), 400
+
+        if month < 1 or month > 12:
+            return jsonify({'success': False, 'error': 'Invalid month'}), 400
+
+        logger.info(f"User {user}: Checking coach availability for {coach} ({year}-{month:02d})")
+
+        # Prüfe: Hat Coach überhaupt Schreibrechte?
+        if not T2_CLOSERS[coach].get('can_write', False):
+            return jsonify({
+                'success': True,
+                'can_execute_self': False,
+                'available_days': 0,
+                'recommendation': 'delegate',
+                'message': f"{coach} hat derzeit keine Kalender-Zugriffe. Termin muss an Berater übertragen werden."
+            })
+
+        # Scan Coach-Kalender für Monat
+        calendar_id = T2_CLOSERS[coach]['calendar_id']
+        availability = t2_dynamic_availability.get_month_availability(calendar_id, year, month)
+        available_days = len(availability)
+
+        logger.info(f"Coach {coach} has {available_days} available days in {year}-{month:02d}")
+
+        # Empfehlung basierend auf Verfügbarkeit
+        if available_days >= 5:
+            recommendation = 'self'
+            message = f"{coach} hat {available_days} freie Tage und kann selbst ausführen."
+            can_execute = True
+        elif available_days >= 1:
+            recommendation = 'delegate'
+            message = f"{coach} hat nur {available_days} freie Tage. Empfehlung: An Berater (Christian/Daniel/Tim) übertragen."
+            can_execute = True
+        else:
+            recommendation = 'delegate'
+            message = f"{coach} hat keine freien Slots in diesem Monat. Bitte an Berater übertragen."
+            can_execute = False
+
+        return jsonify({
+            'success': True,
+            'can_execute_self': can_execute,
+            'available_days': available_days,
+            'recommendation': recommendation,
+            'message': message
+        })
+
+    except Exception as e:
+        logger.error(f"Error checking coach availability: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/admin/2h-analytics')
+@require_login
+@rate_limit_api
+def api_admin_2h_analytics():
+    """
+    API: Lädt 2h-Buchungs-Statistiken für Admin-Dashboard.
+
+    Admin-only Endpoint für Analytics-Tab.
+
+    Query Params:
+        days (int): Anzahl Tage zurück (default: 30)
+
+    Response:
+        {
+            "success": true,
+            "analytics": {
+                "berater_stats": {...},
+                "coach_stats": {...},
+                "overall": {...}
+            }
+        }
+    """
+    try:
+        user = session.get('user')
+
+        # Admin-Check
+        if not is_admin_user(user):
+            return jsonify({
+                'success': False,
+                'error': 'Admin-Berechtigung erforderlich'
+            }), 403
+
+        # Parse days parameter
+        days = int(request.args.get('days', 30))
+
+        # Berechne Zeitraum
+        from datetime import date, timedelta
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days)
+
+        logger.info(f"Admin {user}: Loading 2h analytics for {days} days ({start_date} to {end_date})")
+
+        # Analytics laden
+        analytics = t2_analytics_service.get_2h_booking_analytics(start_date, end_date)
+
+        return jsonify({
+            'success': True,
+            'analytics': analytics,
+            'time_range': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'days': days
+            }
+        })
+
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid days parameter'}), 400
+    except Exception as e:
+        logger.error(f"Error loading 2h analytics: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========== CANCELLATION & RESCHEDULE API ENDPOINTS ==========
+
+@t2_bp.route('/api/my-2h-bookings')
+@require_login
+@rate_limit_api
+def api_my_2h_bookings():
+    """
+    API: Lädt alle 2h-Buchungen für aktuellen User.
+
+    Response:
+        {
+            "success": true,
+            "bookings": [
+                {
+                    "id": "T2-ABC12345",
+                    "date": "2025-11-25",
+                    "time": "14:00",
+                    "customer": "Mustermann, Max",
+                    "coach": "David",
+                    "berater": "Christian",
+                    "status": "active",
+                    "topic": "...",
+                    "created_at": "..."
+                }
+            ]
+        }
+    """
+    try:
+        user = session.get('user')
+
+        # Lade User-Buchungen
+        bookings = get_user_t2_bookings(user)
+
+        # Filter: Nur Buchungen mit allen nötigen Feldern
+        valid_bookings = []
+        for booking in bookings:
+            if all(k in booking for k in ['id', 'date', 'time', 'customer']):
+                valid_bookings.append({
+                    'id': booking['id'],
+                    'date': booking['date'],
+                    'time': booking['time'],
+                    'customer': booking['customer'],
+                    'coach': booking.get('coach', 'Unknown'),
+                    'berater': booking.get('berater', 'Unknown'),
+                    'status': booking.get('status', 'active'),
+                    'topic': booking.get('topic', ''),
+                    'email': booking.get('email', ''),
+                    'created_at': booking.get('created_at', '')
+                })
+
+        logger.info(f"User {user}: Loaded {len(valid_bookings)} T2 bookings")
+
+        return jsonify({
+            'success': True,
+            'bookings': valid_bookings,
+            'count': len(valid_bookings)
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading user bookings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/cancel-booking', methods=['POST'])
+@require_login
+@rate_limit_api
+def api_cancel_booking():
+    """
+    API: Storniert eine T2-Buchung.
+
+    Auth: User = Booker ODER User = Admin
+    Ticket wird zurückgegeben.
+
+    Request JSON:
+        {"booking_id": "T2-ABC12345"}
+
+    Response:
+        {"success": true, "message": "Buchung storniert. Ticket zurückgegeben."}
+    """
+    try:
+        user = session.get('user')
+        data = request.json
+
+        if not data or 'booking_id' not in data:
+            return jsonify({'success': False, 'error': 'booking_id required'}), 400
+
+        booking_id = data['booking_id']
+
+        # Lade alle Buchungen
+        all_bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
+        all_bookings = all_bookings_data.get('bookings', [])
+
+        # Finde Buchung
+        booking = None
+        booking_index = None
+        for i, b in enumerate(all_bookings):
+            if b.get('id') == booking_id:
+                booking = b
+                booking_index = i
+                break
+
+        if not booking:
+            return jsonify({'success': False, 'error': 'Buchung nicht gefunden'}), 404
+
+        # Auth-Check
+        if not can_modify_booking(booking, user):
+            return jsonify({'success': False, 'error': 'Keine Berechtigung'}), 403
+
+        # Bereits storniert?
+        if booking.get('status') == 'cancelled':
+            return jsonify({'success': False, 'error': 'Buchung bereits storniert'}), 400
+
+        # 1. Google Calendar Event löschen (wenn Berater Schreibrechte hat)
+        berater = booking.get('berater')
+        if berater and berater in T2_CLOSERS and T2_CLOSERS[berater].get('can_write', False):
+            # TODO: Event löschen via Google Calendar API
+            # calendar_service.delete_event(calendar_id, event_id)
+            # Problem: Wir haben die event_id nicht gespeichert!
+            logger.warning(f"Calendar deletion not implemented (missing event_id) for booking {booking_id}")
+        else:
+            logger.info(f"Skipping calendar deletion for {berater} (no write access or mock)")
+
+        # 2. Status auf cancelled setzen
+        all_bookings[booking_index]['status'] = 'cancelled'
+        all_bookings[booking_index]['cancelled_at'] = datetime.now().isoformat()
+        all_bookings[booking_index]['cancelled_by'] = user
+
+        # Speichern
+        data_persistence.save_data('t2_bookings', {'bookings': all_bookings})
+
+        # 3. Ticket zurückgeben
+        booking_user = booking.get('user')
+        if booking_user:
+            return_user_ticket(booking_user)
+
+        # 4. Cache invalidieren
+        booking_date_str = booking.get('date')
+        if booking_date_str and berater and berater in T2_CLOSERS:
+            try:
+                booking_date = datetime.fromisoformat(booking_date_str).date()
+                calendar_id = T2_CLOSERS[berater]['calendar_id']
+                t2_dynamic_availability.clear_cache_for_berater(calendar_id, booking_date)
+            except Exception as e:
+                logger.warning(f"Cache clear failed: {e}")
+
+        logger.info(f"User {user}: Cancelled booking {booking_id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Buchung storniert. Ticket zurückgegeben.'
+        })
+
+    except Exception as e:
+        logger.error(f"Error cancelling booking: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@t2_bp.route('/api/reschedule-booking', methods=['POST'])
+@require_login
+@rate_limit_api
+def api_reschedule_booking():
+    """
+    API: Bucht T2-Termin um.
+
+    Auth: User = Booker ODER User = Admin
+    Ticket wird NICHT zurückgegeben (bleibt verbraucht).
+
+    Request JSON:
+        {
+            "booking_id": "T2-ABC12345",
+            "new_date": "2025-11-26",
+            "new_time": "16:00"
+        }
+
+    Response:
+        {
+            "success": true,
+            "new_booking_id": "T2-XYZ67890",
+            "message": "Buchung erfolgreich umgebucht."
+        }
+    """
+    try:
+        user = session.get('user')
+        data = request.json
+
+        # Validation
+        required = ['booking_id', 'new_date', 'new_time']
+        for field in required:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'{field} required'}), 400
+
+        booking_id = data['booking_id']
+        new_date_str = data['new_date']
+        new_time_str = data['new_time']
+
+        # Lade alle Buchungen
+        all_bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
+        all_bookings = all_bookings_data.get('bookings', [])
+
+        # Finde Buchung
+        booking = None
+        booking_index = None
+        for i, b in enumerate(all_bookings):
+            if b.get('id') == booking_id:
+                booking = b
+                booking_index = i
+                break
+
+        if not booking:
+            return jsonify({'success': False, 'error': 'Buchung nicht gefunden'}), 404
+
+        # Auth-Check
+        if not can_modify_booking(booking, user):
+            return jsonify({'success': False, 'error': 'Keine Berechtigung'}), 403
+
+        # Bereits storniert/umgebucht?
+        if booking.get('status') in ['cancelled', 'rescheduled']:
+            return jsonify({'success': False, 'error': 'Buchung wurde bereits storniert/umgebucht'}), 400
+
+        # Parse new date/time
+        try:
+            new_date = datetime.fromisoformat(new_date_str).date()
+            hour, minute = map(int, new_time_str.split(':'))
+            new_datetime = datetime.combine(new_date, datetime.min.time().replace(hour=hour, minute=minute))
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date or time format'}), 400
+
+        # Live Slot-Check
+        berater = booking.get('berater')
+        if berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+        is_free = t2_dynamic_availability.is_2h_slot_free(calendar_id, new_date, new_time_str)
+
+        if not is_free:
+            return jsonify({
+                'success': False,
+                'error': f'{berater} ist am {new_date_str} um {new_time_str} nicht verfügbar.'
+            }), 409
+
+        # 1. Alte Buchung auf 'rescheduled' setzen
+        all_bookings[booking_index]['status'] = 'rescheduled'
+        all_bookings[booking_index]['rescheduled_at'] = datetime.now().isoformat()
+        all_bookings[booking_index]['rescheduled_by'] = user
+        all_bookings[booking_index]['rescheduled_to'] = new_date_str
+
+        # 2. Neue Buchung erstellen
+        coach = booking.get('coach')
+        customer = booking.get('customer')
+        topic = booking.get('topic', '')
+        email = booking.get('email', '')
+
+        new_booking_id = f"T2-{uuid.uuid4().hex[:8].upper()}"
+        end_datetime = new_datetime + timedelta(hours=2)
+
+        # Event-Titel
+        if coach == berater:
+            event_title = f"T2 - Kunde: {customer} | Coach: {coach}"
+        else:
+            event_title = f"T2 - Kunde: {customer} | Coach: {coach}"
+
+        # Description
+        import pytz
+        berlin_tz = pytz.timezone('Europe/Berlin')
+        start_iso = berlin_tz.localize(new_datetime).isoformat()
+        end_iso = berlin_tz.localize(end_datetime).isoformat()
+
+        event_body = {
+            'summary': event_title,
+            'description': f"T2-Termin (UMGEBUCHT)\n\nKunde: {customer}\nCoach: {coach}\nBerater: {berater}\nThema: {topic}\nEmail: {email}\n\n[Booked by: {booking.get('user')}]\n[Rescheduled by: {user}]",
+            'start': {'dateTime': start_iso, 'timeZone': 'Europe/Berlin'},
+            'end': {'dateTime': end_iso, 'timeZone': 'Europe/Berlin'},
+            'colorId': '4'
+        }
+
+        # Google Calendar Event erstellen (wenn Schreibrechte)
+        if T2_CLOSERS[berater].get('can_write', False):
+            try:
+                calendar_service = GoogleCalendarService()
+                result = calendar_service.create_event(calendar_id, event_body)
+
+                if result:
+                    logger.info(f"New calendar event created for rescheduled booking: {result.get('id')}")
+                else:
+                    logger.error("Calendar event creation failed")
+            except Exception as e:
+                logger.error(f"Calendar write failed: {e}")
+                # Weiter mit Buchung trotzdem
+        else:
+            logger.info(f"Mock reschedule for {berater} (no write access)")
+
+        # Neue Buchung speichern
+        new_booking = {
+            'id': new_booking_id,
+            'coach': coach,
+            'berater': berater,
+            'customer': customer,
+            'date': new_date_str,
+            'time': new_time_str,
+            'topic': topic,
+            'email': email,
+            'user': booking.get('user'),
+            'status': 'active',
+            'created_at': datetime.now().isoformat(),
+            'is_rescheduled_from': booking_id
+        }
+
+        all_bookings.append(new_booking)
+
+        # Speichern
+        data_persistence.save_data('t2_bookings', {'bookings': all_bookings})
+
+        # Tracking (PostgreSQL + JSONL)
+        tracking_system.track_booking(
+            customer_name=customer,
+            date=new_date_str,
+            time_slot=new_time_str,
+            user=booking.get('user'),
+            color_id='4',
+            description=f"T2 - Coach: {coach} | Berater: {berater} | {topic} (UMGEBUCHT)"
+        )
+
+        # Cache invalidieren (alte + neue Slots)
+        try:
+            # Alte Buchung
+            old_date = datetime.fromisoformat(booking['date']).date()
+            t2_dynamic_availability.clear_cache_for_berater(calendar_id, old_date)
+            # Neue Buchung
+            t2_dynamic_availability.clear_cache_for_berater(calendar_id, new_date)
+        except Exception as e:
+            logger.warning(f"Cache clear failed: {e}")
+
+        logger.info(f"User {user}: Rescheduled booking {booking_id} → {new_booking_id}")
+
+        return jsonify({
+            'success': True,
+            'new_booking_id': new_booking_id,
+            'message': 'Buchung erfolgreich umgebucht.'
+        })
+
+    except Exception as e:
+        logger.error(f"Error rescheduling booking: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500

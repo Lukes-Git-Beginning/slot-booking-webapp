@@ -1,0 +1,688 @@
+{% extends "t2/base.html" %}
+
+{% block title %}Meine T2-Termine{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8" data-aos="fade-down">
+    <div>
+      <h1 class="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
+        Meine T2-Termine
+      </h1>
+      <p class="text-gray-400">Verwalten Sie Ihre gebuchten T2-Termine</p>
+    </div>
+    <a href="{{ url_for('t2.booking_calendly') }}" class="btn btn-primary gap-2">
+      <i data-lucide="plus" class="w-5 h-5"></i>
+      Neuen Termin buchen
+    </a>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="tabs tabs-boxed glass mb-6" data-aos="fade-up">
+    <a class="tab tab-active" data-filter="upcoming" onclick="filterBookings('upcoming')">
+      <i data-lucide="calendar-clock" class="w-4 h-4 mr-2"></i>
+      Anstehend
+    </a>
+    <a class="tab" data-filter="past" onclick="filterBookings('past')">
+      <i data-lucide="history" class="w-4 h-4 mr-2"></i>
+      Vergangene
+    </a>
+    <a class="tab" data-filter="cancelled" onclick="filterBookings('cancelled')">
+      <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i>
+      Storniert
+    </a>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div id="bookings-loading" class="text-center py-12">
+    <div class="loading loading-spinner loading-lg text-primary"></div>
+    <p class="text-gray-400 mt-4">Lade Buchungen...</p>
+  </div>
+
+  <!-- Bookings List Container -->
+  <div id="bookings-list" class="hidden space-y-4">
+    <!-- Dynamisch gefüllt von JavaScript -->
+  </div>
+
+  <!-- Empty State -->
+  <div id="no-bookings-message" class="hidden text-center py-12">
+    <i data-lucide="inbox" class="w-16 h-16 mx-auto text-gray-600 mb-4"></i>
+    <p class="text-gray-400 text-lg">Keine Termine gefunden</p>
+    <a href="{{ url_for('t2.booking_calendly') }}" class="btn btn-primary mt-4">
+      Jetzt buchen
+    </a>
+  </div>
+
+</div>
+
+<!-- Reschedule Modal -->
+<dialog id="reschedule-modal" class="modal">
+  <div class="modal-box max-w-4xl">
+    <h3 class="text-2xl font-bold mb-4">Termin umbuchen</h3>
+
+    <!-- Current Booking Info -->
+    <div class="bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg p-4 mb-6 border border-primary/30">
+      <p class="text-sm text-gray-400 mb-2">Aktueller Termin:</p>
+      <p class="font-bold text-lg" id="reschedule-current-info">25. November 2025, 14:00 - 16:00 Uhr</p>
+    </div>
+
+    <!-- Mini Calendar -->
+    <div id="reschedule-calendar" class="mb-6">
+      <!-- Month Navigation -->
+      <div class="flex items-center justify-between mb-4">
+        <button onclick="reschedulePrevMonth()" class="btn btn-circle btn-outline btn-sm">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <h4 class="text-xl font-bold" id="reschedule-month-title">November 2025</h4>
+        <button onclick="rescheduleNextMonth()" class="btn btn-circle btn-outline btn-sm">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div id="reschedule-loading" class="text-center py-8">
+        <div class="loading loading-spinner loading-md text-primary"></div>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div id="reschedule-calendar-grid" class="hidden">
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 gap-1 mb-2 text-xs font-semibold text-center">
+          <div>Mo</div>
+          <div>Di</div>
+          <div>Mi</div>
+          <div>Do</div>
+          <div>Fr</div>
+          <div class="text-gray-600">Sa</div>
+          <div class="text-gray-600">So</div>
+        </div>
+
+        <!-- Days Grid -->
+        <div id="reschedule-days-grid" class="grid grid-cols-7 gap-1 mb-4">
+          <!-- Dynamisch gefüllt -->
+        </div>
+      </div>
+
+      <!-- Time Slots -->
+      <div id="reschedule-time-slots" class="hidden">
+        <h5 class="font-bold mb-3">Verfügbare Zeiten:</h5>
+
+        <!-- Grouped by Time of Day -->
+        <div class="space-y-3">
+          <div id="reschedule-morning-group" class="hidden">
+            <p class="text-sm text-gray-400 mb-2">🌅 Vormittag (8-12 Uhr)</p>
+            <div id="reschedule-morning-slots" class="grid grid-cols-2 gap-2"></div>
+          </div>
+
+          <div id="reschedule-midday-group" class="hidden">
+            <p class="text-sm text-gray-400 mb-2">☀️ Mittag (12-16 Uhr)</p>
+            <div id="reschedule-midday-slots" class="grid grid-cols-2 gap-2"></div>
+          </div>
+
+          <div id="reschedule-evening-group" class="hidden">
+            <p class="text-sm text-gray-400 mb-2">🌆 Abend (16-20 Uhr)</p>
+            <div id="reschedule-evening-slots" class="grid grid-cols-2 gap-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button id="reschedule-confirm-btn" class="btn btn-primary hidden" onclick="confirmReschedule()">
+        <i data-lucide="check" class="w-4 h-4 mr-2"></i>
+        Umbuchen
+      </button>
+      <button class="btn" onclick="closeRescheduleModal()">Abbrechen</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<!-- Cancel Confirmation Modal -->
+<dialog id="cancel-modal" class="modal">
+  <div class="modal-box">
+    <h3 class="text-xl font-bold">Termin stornieren?</h3>
+
+    <div class="py-4">
+      <p class="mb-4" id="cancel-booking-info">
+        Möchten Sie diesen Termin wirklich stornieren?
+      </p>
+      <div class="alert alert-success">
+        <i data-lucide="gift" class="w-5 h-5"></i>
+        <span><strong>Ihr Ticket wird zurückgegeben</strong> und Sie können einen neuen Termin buchen.</span>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button id="cancel-confirm-btn" class="btn btn-error" onclick="confirmCancel()">
+        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+        Ja, stornieren
+      </button>
+      <button class="btn" onclick="closeCancelModal()">Abbrechen</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<style>
+  .booking-card {
+    background: rgba(18, 24, 32, 0.65);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+
+  .booking-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(212, 175, 106, 0.2);
+    border-color: rgba(212, 175, 106, 0.3);
+  }
+
+  .reschedule-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  .reschedule-day.available {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(34, 197, 94, 0.2));
+    border: 2px solid rgba(34, 197, 94, 0.3);
+  }
+
+  .reschedule-day.available:hover {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.4), rgba(34, 197, 94, 0.4));
+    border-color: #22c55e;
+    transform: scale(1.05);
+  }
+
+  .reschedule-day.unavailable {
+    background: rgba(107, 114, 128, 0.2);
+    border: 2px solid rgba(107, 114, 128, 0.3);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .reschedule-time-btn {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, rgba(212, 175, 106, 0.15), rgba(194, 174, 127, 0.15));
+    border: 2px solid rgba(212, 175, 106, 0.3);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .reschedule-time-btn:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 106, 0.3), rgba(194, 174, 127, 0.3));
+    border-color: #d4af6a;
+    transform: translateY(-2px);
+  }
+</style>
+
+<script>
+  // ========== STATE MANAGEMENT ==========
+
+  let bookingsState = {
+    allBookings: [],
+    currentFilter: 'upcoming',
+    rescheduleData: {
+      bookingId: null,
+      berater: null,
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+      selectedDate: null,
+      selectedTime: null,
+      monthAvailability: {}
+    }
+  };
+
+  // ========== LOAD BOOKINGS ==========
+
+  async function loadBookings() {
+    try {
+      const response = await fetch('/t2/api/my-2h-bookings');
+      const data = await response.json();
+
+      if (data.success) {
+        bookingsState.allBookings = data.bookings;
+        renderBookings();
+      } else {
+        throw new Error(data.error || 'Failed to load bookings');
+      }
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      alert('Fehler beim Laden der Buchungen');
+    }
+
+    document.getElementById('bookings-loading').classList.add('hidden');
+  }
+
+  // ========== RENDER BOOKINGS ==========
+
+  function renderBookings() {
+    const container = document.getElementById('bookings-list');
+    const noBookingsMsg = document.getElementById('no-bookings-message');
+    const filter = bookingsState.currentFilter;
+
+    // Filter bookings
+    const today = new Date().toISOString().split('T')[0];
+    let filtered = bookingsState.allBookings.filter(b => {
+      if (filter === 'upcoming') {
+        return b.date >= today && b.status === 'active';
+      } else if (filter === 'past') {
+        return b.date < today || (b.status !== 'active' && b.status !== 'cancelled');
+      } else if (filter === 'cancelled') {
+        return b.status === 'cancelled';
+      }
+      return true;
+    });
+
+    // Sort: Newest first
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.date + ' ' + a.time);
+      const dateB = new Date(b.date + ' ' + b.time);
+      return dateB - dateA;
+    });
+
+    container.innerHTML = '';
+
+    if (filtered.length === 0) {
+      container.classList.add('hidden');
+      noBookingsMsg.classList.remove('hidden');
+    } else {
+      container.classList.remove('hidden');
+      noBookingsMsg.classList.add('hidden');
+
+      filtered.forEach(booking => {
+        const card = createBookingCard(booking);
+        container.appendChild(card);
+      });
+    }
+
+    lucide.createIcons();
+  }
+
+  function createBookingCard(booking) {
+    const card = document.createElement('div');
+    card.className = 'booking-card';
+
+    // Format date/time
+    const date = new Date(booking.date);
+    const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    const timeStart = booking.time;
+    const timeEnd = addHours(booking.time, 2);
+
+    // Status Badge
+    let statusBadge = '';
+    if (booking.status === 'active') {
+      statusBadge = '<span class="badge badge-success">Aktiv</span>';
+    } else if (booking.status === 'cancelled') {
+      statusBadge = '<span class="badge badge-error">Storniert</span>';
+    } else if (booking.status === 'rescheduled') {
+      statusBadge = '<span class="badge badge-warning">Umgebucht</span>';
+    }
+
+    // Action Buttons (nur bei aktiven Buchungen)
+    let actionButtons = '';
+    if (booking.status === 'active') {
+      actionButtons = `
+        <div class="flex gap-2">
+          <button onclick="openRescheduleModal('${booking.id}')" class="btn btn-sm btn-outline gap-2">
+            <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+            Umbuchen
+          </button>
+          <button onclick="openCancelModal('${booking.id}')" class="btn btn-sm btn-error btn-outline gap-2">
+            <i data-lucide="x-circle" class="w-4 h-4"></i>
+            Stornieren
+          </button>
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-xl font-bold">${dateStr}</h3>
+            ${statusBadge}
+          </div>
+          <p class="text-lg text-primary font-semibold mb-2">${timeStart} - ${timeEnd} Uhr</p>
+          <div class="space-y-1 text-gray-400">
+            <p><strong>Kunde:</strong> ${booking.customer}</p>
+            <p><strong>Coach:</strong> ${booking.coach} ${booking.coach !== booking.berater ? `| <strong>Berater:</strong> ${booking.berater}` : ''}</p>
+            ${booking.topic ? `<p><strong>Thema:</strong> ${booking.topic}</p>` : ''}
+          </div>
+        </div>
+
+        ${actionButtons}
+      </div>
+    `;
+
+    return card;
+  }
+
+  function addHours(timeStr, hours) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const newH = h + hours;
+    return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  // ========== FILTER BOOKINGS ==========
+
+  function filterBookings(filter) {
+    bookingsState.currentFilter = filter;
+
+    // Update tab UI
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.classList.remove('tab-active');
+      if (tab.dataset.filter === filter) {
+        tab.classList.add('tab-active');
+      }
+    });
+
+    renderBookings();
+  }
+
+  // ========== RESCHEDULE MODAL ==========
+
+  function openRescheduleModal(bookingId) {
+    const booking = bookingsState.allBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    // Store reschedule data
+    bookingsState.rescheduleData.bookingId = bookingId;
+    bookingsState.rescheduleData.berater = booking.berater;
+    bookingsState.rescheduleData.selectedDate = null;
+    bookingsState.rescheduleData.selectedTime = null;
+
+    // Update current info
+    const date = new Date(booking.date);
+    const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    const timeEnd = addHours(booking.time, 2);
+    document.getElementById('reschedule-current-info').textContent =
+      `${dateStr}, ${booking.time} - ${timeEnd} Uhr | ${booking.customer}`;
+
+    // Reset calendar
+    document.getElementById('reschedule-calendar-grid').classList.add('hidden');
+    document.getElementById('reschedule-time-slots').classList.add('hidden');
+    document.getElementById('reschedule-confirm-btn').classList.add('hidden');
+
+    // Load month availability
+    loadRescheduleMonth();
+
+    // Open modal
+    document.getElementById('reschedule-modal').showModal();
+    lucide.createIcons();
+  }
+
+  function closeRescheduleModal() {
+    document.getElementById('reschedule-modal').close();
+  }
+
+  async function loadRescheduleMonth() {
+    const { berater, year, month } = bookingsState.rescheduleData;
+
+    document.getElementById('reschedule-loading').classList.remove('hidden');
+
+    try {
+      const response = await fetch(`/t2/api/month-availability/${berater}/${year}/${month}`);
+      const data = await response.json();
+
+      if (data.success) {
+        bookingsState.rescheduleData.monthAvailability = data.days;
+        renderRescheduleCalendar();
+      }
+    } catch (error) {
+      console.error('Error loading month availability:', error);
+      alert('Fehler beim Laden der Verfügbarkeit');
+    }
+  }
+
+  function renderRescheduleCalendar() {
+    const { year, month, monthAvailability } = bookingsState.rescheduleData;
+
+    // Month title
+    const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    document.getElementById('reschedule-month-title').textContent = `${monthNames[month - 1]} ${year}`;
+
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+
+    const daysGrid = document.getElementById('reschedule-days-grid');
+    daysGrid.innerHTML = '';
+
+    // Empty cells
+    for (let i = 0; i < adjustedFirstDay; i++) {
+      daysGrid.appendChild(document.createElement('div'));
+    }
+
+    // Render days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month - 1, day);
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayOfWeek = date.getDay();
+
+      const dayCell = document.createElement('div');
+      dayCell.className = 'reschedule-day';
+
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        dayCell.classList.add('unavailable');
+        dayCell.innerHTML = `<span>${day}</span>`;
+      } else if (monthAvailability[dateStr]) {
+        dayCell.classList.add('available');
+        dayCell.innerHTML = `<span class="font-bold">${day}</span><span class="text-xs text-green-400">${monthAvailability[dateStr]} Slots</span>`;
+        dayCell.onclick = () => selectRescheduleDay(dateStr);
+      } else {
+        dayCell.classList.add('unavailable');
+        dayCell.innerHTML = `<span>${day}</span>`;
+      }
+
+      daysGrid.appendChild(dayCell);
+    }
+
+    document.getElementById('reschedule-loading').classList.add('hidden');
+    document.getElementById('reschedule-calendar-grid').classList.remove('hidden');
+    lucide.createIcons();
+  }
+
+  async function selectRescheduleDay(dateStr) {
+    bookingsState.rescheduleData.selectedDate = dateStr;
+
+    // Load day slots
+    const { berater } = bookingsState.rescheduleData;
+
+    try {
+      const response = await fetch(`/t2/api/day-slots/${berater}/${dateStr}`);
+      const data = await response.json();
+
+      if (data.success) {
+        renderRescheduleTimeSlots(data.slots);
+      }
+    } catch (error) {
+      console.error('Error loading day slots:', error);
+      alert('Fehler beim Laden der Zeitslots');
+    }
+  }
+
+  function renderRescheduleTimeSlots(slots) {
+    // Clear all groups
+    ['morning', 'midday', 'evening'].forEach(period => {
+      document.getElementById(`reschedule-${period}-group`).classList.add('hidden');
+      document.getElementById(`reschedule-${period}-slots`).innerHTML = '';
+    });
+
+    // Render slots per group
+    Object.entries(slots).forEach(([period, times]) => {
+      if (times.length > 0) {
+        const group = document.getElementById(`reschedule-${period}-group`);
+        const container = document.getElementById(`reschedule-${period}-slots`);
+
+        group.classList.remove('hidden');
+
+        times.forEach(time => {
+          const hour = parseInt(time.split(':')[0]);
+          const endHour = hour + 2;
+          const btn = document.createElement('button');
+          btn.className = 'reschedule-time-btn';
+          btn.textContent = `${time} - ${String(endHour).padStart(2, '0')}:${time.split(':')[1]} Uhr`;
+          btn.onclick = () => selectRescheduleTime(time);
+          container.appendChild(btn);
+        });
+      }
+    });
+
+    document.getElementById('reschedule-time-slots').classList.remove('hidden');
+    lucide.createIcons();
+  }
+
+  function selectRescheduleTime(time) {
+    bookingsState.rescheduleData.selectedTime = time;
+    document.getElementById('reschedule-confirm-btn').classList.remove('hidden');
+  }
+
+  function reschedulePrevMonth() {
+    bookingsState.rescheduleData.month--;
+    if (bookingsState.rescheduleData.month < 1) {
+      bookingsState.rescheduleData.month = 12;
+      bookingsState.rescheduleData.year--;
+    }
+    loadRescheduleMonth();
+  }
+
+  function rescheduleNextMonth() {
+    bookingsState.rescheduleData.month++;
+    if (bookingsState.rescheduleData.month > 12) {
+      bookingsState.rescheduleData.month = 1;
+      bookingsState.rescheduleData.year++;
+    }
+    loadRescheduleMonth();
+  }
+
+  async function confirmReschedule() {
+    const { bookingId, selectedDate, selectedTime } = bookingsState.rescheduleData;
+
+    if (!selectedDate || !selectedTime) {
+      alert('Bitte wählen Sie einen Termin aus');
+      return;
+    }
+
+    const confirmBtn = document.getElementById('reschedule-confirm-btn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="loading loading-spinner"></span> Wird umgebucht...';
+
+    try {
+      const response = await fetch('/t2/api/reschedule-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          new_date: selectedDate,
+          new_time: selectedTime
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message);
+        closeRescheduleModal();
+        loadBookings();  // Reload bookings
+      } else {
+        throw new Error(data.error || 'Reschedule failed');
+      }
+    } catch (error) {
+      console.error('Reschedule error:', error);
+      alert(`Fehler: ${error.message}`);
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4 mr-2"></i> Umbuchen';
+      lucide.createIcons();
+    }
+  }
+
+  // ========== CANCEL MODAL ==========
+
+  function openCancelModal(bookingId) {
+    const booking = bookingsState.allBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const date = new Date(booking.date);
+    const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    const timeEnd = addHours(booking.time, 2);
+
+    document.getElementById('cancel-booking-info').innerHTML = `
+      <strong>${booking.customer}</strong><br>
+      ${dateStr}, ${booking.time} - ${timeEnd} Uhr<br>
+      Coach: ${booking.coach}
+    `;
+
+    document.getElementById('cancel-confirm-btn').dataset.bookingId = bookingId;
+
+    document.getElementById('cancel-modal').showModal();
+    lucide.createIcons();
+  }
+
+  function closeCancelModal() {
+    document.getElementById('cancel-modal').close();
+  }
+
+  async function confirmCancel() {
+    const confirmBtn = document.getElementById('cancel-confirm-btn');
+    const bookingId = confirmBtn.dataset.bookingId;
+
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="loading loading-spinner"></span> Wird storniert...';
+
+    try {
+      const response = await fetch('/t2/api/cancel-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message);
+        closeCancelModal();
+        loadBookings();  // Reload bookings
+      } else {
+        throw new Error(data.error || 'Cancel failed');
+      }
+    } catch (error) {
+      console.error('Cancel error:', error);
+      alert(`Fehler: ${error.message}`);
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4 mr-2"></i> Ja, stornieren';
+      lucide.createIcons();
+    }
+  }
+
+  // ========== INITIALIZATION ==========
+
+  document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    AOS.init({ duration: 600, once: true });
+    loadBookings();
+  });
+</script>
+
+{% endblock %}

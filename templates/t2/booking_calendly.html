@@ -1,0 +1,713 @@
+{% extends "t2/base.html" %}
+
+{% block title %}T2-Termin buchen{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+
+  <!-- Header -->
+  <div class="text-center mb-8" data-aos="fade-down">
+    <h1 class="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
+      T2-Termin buchen
+    </h1>
+    <p class="text-gray-400">Wählen Sie Ihren Berater und einen verfügbaren 2-Stunden-Slot</p>
+  </div>
+
+  <!-- Progress Stepper -->
+  <div class="glass rounded-xl p-6 mb-8" data-aos="fade-up">
+    <div class="flex items-center justify-between max-w-3xl mx-auto">
+      <div class="flex flex-col items-center flex-1">
+        <div class="step-circle active" id="step-1-circle">
+          <i data-lucide="user-check" class="w-5 h-5"></i>
+        </div>
+        <span class="text-sm mt-2 font-medium">Berater</span>
+      </div>
+      <div class="flex-1 h-1 bg-gray-700 mx-2"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="step-circle" id="step-2-circle">
+          <i data-lucide="calendar" class="w-5 h-5"></i>
+        </div>
+        <span class="text-sm mt-2">Monat</span>
+      </div>
+      <div class="flex-1 h-1 bg-gray-700 mx-2"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="step-circle" id="step-3-circle">
+          <i data-lucide="clock" class="w-5 h-5"></i>
+        </div>
+        <span class="text-sm mt-2">Zeit</span>
+      </div>
+      <div class="flex-1 h-1 bg-gray-700 mx-2"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="step-circle" id="step-4-circle">
+          <i data-lucide="user" class="w-5 h-5"></i>
+        </div>
+        <span class="text-sm mt-2">Kundeninfo</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step Container -->
+  <div class="glass rounded-xl p-8" data-aos="fade-up" data-aos-delay="100">
+
+    <!-- Step 1: Berater-Auswahl -->
+    <div id="step-1" class="step-content">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Schritt 1: Berater wählen</h2>
+
+        <!-- Gewürfelter Coach -->
+        <div class="bg-gradient-to-r from-purple-900/50 to-purple-700/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+          <div class="text-4xl">🎲</div>
+          <div>
+            <p class="text-sm text-gray-300">Gewürfelter Coach</p>
+            <p class="text-2xl font-bold text-primary">{{ coach }}</p>
+          </div>
+        </div>
+
+        <!-- Berater-Dropdown -->
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">Wer führt den Termin aus?</span>
+          </label>
+          <select id="berater-select" class="select select-bordered w-full text-lg">
+            {% if T2_CLOSERS[coach]['can_write'] %}
+              <option value="{{ coach }}">{{ coach }} (selbst)</option>
+            {% endif %}
+            {% for name, info in T2_CLOSERS.items() %}
+              {% if info['role'] == 'berater' and name != coach %}
+                <option value="{{ name }}">{{ name }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Info-Banner (wenn Coach keine Rechte hat) -->
+        {% if not T2_CLOSERS[coach]['can_write'] %}
+        <div class="alert alert-info mb-6">
+          <i data-lucide="info" class="w-5 h-5"></i>
+          <span>Termin wird von <strong>{{ coach }}</strong> an den gewählten Berater übertragen</span>
+        </div>
+        {% endif %}
+
+        <!-- Coach-Availability Info-Banner (dynamisch geladen) -->
+        <div id="coach-availability-info" class="hidden alert mb-6">
+          <i data-lucide="info" class="w-5 h-5"></i>
+          <span id="coach-availability-message">Lädt Verfügbarkeit...</span>
+        </div>
+
+        <button onclick="selectBerater()" class="btn btn-primary w-full text-lg">
+          Weiter zur Terminauswahl
+          <i data-lucide="arrow-right" class="w-5 h-5 ml-2"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Monats-Kalender -->
+    <div id="step-2" class="step-content hidden">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Schritt 2: Monat wählen</h2>
+
+        <!-- Month Navigation -->
+        <div class="flex items-center justify-between mb-6">
+          <button onclick="prevMonth()" class="btn btn-circle btn-outline">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+          </button>
+          <h3 class="text-2xl font-bold" id="month-title">November 2025</h3>
+          <button onclick="nextMonth()" class="btn btn-circle btn-outline">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="calendar-loading" class="text-center py-12">
+          <div class="loading loading-spinner loading-lg text-primary"></div>
+          <p class="text-gray-400 mt-4">Lade Verfügbarkeit...</p>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div id="calendar-grid" class="hidden">
+          <!-- Wochentage-Header -->
+          <div class="grid grid-cols-7 gap-2 mb-2">
+            <div class="text-center font-semibold text-sm">Mo</div>
+            <div class="text-center font-semibold text-sm">Di</div>
+            <div class="text-center font-semibold text-sm">Mi</div>
+            <div class="text-center font-semibold text-sm">Do</div>
+            <div class="text-center font-semibold text-sm">Fr</div>
+            <div class="text-center font-semibold text-sm text-gray-600">Sa</div>
+            <div class="text-center font-semibold text-sm text-gray-600">So</div>
+          </div>
+
+          <!-- Tage-Grid (dynamisch gefüllt) -->
+          <div id="days-grid" class="grid grid-cols-7 gap-2">
+            <!-- Wird von JavaScript gefüllt -->
+          </div>
+        </div>
+
+        <!-- No Slots Banner -->
+        <div id="no-slots-banner" class="hidden alert alert-warning mt-6">
+          <i data-lucide="alert-circle" class="w-5 h-5"></i>
+          <span>Keine verfügbaren Termine in diesem Monat</span>
+        </div>
+
+        <button onclick="backToStep(1)" class="btn btn-outline mt-6">
+          <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+          Zurück
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Zeitslot-Auswahl (Gruppiert) -->
+    <div id="step-3" class="step-content hidden">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="text-2xl font-bold mb-2">Schritt 3: Zeit wählen</h2>
+        <p class="text-gray-400 mb-6" id="selected-date-display">25. November 2025</p>
+
+        <!-- Loading Spinner -->
+        <div id="slots-loading" class="text-center py-12">
+          <div class="loading loading-spinner loading-lg text-primary"></div>
+          <p class="text-gray-400 mt-4">Lade Zeitslots...</p>
+        </div>
+
+        <!-- Time Groups Container -->
+        <div id="time-groups-container" class="hidden space-y-6">
+
+          <!-- Vormittag -->
+          <div class="time-group">
+            <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+              <span class="text-2xl">🌅</span>
+              Vormittag (8-12 Uhr)
+            </h3>
+            <div id="morning-slots" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Dynamisch gefüllt -->
+            </div>
+            <p id="morning-empty" class="hidden text-gray-500 italic py-4">Keine Termine verfügbar</p>
+          </div>
+
+          <!-- Mittag -->
+          <div class="time-group">
+            <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+              <span class="text-2xl">☀️</span>
+              Mittag (12-16 Uhr)
+            </h3>
+            <div id="midday-slots" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Dynamisch gefüllt -->
+            </div>
+            <p id="midday-empty" class="hidden text-gray-500 italic py-4">Keine Termine verfügbar</p>
+          </div>
+
+          <!-- Abend -->
+          <div class="time-group">
+            <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+              <span class="text-2xl">🌆</span>
+              Abend (16-20 Uhr)
+            </h3>
+            <div id="evening-slots" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Dynamisch gefüllt -->
+            </div>
+            <p id="evening-empty" class="hidden text-gray-500 italic py-4">Keine Termine verfügbar</p>
+          </div>
+
+        </div>
+
+        <button onclick="backToStep(2)" class="btn btn-outline mt-6">
+          <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+          Zurück
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 4: Kundeninfo-Formular -->
+    <div id="step-4" class="step-content hidden">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Schritt 4: Kundeninformationen</h2>
+
+        <form id="booking-form" class="space-y-4">
+
+          <!-- Name -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Vorname <span class="text-error">*</span></span>
+              </label>
+              <input type="text" id="first-name" name="first_name" placeholder="Max" class="input input-bordered" required>
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Nachname <span class="text-error">*</span></span>
+              </label>
+              <input type="text" id="last-name" name="last_name" placeholder="Mustermann" class="input input-bordered" required>
+            </div>
+          </div>
+
+          <!-- Email (optional) -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">E-Mail (optional)</span>
+            </label>
+            <input type="email" id="email" name="email" placeholder="max@example.com" class="input input-bordered">
+          </div>
+
+          <!-- Thema/Notizen (optional) -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Thema / Notizen (optional)</span>
+            </label>
+            <textarea id="topic" name="topic" placeholder="Verkaufsgespräch, Beratung, ..." class="textarea textarea-bordered h-24" rows="3"></textarea>
+          </div>
+
+          <!-- Zusammenfassung -->
+          <div class="bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg p-6 mt-6 border border-primary/30">
+            <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-5 h-5 text-primary"></i>
+              Buchungsübersicht
+            </h4>
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Coach:</span>
+                <strong class="text-primary">{{ coach }}</strong>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Berater:</span>
+                <strong id="summary-berater">-</strong>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Datum:</span>
+                <strong id="summary-date">-</strong>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Zeit:</span>
+                <strong id="summary-time">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submit-btn" class="btn btn-primary w-full text-lg mt-6">
+            <i data-lucide="check" class="w-5 h-5 mr-2"></i>
+            Verbindlich buchen
+          </button>
+
+        </form>
+
+        <button onclick="backToStep(3)" class="btn btn-outline mt-6">
+          <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+          Zurück
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<style>
+  .step-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .step-circle.active {
+    background: linear-gradient(135deg, #d4af6a, #c2ae7f);
+    border-color: #d4af6a;
+    box-shadow: 0 0 20px rgba(212, 175, 106, 0.5);
+  }
+
+  .step-circle.completed {
+    background: #4ade80;
+    border-color: #22c55e;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0.5rem;
+  }
+
+  .calendar-day.available {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(34, 197, 94, 0.2));
+    border: 2px solid rgba(34, 197, 94, 0.3);
+  }
+
+  .calendar-day.available:hover {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.4), rgba(34, 197, 94, 0.4));
+    border-color: #22c55e;
+    transform: translateY(-2px);
+  }
+
+  .calendar-day.unavailable {
+    background: rgba(107, 114, 128, 0.2);
+    border: 2px solid rgba(107, 114, 128, 0.3);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .calendar-day.weekend {
+    background: rgba(55, 65, 81, 0.2);
+    border: 2px solid rgba(55, 65, 81, 0.3);
+    opacity: 0.3;
+  }
+
+  .slot-btn {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, rgba(212, 175, 106, 0.15), rgba(194, 174, 127, 0.15));
+    border: 2px solid rgba(212, 175, 106, 0.3);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .slot-btn:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 106, 0.3), rgba(194, 174, 127, 0.3));
+    border-color: #d4af6a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 175, 106, 0.3);
+  }
+</style>
+
+<script>
+  // ========== STATE MANAGEMENT ==========
+
+  let bookingState = {
+    coach: '{{ coach }}',
+    berater: null,
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,  // 1-12
+    date: null,
+    time: null,
+    monthAvailability: {}  // {"2025-11-25": 3, ...}
+  };
+
+  // ========== STEP NAVIGATION ==========
+
+  function showStep(stepNumber) {
+    // Hide all steps
+    document.querySelectorAll('.step-content').forEach(s => s.classList.add('hidden'));
+
+    // Show target step
+    document.getElementById(`step-${stepNumber}`).classList.remove('hidden');
+
+    // Update progress circles
+    for (let i = 1; i <= 4; i++) {
+      const circle = document.getElementById(`step-${i}-circle`);
+      circle.classList.remove('active', 'completed');
+
+      if (i < stepNumber) {
+        circle.classList.add('completed');
+      } else if (i === stepNumber) {
+        circle.classList.add('active');
+      }
+    }
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+  }
+
+  function backToStep(stepNumber) {
+    showStep(stepNumber);
+  }
+
+  // ========== STEP 1: BERATER-AUSWAHL ==========
+
+  async function checkCoachAvailability() {
+    const { coach, year, month } = bookingState;
+
+    try {
+      const response = await fetch(`/t2/api/check-coach-availability/${coach}/${year}/${month}`);
+      const data = await response.json();
+
+      if (data.success && data.message) {
+        // Info-Banner anzeigen
+        const infoBanner = document.getElementById('coach-availability-info');
+        const infoMessage = document.getElementById('coach-availability-message');
+
+        infoMessage.textContent = data.message;
+        infoBanner.classList.remove('hidden');
+
+        // Styling basierend auf Empfehlung
+        if (data.recommendation === 'delegate') {
+          infoBanner.classList.add('alert-warning');
+          infoBanner.classList.remove('alert-info');
+        } else {
+          infoBanner.classList.add('alert-info');
+          infoBanner.classList.remove('alert-warning');
+        }
+
+        // Lucide icons neu initialisieren
+        lucide.createIcons();
+      }
+    } catch (error) {
+      console.error('Coach availability check failed:', error);
+      // Nicht blockieren, weiter mit Buchung
+    }
+  }
+
+  async function selectBerater() {
+    const select = document.getElementById('berater-select');
+    bookingState.berater = select.value;
+
+    // Update Summary
+    document.getElementById('summary-berater').textContent = bookingState.berater;
+
+    // WICHTIG: Erst Coach-Availability prüfen
+    await checkCoachAvailability();
+
+    // Load month availability
+    loadMonthAvailability();
+
+    showStep(2);
+  }
+
+  // ========== STEP 2: MONATS-KALENDER ==========
+
+  async function loadMonthAvailability() {
+    const { berater, year, month } = bookingState;
+
+    document.getElementById('calendar-loading').classList.remove('hidden');
+    document.getElementById('calendar-grid').classList.add('hidden');
+    document.getElementById('no-slots-banner').classList.add('hidden');
+
+    try {
+      const response = await fetch(`/t2/api/month-availability/${berater}/${year}/${month}`);
+      const data = await response.json();
+
+      if (data.success) {
+        bookingState.monthAvailability = data.days;
+        renderCalendar();
+      } else {
+        throw new Error(data.error || 'Failed to load availability');
+      }
+    } catch (error) {
+      console.error('Error loading availability:', error);
+      alert('Fehler beim Laden der Verfügbarkeit. Bitte versuchen Sie es erneut.');
+    }
+  }
+
+  function renderCalendar() {
+    const { year, month, monthAvailability } = bookingState;
+
+    // Month title
+    const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    document.getElementById('month-title').textContent = `${monthNames[month - 1]} ${year}`;
+
+    // Get first day of month (0=Sunday, 1=Monday, ...)
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Adjust firstDay (Monday = 0)
+    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+
+    const daysGrid = document.getElementById('days-grid');
+    daysGrid.innerHTML = '';
+
+    // Empty cells for alignment
+    for (let i = 0; i < adjustedFirstDay; i++) {
+      const emptyCell = document.createElement('div');
+      daysGrid.appendChild(emptyCell);
+    }
+
+    // Render days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month - 1, day);
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayOfWeek = date.getDay();  // 0=Sunday, 6=Saturday
+
+      const dayCell = document.createElement('div');
+      dayCell.className = 'calendar-day';
+
+      // Check if weekend
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        dayCell.classList.add('weekend');
+        dayCell.innerHTML = `<span class="text-xl font-bold">${day}</span>`;
+      } else if (monthAvailability[dateStr]) {
+        // Available
+        dayCell.classList.add('available');
+        dayCell.innerHTML = `
+          <span class="text-2xl font-bold">${day}</span>
+          <span class="text-xs text-green-400">${monthAvailability[dateStr]} Slots</span>
+        `;
+        dayCell.onclick = () => selectDay(dateStr);
+      } else {
+        // Unavailable
+        dayCell.classList.add('unavailable');
+        dayCell.innerHTML = `
+          <span class="text-xl font-bold">${day}</span>
+          <span class="text-xs text-gray-600">Keine</span>
+        `;
+      }
+
+      daysGrid.appendChild(dayCell);
+    }
+
+    // Show calendar or no-slots banner
+    if (Object.keys(monthAvailability).length === 0) {
+      document.getElementById('no-slots-banner').classList.remove('hidden');
+    } else {
+      document.getElementById('calendar-grid').classList.remove('hidden');
+    }
+
+    document.getElementById('calendar-loading').classList.add('hidden');
+  }
+
+  function prevMonth() {
+    bookingState.month--;
+    if (bookingState.month < 1) {
+      bookingState.month = 12;
+      bookingState.year--;
+    }
+    loadMonthAvailability();
+  }
+
+  function nextMonth() {
+    bookingState.month++;
+    if (bookingState.month > 12) {
+      bookingState.month = 1;
+      bookingState.year++;
+    }
+    loadMonthAvailability();
+  }
+
+  function selectDay(dateStr) {
+    bookingState.date = dateStr;
+
+    // Update Summary
+    const dateObj = new Date(dateStr);
+    const formatted = dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    document.getElementById('summary-date').textContent = formatted;
+    document.getElementById('selected-date-display').textContent = formatted;
+
+    loadDaySlots();
+    showStep(3);
+  }
+
+  // ========== STEP 3: ZEITSLOT-AUSWAHL ==========
+
+  async function loadDaySlots() {
+    const { berater, date } = bookingState;
+
+    document.getElementById('slots-loading').classList.remove('hidden');
+    document.getElementById('time-groups-container').classList.add('hidden');
+
+    try {
+      const response = await fetch(`/t2/api/day-slots/${berater}/${date}`);
+      const data = await response.json();
+
+      if (data.success) {
+        renderTimeSlots(data.slots);
+      } else {
+        throw new Error(data.error || 'Failed to load slots');
+      }
+    } catch (error) {
+      console.error('Error loading slots:', error);
+      alert('Fehler beim Laden der Zeitslots. Bitte versuchen Sie es erneut.');
+    }
+  }
+
+  function renderTimeSlots(slots) {
+    // Clear containers
+    ['morning', 'midday', 'evening'].forEach(period => {
+      document.getElementById(`${period}-slots`).innerHTML = '';
+      document.getElementById(`${period}-empty`).classList.add('hidden');
+    });
+
+    // Render slots per group
+    Object.entries(slots).forEach(([period, times]) => {
+      const container = document.getElementById(`${period}-slots`);
+      const emptyMsg = document.getElementById(`${period}-empty`);
+
+      if (times.length === 0) {
+        emptyMsg.classList.remove('hidden');
+      } else {
+        times.forEach(time => {
+          const hour = parseInt(time.split(':')[0]);
+          const endHour = hour + 2;
+          const btn = document.createElement('button');
+          btn.className = 'slot-btn';
+          btn.textContent = `${time} - ${String(endHour).padStart(2, '0')}:${time.split(':')[1]} Uhr`;
+          btn.onclick = () => selectSlot(time);
+          container.appendChild(btn);
+        });
+      }
+    });
+
+    document.getElementById('slots-loading').classList.add('hidden');
+    document.getElementById('time-groups-container').classList.remove('hidden');
+    lucide.createIcons();
+  }
+
+  function selectSlot(time) {
+    bookingState.time = time;
+
+    // Update Summary
+    const hour = parseInt(time.split(':')[0]);
+    const endHour = hour + 2;
+    document.getElementById('summary-time').textContent = `${time} - ${String(endHour).padStart(2, '0')}:${time.split(':')[1]} Uhr`;
+
+    showStep(4);
+  }
+
+  // ========== STEP 4: BOOKING SUBMIT ==========
+
+  document.getElementById('booking-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading loading-spinner"></span> Wird gebucht...';
+
+    const formData = {
+      first_name: document.getElementById('first-name').value,
+      last_name: document.getElementById('last-name').value,
+      email: document.getElementById('email').value,
+      topic: document.getElementById('topic').value,
+      date: bookingState.date,
+      time: bookingState.time
+    };
+
+    try {
+      const response = await fetch('/t2/api/book-2h-slot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Success - redirect
+        window.location.href = data.redirect || '/t2/';
+      } else {
+        throw new Error(data.error || 'Booking failed');
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert(`Fehler beim Buchen: ${error.message}`);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i data-lucide="check" class="w-5 h-5 mr-2"></i> Verbindlich buchen';
+      lucide.createIcons();
+    }
+  });
+
+  // ========== INITIALIZATION ==========
+
+  document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    AOS.init({ duration: 600, once: true });
+    showStep(1);
+  });
+</script>
+
+{% endblock %}

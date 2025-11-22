@@ -1315,19 +1315,22 @@ def run_daily_outcome_check():
         
         logger.info(f"Weekly report generated: {report_file}")
 
+# ----------------- Singleton Instance -----------------
+tracking_system = BookingTracker()
+
 if __name__ == "__main__":
     import sys
-    
+
     if len(sys.argv) > 1 and sys.argv[1] == "--recalculate":
         # Neuberechnung aller Outcomes
         recalculate_all_outcomes()
     else:
         # Normaler täglicher Check
         run_daily_outcome_check()
-        
+
         # Test: Hole Kundenhistorie
         tracker = BookingTracker()
-        
+
         # Beispiel: Dashboard anzeigen
         dashboard = tracker.get_performance_dashboard()
         logger.debug("Performance Dashboard:")

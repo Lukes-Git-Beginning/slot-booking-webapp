@@ -370,6 +370,120 @@ class T2AnalyticsService:
             "total_draws": len(recent_draws)
         }
 
+    def get_2h_booking_analytics(self, start_date=None, end_date=None):
+        """
+        Aggregiert 2h-Buchungs-Statistiken für Admin-Dashboard.
+
+        Args:
+            start_date (date): Start-Datum (default: vor 30 Tagen)
+            end_date (date): End-Datum (default: heute)
+
+        Returns:
+            dict: {
+                "berater_stats": {...},
+                "coach_stats": {...},
+                "overall": {...}
+            }
+        """
+        from datetime import date as date_type, timedelta
+        from collections import defaultdict
+
+        if not start_date:
+            start_date = date_type.today() - timedelta(days=30)
+        if not end_date:
+            end_date = date_type.today()
+
+        # Lade alle T2-Buchungen
+        all_bookings_data = self.data_persistence.load_data('t2_bookings', {'bookings': []})
+        all_bookings = all_bookings_data.get('bookings', [])
+
+        # Filter nach Zeitraum
+        from datetime import datetime
+        filtered_bookings = []
+        for booking in all_bookings:
+            try:
+                booking_date = datetime.fromisoformat(booking['date']).date()
+                if start_date <= booking_date <= end_date:
+                    # Skip cancelled/rescheduled
+                    if booking.get('status') not in ['cancelled', 'rescheduled']:
+                        filtered_bookings.append(booking)
+            except (ValueError, KeyError):
+                continue
+
+        # Initialize stats
+        berater_stats = defaultdict(lambda: {'total': 0, 'this_month': 0, 'last_month': 0})
+        coach_stats = defaultdict(lambda: {
+            'total': 0,
+            'executed_self': 0,
+            'delegated': 0,
+            'delegation_rate': 0.0
+        })
+
+        total_bookings = len(filtered_bookings)
+        total_cancelled = 0
+        total_rescheduled = 0
+
+        # Aktuelle und letzte Monats-Strings
+        now = datetime.now()
+        this_month_str = now.strftime('%Y-%m')
+        last_month = now.replace(day=1) - timedelta(days=1)
+        last_month_str = last_month.strftime('%Y-%m')
+
+        # Cancelled/Rescheduled count (aus allen Buchungen, nicht nur filtered)
+        for booking in all_bookings:
+            status = booking.get('status', 'active')
+            if status == 'cancelled':
+                total_cancelled += 1
+            elif status == 'rescheduled':
+                total_rescheduled += 1
+
+        # Aggregiere Stats
+        for booking in filtered_bookings:
+            berater = booking.get('berater', 'Unknown')
+            coach = booking.get('coach', 'Unknown')
+            booking_month = booking['date'][:7]  # YYYY-MM
+
+            # Berater Stats
+            berater_stats[berater]['total'] += 1
+            if booking_month == this_month_str:
+                berater_stats[berater]['this_month'] += 1
+            elif booking_month == last_month_str:
+                berater_stats[berater]['last_month'] += 1
+
+            # Coach Stats
+            coach_stats[coach]['total'] += 1
+            if coach == berater:
+                coach_stats[coach]['executed_self'] += 1
+            else:
+                coach_stats[coach]['delegated'] += 1
+
+        # Berechne Delegation Rates
+        for coach, stats in coach_stats.items():
+            if stats['total'] > 0:
+                stats['delegation_rate'] = round((stats['delegated'] / stats['total']) * 100, 1)
+
+        # Durchschnittliche Delegation Rate
+        if len(coach_stats) > 0:
+            avg_delegation_rate = sum(s['delegation_rate'] for s in coach_stats.values()) / len(coach_stats)
+        else:
+            avg_delegation_rate = 0.0
+
+        # Cancellation Rate
+        total_all_bookings = len(all_bookings)
+        cancellation_rate = round((total_cancelled / total_all_bookings * 100), 1) if total_all_bookings > 0 else 0.0
+
+        return {
+            'berater_stats': dict(berater_stats),
+            'coach_stats': dict(coach_stats),
+            'overall': {
+                'total_bookings': total_bookings,
+                'total_cancelled': total_cancelled,
+                'total_rescheduled': total_rescheduled,
+                'cancellation_rate': cancellation_rate,
+                'avg_delegation_rate': round(avg_delegation_rate, 1)
+            }
+        }
+
 
 # Singleton instance
 t2_analytics_service = T2AnalyticsService()
