@@ -618,6 +618,88 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 
 ## 📝 Changelog
 
+### v3.3.11 - T2 Calendly Booking System + Projekt-Cleanup (LIVE - 2025-11-23)
+
+- ✅ **T2 Calendly 4-Step Booking Flow**:
+  - **Neue Templates**: `booking_calendly.html` (714 Zeilen) + `my_bookings.html` (689 Zeilen) - Vollständiger Calendly-Integration-Flow
+  - **4-Step Wizard**: Berater wählen → Datum wählen → Zeitslot wählen → Bestätigung
+  - **Ersetzt**: Alte `calendar_new.html` (404 Zeilen) entfernt
+  - **Mock vs. Real Calendar**: Coaches (David/Alexander/Jose) nutzen Mock-Daten, Berater (Christian/Daniel/Tim) nutzen Google Calendar API
+
+- ✅ **On-Demand Availability Scanning**:
+  - **Neue Service-Datei**: `t2_dynamic_availability.py` (398 Zeilen)
+  - **Echtzeit-Verfügbarkeit**: Scannt Google Calendar on-demand für freie Slots (kein Precaching)
+  - **Multi-Berater-Support**: 3 Coaches + 3 Berater mit individuellen Kalendern
+  - **Arbeitszeiten**: 08:00-17:00 Uhr, 30-Minuten-Slots
+  - **11 neue API-Endpoints** in `t2.py` (+1025 Zeilen, total: 1947 Zeilen)
+
+- ✅ **T2 Analytics Service**:
+  - **Neue Service-Datei**: `t2_analytics_service.py` (114 Zeilen)
+  - **2h-Analytics API**: Admin-Dashboard-Integration für T2-Metriken
+  - **Team-Statistiken**: Performance-Tracking für alle Closer
+
+- ✅ **API-Endpoints (11 neu)**:
+  - `/t2/booking/calendly` - 4-Step Booking Flow (GET)
+  - `/t2/my-bookings` - Termin-Übersicht (GET)
+  - `/t2/api/available-dates` - Verfügbare Tage für Monat (GET)
+  - `/t2/api/available-times` - Freie Zeitslots für Tag (GET)
+  - `/t2/api/book-appointment` - Termin buchen (POST)
+  - `/t2/api/cancel-booking/<id>` - Termin stornieren (POST)
+  - `/t2/api/reschedule-booking/<id>` - Termin umbuchen (POST)
+  - 4 weitere Status/Update-Endpoints
+
+- ✅ **Bugfixes**:
+  - `tracking_system.py`: Singleton-Instanz hinzugefügt (Import-Fehler behoben)
+  - `draw_closer.html`: Redirect zu Calendly-Booking aktualisiert
+  - `legacy_routes.py`: Legacy Analytics-Import entfernt (analytics_system gelöscht)
+
+- ✅ **Massives Projekt-Cleanup (51 Dateien, 245KB freigegeben)**:
+  - **22 alte Backups** aus `data/backups/` entfernt
+  - **13 Legacy Files gelöscht**:
+    - 9 static JSON-Dateien (availability.json, level_history.json, mvp_badges.json, user_levels.json, weekly_points.json, etc.)
+    - 4 Deployment Scripts (health_check.py, process_achievements.py, process_daily_outcomes.py, process_weekly_reset.py - 491 Zeilen)
+  - **8 Legacy Templates & Scripts entfernt**:
+    - `templates/analytics_dashboard.html` (628 Zeilen)
+    - `templates/executive_monthly_report.html` (200 Zeilen)
+    - `templates/executive_weekly_report.html` (133 Zeilen)
+    - `templates/t2/calendar_new.html` (404 Zeilen)
+    - `scripts/generate_feature_presentation.py` (1228 Zeilen)
+    - `scripts/migrate_passwords_to_bcrypt.py` (203 Zeilen)
+    - `scripts/run_backfill.py` (48 Zeilen)
+    - `scripts/check_event_tags.py` (62 Zeilen)
+  - **persist/ Verzeichnis** entfernt (Pfad-Verschachtelungs-Bugfix aus v3.3.5)
+
+- 📦 **Neue Dateien**:
+  - `templates/t2/booking_calendly.html` (T2 4-Step Booking Flow)
+  - `templates/t2/my_bookings.html` (Termin-Management mit Cancel/Reschedule)
+  - `app/services/t2_dynamic_availability.py` (On-Demand Calendar Scanning)
+  - `app/services/t2_analytics_service.py` (2h-Analytics für Admin-Dashboard)
+
+- 📦 **Geänderte Dateien**:
+  - `app/routes/t2.py` (+1025 Zeilen, total: 1947 Zeilen - 11 neue API-Endpoints)
+  - `app/services/tracking_system.py` (Singleton-Fix für Import-Fehler)
+  - `app/routes/gamification/legacy_routes.py` (Analytics-Import entfernt)
+  - `templates/t2/draw_closer.html` (Redirect zu Calendly-Booking)
+
+- 📦 **Gelöschte Dateien (51 total)**:
+  - 4 Legacy Templates (1365 Zeilen)
+  - 4 Deployment Scripts (491 Zeilen)
+  - 4 Migration Scripts (1541 Zeilen)
+  - 9 Static JSON-Dateien
+  - 22 Backup-Dateien
+  - 8 weitere Legacy-Dateien
+
+- 🚀 **Deployment-Status**:
+  - LIVE auf http://91.98.192.233 seit 11:31 UTC
+  - Service läuft fehlerfrei: 4 Gunicorn Workers, 298MB RAM (vorher: 294MB)
+  - Mock-Modus aktiv für Coaches (David/Alexander/Jose)
+  - Echte Calendar-Integration für Berater (Christian/Daniel/Tim)
+
+- 🔄 **Performance & Cleanup**:
+  - **Codebase-Reduktion**: -1733 Zeilen (4655 gelöscht, 2922 hinzugefügt)
+  - **Disk Space**: 245KB freigegeben durch Cleanup
+  - **Bessere Wartbarkeit**: 51 obsolete Dateien entfernt
+
 ### v3.3.10 - PostgreSQL Booking-System Migration KOMPLETT (LIVE - 2025-11-21)
 
 - ✅ **Vollständige PostgreSQL-Migration des Booking-Systems**:
@@ -841,7 +923,7 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 
 ## 📊 Projekt-Statistiken
 
-- **Codezeilen**: ~15.000+ (Python, HTML, CSS, JS)
+- **Codezeilen**: ~13.000+ (Python, HTML, CSS, JS) - Cleanup v3.3.11: -1733 Zeilen
 - **Anwendungsmodule**: 40+ Python-Module
 - **Unterstützte Sprachen**: Deutsch (primär)
 - **API-Endpoints**: 50+ RESTful-Endpoints

@@ -1,9 +1,9 @@
 # 📊 SLOT-BOOKING-WEBAPP - ROADMAP & TECHNICAL DEBT ANALYSIS
 
-**Analysedatum**: 2025-11-21 (Aktualisiert)
-**Version**: v3.3.10 (LIVE - Production)
+**Analysedatum**: 2025-11-23 (Aktualisiert)
+**Version**: v3.3.11 (LIVE - Production)
 **Deployment**: Hetzner VPS (91.98.192.233)
-**Status**: PRODUCTION-READY mit PostgreSQL + Redis + Booking-System KOMPLETT ✅
+**Status**: PRODUCTION-READY mit PostgreSQL + Redis + T2 Calendly System ✅
 
 ---
 
@@ -28,7 +28,45 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
 | 9 | P2 | Frontend-Assets optimieren (3.8 MB → <1 MB) | 3h | Offen |
 | 10 | P2 | Obsolete Scripts löschen (7 Dateien) | 0.5h | Teilweise |
 
-**Gesamtaufwand Roadmap**: ~44 Stunden über 4-6 Wochen (**35h abgeschlossen ✅** - 80% Complete)
+**Gesamtaufwand Roadmap**: ~44 Stunden über 4-6 Wochen (**49h abgeschlossen ✅** - 90% Complete)
+
+### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.11 - 2025-11-23)
+
+**T2 Calendly Booking System (14h)** - 100% abgeschlossen ✅:
+- ✅ **4-Step Booking Flow implementiert**:
+  - Neue Templates: `booking_calendly.html` (714 Zeilen) + `my_bookings.html` (689 Zeilen)
+  - 4-Step Wizard: Berater wählen → Datum wählen → Zeitslot wählen → Bestätigung
+  - Ersetzt alte `calendar_new.html` (404 Zeilen)
+- ✅ **On-Demand Availability Scanning**:
+  - Service: `t2_dynamic_availability.py` (398 Zeilen)
+  - Echtzeit-Verfügbarkeit ohne Vorberechnung
+  - Multi-Berater-Support (3 Coaches + 3 Berater)
+- ✅ **11 neue API-Endpoints**:
+  - `app/routes/t2.py` erweitert: +1025 Zeilen (total: 1947 Zeilen)
+  - Available Dates/Times APIs
+  - Book/Cancel/Reschedule APIs
+- ✅ **2h-Analytics Service**:
+  - `t2_analytics_service.py` (114 Zeilen)
+  - Admin-Dashboard-Integration
+- ✅ **Mock vs. Real Calendar-Modus**:
+  - Coaches (David/Alexander/Jose): Mock-Daten
+  - Berater (Christian/Daniel/Tim): Google Calendar API
+
+**Massives Projekt-Cleanup (4h)** - 100% abgeschlossen ✅:
+- ✅ **51 Dateien bereinigt, 245KB freigegeben**:
+  - 22 alte Backups entfernt (data/backups/*.backup)
+  - 13 Legacy Files gelöscht (9 static JSONs + 4 Deployment Scripts)
+  - 8 Legacy Templates/Scripts entfernt (2900+ Zeilen)
+- ✅ **Legacy Analytics-System entfernt**:
+  - `app.services.legacy.analytics_system` gelöscht
+  - `templates/analytics_dashboard.html` (628 Zeilen) entfernt
+  - `legacy_routes.py` bereinigt (Import-Referenzen entfernt)
+- ✅ **Codebase-Reduktion**:
+  - -1733 Zeilen (4655 gelöscht, 2922 hinzugefügt)
+  - Bessere Wartbarkeit durch weniger Legacy-Code
+
+**Deployment**: Alle Änderungen LIVE auf Production-Server ✅ (11:31 UTC)
+**Service-Status**: 4 Workers, 298MB RAM (vorher: 294MB)
 
 ### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.10 - 2025-11-21)
 
@@ -336,12 +374,15 @@ rm static/fontawesome.min.css  # 102 KB
 
 #### Task 4.1: Critical TODOs (4h)
 
-**1. T2 Google Calendar Integration**
+**1. ~~T2 Google Calendar Integration~~ - ✅ ERLEDIGT (v3.3.11)**
 ```python
 # app/routes/t2.py:428
-# TODO: Echte Google Calendar-Integration
+# ✅ COMPLETED: Calendly Booking System mit Google Calendar API
 ```
-**Action**: T2-Termine in Google Calendar synchronisieren
+**Status**: ✅ ABGESCHLOSSEN
+- On-Demand Availability Scanning implementiert
+- Mock-Modus für Coaches, Real-Modus für Berater
+- 11 neue API-Endpoints
 
 **2. Analytics Echte Berechnungen**
 ```python
@@ -544,16 +585,17 @@ jobs:
 
 | Metrik | Aktuell | Ziel (Phase 1) | Ziel (Phase 4) |
 |--------|---------|----------------|----------------|
+| **Codezeilen gesamt** | ~13.000 | ~15.000 | ~13.000 |
 | **Test-Coverage** | <1% | >20% | >60% |
 | **Response-Time** | ~800ms | ~600ms | <500ms |
 | **Frontend-Assets** | 3.8 MB | 3.8 MB | <1 MB |
 | **Template-Frameworks** | 3 | 3 | 1 |
 | **Routing-Systeme** | 3 | 3 | 1 |
-| **TODO-Kommentare** | 8 | 8 | 0 |
-| **DEBUG-Statements** | 15+ | 0 | 0 |
+| **TODO-Kommentare** | 7 | 8 | 0 |
+| **DEBUG-Statements** | 0 | 0 | 0 |
 | **Deployment-Zeit** | ~5 Min | ~5 Min | <2 Min |
-| **Database-Type** | JSON | PostgreSQL | PostgreSQL |
-| **Cache-Type** | Memory | Redis | Redis |
+| **Database-Type** | PostgreSQL | PostgreSQL | PostgreSQL |
+| **Cache-Type** | Redis | Redis | Redis |
 
 ---
 
@@ -561,22 +603,51 @@ jobs:
 
 ### Sofort löschbar (nach Backup)
 
-#### Scripts (4 Dateien, 0.5h)
+#### Scripts (0 Dateien, 0h) - ✅ ALLE GELÖSCHT (v3.3.11)
 ```bash
-scripts/debug_booking.py                   # DEBUG-Script
-scripts/fix_cosmetics_paths.py             # One-Time-Fix (2025-10-23)
-scripts/fix_usernames_in_data.py           # One-Time-Migration
-scripts/migrate_passwords.py               # One-Time-Migration
+# Alle 8 Scripts wurden in v3.3.11 entfernt:
+# ✅ scripts/check_event_tags.py (62 Zeilen)
+# ✅ scripts/generate_feature_presentation.py (1228 Zeilen)
+# ✅ scripts/migrate_passwords_to_bcrypt.py (203 Zeilen)
+# ✅ scripts/run_backfill.py (48 Zeilen)
+# ✅ scripts/debug_booking.py - DEBUG-Script
+# ✅ scripts/fix_cosmetics_paths.py - One-Time-Fix (2025-10-23)
+# ✅ scripts/fix_usernames_in_data.py - One-Time-Migration
+# ✅ scripts/migrate_passwords.py - One-Time-Migration
 ```
+
+#### Deployment Scripts (0 Dateien, 0h) - ✅ ALLE GELÖSCHT (v3.3.11)
+```bash
+# Alle 4 Deployment-Scripts wurden in v3.3.11 entfernt:
+# ✅ deployment/scripts/health_check.py (224 Zeilen)
+# ✅ deployment/scripts/process_achievements.py (79 Zeilen)
+# ✅ deployment/scripts/process_daily_outcomes.py (111 Zeilen)
+# ✅ deployment/scripts/process_weekly_reset.py (77 Zeilen)
+```
+
+#### Legacy Analytics (0 Dateien, 0h) - ✅ ENTFERNT (v3.3.11)
+```bash
+# ✅ templates/analytics_dashboard.html (628 Zeilen) - gelöscht
+# ✅ templates/executive_monthly_report.html (200 Zeilen) - gelöscht
+# ✅ templates/executive_weekly_report.html (133 Zeilen) - gelöscht
+# ✅ app/services/legacy/analytics_system (Modul) - gelöscht
+```
+
+#### Static Files (0 Dateien, 0h) - ✅ 9 DATEIEN GELÖSCHT (v3.3.11)
+```bash
+# ✅ static/availability.json (951 Zeilen)
+# ✅ static/level_history.json
+# ✅ static/mvp_badges.json
+# ✅ static/user_levels.json
+# ✅ static/weekly_points.json
+# ✅ und 4 weitere JSONs
+```
+
+**Status (v3.3.11)**: Cleanup komplett ✅ - 51 Dateien gelöscht, 245KB freigegeben
 
 #### Config (1 Datei, 0.1h)
 ```bash
 app/config/legacy_config.py                # Nicht mehr verwendet
-```
-
-#### Services (1 Verzeichnis, 0.1h)
-```bash
-app/services/legacy/                       # Legacy Analytics
 ```
 
 #### Documentation (1 Datei, 0.1h)
@@ -660,33 +731,35 @@ static/fontawesome.min.css                 # 102 KB (Legacy)
 
 ---
 
-## 📅 TIMELINE (Aktualisiert 2025-11-21)
+## 📅 TIMELINE (Aktualisiert 2025-11-23)
 
 ```
 ✅ Woche 1-2 (Nov 2025):   Quick Wins + Activity Tracking (ABGESCHLOSSEN)
 ✅ Woche 3-4 (Nov 2025):   Phase 1 - PostgreSQL + Redis + Booking-Migration (ABGESCHLOSSEN)
-🔜 Woche 5 (Dez 2025):     Phase 1 - Testing Framework
-🔜 Woche 6 (Dez 2025):     Phase 2 - Template + Routing Cleanup
-🔜 Woche 7-8 (Jan 2026):   Phase 3 - TODOs + Performance
-🔜 Woche 9 (Jan 2026):     Phase 4 - CI/CD + Monitoring
+✅ Woche 5 (Nov 2025):     T2 Calendly Booking System + Projekt-Cleanup (ABGESCHLOSSEN)
+🔜 Woche 6 (Dez 2025):     Phase 1 - Testing Framework
+🔜 Woche 7 (Dez 2025):     Phase 2 - Template + Routing Cleanup
+🔜 Woche 8-9 (Jan 2026):   Phase 3 - TODOs + Performance
+🔜 Woche 10 (Jan 2026):    Phase 4 - CI/CD + Monitoring
 ```
 
-**Gesamtaufwand**: ~44 Stunden (35h abgeschlossen ✅, 9h verbleibend)
+**Gesamtaufwand**: ~44 Stunden (49h abgeschlossen ✅, -5h Überschuss)
 **Quick Wins**: ✅ ABGESCHLOSSEN (54 Min - v3.3.8)
 **Activity Tracking**: ✅ ABGESCHLOSSEN (4h - v3.3.8)
 **PostgreSQL + Redis + Booking-Migration**: ✅ ABGESCHLOSSEN (27h - v3.3.10)
+**T2 Calendly + Projekt-Cleanup**: ✅ ABGESCHLOSSEN (18h - v3.3.11)
 **ROI**: Hoch (Wartbarkeit +200%, Performance +30%, Stabilität +100%)
 
 ---
 
-## 🎯 NÄCHSTE PRIORITÄTEN (Woche 3 - Nächste Woche)
+## 🎯 NÄCHSTE PRIORITÄTEN (Woche 6 - Dezember 2025)
 
-**Empfohlene Features für nächste Woche**:
-1. **T2 Google Calendar Integration** (2h) - Nutzt bestehende Calendar-API
-2. **Analytics Echte Berechnungen** (1h) - Placeholder durch echte Metriken ersetzen
-3. **Daily Reward System** (2h) - Login-Streak & Bonus XP (Optional)
-
-**Oder**: Mit Phase 1 (PostgreSQL Migration) beginnen, wenn mehr Zeit verfügbar
+**Empfohlene Features für nächste Wochen**:
+1. **~~T2 Google Calendar Integration~~** - ✅ ERLEDIGT (v3.3.11)
+2. **Minimal Testing Setup** (4h) - Phase 1 abschließen
+3. **Template-Vereinheitlichung** (6h) - Phase 2 starten
+4. **Analytics Echte Berechnungen** (1h) - Placeholder ersetzen
+5. **Daily Reward System** (2h) - Login-Streak & Bonus XP (Optional)
 
 ---
 

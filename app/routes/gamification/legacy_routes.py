@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 try:
     from app.services.prestige_system import prestige_system
     from app.services.daily_quests import daily_quest_system
-    from app.services.legacy.analytics_system import analytics_system
+    # REMOVED: analytics_system (legacy module deleted in commit 46c535f)
     from app.services.personalization_system import personalization_system
     from app.services.achievement_system import achievement_system
     from app.services.level_system import LevelSystem
@@ -26,7 +26,6 @@ except ImportError as e:
     # Set fallback objects to prevent further errors
     prestige_system = None
     daily_quest_system = None
-    analytics_system = None
     personalization_system = None
     achievement_system = None
     LevelSystem = None
@@ -110,39 +109,8 @@ def daily_quests():
             error="Fehler beim Laden der Daily Quests"
         )
 
-@gamification_bp.route('/analytics-dashboard')
-@require_login  
-def analytics_dashboard():
-    """Advanced Analytics Dashboard"""
-    try:
-        user = session.get('user')
-        if not user:
-            return redirect(url_for('login'))
-        
-        # Generiere oder lade Analytics
-        analytics = analytics_system.get_user_analytics(user)
-        
-        return render_template('analytics_dashboard.html',
-            current_user=user,
-            analytics=analytics
-        )
-    except Exception as e:
-        logger.error(f"Error in analytics_dashboard route: {e}")
-        traceback.print_exc()
-        return render_template('analytics_dashboard.html',
-            current_user=session.get('user', ''),
-            analytics={
-                "overview": {},
-                "booking_patterns": {},
-                "performance_trends": {},
-                "behavioral_insights": {},
-                "achievements_analysis": {},
-                "predictions": {},
-                "recommendations": {},
-                "comparisons": {}
-            },
-            error="Fehler beim Laden der Analytics"
-        )
+# REMOVED: /analytics-dashboard route (legacy analytics_system deleted)
+# Use /admin/analytics or /analytics endpoints instead
 
 @gamification_bp.route('/prestige-dashboard')
 @require_login
@@ -362,20 +330,7 @@ def api_claim_goal_reward():
         logger.error(f"Error in api_claim_goal_reward: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Einlösen der Belohnung"})
 
-@gamification_bp.route('/api/refresh-analytics', methods=['POST'])
-@require_login
-def api_refresh_analytics():
-    """API: Analytics neu generieren"""
-    try:
-        user = session.get('user')
-        if not user:
-            return redirect(url_for('login'))
-        analytics = analytics_system.get_user_analytics(user, force_refresh=True)
-        return jsonify({"success": True, "analytics": analytics})
-        
-    except Exception as e:
-        logger.error(f"Error in api_refresh_analytics: {e}")
-        return jsonify({"success": False, "message": "Server-Fehler beim Aktualisieren der Analytics"})
+# REMOVED: /api/refresh-analytics endpoint (legacy analytics_system deleted)
 
 @gamification_bp.route('/api/user/<username>/badges')
 @require_login  
