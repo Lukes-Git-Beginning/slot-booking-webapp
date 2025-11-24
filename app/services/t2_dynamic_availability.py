@@ -89,7 +89,7 @@ class T2DynamicAvailability:
 
     def _get_cache_key(self, calendar_id: str, check_date: date) -> str:
         """Generiert Cache-Key für Tag-Verfügbarkeit"""
-        return f"t2_2h_avail_{calendar_id}_{check_date.isoformat()}_v2"
+        return f"{calendar_id}_{check_date.isoformat()}_v2"
 
     def _parse_event_times(self, event: dict) -> Tuple[Optional[datetime], Optional[datetime]]:
         """
@@ -206,9 +206,9 @@ class T2DynamicAvailability:
         """
         # Cache prüfen
         cache_key = self._get_cache_key(calendar_id, check_date)
-        cached = cache_manager.get(cache_key)
+        cached = cache_manager.get("t2_availability", cache_key)
         if cached is not None:
-            logger.info(f"Cache HIT: {cache_key}")
+            logger.info(f"Cache HIT: t2_availability/{cache_key}")
             return cached
 
         logger.info(f"Scanning 2h availability for {calendar_id} on {check_date}")
@@ -276,7 +276,7 @@ class T2DynamicAvailability:
         )
 
         # Cache speichern
-        cache_manager.set(cache_key, grouped, timeout=self.cache_duration)
+        cache_manager.set("t2_availability", cache_key, grouped)
 
         return grouped
 
@@ -389,8 +389,8 @@ class T2DynamicAvailability:
         Wird nach Buchung aufgerufen um Cache zu invalidieren.
         """
         cache_key = self._get_cache_key(calendar_id, check_date)
-        cache_manager.delete(cache_key)
-        logger.info(f"Cache cleared: {cache_key}")
+        cache_manager.invalidate("t2_availability", cache_key)
+        logger.info(f"Cache cleared: t2_availability/{cache_key}")
 
 
 # Singleton-Instanz

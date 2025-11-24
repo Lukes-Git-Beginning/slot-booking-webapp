@@ -211,16 +211,6 @@ def booking_calendly():
                          tickets_remaining=tickets_remaining)
 
 
-@t2_bp.route("/booking")
-@require_login
-def booking_page():
-    """
-    DEPRECATED: Alte T2-Buchungsseite.
-    Redirected zur neuen Calendly-Style Booking-Page.
-    """
-    return redirect(url_for('t2.booking_calendly'))
-
-
 @t2_bp.route("/calendar")
 @require_login
 def calendar_view():

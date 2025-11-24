@@ -13,9 +13,9 @@ from app.services.data_persistence import data_persistence
 
 logger = logging.getLogger(__name__)
 
-# T2 Closer configuration (from t2.py)
+# T2 Closer configuration (synchronized with t2.py)
 T2_CLOSERS = {
-    "Alexander": {"calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com"},
+    "Alexander": {"calendar_id": "alexandernehm84@gmail.com"},
     "David": {"calendar_id": "david.nehm@googlemail.com"},
     "Jose": {"calendar_id": "jtldiw@gmail.com"}
 }
