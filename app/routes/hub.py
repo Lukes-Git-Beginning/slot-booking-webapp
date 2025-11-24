@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from datetime import datetime, timedelta
 import json
 import logging
+from app.services.notification_service import notification_service
 
 # Blueprint erstellen
 hub_bp = Blueprint('hub', __name__)
@@ -62,7 +63,7 @@ def api_notifications():
     return jsonify(notifications)
 
 
-@hub_bp.route('/api/notifications/<int:notification_id>/read', methods=['POST'])
+@hub_bp.route('/api/notifications/<notification_id>/read', methods=['POST'])
 def api_mark_notification_read(notification_id):
     """
     Benachrichtigung als gelesen markieren
@@ -72,8 +73,69 @@ def api_mark_notification_read(notification_id):
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    success = mark_notification_read(user, notification_id)
+    # Use notification_service for consistency
+    success = notification_service.mark_as_read(user, str(notification_id))
     return jsonify({'success': success})
+
+
+@hub_bp.route('/api/notifications/popup')
+def api_popup_notifications():
+    """
+    Hole nur Benachrichtigungen die als Popup angezeigt werden sollen
+    """
+    user = session.get('user')
+
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Get only popup notifications (unread + show_popup=True)
+    notifications = notification_service.get_user_notifications(
+        user,
+        show_popup_only=True,
+        unread_only=True
+    )
+
+    return jsonify({
+        'success': True,
+        'notifications': notifications
+    })
+
+
+@hub_bp.route('/api/notifications/dismiss', methods=['POST'])
+def api_dismiss_notification():
+    """
+    Lösche Benachrichtigung permanent
+    """
+    user = session.get('user')
+
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    notification_id = data.get('notification_id')
+
+    if not notification_id:
+        return jsonify({'error': 'Missing notification_id'}), 400
+
+    success = notification_service.dismiss_notification(user, str(notification_id))
+    return jsonify({'success': success})
+
+
+@hub_bp.route('/api/notifications/mark-all-read', methods=['POST'])
+def api_mark_all_read():
+    """
+    Markiere alle Benachrichtigungen als gelesen
+    """
+    user = session.get('user')
+
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    count = notification_service.mark_all_as_read(user)
+    return jsonify({
+        'success': True,
+        'count': count
+    })
 
 
 @hub_bp.route('/tool/<tool_id>')

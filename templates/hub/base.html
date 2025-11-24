@@ -246,6 +246,47 @@
             animation: gradient 15s ease infinite;
         }
 
+        /* Toast Notifications */
+        @keyframes slide-in-right {
+            0% {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slide-out-right {
+            0% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .animate-slide-in-right {
+            animation: slide-in-right 0.3s ease-out;
+        }
+
+        .animate-slide-out-right {
+            animation: slide-out-right 0.2s ease-in;
+        }
+
+        /* Toast Container Responsive */
+        @media (max-width: 640px) {
+            #toastContainer {
+                top: 1rem;
+                right: 1rem;
+                left: 1rem;
+                max-width: none !important;
+            }
+        }
+
         /* Particle Container */
         #particles-js {
             position: fixed;
