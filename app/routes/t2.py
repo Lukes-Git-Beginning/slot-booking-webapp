@@ -24,26 +24,26 @@ register_bucket_routes(t2_bp)
 # COACHES (würfelbar) - Aktuell KEINE Schreibrechte (bis nach Wochenende)
 # BERATER (ausführend) - MIT Schreibrechten
 T2_CLOSERS = {
-    # === COACHES (würfelbar) - KEINE Schreibrechte ===
+    # === COACHES (würfelbar) - MIT Schreibrechten ===
     "David": {
         "calendar_id": "david.nehm@googlemail.com",
         "email": "david.nehm@googlemail.com",
         "role": "coach",
-        "can_write": False,  # Schreibrechte kommen nach Wochenende
+        "can_write": True,  # Coaches können eigene Termine buchen
         "color": "#9C27B0"
     },
     "Alexander": {
-        "calendar_id": "alexandernehm84@gmail.com",
+        "calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com",  # Group Calendar
         "email": "alexandernehm84@gmail.com",
         "role": "coach",
-        "can_write": False,  # Schreibrechte kommen nach Wochenende
+        "can_write": True,  # Coaches können eigene Termine buchen
         "color": "#2196F3"
     },
     "Jose": {
         "calendar_id": "jtldiw@gmail.com",
         "email": "jtldiw@gmail.com",
         "role": "coach",
-        "can_write": False,  # Schreibrechte kommen nach Wochenende
+        "can_write": True,  # Coaches können eigene Termine buchen
         "color": "#795548"
     },
 

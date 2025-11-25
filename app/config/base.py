@@ -185,9 +185,14 @@ class ConsultantConfig:
             return consultants
         return cls.DEFAULT_CONSULTANTS
 
-    # Fallback-Berater für Verfügbarkeit
-    DEFAULT_STANDARD_CONSULTANTS: List[str] = ["Sara", "Patrick"]
-    EXTENDED_CONSULTANTS: List[str] = ["Sara", "Patrick", "Dominik", "Tim", "Ann-Kathrin"]
+    # Vollzeit-Berater (immer verfügbar für T1 Slot-Booking)
+    DEFAULT_STANDARD_CONSULTANTS: List[str] = ["Patrick", "Ann-Kathrin", "Sara", "Dominik"]
+
+    # Teilzeit/Andere Prioritäten (bei Bedarf für T1)
+    # Simon: Hauptaufgabe anderswo, verfügbar 20:00 Uhr
+    # Sonja: Variable Verfügbarkeit (Neugeborenes)
+    # Tim/Christian/Daniel: T2/T3 Priorität
+    EXTENDED_CONSULTANTS: List[str] = ["Simon", "Sonja", "Tim", "Christian", "Daniel"]
 
 
 # ========== LOGGING KONFIGURATION ==========
