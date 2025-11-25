@@ -105,3 +105,9 @@ static/level_history.json
 # Keep historical data for analysis
 !data/historical/*.json
 !data/historical/*.jsonl
+
+# Build artifacts
+/build/
+/.coverage
+/.pytest_cache/
+/htmlcov/

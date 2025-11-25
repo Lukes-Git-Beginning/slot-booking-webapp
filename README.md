@@ -14,6 +14,9 @@ Eine professionelle Multi-Tool-Plattform mit Slot-Booking, T2-Closer-System, Gam
 - [Sicherheit](#-sicherheit)
 - [Fehlerbehebung](#-fehlerbehebung)
 - [Changelog](#-changelog)
+- [Dokumentation](#-dokumentation)
+
+> 📚 **Vollständige Dokumentation**: Alle Dokumentations-Dateien befinden sich jetzt im [`docs/`](docs/) Verzeichnis. Siehe [Documentation Index](docs/INDEX.md) für eine Übersicht.
 
 ## ✨ Features
 
@@ -932,6 +935,34 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/b
 - **Berater**: 9 konfigurierte Consultants
 - **Deployment**: Hetzner VPS (91.98.192.233)
 - **Uptime**: 99.9% (Systemd + Gunicorn)
+
+## 📚 Dokumentation
+
+Alle Dokumentations-Dateien befinden sich im **[`docs/`](docs/)** Verzeichnis:
+
+**Einstieg:**
+- 📖 [Documentation Index](docs/INDEX.md) - Vollständige Übersicht über alle Dokumentationen
+- 👨‍💻 [Developer Guide](docs/DEVELOPER_GUIDE.md) - Setup & Architektur für Entwickler
+- 🤖 [Claude Code Instructions](docs/CLAUDE.md) - AI-assisted development guide
+
+**Deployment & Betrieb:**
+- 🚀 [Deployment Guide](docs/DEPLOYMENT.md) - Hauptanleitung mit Links zu allen Configs
+- 🔐 [Security Guidelines](docs/SECURITY.md) - Sicherheitsrichtlinien & Best Practices
+- 🗺️ [Roadmap](docs/ROADMAP.md) - Feature-Roadmap & zukünftige Pläne
+
+**Technical Deep-Dives:**
+- Siehe [`deployment/`](deployment/) Verzeichnis für:
+  - Systemd Services, DNS Setup, SSH Keys, Backup-Konfiguration
+  - T2-System Deployment-Guides
+  - VPS Migration Guides
+
+**Project Configuration Files** (Root-Level):
+- `alembic.ini` - Database migration configuration (Alembic)
+- `pytest.ini` - Test runner configuration (pytest, cache in build/)
+- `.coveragerc` - Coverage output configuration (build/.coverage)
+- `requirements.txt` - Python dependencies (90 packages)
+- `wsgi.py` - WSGI entry point for production (Gunicorn)
+- `run.py` - Development server entry point
 
 ## 📄 Lizenz
 

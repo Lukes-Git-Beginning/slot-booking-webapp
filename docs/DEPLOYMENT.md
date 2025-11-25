@@ -568,6 +568,31 @@ Wenn alle Checks ✅ sind, ist das Deployment erfolgreich abgeschlossen.
 - 📈 Analytics-Dashboard regelmäßig nutzen für Business-Insights
 - 🔐 Passwort-Migration planen (falls noch nicht durchgeführt)
 - 📊 Audit-Logs monatlich reviewen
-- 🚀 Phase 4 Features aus CLAUDE.md bei Bedarf implementieren
+- 🚀 Phase 4 Features aus docs/CLAUDE.md bei Bedarf implementieren
+
+---
+
+## 📚 Detaillierte Deployment-Konfigurationen
+
+Für technische Deep-Dives und spezifische Setup-Anleitungen siehe:
+
+**Server-Setup:**
+- [DNS Setup Guide](../deployment/DNS_SETUP.md) - Domain & DNS-Konfiguration
+- [SSH Key Setup](../deployment/SSH_KEY_SETUP.md) - Sichere SSH-Authentifizierung
+- [Git Token Setup](../deployment/GIT_TOKEN_SETUP.md) - GitHub-Integration für Deployment
+
+**System-Konfiguration:**
+- [Systemd Services](../deployment/README.md) - Service-Management & Background Jobs
+- [Backup Setup](../deployment/BACKUP_SETUP.md) - Automatische Backups & Rotation
+- [VPS Migration Guide](../deployment/VPS_MIGRATION_GUIDE.md) - Server-Migration
+
+**T2-System:**
+- [T2 Deployment](../deployment/T2_DEPLOYMENT.md) - T2-Closer-System Setup
+- [T2 Bucket System](../deployment/T2_BUCKET_SYSTEM_DEPLOYMENT.md) - Würfelsystem-Konfiguration
+
+**Weitere Ressourcen:**
+- [Documentation Index](INDEX.md) - Vollständige Dokumentationsübersicht
+- [Developer Guide](DEVELOPER_GUIDE.md) - Lokale Entwicklungsumgebung
+- [Security Guidelines](SECURITY.md) - Sicherheitsrichtlinien
 
 Bei Fragen oder Problemen: Logs prüfen und ggf. Rollback durchführen.
