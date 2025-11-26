@@ -70,6 +70,7 @@ def register_bucket_routes(t2_bp):
                 # Store in session for booking
                 session['t2_current_closer'] = result['closer']
                 session['t2_closer_color'] = result['color']
+                session.modified = True  # Force Flask to save session immediately
 
                 log_msg = f"T2 Draw: {user} drew {result['closer']}"
                 if customer_name:

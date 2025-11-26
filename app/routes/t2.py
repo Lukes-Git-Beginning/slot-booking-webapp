@@ -32,7 +32,7 @@ T2_CLOSERS = {
         "can_write": True,  # Coaches können eigene Termine buchen
         "color": "#9C27B0"
     },
-    "Alexander": {
+    "Alex": {
         "calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com",  # Group Calendar
         "email": "alexandernehm84@gmail.com",
         "role": "coach",
@@ -193,7 +193,10 @@ def booking_calendly():
 
     # Check: Coach wurde gewürfelt?
     coach = session.get('t2_current_closer')
+    logger.info(f"Booking access: user={user}, coach={coach}, session_keys={list(session.keys())}")
+
     if not coach or coach not in T2_CLOSERS:
+        logger.warning(f"Missing/invalid coach in session: coach={coach}, in_T2_CLOSERS={coach in T2_CLOSERS if coach else False}")
         flash('Bitte ziehe zuerst einen Coach im Würfelsystem.', 'warning')
         return redirect(url_for('t2.draw_page'))
 
