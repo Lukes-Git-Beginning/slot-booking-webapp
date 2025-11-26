@@ -4,6 +4,17 @@ Professionelle Anleitungen für Claude Code - Central Business Tool Hub
 
 ---
 
+## 📝 Change Log
+
+### 2025-11-26: Patrick Woltschleger Removed from Active Configurations
+- Patrick is no longer with the organization
+- Removed from all active consultant lists, role mappings, and authentication
+- Removed from T1 standard consultants, notification roles (opener, telefonist), weekly points participants
+- Historical data preserved in tracking files and persistent storage
+- No longer able to log into the system
+
+---
+
 ## 🎯 AUTO-STATUS-CHECK (IMMER ZUERST AUSFÜHREN!)
 
 **WICHTIG:** Führe diese Checks **automatisch bei jedem Conversation-Start** durch, BEVOR du auf User-Anfragen antwortest!
@@ -287,9 +298,9 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
    - Rollen: [Wer soll benachrichtigt werden?]
      ☐ admin      - Administratoren (alexander.nehm, david.nehm, simon.mast, luke.hoppe)
      ☐ closer     - Closer (jose.torspecken, alexander.nehm, david.nehm, tim.kreisel, christian.mast, daniel.herbort)
-     ☐ opener     - Opener (christian.mast, tim.kreisel, daniel.herbort, sonja.mast, simon.mast, patrick.woltschleger, dominik.mikic, ann-kathrin.welge, sara.mast)
+     ☐ opener     - Opener (christian.mast, tim.kreisel, daniel.herbort, sonja.mast, simon.mast, dominik.mikic, ann-kathrin.welge, sara.mast)
      ☐ coach      - Coaches (alexander.nehm, david.nehm, jose.torspecken)
-     ☐ telefonist - Telefonisten (tim.kreisel, christian.mast, ladislav.heka, sonja.mast, simon.mast, alexandra.börner, patrick.woltschleger, yasmine.schumacher, ann-kathrin.welge, sara.mast)
+     ☐ telefonist - Telefonisten (tim.kreisel, christian.mast, ladislav.heka, sonja.mast, simon.mast, alexandra.börner, yasmine.schumacher, ann-kathrin.welge, sara.mast)
      ☐ service    - Service-Team (alexandra.börner, vanessa.wagner, simon.mast)
      ☐ all        - Alle Benutzer
    - Als Pop-up anzeigen? [Ja/Nein]
@@ -444,9 +455,9 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 |-------|--------|------------|
 | **admin** | 4 | alexander.nehm, david.nehm, simon.mast, luke.hoppe |
 | **closer** | 6 | jose.torspecken, alexander.nehm, david.nehm, tim.kreisel, christian.mast, daniel.herbort |
-| **opener** | 9 | christian.mast, tim.kreisel, daniel.herbort, sonja.mast, simon.mast, patrick.woltschleger, dominik.mikic, ann-kathrin.welge, sara.mast |
+| **opener** | 8 | christian.mast, tim.kreisel, daniel.herbort, sonja.mast, simon.mast, dominik.mikic, ann-kathrin.welge, sara.mast |
 | **coach** | 3 | alexander.nehm, david.nehm, jose.torspecken |
-| **telefonist** | 10 | tim.kreisel, christian.mast, ladislav.heka, sonja.mast, simon.mast, alexandra.börner, patrick.woltschleger, yasmine.schumacher, ann-kathrin.welge, sara.mast |
+| **telefonist** | 9 | tim.kreisel, christian.mast, ladislav.heka, sonja.mast, simon.mast, alexandra.börner, yasmine.schumacher, ann-kathrin.welge, sara.mast |
 | **service** | 3 | alexandra.börner, vanessa.wagner, simon.mast |
 
 **Total: 17 Unique User** (manche haben mehrere Rollen)
@@ -458,7 +469,7 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 **Standard-Berater (Vollzeit - immer verfügbar):**
 | Name | Calendar-ID | Typ |
 |------|-------------|-----|
-| Patrick | `0d5nq65ogpekomad34ti234h1g@group.calendar.google.com` | Vollzeit |
+| ~~Patrick~~ | ~~`0d5nq65ogpekomad34ti234h1g@group.calendar.google.com`~~ | ~~Vollzeit~~ (removed 2025-11-26) |
 | Ann-Kathrin | `a.welge.zfa@gmail.com` | Vollzeit |
 | Sara | `mastsara2@gmail.com` | Vollzeit |
 | Dominik | `mikic.dom@gmail.com` | Vollzeit |
@@ -534,7 +545,7 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
   - **luke.hoppe**: Hinzugefügt zu `admin` Rolle
   - **Rollenzuordnung komplett**: Alle 17 User haben jetzt Rollenzuweisungen
 - ✅ **T1 Berater-Konfiguration optimiert**:
-  - **Standard (Vollzeit)**: Patrick, Ann-Kathrin, Sara, Dominik (vorher: nur Sara + Patrick)
+  - **Standard (Vollzeit)**: Ann-Kathrin, Sara, Dominik (vorher: Patrick, Ann-Kathrin, Sara, Dominik; Patrick removed 2025-11-26)
   - **Extended (Teilzeit/T2-Priorität)**: Simon, Sonja, Tim, Christian, Daniel
   - **Logik**: Vollzeit-Angestellte haben Priorität, T2/T3-Berater als Backup
 - ✅ **T2 Coach Schreibrechte aktiviert**:
@@ -626,7 +637,7 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
     - `scripts/backfill_from_calendar.py` - Google Calendar → PostgreSQL (338 Buchungen)
     - `scripts/run_calendar_sync.sh` - Cronjob-Wrapper (täglich 23:00 Uhr)
   - **Automatische Synchronisation**: Täglicher Cronjob hält DB aktuell
-  - **9 User getrackt**: Christian, Yasmine, Dominik, Ladislav, Tim, Sonja, Simon, Alexandra, Patrick
+  - **8 User getrackt**: Christian, Yasmine, Dominik, Ladislav, Tim, Sonja, Simon, Alexandra (Patrick removed 2025-11-26)
   - **Performance**: PostgreSQL-Read 10x schneller als JSONL
 - ✅ **Index-Konflikte behoben**:
   - `gamification.py`: idx_daily_quests_active, idx_quest_progress_completed, idx_personal_goals_active

@@ -32,7 +32,7 @@ STATIC_FILE = os.path.join(STATIC_DIR, "weekly_points.json")
 
 # Standard-Teilnehmer (kann im UI erweitert werden)
 DEFAULT_PARTICIPANTS = [
-    "Christian", "Dominik", "Sara", "Patrick", "Tim", "Sonja"
+    "Christian", "Dominik", "Sara", "Tim", "Sonja"
 ]
 
 

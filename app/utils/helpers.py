@@ -109,7 +109,6 @@ def safe_float(value, default: float = 0.0) -> float:
 USERNAME_NORMALIZATION_MAP = {
     # Nur Vornamen → Volle Namen
     "ladislav": "ladislav.heka",
-    "patrick": "patrick.woltschleger",
     "alexandra": "alexandra.scharrschmidt",
     "christian": "christian.mast",
     "tim": "tim.kreisel",
@@ -123,7 +122,6 @@ USERNAME_NORMALIZATION_MAP = {
 
     # Alte Kurzformen → Volle Namen (deprecated, nur für Legacy-Support)
     "l.heka": "ladislav.heka",
-    "p.woltschleger": "patrick.woltschleger",
     "a.scharrschmidt": "alexandra.scharrschmidt",
     "t.kreisel": "tim.kreisel",
     "d.mikic": "dominik.mikic",

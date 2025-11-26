@@ -166,7 +166,6 @@ class ConsultantConfig:
         "Christian": "chmast95@gmail.com",
         "Tim": "tim.kreisel71@gmail.com",
         "Sara": "mastsara2@gmail.com",
-        "Patrick": "0d5nq65ogpekomad34ti234h1g@group.calendar.google.com",
         "Dominik": "mikic.dom@gmail.com",
         "Sonja": "sonjamast98@gmail.com"
     }
@@ -186,7 +185,7 @@ class ConsultantConfig:
         return cls.DEFAULT_CONSULTANTS
 
     # Vollzeit-Berater (immer verfügbar für T1 Slot-Booking)
-    DEFAULT_STANDARD_CONSULTANTS: List[str] = ["Patrick", "Ann-Kathrin", "Sara", "Dominik"]
+    DEFAULT_STANDARD_CONSULTANTS: List[str] = ["Ann-Kathrin", "Sara", "Dominik"]
 
     # Teilzeit/Andere Prioritäten (bei Bedarf für T1)
     # Simon: Hauptaufgabe anderswo, verfügbar 20:00 Uhr

@@ -585,7 +585,6 @@ def has_tool_access(username, tool_id):
             'dominik.mikic',
             'sara.mast',
             'ladislav.heka',
-            'patrick.woltschleger',
             'sonja.mast'
         ]
         return username not in blocked_users

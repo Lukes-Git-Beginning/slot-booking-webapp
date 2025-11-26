@@ -23,9 +23,9 @@ class NotificationService:
         self.role_mapping = {
             'admin': ['alexander.nehm', 'david.nehm', 'simon.mast', 'luke.hoppe'],
             'closer': ['jose.torspecken', 'alexander.nehm', 'david.nehm', 'tim.kreisel', 'christian.mast', 'daniel.herbort'],
-            'opener': ['christian.mast', 'tim.kreisel', 'daniel.herbort', 'sonja.mast', 'simon.mast', 'patrick.woltschleger', 'dominik.mikic', 'ann-kathrin.welge', 'sara.mast'],
+            'opener': ['christian.mast', 'tim.kreisel', 'daniel.herbort', 'sonja.mast', 'simon.mast', 'dominik.mikic', 'ann-kathrin.welge', 'sara.mast'],
             'coach': ['alexander.nehm', 'david.nehm', 'jose.torspecken'],
-            'telefonist': ['tim.kreisel', 'christian.mast', 'ladislav.heka', 'sonja.mast', 'simon.mast', 'alexandra.börner', 'patrick.woltschleger', 'yasmine.schumacher', 'ann-kathrin.welge', 'sara.mast'],
+            'telefonist': ['tim.kreisel', 'christian.mast', 'ladislav.heka', 'sonja.mast', 'simon.mast', 'alexandra.börner', 'yasmine.schumacher', 'ann-kathrin.welge', 'sara.mast'],
             'service': ['alexandra.börner', 'vanessa.wagner', 'simon.mast']
         }
 
