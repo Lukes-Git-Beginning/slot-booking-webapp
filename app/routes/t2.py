@@ -1286,11 +1286,22 @@ def api_book_2h_slot():
             if not data.get(field):
                 return jsonify({'success': False, 'error': f'{field} required'}), 400
 
-        coach = session.get('t2_booking_coach')
-        berater = session.get('t2_booking_berater')
+        # Primär aus Request-Body lesen (session-unabhängig), Session als Fallback
+        coach = data.get('coach') or session.get('t2_booking_coach')
+        berater = data.get('berater') or session.get('t2_booking_berater')
 
         if not coach or not berater:
-            return jsonify({'success': False, 'error': 'Session expired. Please start over.'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Booking-Daten fehlen. Bitte starten Sie den Buchungsprozess neu.'
+            }), 400
+
+        # Validation: Coach und Berater müssen in T2_CLOSERS existieren
+        if coach not in T2_CLOSERS or berater not in T2_CLOSERS:
+            return jsonify({
+                'success': False,
+                'error': 'Ungültiger Coach oder Berater.'
+            }), 400
 
         # 1. Ticket-Check
         tickets_remaining = get_user_tickets_remaining(user)
