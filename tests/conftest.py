@@ -24,17 +24,33 @@ def app():
     os.environ['SECRET_KEY'] = 'test-secret-key-for-testing'
     os.environ['FLASK_ENV'] = 'testing'
     os.environ['TESTING'] = 'true'
+    os.environ['USERLIST'] = 'test_user:test_pass,admin_user:admin_pass'
+    os.environ['ADMIN_USERS'] = 'admin_user'
 
-    from app import create_app
+    # Mock Google credentials loading at the source
+    mock_creds = MagicMock()
+    mock_creds.valid = True
+    mock_creds.expired = False
 
-    app = create_app()
-    app.config.update({
-        'TESTING': True,
-        'WTF_CSRF_ENABLED': False,
-        'SECRET_KEY': 'test-secret-key-for-testing',
-    })
+    with patch('app.utils.credentials.load_google_credentials', return_value=mock_creds), \
+         patch('app.core.google_calendar.GoogleCalendarService._initialize_service'), \
+         patch('app.services.tracking_system.build', return_value=MagicMock()):
 
-    yield app
+        from app import create_app
+
+        app = create_app()
+        app.config.update({
+            'TESTING': True,
+            'WTF_CSRF_ENABLED': False,
+            'SECRET_KEY': 'test-secret-key-for-testing',
+            'SESSION_COOKIE_HTTPONLY': False,  # Allow test client to access session
+            'SESSION_COOKIE_SECURE': False,     # Not needed for testing
+        })
+
+        # Enable session preservation in test context
+        app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+
+        yield app
 
 
 @pytest.fixture(scope='function')
@@ -211,6 +227,225 @@ def sample_t2_bucket_state():
         'max_draws': 20,
         'history': []
     }
+
+
+@pytest.fixture(scope='function')
+def sample_t2_bookings():
+    """Sample T2 bookings for testing"""
+    return [
+        {
+            'booking_id': 'T2-ABC123',
+            'customer_name': 'Mustermann, Max',
+            'email': 'max@example.com',
+            'date': '2025-12-15',
+            'time': '14:00',
+            'coach': 'Alex',
+            'berater': 'Christian',
+            'topic': 'Verkaufsgespräch',
+            'status': 'confirmed',
+            'booked_by': 'test_user',
+            'booked_at': '2025-11-28T10:00:00'
+        },
+        {
+            'booking_id': 'T2-DEF456',
+            'customer_name': 'Schmidt, Anna',
+            'email': 'anna@example.com',
+            'date': '2025-12-20',
+            'time': '16:00',
+            'coach': 'David',
+            'berater': 'Daniel',
+            'topic': 'Beratungsgespräch',
+            'status': 'confirmed',
+            'booked_by': 'admin_user',
+            'booked_at': '2025-11-28T11:00:00'
+        }
+    ]
+
+
+@pytest.fixture(scope='function')
+def sample_notifications():
+    """Sample notifications for testing"""
+    return {
+        'test_user': [
+            {
+                'id': 'notif-1',
+                'type': 'info',
+                'title': 'Welcome',
+                'message': 'Welcome to the system!',
+                'timestamp': '2025-11-28T10:00:00',
+                'read': False,
+                'dismissed': False,
+                'show_popup': True,
+                'roles': ['all']
+            },
+            {
+                'id': 'notif-2',
+                'type': 'success',
+                'title': 'Feature Update',
+                'message': 'New T2 booking system is live!',
+                'timestamp': '2025-11-27T15:00:00',
+                'read': True,
+                'dismissed': False,
+                'show_popup': False,
+                'roles': ['closer', 'admin']
+            }
+        ],
+        'admin_user': [
+            {
+                'id': 'notif-3',
+                'type': 'warning',
+                'title': 'System Maintenance',
+                'message': 'Scheduled maintenance on Sunday',
+                'timestamp': '2025-11-26T12:00:00',
+                'read': False,
+                'dismissed': False,
+                'show_popup': True,
+                'roles': ['admin']
+            }
+        ]
+    }
+
+
+# ========== MOCK SERVICE FIXTURES ==========
+
+@pytest.fixture(scope='function')
+def mock_security_service():
+    """Mock Security Service for authentication and 2FA"""
+    with patch('app.routes.auth.security_service') as mock_service:
+        # Default configurations
+        mock_service.verify_password.return_value = True
+        mock_service.is_2fa_enabled.return_value = False
+        mock_service.verify_2fa.return_value = True
+        mock_service.setup_2fa.return_value = (
+            'JBSWY3DPEHPK3PXP',  # secret
+            'data:image/png;base64,iVBORw0KG...',  # qr_code
+            ['12345678', '87654321', '11223344']  # backup_codes
+        )
+        mock_service.enable_2fa.return_value = (True, '2FA erfolgreich aktiviert')
+        mock_service.disable_2fa.return_value = (True, '2FA erfolgreich deaktiviert')
+        mock_service.get_backup_codes.return_value = ['12345678', '87654321']
+        mock_service.change_password.return_value = (True, 'Passwort geändert')
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_account_lockout():
+    """Mock Account Lockout Service for rate limiting"""
+    with patch('app.routes.auth.account_lockout') as mock_service:
+        # Default: not locked out
+        mock_service.is_locked_out.return_value = (False, 0)
+        mock_service.record_failed_attempt.return_value = (False, 0)
+        mock_service.record_successful_login.return_value = None
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_audit_service():
+    """Mock Audit Service for logging"""
+    with patch('app.routes.auth.audit_service') as mock_service:
+        # All audit methods just pass
+        mock_service.log_login_success.return_value = None
+        mock_service.log_login_failure.return_value = None
+        mock_service.log_logout.return_value = None
+        mock_service.log_2fa_setup.return_value = None
+        mock_service.log_password_change.return_value = None
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_activity_tracking():
+    """Mock Activity Tracking Service"""
+    with patch('app.routes.auth.activity_tracking') as mock_service:
+        # Default tracking methods
+        mock_service.track_login.return_value = None
+        mock_service.update_online_status.return_value = None
+        mock_service.get_user_activity.return_value = {}
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_t2_bucket_system():
+    """Mock T2 Bucket System for closer draws"""
+    with patch('app.routes.t2.t2_bucket_system') as mock_service:
+        # Default draw result
+        mock_service.draw_closer.return_value = 'Alex'
+        mock_service.get_bucket_state.return_value = {
+            'closers': {
+                'Alex': {'probability': 9.0, 'original_probability': 9.0},
+                'David': {'probability': 9.0, 'original_probability': 9.0},
+                'Jose': {'probability': 2.0, 'original_probability': 2.0}
+            },
+            'draw_count': 5,
+            'max_draws': 20
+        }
+        mock_service.reset_bucket.return_value = None
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_t2_analytics_service():
+    """Mock T2 Analytics Service"""
+    with patch('app.services.t2_analytics_service.t2_analytics_service') as mock_service:
+        # Default analytics responses
+        mock_service.get_user_draw_stats.return_value = {
+            'total_draws': 15,
+            'unique_closers': 3,
+            'most_drawn_closer': 'Alex',
+            'draws_by_closer': {'Alex': 8, 'David': 5, 'Jose': 2}
+        }
+        mock_service.get_combined_user_stats.return_value = {
+            't1_slots_booked': 25,
+            't2_bookings': 10,
+            'total_draws': 15,
+            'tickets_remaining': 3
+        }
+        mock_service.get_user_draw_history.return_value = {
+            'draws': [],
+            'total': 0,
+            'limit': 50,
+            'offset': 0
+        }
+        mock_service.get_2h_booking_analytics.return_value = {
+            'berater_stats': {},
+            'coach_stats': {},
+            'overall': {'total_bookings': 0}
+        }
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_notification_service():
+    """Mock Notification Service"""
+    with patch('app.services.notification_service.notification_service') as mock_service:
+        # Default notification methods
+        mock_service.get_user_notifications.return_value = []
+        mock_service.create_notification.return_value = 'notif-123'
+        mock_service.mark_as_read.return_value = True
+        mock_service.dismiss_notification.return_value = True
+
+        yield mock_service
+
+
+@pytest.fixture(scope='function')
+def mock_tracking_system():
+    """Mock Tracking System for bookings"""
+    with patch('app.services.tracking_system.tracking_system') as mock_service:
+        # Default tracking methods
+        mock_service.track_booking.return_value = None
+        mock_service.get_user_bookings.return_value = []
+        mock_service.get_booking_stats.return_value = {
+            'total': 0,
+            'this_week': 0,
+            'this_month': 0
+        }
+
+        yield mock_service
 
 
 # Markers for categorizing tests

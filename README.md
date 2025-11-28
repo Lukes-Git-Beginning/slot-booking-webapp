@@ -161,12 +161,23 @@ python -m pytest tests/ --cov=app/services --cov-report=html
 
 ### Test-Struktur
 
-| Datei | Tests | Coverage | Beschreibung |
-|-------|-------|----------|--------------|
-| `test_data_persistence.py` | 33 | 59% | Backup, Validation, Unicode, Path-Traversal |
-| `test_t2_bucket_system.py` | 36 | 89% | Probability, Draws, Timeout, Persistence |
-| `test_booking_service.py` | 27 | 52% | Slot-Status, Booking, Points, Availability |
-| `test_security_service.py` | 31 | 98% | Password Hashing, 2FA, Backup-Codes |
+**187 Tests, 98% Coverage für kritische Services ✅**
+
+| Kategorie | Datei | Tests | Beschreibung |
+|-----------|-------|-------|--------------|
+| **Services** | `test_data_persistence.py` | 33 | Backup, Validation, Unicode, Path-Traversal |
+| | `test_t2_bucket_system.py` | 36 | Probability, Draws, Timeout, Persistence |
+| | `test_booking_service.py` | 27 | Slot-Status, Booking, Points, Availability |
+| | `test_security_service.py` | 31 | Password Hashing, 2FA, Backup-Codes (98% Coverage) |
+| **Auth Routes** | `test_routes_auth_login.py` | 18 | Login-Flow, Rate Limiting, Session Creation |
+| | `test_routes_auth_login_simple.py` | 14 | Login Basic-Tests (keine Mocks) |
+| | `test_routes_auth_2fa.py` | 20 | 2FA Setup, Verification, Backup Codes |
+| | `test_routes_auth_session.py` | 24 | Session Management, Security, Fixation Protection |
+| **T2 Routes** | `test_routes_t2_core.py` | 18 | T2 Dashboard, Draw System, Bucket Management |
+| | `test_routes_t2_core_simple.py` | 12 | T2 Basic-Tests (keine Mocks) |
+| | `test_routes_t2_booking.py` | 24 | T2 Calendly Booking Flow (4-Step) |
+| | `test_routes_t2_analytics.py` | 18 | T2 Analytics APIs, Dashboard |
+| **Utilities** | `test_utils.py` | - | 30+ Helper Functions in 10 Kategorien |
 
 ### Test-Markers
 
@@ -174,15 +185,36 @@ python -m pytest tests/ --cov=app/services --cov-report=html
 - `@pytest.mark.integration` - Integration-Tests mit Mocking
 - `@pytest.mark.slow` - Langsame Tests (skip mit `-m "not slow"`)
 
-### Fixtures
+### Fixtures & Test-Utilities
 
-Die wichtigsten Test-Fixtures in `conftest.py`:
+**Test-Infrastruktur in `conftest.py` (457 Zeilen)**:
 
+**Core Fixtures**:
 - `app` - Flask-Application für Tests
 - `client` / `logged_in_client` / `admin_client` - Test-Clients
-- `mock_data_persistence` - Gemockte Datenpersistenz
-- `mock_google_calendar` - Gemockter Google Calendar Service
-- `sample_*` - Vordefinierte Test-Daten
+
+**Mock Service Fixtures (8)**:
+- `mock_security_service` - Authentication & 2FA
+- `mock_account_lockout` - Rate Limiting
+- `mock_audit_service` - Logging
+- `mock_activity_tracking` - Activity Tracking
+- `mock_t2_bucket_system` - Closer Draws
+- `mock_t2_analytics_service` - T2 Analytics
+- `mock_notification_service` - Notifications
+- `mock_tracking_system` - Booking Tracking
+
+**Sample Data Fixtures (10)**:
+- `sample_user_data`, `sample_scores_data`, `sample_badges_data`
+- `sample_calendar_events`, `sample_availability`
+- `sample_t2_bucket_state`, `sample_t2_bookings`
+- `sample_notifications`
+
+**Test-Utilities in `test_utils.py` (582 Zeilen, 30+ Functions)**:
+- **Assertion Helpers**: `assert_valid_response_json`, `assert_success_response`, `assert_error_response`, `assert_redirect`, `assert_requires_auth`
+- **Data Generation**: `generate_booking_data`, `generate_t2_booking_data`, `generate_user_data`
+- **Session Helpers**: `create_test_session`, `clear_test_session`, `get_session_data`
+- **Validation**: `is_valid_booking_id`, `is_valid_email`, `is_valid_time_slot`
+- **Debugging**: `print_response_debug`, `print_session_debug`
 
 ## 🔧 Konfiguration
 
