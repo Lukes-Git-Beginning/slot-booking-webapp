@@ -197,14 +197,9 @@ def register_blueprints(app: Flask) -> None:
         app.register_blueprint(user_profile_bp, url_prefix='/slots')
         app.logger.info(" Legacy slots blueprints registered (complete Render app)")
     except ImportError as e:
-        app.logger.warning(f" Could not load legacy slots blueprints: {e}")
-        # Fallback to new slots blueprint if legacy fails
-        try:
-            from app.routes.slots import slots_bp
-            app.register_blueprint(slots_bp, url_prefix='/slots')
-            app.logger.info(" New slots blueprint registered (fallback)")
-        except ImportError as e2:
-            app.logger.error(f" No slots blueprint available: {e2}")
+        app.logger.error(f" Could not load legacy slots blueprints: {e}")
+        # CRITICAL: Legacy slots blueprints are required for production
+        # If this error occurs, the app cannot function properly
 
     # T2-Closer-System Blueprint
     try:
@@ -214,20 +209,13 @@ def register_blueprints(app: Flask) -> None:
     except ImportError as e:
         app.logger.warning(f"T2-Closer blueprint error: {e}")
 
-    # API Gateway Blueprint (erweitert bestehende API)
+    # API Blueprint (Legacy)
     try:
-        from app.routes.api_gateway import api_gateway_bp
-        app.register_blueprint(api_gateway_bp, url_prefix='/api')
-        app.logger.info(" API Gateway blueprint registered")
+        from app.routes.api import api_bp
+        app.register_blueprint(api_bp, url_prefix='/api')
+        app.logger.info(" Legacy API blueprint registered")
     except ImportError as e:
-        app.logger.info(f" Creating API Gateway: {e}")
-        # Fallback: Bestehende API verwenden
-        try:
-            from app.routes.api import api_bp
-            app.register_blueprint(api_bp, url_prefix='/api')
-            app.logger.info(" Legacy API blueprint registered")
-        except ImportError as e2:
-            app.logger.warning(f" API blueprint error: {e2}")
+        app.logger.warning(f" API blueprint error: {e}")
 
     # Central Admin Blueprint (erweitert bestehende admin)
     try:
