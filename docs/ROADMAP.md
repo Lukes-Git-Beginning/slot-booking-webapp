@@ -1,9 +1,9 @@
 # 📊 SLOT-BOOKING-WEBAPP - ROADMAP & TECHNICAL DEBT ANALYSIS
 
-**Analysedatum**: 2025-11-23 (Aktualisiert)
-**Version**: v3.3.11 (LIVE - Production)
+**Analysedatum**: 2025-11-28 (Aktualisiert)
+**Version**: v3.3.14 (LIVE - Production)
 **Deployment**: Hetzner VPS (91.98.192.233)
-**Status**: PRODUCTION-READY mit PostgreSQL + Redis + T2 Calendly System ✅
+**Status**: PRODUCTION-READY mit PostgreSQL + Redis + Clean Routing ✅
 
 ---
 
@@ -19,16 +19,41 @@ Die Codebase ist professionell strukturiert mit modernen Flask Best Practices. D
 |---|-----------|-------|---------|--------|
 | 1 | P0 | ~~PostgreSQL Migration (aktuell JSON-Files)~~ | 14h | ✅ ERLEDIGT (2025-11-21) |
 | 2 | P0 | Template-Framework-Chaos (3 → 1) | 6h | Offen |
-| 3 | P0 | Legacy-Routing-Chaos (3 Systeme) | 4h | Offen |
+| 3 | P0 | ~~Legacy-Routing-Chaos (3 Systeme → 1)~~ | 4h | ✅ ERLEDIGT (2025-11-28) |
 | 4 | P1 | ~~Redis für Caching~~ | 2h | ✅ ERLEDIGT (2025-11-20) |
-| 5 | P1 | Test-Coverage erhöhen (52% → >80%) | 12h | In Arbeit (125 Tests) |
+| 5 | P1 | Test-Coverage erhöhen (52% → >80%) | 12h | In Arbeit (131 Tests) |
 | 6 | P1 | 8 TODO/FIXME implementieren | 4h | Offen |
 | 7 | P1 | CI/CD Pipeline | 4h | Offen |
 | 8 | P2 | ~~DEBUG-Code entfernen~~ | 1h | ✅ ERLEDIGT (2025-11-06) |
 | 9 | P2 | Frontend-Assets optimieren (3.8 MB → <1 MB) | 3h | Offen |
-| 10 | P2 | Obsolete Scripts löschen (7 Dateien) | 0.5h | Teilweise |
+| 10 | P2 | ~~Obsolete Scripts löschen (7 Dateien)~~ | 0.5h | ✅ ERLEDIGT (2025-11-28) |
 
-**Gesamtaufwand Roadmap**: ~44 Stunden über 4-6 Wochen (**49h abgeschlossen ✅** - 90% Complete)
+**Gesamtaufwand Roadmap**: ~44 Stunden über 4-6 Wochen (**53.5h abgeschlossen ✅** - 95% Complete)
+
+### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.14 - 2025-11-28)
+
+**Routing Cleanup (4h)** - 100% abgeschlossen ✅:
+- ✅ **1,275 Zeilen ungenutzten Code entfernt**:
+  - Gelöscht: `app/routes/slots.py` (485 Zeilen) - Fallback blueprint, nie ausgeführt
+  - Gelöscht: `app/routes/api_gateway.py` (790 Zeilen) - Incomplete unified API, keine Frontend-Integration
+  - Bereinigt: `app/__init__.py` (14 Zeilen Fallback-Code entfernt)
+- ✅ **Dependency-Analyse durchgeführt**:
+  - 245 url_for() Calls in 50 Templates → ALLE nutzen legacy blueprints
+  - Keine Frontend-Integration für API Gateway gefunden
+  - Production Logs: Fallback nie getriggert in 3+ Monaten
+- ✅ **Blueprint-Count reduziert**: 13 → 11 aktive Blueprints
+- ✅ **Testing & Verification**:
+  - Lokale Tests: 130/131 bestanden (99.2% Pass-Rate)
+  - Server-Deployment: Erfolgreich (4 Workers, 292.5M RAM)
+  - Health Check: 200 OK
+  - Browser Tests: Alle Routes funktionieren
+- ✅ **Dokumentation**:
+  - `docs/ROUTING_CLEANUP_2025-11-28.md` erstellt
+  - `CLAUDE.md` Architektur-Sektion aktualisiert
+  - Backups: `archives/routing_cleanup_2025-11-28/`
+
+**Deployment**: LIVE auf Production-Server ✅ (12:15 UTC)
+**Git**: Commit `e6e8ed4` - "refactor: Remove unused routing code (1,275 lines)"
 
 ### ✅ ABGESCHLOSSENE IMPROVEMENTS (v3.3.11 - 2025-11-23)
 
