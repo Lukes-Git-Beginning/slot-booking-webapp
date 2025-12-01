@@ -37,6 +37,16 @@ def create_app(config_object: Optional[str] = None) -> Flask:
     from app.core.extensions import init_extensions
     init_extensions(app)
 
+    # Database initialisieren (PostgreSQL Migration)
+    from app.models import init_db, is_postgres_enabled
+    if is_postgres_enabled():
+        try:
+            init_db(app)
+            app.logger.info("PostgreSQL database initialized successfully")
+        except Exception as e:
+            app.logger.error(f"PostgreSQL initialization failed: {e}", exc_info=True)
+            app.logger.warning("Falling back to JSON storage")
+
     # Middleware initialisieren (bestehende)
     from app.core.middleware import init_middleware
     init_middleware(app)

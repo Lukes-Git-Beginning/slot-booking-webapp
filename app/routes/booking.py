@@ -218,78 +218,94 @@ def book():
             event_data=event_body
         )
 
-        if result:
-            # Invalidate cache for this slot since we just booked it
-            cache_key = f"{date}_{hour}"
-            cache_manager.invalidate("calendar_events", cache_key)
+        if not result:
+            flash("Fehler beim Erstellen des Kalender-Events. Bitte versuche es später erneut.", "danger")
+            booking_logger.error(f"Calendar event creation failed for {last}, {first} on {date} {hour}")
+            return redirect(url_for("main.day_view", date_str=date))
 
-            # Invalidate personal calendar cache for immediate visibility in my-calendar
-            cache_manager.clear_all()  # Clear all calendar caches to ensure fresh data
+        # Event erfolgreich erstellt
+        # Invalidate cache for this slot since we just booked it
+        cache_key = f"{date}_{hour}"
+        cache_manager.invalidate("calendar_events", cache_key)
 
-            # Add tracking
+        # Invalidate personal calendar cache for immediate visibility in my-calendar
+        cache_manager.clear_all()  # Clear all calendar caches to ensure fresh data
+
+        # Add tracking with robust error handling
+        tracking_successful = False
+        try:
+            if tracking_system:
+                booking_data = tracking_system.track_booking(
+                    customer_name=f"{last}, {first}",
+                    date=date,
+                    time_slot=hour,
+                    user=user or "unknown",
+                    color_id=color_id,
+                    description=description
+                )
+                if booking_data is None:
+                    # Tracking fehlgeschlagen (beide PostgreSQL + JSON)
+                    booking_logger.error(f"CRITICAL: Tracking failed for {last}, {first} on {date} {hour} - Event created but not tracked!")
+                    flash("Warnung: Termin wurde im Kalender erstellt, aber Tracking fehlgeschlagen. Bitte Admin informieren.", "warning")
+                else:
+                    tracking_successful = True
+        except Exception as e:
+            booking_logger.error(f"CRITICAL: Tracking exception for {last}, {first} on {date} {hour}: {e}", exc_info=True)
+            flash("Warnung: Termin wurde im Kalender erstellt, aber Tracking fehlgeschlagen. Bitte Admin informieren.", "warning")
+
+        # Achievement System Integration with Enhanced Error Handling
+        new_badges = []
+        if user and user != "unknown":
             try:
-                if tracking_system:
-                    tracking_system.track_booking(
-                        customer_name=f"{last}, {first}",
-                        date=date,
-                        time_slot=hour,
-                        user=user or "unknown",
-                        color_id=color_id,
-                        description=description
-                    )
-            except Exception as e:
-                booking_logger.warning(f"Tracking error for booking {last}, {first} on {date} {hour}: {e}")
-
-            # Achievement System Integration with Enhanced Error Handling
-            new_badges = []
-            if user and user != "unknown":
-                try:
-                    new_badges = add_points_to_user(user, points)
-                    if points > 0:
-                        flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) und {points} Coins erhalten.", "success")
-                    else:
-                        flash("Slot erfolgreich gebucht!", "success")
-                except Exception as e:
-                    booking_logger.error(f"Critical error in achievement system for user {user}: {e}", exc_info=True)
-                    # Continue with success message but without achievement processing
+                new_badges = add_points_to_user(user, points)
+                if points > 0 and tracking_successful:
+                    flash(f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) und {points} Coins erhalten.", "success")
+                elif tracking_successful:
                     flash("Slot erfolgreich gebucht!", "success")
-            else:
+                # else: Warning already shown if tracking failed
+            except Exception as e:
+                booking_logger.error(f"Critical error in achievement system for user {user}: {e}", exc_info=True)
+                # Continue with success message but without achievement processing
+                if tracking_successful:
+                    flash("Slot erfolgreich gebucht!", "success")
+        else:
+            if tracking_successful:
                 flash("Slot erfolgreich gebucht!", "success")
 
-            # Quest Progress Integration
-            if user and user != "unknown":
-                try:
-                    from app.routes.gamification.legacy_routes import update_quest_progress_for_booking
-                    booking_data = {
-                        "has_description": bool(description),
-                        "booking_time": int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0,
-                        "points_earned": points,
-                        "date": date,
-                        "hour": hour
-                    }
-                    update_quest_progress_for_booking(user, booking_data)
-                except ImportError:
-                    pass  # Enhanced features not available
-                except Exception as e:
-                    booking_logger.warning(f"Could not update quest progress for user {user}: {e}")
-
-            # Store special badge counters (evening/morning) persistently
+        # Quest Progress Integration
+        if user and user != "unknown":
             try:
-                if user and user != "unknown":
-                    daily_stats = data_persistence.load_daily_user_stats()
-                    today_key = datetime.now(TZ).strftime("%Y-%m-%d")
-                    if user not in daily_stats:
-                        daily_stats[user] = {}
-                    if today_key not in daily_stats[user]:
-                        daily_stats[user][today_key] = {"points": 0, "bookings": 0, "first_booking": False}
-                    h_int = int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0
-                    if h_int >= 18:
-                        daily_stats[user][today_key]["evening_bookings"] = daily_stats[user][today_key].get("evening_bookings", 0) + 1
-                    elif 9 <= h_int < 12:
-                        daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
-                    data_persistence.save_daily_user_stats(daily_stats)
+                from app.routes.gamification.legacy_routes import update_quest_progress_for_booking
+                booking_data = {
+                    "has_description": bool(description),
+                    "booking_time": int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0,
+                    "points_earned": points,
+                    "date": date,
+                    "hour": hour
+                }
+                update_quest_progress_for_booking(user, booking_data)
+            except ImportError:
+                pass  # Enhanced features not available
             except Exception as e:
-                booking_logger.warning(f"Could not update special badge counters for user {user}: {e}", exc_info=True)
+                booking_logger.warning(f"Could not update quest progress for user {user}: {e}")
+
+        # Store special badge counters (evening/morning) persistently
+        try:
+            if user and user != "unknown":
+                daily_stats = data_persistence.load_daily_user_stats()
+                today_key = datetime.now(TZ).strftime("%Y-%m-%d")
+                if user not in daily_stats:
+                    daily_stats[user] = {}
+                if today_key not in daily_stats[user]:
+                    daily_stats[user][today_key] = {"points": 0, "bookings": 0, "first_booking": False}
+                h_int = int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0
+                if h_int >= 18:
+                    daily_stats[user][today_key]["evening_bookings"] = daily_stats[user][today_key].get("evening_bookings", 0) + 1
+                elif 9 <= h_int < 12:
+                    daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
+                data_persistence.save_daily_user_stats(daily_stats)
+        except Exception as e:
+            booking_logger.warning(f"Could not update special badge counters for user {user}: {e}", exc_info=True)
 
             # Show new badges
             if new_badges:

@@ -103,6 +103,9 @@ class BookingTracker:
 
             # ========== DUAL-WRITE: PostgreSQL + JSON ==========
 
+            postgres_error = None
+            postgres_success = False
+
             # 1. PostgreSQL schreiben (wenn aktiviert)
             if POSTGRES_AVAILABLE and is_postgres_enabled():
                 try:
@@ -127,20 +130,33 @@ class BookingTracker:
                     session.merge(booking)  # Update if exists
                     session.commit()
                     session.close()
-                    logger.debug(f"Booking tracked to PostgreSQL: {booking_id}")
+                    postgres_success = True
+                    logger.info(f"✅ Booking tracked to PostgreSQL: {booking_id} ({customer_name})")
                 except Exception as e:
-                    logger.error(f"PostgreSQL write failed, using JSON fallback: {e}")
+                    postgres_error = str(e)
+                    logger.error(f"❌ PostgreSQL write failed for {booking_id} ({customer_name}): {e}")
 
             # 2. JSONL schreiben (immer, als Fallback)
-            os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
-            with open(self.bookings_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
-
-            logger.info(f"Booking tracked: {customer_name} on {date} at {time_slot}")
-            return booking_data
+            try:
+                os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
+                with open(self.bookings_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
+                logger.info(f"✅ Booking tracked to JSONL: {booking_id} ({customer_name})")
+                return booking_data
+            except Exception as json_error:
+                # CRITICAL: Beide Writes fehlgeschlagen!
+                logger.critical(f"🚨 BOTH PostgreSQL AND JSONL write failed!")
+                logger.critical(f"   Booking ID: {booking_id}")
+                logger.critical(f"   Customer: {customer_name}")
+                logger.critical(f"   Date/Time: {date} {time_slot}")
+                logger.critical(f"   User: {user}")
+                logger.critical(f"   PostgreSQL Error: {postgres_error or 'N/A'}")
+                logger.critical(f"   JSONL Error: {json_error}")
+                return None  # Signal complete failure to caller
 
         except Exception as e:
-            logger.error(f"Error tracking booking: {e}")
+            logger.critical(f"🚨 CRITICAL: Unexpected error in track_booking: {e}", exc_info=True)
+            logger.critical(f"   Booking: {customer_name} on {date} at {time_slot}")
             return None
     
     def check_daily_outcomes(self, check_date=None):
