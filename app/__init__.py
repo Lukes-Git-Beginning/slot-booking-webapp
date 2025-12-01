@@ -37,6 +37,9 @@ def create_app(config_object: Optional[str] = None) -> Flask:
     from app.core.extensions import init_extensions
     init_extensions(app)
 
+    # Initialize security headers (Production only)
+    init_security_headers(app)
+
     # Database initialisieren (PostgreSQL Migration)
     from app.models import init_db, is_postgres_enabled
     if is_postgres_enabled():
@@ -96,6 +99,50 @@ def create_app(config_object: Optional[str] = None) -> Flask:
     app.logger.info('Central Business Tool Hub started successfully')
 
     return app
+
+
+def init_security_headers(app: Flask) -> None:
+    """Initialize Talisman security headers (Production Only)"""
+    if not app.debug:
+        try:
+            from flask_talisman import Talisman
+
+            app.logger.info("Initializing Talisman security headers (Production mode)")
+
+            csp = {
+                'default-src': ["'self'"],
+                'script-src': [
+                    "'self'",
+                    "'unsafe-inline'",  # Required for inline scripts
+                    'cdn.jsdelivr.net',
+                    'unpkg.com'
+                ],
+                'style-src': [
+                    "'self'",
+                    "'unsafe-inline'",  # Required for Tailwind
+                    'cdn.jsdelivr.net'
+                ],
+                'font-src': ["'self'", 'cdn.jsdelivr.net'],
+                'img-src': ["'self'", 'data:', 'blob:'],
+                'connect-src': ["'self'"],
+                'frame-ancestors': ["'none'"],
+            }
+
+            Talisman(
+                app,
+                content_security_policy=csp,
+                force_https=True,
+                strict_transport_security=True,
+                strict_transport_security_max_age=31536000,  # 1 year
+                frame_options='DENY',
+                referrer_policy='strict-origin-when-cross-origin'
+            )
+
+            app.logger.info("✓ Talisman security headers enabled")
+        except ImportError:
+            app.logger.warning("flask-talisman not installed - security headers disabled")
+    else:
+        app.logger.info("Talisman disabled (Development mode)")
 
 
 def setup_logging(app: Flask) -> None:

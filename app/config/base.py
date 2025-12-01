@@ -15,6 +15,11 @@ class Config:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-key-change-in-production")
     DEBUG: bool = os.getenv("FLASK_DEBUG", "False").lower() in ["true", "1", "yes"]
 
+    # Session Security
+    SESSION_COOKIE_SECURE: bool = not os.getenv("DEBUG", "False").lower() in ["true", "1", "yes"]
+    SESSION_COOKIE_HTTPONLY: bool = True
+    SESSION_COOKIE_SAMESITE: str = 'Lax'  # 'Strict' can break OAuth flows
+
     # Google Calendar API
     GOOGLE_CREDS_BASE64: str = os.getenv("GOOGLE_CREDS_BASE64", "")
     CENTRAL_CALENDAR_ID: str = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")

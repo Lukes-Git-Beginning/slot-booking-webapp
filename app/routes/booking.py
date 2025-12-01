@@ -98,8 +98,7 @@ def add_points_to_user(user, points):
 
 
 @booking_bp.route("/book", methods=["POST"])
-@csrf.exempt  # CSRF exempt for booking endpoint (legacy form without token)
-@require_login
+@require_login  # CSRF protection now enabled - frontend sends X-CSRFToken header
 @apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)
 def book():
@@ -107,12 +106,20 @@ def book():
     user = session.get("user")
 
     with log_request(booking_logger, "create_booking", user_id=user) as request_id:
-        first = request.form.get("first_name", "").strip()
-        last = request.form.get("last_name", "").strip()
-        description = request.form.get("description", "").strip()
-        date = request.form.get("date", "")
-        hour = request.form.get("hour", "")
-        color_id = request.form.get("color", "9")
+        # Get JSON data from request body
+        data = request.get_json()
+        if not data:
+            raise_validation_error(
+                "Missing request body",
+                user_message="Ungültige Anfrage - keine Daten erhalten."
+            )
+
+        first = data.get("first_name", "").strip()
+        last = data.get("last_name", "").strip()
+        description = data.get("description", "").strip()
+        date = data.get("date", "")
+        hour = data.get("hour", "")
+        color_id = data.get("color", "9")
 
         # Input validation
         if not all([first, last, date, hour]):

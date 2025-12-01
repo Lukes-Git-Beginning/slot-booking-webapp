@@ -10,7 +10,7 @@ Cache Manager für Slot Booking Webapp
 import os
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time as time_obj
 from typing import Dict, Any, Optional, Union
 import pickle
 from app.config.base import slot_config
@@ -21,6 +21,34 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
+
+
+class SafeJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles datetime, date, time objects"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return {'__datetime__': obj.isoformat()}
+        elif isinstance(obj, date):
+            return {'__date__': obj.isoformat()}
+        elif isinstance(obj, time_obj):
+            return {'__time__': obj.isoformat()}
+        elif isinstance(obj, timedelta):
+            return {'__timedelta__': obj.total_seconds()}
+        return super().default(obj)
+
+
+def json_decoder_hook(obj):
+    """Decode datetime objects from JSON"""
+    if isinstance(obj, dict):
+        if '__datetime__' in obj:
+            return datetime.fromisoformat(obj['__datetime__'])
+        elif '__date__' in obj:
+            return date.fromisoformat(obj['__date__'])
+        elif '__time__' in obj:
+            return time_obj.fromisoformat(obj['__time__'])
+        elif '__timedelta__' in obj:
+            return timedelta(seconds=obj['__timedelta__'])
+    return obj
 
 class CacheManager:
     def __init__(self, cache_dir: str = "cache") -> None:
@@ -71,7 +99,7 @@ class CacheManager:
             return False
 
     def get(self, cache_type: str, key: str = "") -> Optional[Any]:
-        """Holt Daten aus Cache mit verbesserter Performance"""
+        """Holt Daten aus Cache - Try JSON first, fallback to pickle for legacy"""
         # Redis-Modus
         if self.use_redis and self.redis_client:
             try:
@@ -81,70 +109,99 @@ class CacheManager:
                 if cached_data_bytes is None:
                     return None
 
-                cached_data = pickle.loads(cached_data_bytes)
-                print(f"✅ Redis Cache hit: {cache_type}_{key}")
-                return cached_data
+                # Try JSON decode first
+                try:
+                    cached_data_str = cached_data_bytes.decode('utf-8')
+                    cached_data = json.loads(cached_data_str, object_hook=json_decoder_hook)
+                    print(f"✅ Redis Cache hit (JSON): {cache_type}_{key}")
+                    return cached_data
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    # Fallback to pickle for legacy cache
+                    try:
+                        cached_data = pickle.loads(cached_data_bytes)
+                        print(f"✅ Redis Cache hit (pickle-legacy): {cache_type}_{key}")
+                        return cached_data
+                    except Exception as e:
+                        print(f"⚠️ Could not decode Redis cache: {e}")
+                        return None
 
             except Exception as e:
                 print(f"⚠️ Redis error, fallback to file cache: {e}")
                 # Fallback zu File-Cache
 
         # File-based Cache (Fallback oder Default)
-        try:
-            cache_path = self._get_cache_path(cache_type, key)
-            max_age = self.cache_times.get(cache_type, 300)
+        safe_key = key.replace("/", "_").replace(":", "_")
+        json_path = os.path.join(self.cache_dir, f"{cache_type}_{safe_key}.json")
+        pickle_path = os.path.join(self.cache_dir, f"{cache_type}_{safe_key}.cache")
+        max_age = self.cache_times.get(cache_type, 300)
 
-            if not self._is_cache_valid(cache_path, max_age):
-                return None
+        # Try JSON file first
+        if os.path.exists(json_path) and self._is_cache_valid(json_path, max_age):
+            try:
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    cached_data = json.load(f, object_hook=json_decoder_hook)
+                print(f"✅ Cache hit (JSON): {cache_type}_{key}")
+                return cached_data
+            except (json.JSONDecodeError, FileNotFoundError) as e:
+                print(f"⚠️ Could not read JSON cache: {e}")
 
-            # Verwende optimierte Pickle-Einstellungen für bessere Performance
-            with open(cache_path, 'rb') as f:
-                cached_data = pickle.load(f)
+        # Fallback to pickle file for legacy
+        if os.path.exists(pickle_path) and self._is_cache_valid(pickle_path, max_age):
+            try:
+                with open(pickle_path, 'rb') as f:
+                    cached_data = pickle.load(f)
+                print(f"✅ Cache hit (pickle-legacy): {cache_type}_{key}")
+                return cached_data
+            except Exception as e:
+                print(f"⚠️ Could not read pickle cache: {e}")
 
-            print(f"✅ Cache hit: {cache_type}_{key}")
-            return cached_data
-
-        except (FileNotFoundError, pickle.PickleError):
-            # Stumm für normale Cache-Misses
-            return None
-        except Exception as e:
-            print(f"❌ Cache error: {e}")
-            return None
+        return None
 
     def set(self, cache_type: str, key: str, data: Any) -> bool:
-        """Speichert Daten im Cache mit optimierter Performance"""
-        # Redis-Modus
-        if self.use_redis and self.redis_client:
-            try:
+        """Speichert Daten im Cache - Try JSON first, fallback to pickle for non-serializable"""
+        safe_key = key.replace("/", "_").replace(":", "_")
+        max_age = self.cache_times.get(cache_type, 300)
+
+        # Try JSON serialization first
+        try:
+            # Redis-Modus
+            if self.use_redis and self.redis_client:
                 redis_key = f"{cache_type}:{key}"
-                max_age = self.cache_times.get(cache_type, 300)
+                json_data = json.dumps(data, cls=SafeJSONEncoder)
+                self.redis_client.setex(redis_key, max_age, json_data.encode('utf-8'))
+                print(f"💾 Redis Cached (JSON): {cache_type}_{key} (TTL: {max_age}s)")
 
-                # Pickle-Serialisierung
-                pickled_data = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+            # File-based JSON cache
+            json_path = os.path.join(self.cache_dir, f"{cache_type}_{safe_key}.json")
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, cls=SafeJSONEncoder, ensure_ascii=False, indent=2)
 
-                # Mit TTL speichern
-                self.redis_client.setex(redis_key, max_age, pickled_data)
-                print(f"💾 Redis Cached: {cache_type}_{key} (TTL: {max_age}s)")
+            print(f"💾 Cached (JSON): {cache_type}_{key}")
+            return True
+
+        except (TypeError, ValueError) as e:
+            # Fallback to pickle for non-serializable objects
+            print(f"⚠️ JSON serialization failed, using pickle fallback: {e}")
+
+            try:
+                # Redis-Modus
+                if self.use_redis and self.redis_client:
+                    redis_key = f"{cache_type}:{key}"
+                    pickled_data = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+                    self.redis_client.setex(redis_key, max_age, pickled_data)
+                    print(f"💾 Redis Cached (pickle): {cache_type}_{key} (TTL: {max_age}s)")
+
+                # File-based pickle cache
+                pickle_path = os.path.join(self.cache_dir, f"{cache_type}_{safe_key}.cache")
+                with open(pickle_path, 'wb') as f:
+                    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+                print(f"💾 Cached (pickle): {cache_type}_{key}")
                 return True
 
             except Exception as e:
-                print(f"⚠️ Redis error, fallback to file cache: {e}")
-                # Fallback zu File-Cache
-
-        # File-based Cache (Fallback oder Default)
-        try:
-            cache_path = self._get_cache_path(cache_type, key)
-
-            # Verwende höchstes Protokoll für bessere Performance und kleinere Dateien
-            with open(cache_path, 'wb') as f:
-                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-            print(f"💾 Cached: {cache_type}_{key}")
-            return True
-
-        except Exception as e:
-            print(f"❌ Cache save error: {e}")
-            return False
+                print(f"❌ Cache save error: {e}")
+                return False
 
     def invalidate(self, cache_type: str, key: str = "") -> bool:
         """Löscht Cache-Eintrag"""

@@ -64,6 +64,7 @@ qrcode==8.0
 Flask-Limiter==3.8.0
 Flask-WTF==1.2.2
 bcrypt==4.2.1
+flask-talisman==1.1.0
 
 # Error Tracking & Monitoring
 # WARNING: Sentry is OPTIONAL and requires SENTRY_DSN environment variable

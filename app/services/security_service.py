@@ -147,19 +147,26 @@ class SecurityService:
         img.save(buffer, format='PNG')
         qr_base64 = base64.b64encode(buffer.getvalue()).decode()
 
-        # Generiere Backup-Codes
-        backup_codes = [secrets.token_hex(4).upper() for _ in range(10)]
+        # Generiere Backup-Codes (plaintext für User)
+        backup_codes_plaintext = [secrets.token_hex(4).upper() for _ in range(10)]
+
+        # Hash backup codes with bcrypt before storage
+        backup_codes_hashed = [
+            self.hash_password(code) for code in backup_codes_plaintext
+        ]
 
         # Speichere 2FA-Daten (noch nicht aktiviert)
         twofa_data = self._load_2fa_data()
         twofa_data[username] = {
             'secret': secret,
             'enabled': False,
-            'backup_codes': backup_codes
+            'backup_codes': backup_codes_hashed,  # HASHED
+            'backup_codes_version': 2  # v2 = bcrypt hashing
         }
         self._save_2fa_data(twofa_data)
 
-        return secret, qr_base64, backup_codes
+        # Return plaintext codes to user (one-time display only)
+        return secret, qr_base64, backup_codes_plaintext
 
     def enable_2fa(self, username: str, verification_code: str) -> Tuple[bool, str]:
         """
@@ -201,7 +208,7 @@ class SecurityService:
 
     def verify_2fa(self, username: str, code: str) -> bool:
         """
-        Verifiziere 2FA-Code oder Backup-Code
+        Verifiziere 2FA-Code oder Backup-Code - Supports v1 (plaintext) and v2 (hashed)
         """
         twofa_data = self._load_2fa_data()
 
@@ -220,12 +227,39 @@ class SecurityService:
 
         # Backup-Code verifizieren
         backup_codes = user_2fa.get('backup_codes', [])
-        if code.upper() in backup_codes:
-            # Backup-Code entfernen (einmalig nutzbar)
-            backup_codes.remove(code.upper())
-            user_2fa['backup_codes'] = backup_codes
-            self._save_2fa_data(twofa_data)
-            return True
+        backup_version = user_2fa.get('backup_codes_version', 1)  # Default to v1 for legacy
+
+        if backup_version == 2:
+            # v2: bcrypt hashed codes
+            for idx, hashed_code in enumerate(backup_codes):
+                if self.verify_hashed_password(code.upper(), hashed_code):
+                    # Remove used backup code
+                    backup_codes.pop(idx)
+                    user_2fa['backup_codes'] = backup_codes
+                    self._save_2fa_data(twofa_data)
+                    logger.info(f"Backup code used for {username} (hashed)")
+                    return True
+        else:
+            # v1: plaintext codes (legacy compatibility)
+            if code.upper() in backup_codes:
+                # Backup-Code entfernen (einmalig nutzbar)
+                backup_codes.remove(code.upper())
+                user_2fa['backup_codes'] = backup_codes
+                self._save_2fa_data(twofa_data)
+                logger.warning(f"Backup code used for {username} (plaintext - legacy)")
+                return True
+
+        # Log failed verification attempt
+        try:
+            from app.services.audit_service import audit_service
+            audit_service.log_event(
+                event_type='security',
+                action='2fa_verification_failed',
+                user=username,
+                severity='warning'
+            )
+        except Exception as e:
+            logger.error(f"Could not log 2FA verification failure: {e}")
 
         return False
 
