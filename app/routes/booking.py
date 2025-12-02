@@ -98,7 +98,8 @@ def add_points_to_user(user, points):
 
 
 @booking_bp.route("/book", methods=["POST"])
-@require_login  # CSRF protection now enabled - frontend sends X-CSRFToken header
+@csrf.exempt  # CSRF exempt for booking endpoint (frontend does not send token)
+@require_login
 @apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)
 def book():
