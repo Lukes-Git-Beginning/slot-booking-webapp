@@ -158,18 +158,6 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
         # This improves performance by reducing API calls from 105 to ~10 per page load
         return loaded_consultants
 
-    # Also try new nested format for backwards compatibility
-    if date_str in availability and hour in availability[date_str]:
-        loaded_consultants = availability[date_str][hour]
-
-        # For 9am slots: merge with live T1-bereit check
-        if hour == "09:00":
-            t1_consultants = get_9am_availability_from_calendar(date_str)
-            combined = list(set(loaded_consultants + t1_consultants))
-            return combined
-
-        return loaded_consultants
-
     # For 9am slots without pre-generated data: Use default availability
     # (Live T1-bereit checking removed for performance - was 9 API calls)
     if hour == "09:00":
@@ -196,9 +184,39 @@ def extract_weekly_summary(availability, current_date=None):
     # Old format needed: {"YYYY-MM-DD HH:MM": [consultants]}
 
     # First, also include availability from effective_availability (loaded + defaults)
-    for week_offset in range(5):
+    # Loop until we have 4 valid weeks (skip fully blocked weeks like Betriebsferien)
+    valid_weeks_collected = 0
+    week_offset = 0
+    max_weeks_to_scan = 15  # Enough buffer to skip blocked weeks
+
+    while valid_weeks_collected < 4 and week_offset < max_weeks_to_scan:
         week_start = get_week_start(today) + timedelta(weeks=week_offset)
 
+        # Pre-check: Does this week have ANY availability? (Skip fully blocked weeks)
+        week_has_availability = False
+        for day_offset in range(5):  # Mo-Fr only for check
+            date_obj = week_start + timedelta(days=day_offset)
+            if date_obj < today:
+                continue
+
+            date_str = date_obj.strftime("%Y-%m-%d")
+
+            # Check if ANY timeslot has availability
+            for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:
+                consultants = get_effective_availability(date_str, hour)
+                if consultants:
+                    week_has_availability = True
+                    break
+
+            if week_has_availability:
+                break
+
+        # If week has no availability → skip to next week
+        if not week_has_availability:
+            week_offset += 1
+            continue
+
+        # Process this week fully (has availability)
         for day_offset in range(7):  # Monday to Sunday
             date_obj = week_start + timedelta(days=day_offset)
             if date_obj < today:  # Skip past dates
@@ -224,6 +242,10 @@ def extract_weekly_summary(availability, current_date=None):
                     monday = dt - timedelta(days=dt.weekday())
                     friday = monday + timedelta(days=4)
                     week_dates[key] = (monday, friday)
+
+        # Week processed successfully → increment counters
+        valid_weeks_collected += 1
+        week_offset += 1
 
     # Get booked appointments from Google Calendar with error handling and caching
     if week_dates:

@@ -395,7 +395,5 @@ def book():
             if new_badges:
                 badge_names = [badge["name"] for badge in new_badges]
                 flash(f"Neue Badges erhalten: {', '.join(badge_names)}", "success")
-        else:
-            flash("Fehler beim Buchen des Slots. Bitte versuche es später erneut.", "danger")
 
         return redirect(url_for("main.day_view", date_str=date))
