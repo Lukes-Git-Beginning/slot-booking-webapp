@@ -14,6 +14,17 @@ from app.utils.helpers import get_userlist
 logger = logging.getLogger(__name__)
 
 
+# Helper function for database access
+def _get_db_session():
+    """Get database session from Flask app context"""
+    try:
+        from app import db
+        return db.session
+    except Exception as e:
+        logger.debug(f"Could not get database session: {e}")
+        return None
+
+
 class AnalyticsService:
     """Service für Business Intelligence & Analytics"""
 
@@ -29,30 +40,62 @@ class AnalyticsService:
         }
 
     def get_executive_kpis(self) -> Dict[str, Any]:
-        """Executive-Level KPIs"""
+        """Executive-Level KPIs with real PostgreSQL calculations"""
         scores = data_persistence.load_scores()
-
-        # Aktueller Monat
         current_month = datetime.now().strftime('%Y-%m')
 
-        # Total Bookings berechnen
-        total_bookings = 0
-        for user, months in scores.items():
-            if current_month in months:
-                total_bookings += months[current_month] // 3  # Durchschnittlich 3 Punkte pro Buchung
+        # Load real booking data from PostgreSQL
+        try:
+            from app.models.booking import Booking, BookingOutcome
+            db_session = _get_db_session()
 
-        # Conversion-Rate (Mock - später echte Berechnung)
-        conversion_rate = 25.5  # %
+            if db_session:
+                # Total Bookings (current month)
+                month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                total_bookings = db_session.query(Booking).filter(
+                    Booking.booking_date >= month_start
+                ).count()
 
-        # No-Show-Rate (Mock)
-        no_show_rate = 12.3  # %
+                # Conversion-Rate (appeared + closed / total)
+                appeared = db_session.query(Booking).join(BookingOutcome).filter(
+                    Booking.booking_date >= month_start,
+                    BookingOutcome.status.in_(['erschienen', 'abgeschlossen'])
+                ).count()
+
+                conversion_rate = (appeared / total_bookings * 100) if total_bookings > 0 else 0
+
+                # No-Show-Rate
+                no_shows = db_session.query(Booking).join(BookingOutcome).filter(
+                    Booking.booking_date >= month_start,
+                    BookingOutcome.status == 'nicht_erschienen'
+                ).count()
+
+                no_show_rate = (no_shows / total_bookings * 100) if total_bookings > 0 else 0
+
+                # Avg Deal Value - Mock (no sales data available)
+                avg_deal_value = 1850  # EUR
+
+            else:
+                # Fallback to scores calculation
+                total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
+                conversion_rate = 25.5  # Mock
+                no_show_rate = 12.3  # Mock
+                avg_deal_value = 1850  # Mock
+
+        except Exception as e:
+            logger.error(f"Error calculating executive KPIs: {e}")
+            # Fallback
+            total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
+            conversion_rate = 25.5
+            no_show_rate = 12.3
+            avg_deal_value = 1850
 
         return {
             'total_bookings': total_bookings,
-            'conversion_rate': conversion_rate,
-            'no_show_rate': no_show_rate,
-            'avg_deal_value': 1850,  # EUR (Mock)
-            'revenue_forecast': total_bookings * 1850 * (conversion_rate / 100),
+            'conversion_rate': round(conversion_rate, 1),
+            'no_show_rate': round(no_show_rate, 1),
+            'avg_deal_value': avg_deal_value,  # Mock (no sales data)
+            'revenue_forecast': total_bookings * avg_deal_value * (conversion_rate / 100),
             'active_users': len([u for u, m in scores.items() if current_month in m])
         }
 
@@ -158,17 +201,28 @@ class AnalyticsService:
     # === Private Helper Methods ===
 
     def _get_overview_stats(self) -> Dict[str, Any]:
-        """Übersichts-Statistiken"""
+        """Übersichts-Statistiken with real growth rate calculation"""
         scores = data_persistence.load_scores()
         current_month = datetime.now().strftime('%Y-%m')
 
+        # Current month bookings
         total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
+
+        # Previous month bookings for growth rate
+        prev_month = (datetime.now() - timedelta(days=30)).strftime('%Y-%m')
+        prev_bookings = sum(months.get(prev_month, 0) // 3 for user, months in scores.items())
+
+        # Calculate real growth rate
+        if prev_bookings > 0:
+            growth_rate = ((total_bookings - prev_bookings) / prev_bookings) * 100
+        else:
+            growth_rate = 0.0
 
         return {
             'total_bookings_month': total_bookings,
             'total_users': len(scores),
             'avg_bookings_per_user': total_bookings / len(scores) if scores else 0,
-            'growth_rate': 15.3  # % Mock
+            'growth_rate': round(growth_rate, 1)  # Real calculation instead of mock
         }
 
     def _get_recent_activity(self) -> List[Dict]:
@@ -181,11 +235,41 @@ class AnalyticsService:
             return []
 
     def _get_system_alerts(self) -> List[Dict]:
-        """System-Warnungen"""
+        """System-Warnungen with real no-show calculation"""
         alerts = []
 
-        # Check No-Show-Rate
-        # TODO: Echte Berechnung
+        # Check No-Show-Rate (REAL CALCULATION from PostgreSQL)
+        try:
+            from app.models.booking import Booking, BookingOutcome
+            db_session = _get_db_session()
+
+            if db_session:
+                # Last month
+                one_month_ago = datetime.now() - timedelta(days=30)
+
+                # Count total bookings
+                total_bookings = db_session.query(Booking).filter(
+                    Booking.booking_date >= one_month_ago
+                ).count()
+
+                # Count no-shows
+                no_shows = db_session.query(Booking).join(BookingOutcome).filter(
+                    Booking.booking_date >= one_month_ago,
+                    BookingOutcome.status == 'nicht_erschienen'
+                ).count()
+
+                if total_bookings > 0:
+                    no_show_rate = (no_shows / total_bookings) * 100
+
+                    # Alert if no-show rate > 15%
+                    if no_show_rate > 15:
+                        alerts.append({
+                            'type': 'warning',
+                            'message': f'Hohe No-Show-Rate: {no_show_rate:.1f}% ({no_shows}/{total_bookings})',
+                            'severity': 'high' if no_show_rate > 20 else 'medium'
+                        })
+        except Exception as e:
+            logger.warning(f"Could not calculate no-show rate: {e}")
 
         # Check Performance
         scores = data_persistence.load_scores()
@@ -199,7 +283,8 @@ class AnalyticsService:
         return alerts
 
     def _get_channel_attribution(self) -> List[Dict]:
-        """Marketing-Channel-Attribution (Mock)"""
+        """Marketing-Channel-Attribution (Demo data - no data source)"""
+        # NOTE: This remains as demo data - no marketing channel data available in system
         return [
             {'channel': 'Google Ads', 'leads': 180, 'conversion_rate': 28.5, 'cost_per_lead': 45},
             {'channel': 'Facebook', 'leads': 120, 'conversion_rate': 22.3, 'cost_per_lead': 38},
@@ -208,8 +293,45 @@ class AnalyticsService:
         ]
 
     def _get_optimal_booking_times(self) -> Dict[str, int]:
-        """Optimale Buchungszeiten (Heatmap-Daten)"""
-        # Mock-Daten - später echte Analyse
+        """Optimale Buchungszeiten from real booking data"""
+        try:
+            from app.models.booking import Booking
+            db_session = _get_db_session()
+
+            if db_session:
+                # Last 3 months
+                three_months_ago = datetime.now() - timedelta(days=90)
+
+                # Load all bookings
+                bookings = db_session.query(Booking).filter(
+                    Booking.booking_date >= three_months_ago
+                ).all()
+
+                # Count bookings per weekday + time slot
+                heatmap = {}
+                weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                hours = ['09', '11', '14', '16', '18', '20']
+
+                # Initialize all slots with 0
+                for day in weekdays:
+                    for hour in hours:
+                        heatmap[f"{day}_{hour}"] = 0
+
+                # Count real bookings
+                for booking in bookings:
+                    weekday = weekdays[booking.booking_date.weekday()] if booking.booking_date.weekday() < 5 else None
+                    hour = booking.time_slot[:2] if booking.time_slot else None
+
+                    if weekday and hour:
+                        key = f"{weekday}_{hour}"
+                        if key in heatmap:
+                            heatmap[key] += 1
+
+                return heatmap
+        except Exception as e:
+            logger.warning(f"Could not calculate optimal booking times: {e}")
+
+        # Fallback to mock data
         return {
             'Monday_09': 45, 'Monday_11': 32, 'Monday_14': 28, 'Monday_16': 38, 'Monday_18': 52, 'Monday_20': 48,
             'Tuesday_09': 50, 'Tuesday_11': 38, 'Tuesday_14': 35, 'Tuesday_16': 42, 'Tuesday_18': 58, 'Tuesday_20': 55,
@@ -219,7 +341,8 @@ class AnalyticsService:
         }
 
     def _get_customer_segments(self) -> List[Dict]:
-        """Kunden-Segmente (Mock)"""
+        """Kunden-Segmente (Demo data - no data source)"""
+        # NOTE: This remains as demo data - no customer segmentation data available
         return [
             {'segment': 'Familie', 'count': 185, 'avg_value': 2100, 'conversion': 32.5},
             {'segment': 'Selbständige', 'count': 142, 'avg_value': 2800, 'conversion': 28.3},

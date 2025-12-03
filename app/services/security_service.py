@@ -82,8 +82,11 @@ class SecurityService:
                 # Klartext (Legacy) - Auto-Migration beim nächsten Login
                 is_valid = stored_pw == password
                 if is_valid:
-                    logger.warning(f"User {username} logged in with plaintext password - consider migration")
-                    # TODO: Auto-migrate to hash on successful login (optional)
+                    # AUTO-MIGRATION: Konvertiere Plaintext zu bcrypt hash
+                    hashed_password = self.hash_password(password)
+                    custom_passwords[username] = hashed_password
+                    self._save_passwords(custom_passwords)
+                    logger.info(f"Auto-migrated password for user {username} from plaintext to bcrypt hash")
                 return is_valid
 
         # 2. Fallback to USERLIST (immer Klartext)
@@ -92,6 +95,14 @@ class SecurityService:
             is_valid = userlist[username] == password
             if is_valid:
                 logger.info(f"User {username} logged in via USERLIST (plaintext)")
+
+                # AUTO-MIGRATION: Erstelle custom password mit Hash
+                custom_passwords = self._load_passwords()
+                if username not in custom_passwords:
+                    hashed_password = self.hash_password(password)
+                    custom_passwords[username] = hashed_password
+                    self._save_passwords(custom_passwords)
+                    logger.info(f"Auto-migrated USERLIST password for {username} to custom hashed password")
             return is_valid
 
         return False

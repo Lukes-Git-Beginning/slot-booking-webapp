@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 try:
     from app.services.prestige_system import prestige_system
     from app.services.daily_quests import daily_quest_system
+    from app.services.daily_reward_system import daily_reward_system
     # REMOVED: analytics_system (legacy module deleted in commit 46c535f)
     from app.services.personalization_system import personalization_system
     from app.services.achievement_system import achievement_system
@@ -26,6 +27,7 @@ except ImportError as e:
     # Set fallback objects to prevent further errors
     prestige_system = None
     daily_quest_system = None
+    daily_reward_system = None
     personalization_system = None
     achievement_system = None
     LevelSystem = None
@@ -54,8 +56,8 @@ def daily_quests():
         if not user:
             return redirect('/login')
 
-        # Check if daily quest system is available
-        if not daily_quest_system:
+        # Check if systems are available
+        if not daily_quest_system or not daily_reward_system:
             return render_template('daily_quests.html',
                 current_user=user,
                 quests=[],
@@ -63,12 +65,16 @@ def daily_quests():
                 total_completed=0,
                 total_claimed=0,
                 user_coins=0,
+                daily_reward=None,
                 system_error="Daily Quest System ist derzeit nicht verfügbar."
             )
 
         # Hole User-Quests
         user_quests = daily_quest_system.get_user_daily_quests(user)
         user_coins = daily_quest_system.get_user_coins(user)
+
+        # Hole Daily Reward Status
+        daily_reward = daily_reward_system.check_daily_reward(user)
 
         # Extract quests data
         quests = user_quests.get('quests', [])
@@ -97,15 +103,16 @@ def daily_quests():
             total_completed=user_quests.get('total_completed', 0),
             total_claimed=user_quests.get('total_claimed', 0),
             user_coins=user_coins,
-            daily_reward=None  # TODO: implement daily reward system
+            daily_reward=daily_reward
         )
     except Exception as e:
         logger.error(f"Error in daily_quests route: {e}")
         traceback.print_exc()
-        return render_template('daily_quests.html', 
+        return render_template('daily_quests.html',
             current_user=session.get('user', ''),
-            quests=[], 
+            quests=[],
             user_coins=0,
+            daily_reward=None,
             error="Fehler beim Laden der Daily Quests"
         )
 
@@ -207,6 +214,39 @@ def api_claim_quest():
     except Exception as e:
         logger.error(f"Error in api_claim_quest: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Einlösen der Quest-Belohnung"})
+
+@gamification_bp.route('/api/claim-daily-reward', methods=['POST'])
+@require_login
+def api_claim_daily_reward():
+    """API: Daily Reward einlösen"""
+    try:
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
+
+        if not daily_reward_system:
+            return jsonify({"success": False, "message": "Daily Reward System nicht verfügbar"})
+
+        success, message, reward_info = daily_reward_system.claim_daily_reward(user)
+
+        if success:
+            # Hole neue Coin-Anzahl
+            user_coins = daily_quest_system.get_user_coins(user) if daily_quest_system else 0
+
+            return jsonify({
+                "success": True,
+                "message": message,
+                "reward_amount": reward_info['reward_amount'],
+                "milestone_bonus": reward_info.get('milestone_bonus', 0),
+                "streak": reward_info['streak'],
+                "new_coin_balance": user_coins
+            })
+        else:
+            return jsonify({"success": False, "message": message})
+
+    except Exception as e:
+        logger.error(f"Error in api_claim_daily_reward: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler beim Einlösen"})
 
 @gamification_bp.route('/api/spin-wheel', methods=['POST'])
 @require_login
