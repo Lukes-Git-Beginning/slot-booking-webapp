@@ -1,0 +1,92 @@
+{% extends "hub/base.html" %}
+
+{% block title %}{{ error_code or '???' }} - {{ error_title or 'Fehler' }}{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center">
+    <div class="glass rounded-3xl p-12 max-w-2xl text-center" data-aos="zoom-in">
+
+        <!-- Error Code with Glow Effect -->
+        <div class="relative mb-8">
+            <h1 class="text-9xl font-black text-transparent bg-clip-text
+                       bg-gradient-to-r from-{{ error_color_from or 'red-400' }} to-{{ error_color_to or 'pink-500' }}
+                       {% if pulse %}animate-pulse{% endif %}">
+                {{ error_code or '???' }}
+            </h1>
+            <div class="absolute inset-0 blur-3xl
+                        bg-gradient-to-r from-{{ error_color_from or 'red' }}-600/30 to-{{ error_color_to or 'pink' }}-600/30
+                        -z-10"></div>
+        </div>
+
+        <!-- Icon -->
+        <div class="mb-6 flex justify-center">
+            <div class="w-24 h-24 rounded-full
+                        bg-gradient-to-br from-{{ error_color_from or 'red' }}-500/20 to-{{ error_color_to or 'pink' }}-500/20
+                        flex items-center justify-center">
+                <i data-lucide="{{ error_icon or 'alert-triangle' }}"
+                   class="w-12 h-12 text-{{ error_color_from or 'red' }}-400"></i>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h2 class="text-3xl font-bold mb-4">
+            {{ error_title or 'Ein Fehler ist aufgetreten' }}
+        </h2>
+
+        <!-- Message -->
+        <p class="text-gray-400 mb-8 text-lg leading-relaxed max-w-lg mx-auto">
+            {{ error_message or 'Es ist ein unerwarteter Fehler aufgetreten. Bitte versuchen Sie es erneut.' }}
+        </p>
+
+        <!-- Error ID (if provided) -->
+        {% if error_id %}
+        <div class="alert alert-info glass mb-6 max-w-md mx-auto">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <div class="text-left">
+                <div class="font-semibold">Fehler-ID für Support</div>
+                <div class="text-xs opacity-80 font-mono select-all">
+                    {{ error_id }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            {% block action_buttons %}
+            <button onclick="location.reload()"
+                    class="btn btn-primary btn-lg gap-2 hover:scale-105 transition-transform">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                Seite neu laden
+            </button>
+            <a href="{{ url_for('hub.dashboard') }}"
+               class="btn btn-outline btn-lg gap-2 hover:bg-white/10">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                Zur Startseite
+            </a>
+            {% endblock %}
+        </div>
+
+        <!-- Support Contact (if show_support=True) -->
+        {% if show_support %}
+        <div class="mt-8 pt-6 border-t border-white/10">
+            <p class="text-sm text-gray-500 mb-4">Problem weiterhin bestehend?</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="/health"
+                   class="btn btn-sm btn-ghost gap-2">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                    System-Status prüfen
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+    lucide.createIcons();
+</script>
+{% endblock %}

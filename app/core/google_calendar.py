@@ -321,6 +321,135 @@ class GoogleCalendarService:
 
         return self.safe_calendar_call(_create_event)
 
+    def create_event_with_context(self, calendar_id: str, event_data: dict) -> tuple[Optional[Dict], Dict]:
+        """
+        Create event with error context for user-facing error messages
+
+        Returns:
+            tuple: (result_dict or None, error_context_dict)
+
+        Error context includes:
+            - 'category': ErrorCategory string value
+            - 'technical_error': Original exception message
+            - 'status_code': HTTP status code if applicable
+            - 'retry_after': Seconds to wait before retry
+        """
+        error_context = {}
+
+        if not self.service:
+            error_context = {
+                'category': 'CONFIGURATION',
+                'technical_error': 'Calendar service not initialized',
+                'retry_after': None
+            }
+            return None, error_context
+
+        # Check quota BEFORE attempting
+        if not self._check_and_enforce_quota():
+            error_context = {
+                'category': 'CALENDAR_QUOTA',
+                'technical_error': f'Daily quota limit reached ({self._daily_quota_used}/{self._quota_limit})',
+                'retry_after': int(self._quota_reset_time - time.time())
+            }
+            calendar_logger.warning(f"Quota limit blocking create_event: {error_context}")
+            return None, error_context
+
+        def _create_event():
+            return self.service.events().insert(
+                calendarId=calendar_id,
+                body=event_data
+            ).execute()
+
+        # Try with enhanced error tracking
+        max_retries = 3
+        retry_delay = 1
+
+        for attempt in range(max_retries):
+            try:
+                self._enforce_rate_limit()
+                result = _create_event()
+                self._daily_quota_used += 1
+                calendar_logger.info(f"Calendar event created successfully (quota: {self._daily_quota_used}/{self._quota_limit})")
+                return result, {}  # Success, no error context
+
+            except HttpError as e:
+                status_code = e.resp.status
+
+                if status_code == 429:
+                    wait_time = retry_delay * (2 ** attempt) * 2
+                    error_context = {
+                        'category': 'CALENDAR_RATE_LIMIT',
+                        'technical_error': f'Rate limit hit (429), attempt {attempt + 1}',
+                        'status_code': 429,
+                        'retry_after': wait_time
+                    }
+                    if attempt < max_retries - 1:
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        return None, error_context
+
+                elif status_code == 400:
+                    error_context = {
+                        'category': 'CALENDAR_INVALID_DATA',
+                        'technical_error': f'Invalid event data: {str(e)}',
+                        'status_code': 400,
+                        'retry_after': None
+                    }
+                    return None, error_context
+
+                elif status_code in [500, 502, 503, 504]:
+                    wait_time = retry_delay * (2 ** attempt)
+                    error_context = {
+                        'category': 'CALENDAR_UNAVAILABLE',
+                        'technical_error': f'Calendar API server error ({status_code}), attempt {attempt + 1}',
+                        'status_code': status_code,
+                        'retry_after': wait_time
+                    }
+                    if attempt < max_retries - 1:
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        return None, error_context
+                else:
+                    error_context = {
+                        'category': 'CALENDAR_UNAVAILABLE',
+                        'technical_error': f'Calendar API HTTP error {status_code}: {str(e)}',
+                        'status_code': status_code,
+                        'retry_after': None
+                    }
+                    return None, error_context
+
+            except Exception as e:
+                import ssl
+                is_ssl_error = isinstance(e, (ssl.SSLError, OSError)) or 'SSL' in str(e)
+
+                if is_ssl_error:
+                    wait_time = retry_delay * (2 ** attempt) * 3
+                    error_context = {
+                        'category': 'CALENDAR_NETWORK',
+                        'technical_error': f'SSL/Network error: {str(e)}',
+                        'retry_after': wait_time
+                    }
+                    if attempt < max_retries - 1:
+                        try:
+                            self._initialize_service()
+                        except:
+                            pass
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        return None, error_context
+                else:
+                    error_context = {
+                        'category': 'INTERNAL',
+                        'technical_error': f'Unexpected calendar API error: {str(e)}',
+                        'retry_after': None
+                    }
+                    return None, error_context
+
+        return None, error_context
+
     def update_event(self, calendar_id: str, event_id: str, event_data: dict):
         """Update an existing calendar event"""
         if not self.service:

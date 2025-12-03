@@ -1,0 +1,21 @@
+{% extends "errors/error_base.html" %}
+
+{% set error_code = "401" %}
+{% set error_title = "Anmeldung erforderlich" %}
+{% set error_message = "Sie müssen sich anmelden, um auf diese Ressource zuzugreifen." %}
+{% set error_icon = "lock" %}
+{% set error_color_from = "yellow-400" %}
+{% set error_color_to = "orange-500" %}
+
+{% block action_buttons %}
+<a href="{{ url_for('auth.login') }}"
+   class="btn btn-warning btn-lg gap-2 hover:scale-105 transition-transform">
+    <i data-lucide="log-in" class="w-5 h-5"></i>
+    Zur Anmeldung
+</a>
+<a href="{{ url_for('hub.dashboard') }}"
+   class="btn btn-outline btn-lg gap-2 hover:bg-white/10">
+    <i data-lucide="home" class="w-5 h-5"></i>
+    Zur Startseite
+</a>
+{% endblock %}

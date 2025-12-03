@@ -693,23 +693,3 @@ def run_daily_maintenance():
         
     except Exception as e:
         logger.error(f"Error in daily maintenance: {e}")
-
-# ===== ERROR HANDLERS =====
-
-@gamification_bp.errorhandler(404)
-def not_found_error(error):
-    """404 Error Handler für Gamification-Routes"""
-    return render_template('error.html', 
-        error_code=404,
-        error_message="Seite nicht gefunden",
-        current_user=session.get('user', '')
-    ), 404
-
-@gamification_bp.errorhandler(500)
-def internal_error(error):
-    """500 Error Handler für Gamification-Routes"""
-    return render_template('error.html',
-        error_code=500, 
-        error_message="Interner Server-Fehler",
-        current_user=session.get('user', '')
-    ), 500

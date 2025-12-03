@@ -31,10 +31,7 @@ def bad_request_error(error):
             'error_id': error_id
         }), 400
 
-    return render_template('errors/generic.html',
-                         error_code='400',
-                         error_message='Die Anfrage ist ungültig oder fehlerhaft.',
-                         error_id=error_id), 400
+    return render_template('errors/400.html', error_id=error_id), 400
 
 
 @error_handlers_bp.app_errorhandler(401)
@@ -51,10 +48,7 @@ def unauthorized_error(error):
             'error_id': error_id
         }), 401
 
-    return render_template('errors/generic.html',
-                         error_code='401',
-                         error_message='Du musst dich anmelden, um auf diese Ressource zuzugreifen.',
-                         error_id=error_id), 401
+    return render_template('errors/401.html', error_id=error_id), 401
 
 
 @error_handlers_bp.app_errorhandler(403)
@@ -355,11 +349,65 @@ def is_development_mode() -> bool:
 
 
 def send_to_error_tracking(error_context: dict):
-    """Send error to external tracking service"""
-    # Implement integration with error tracking service like Sentry, Rollbar, etc.
-    # For now, just log to console in development
+    """
+    Send error to structured logging system
+
+    Writes errors to:
+    1. error.log (standard logging)
+    2. errors/critical.jsonl (structured logs for critical errors)
+    3. Admin notifications (for critical errors)
+    """
+    import json
+    from pathlib import Path
+
+    # Always log to standard logger
+    logger.error(
+        f"Error tracked: {error_context['error_id']}",
+        extra=error_context
+    )
+
+    # Write critical errors to structured JSONL log
+    if error_context.get('status_code', 0) >= 500:
+        try:
+            from app.config.base import config
+            log_dir = Path(config.PERSIST_BASE) / 'persistent' / 'logs'
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            critical_log = log_dir / 'critical_errors.jsonl'
+
+            with open(critical_log, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(error_context, ensure_ascii=False) + '\n')
+        except Exception as e:
+            logger.warning(f"Failed to write critical error log: {e}")
+
+    # Notify admins for critical errors
+    if error_context.get('status_code', 0) >= 500:
+        try:
+            from app.services.notification_service import notification_service
+
+            error_summary = (
+                f"Status: {error_context.get('status_code', 'Unknown')}\n"
+                f"Error ID: {error_context.get('error_id', 'Unknown')}\n"
+                f"URL: {error_context.get('url', 'Unknown')}\n"
+                f"User: {error_context.get('user', 'Anonymous')}"
+            )
+
+            notification_service.create_notification(
+                roles=['admin'],
+                title=f"Server Error {error_context.get('status_code', '500')}",
+                message=error_summary,
+                notification_type='error',
+                show_popup=False
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send admin notification: {e}")
+
+    # Development mode: print to console
     if is_development_mode():
-        print(f"ERROR TRACKING: {error_context}")
+        print(f"\n{'='*80}")
+        print(f"ERROR TRACKING: {error_context['error_id']}")
+        print(json.dumps(error_context, indent=2, ensure_ascii=False))
+        print(f"{'='*80}\n")
 
 
 # ========== CONTEXT PROCESSORS ==========

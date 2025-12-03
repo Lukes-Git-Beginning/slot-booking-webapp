@@ -186,9 +186,23 @@ def book():
         try:
             slot_start = TZ.localize(datetime.strptime(f"{date} {hour}", "%Y-%m-%d %H:%M"))
             slot_end = slot_start + timedelta(hours=2)
+        except ValueError as e:
+            from app.utils.error_tracking import generate_error_id
+            error_id = generate_error_id("BOOK")
+            booking_logger.error(f"Date parsing error {error_id}: date={date}, hour={hour}, error={e}")
+            flash(
+                f"Ungültiges Datums-/Zeitformat. Bitte verwenden Sie das Formular zur Auswahl. (Fehler-ID: {error_id})",
+                "danger"
+            )
+            return redirect(url_for("main.day_view", date_str=date))
         except Exception as e:
-            flash("Fehler beim Erstellen des Termins.", "danger")
-            print(f"Fehler beim Parsen der Zeit: {e}")
+            from app.utils.error_tracking import generate_error_id
+            error_id = generate_error_id("BOOK")
+            booking_logger.error(f"Timezone localization error {error_id}: {e}", exc_info=True)
+            flash(
+                f"Zeitzone-Konvertierung fehlgeschlagen. Bitte Support kontaktieren. (Fehler-ID: {error_id})",
+                "danger"
+            )
             return redirect(url_for("main.day_view", date_str=date))
 
         # Add "Booked by" tag to description for tracking who created the booking
@@ -208,19 +222,60 @@ def book():
             "colorId": color_id
         }
 
+        from app.utils.error_messages import get_error_message
+        from app.utils.error_tracking import generate_error_id
+
         calendar_service = get_google_calendar_service()
         if not calendar_service:
-            flash("Kalender-Service nicht verfügbar", "danger")
+            error_id = generate_error_id("CAL")
+            booking_logger.critical(f"Calendar service initialization failed {error_id}")
+            error_msg = get_error_message('CONFIGURATION')
+            flash(
+                f"{error_msg['title']}: {error_msg['message']} (Fehler-ID: {error_id})",
+                "danger"
+            )
+
+            # Notify admin
+            try:
+                from app.services.notification_service import notification_service
+                notification_service.create_notification(
+                    roles=['admin'],
+                    title='CRITICAL: Calendar Service Down',
+                    message=f'Calendar service initialization failed. Error ID: {error_id}',
+                    notification_type='error',
+                    show_popup=True
+                )
+            except:
+                pass
             return redirect(url_for("main.day_view", date_str=date))
 
-        result = calendar_service.create_event(
+        # Create event with enhanced error handling
+        result, error_context = calendar_service.create_event_with_context(
             calendar_id=config.CENTRAL_CALENDAR_ID,
             event_data=event_body
         )
 
         if not result:
-            flash("Fehler beim Erstellen des Kalender-Events. Bitte versuche es später erneut.", "danger")
-            booking_logger.error(f"Calendar event creation failed for {last}, {first} on {date} {hour}")
+            error_id = generate_error_id("CAL")
+            error_category = error_context.get('category', 'CALENDAR_UNAVAILABLE')
+
+            # Log with full context
+            booking_logger.error(
+                f"Calendar event creation failed {error_id}: "
+                f"customer={last}, {first}, date={date}, hour={hour}, "
+                f"category={error_category}, details={error_context}",
+                extra={'error_id': error_id, 'error_context': error_context}
+            )
+
+            # Get user-friendly message
+            error_msg = get_error_message(error_category)
+
+            # Build flash message with error ID
+            flash_message = f"{error_msg['title']}: {error_msg['message']}"
+            if error_msg.get('show_error_id', False):
+                flash_message += f" (Fehler-ID: {error_id})"
+
+            flash(flash_message, "danger")
             return redirect(url_for("main.day_view", date_str=date))
 
         # Event erfolgreich erstellt
@@ -244,14 +299,43 @@ def book():
                     description=description
                 )
                 if booking_data is None:
-                    # Tracking fehlgeschlagen (beide PostgreSQL + JSON)
-                    booking_logger.error(f"CRITICAL: Tracking failed for {last}, {first} on {date} {hour} - Event created but not tracked!")
-                    flash("Warnung: Termin wurde im Kalender erstellt, aber Tracking fehlgeschlagen. Bitte Admin informieren.", "warning")
+                    error_id = generate_error_id("TRK")
+                    booking_logger.error(
+                        f"CRITICAL: Dual-write tracking failed {error_id}: "
+                        f"customer={last}, {first}, date={date}, hour={hour}, "
+                        f"calendar_event_id={result.get('id', 'unknown')}",
+                        extra={'error_id': error_id, 'calendar_event_id': result.get('id')}
+                    )
+
+                    error_msg = get_error_message('TRACKING_FAILED')
+                    flash(f"{error_msg['message']} (Fehler-ID: {error_id})", "warning")
+                    flash("WICHTIG: Ihr Termin wurde erfolgreich im Kalender erstellt und ist gültig!", "success")
+
+                    # Notify admin
+                    try:
+                        from app.services.notification_service import notification_service
+                        notification_service.create_notification(
+                            roles=['admin'],
+                            title='Tracking Failed - Action Required',
+                            message=f'Booking created but tracking failed for {last}, {first} on {date} {hour}. Error ID: {error_id}',
+                            notification_type='warning',
+                            show_popup=True
+                        )
+                    except:
+                        pass
                 else:
                     tracking_successful = True
         except Exception as e:
-            booking_logger.error(f"CRITICAL: Tracking exception for {last}, {first} on {date} {hour}: {e}", exc_info=True)
-            flash("Warnung: Termin wurde im Kalender erstellt, aber Tracking fehlgeschlagen. Bitte Admin informieren.", "warning")
+            error_id = generate_error_id("TRK")
+            booking_logger.error(
+                f"CRITICAL: Tracking exception {error_id}: {e}, customer={last}, {first}, date={date}, hour={hour}",
+                exc_info=True,
+                extra={'error_id': error_id}
+            )
+
+            error_msg = get_error_message('TRACKING_FAILED')
+            flash(f"{error_msg['message']} (Fehler-ID: {error_id})", "warning")
+            flash("WICHTIG: Ihr Termin wurde erfolgreich im Kalender erstellt und ist gültig!", "success")
 
         # Achievement System Integration with Enhanced Error Handling
         new_badges = []

@@ -1394,18 +1394,26 @@ def api_book_2h_slot():
         # Nur schreiben wenn can_write=True
         if T2_CLOSERS[berater].get('can_write', False):
             try:
+                from app.utils.error_messages import get_error_message
+                from app.utils.error_tracking import generate_error_id
+
                 calendar_service = GoogleCalendarService()
-                result = calendar_service.create_event(calendar_id, event_body)
+                result, error_context = calendar_service.create_event_with_context(calendar_id, event_body)
 
                 if result:
                     logger.info(f"Google Calendar event created: {result.get('id')}")
                 else:
-                    logger.error("Google Calendar event creation failed (no result)")
-                    return jsonify({'success': False, 'error': 'Calendar-Fehler'}), 500
+                    error_id = generate_error_id("CAL")
+                    error_category = error_context.get('category', 'CALENDAR_UNAVAILABLE')
+                    error_msg = get_error_message(error_category)
+                    logger.error(f"Google Calendar event creation failed {error_id}: category={error_category}, details={error_context}")
+                    return jsonify({'success': False, 'error': error_msg['message'], 'error_id': error_id}), 500
 
             except Exception as e:
-                logger.error(f"Google Calendar write failed: {e}")
-                return jsonify({'success': False, 'error': f'Calendar-Fehler: {str(e)}'}), 500
+                from app.utils.error_tracking import generate_error_id
+                error_id = generate_error_id("CAL")
+                logger.error(f"Google Calendar write failed {error_id}: {e}")
+                return jsonify({'success': False, 'error': f'Calendar-Fehler', 'error_id': error_id}), 500
         else:
             logger.info(f"Mock booking for {berater} (no write access yet)")
 
@@ -1883,16 +1891,25 @@ def api_reschedule_booking():
         # Google Calendar Event erstellen (wenn Schreibrechte)
         if T2_CLOSERS[berater].get('can_write', False):
             try:
+                from app.utils.error_messages import get_error_message
+                from app.utils.error_tracking import generate_error_id
+
                 calendar_service = GoogleCalendarService()
-                result = calendar_service.create_event(calendar_id, event_body)
+                result, error_context = calendar_service.create_event_with_context(calendar_id, event_body)
 
                 if result:
                     logger.info(f"New calendar event created for rescheduled booking: {result.get('id')}")
                 else:
-                    logger.error("Calendar event creation failed")
+                    error_id = generate_error_id("CAL")
+                    error_category = error_context.get('category', 'CALENDAR_UNAVAILABLE')
+                    error_msg = get_error_message(error_category)
+                    logger.error(f"Calendar event creation failed for reschedule {error_id}: category={error_category}, details={error_context}")
+                    # Continue with booking anyway (calendar failure doesn't stop reschedule)
             except Exception as e:
-                logger.error(f"Calendar write failed: {e}")
-                # Weiter mit Buchung trotzdem
+                from app.utils.error_tracking import generate_error_id
+                error_id = generate_error_id("CAL")
+                logger.error(f"Calendar write failed {error_id}: {e}")
+                # Continue with booking anyway
         else:
             logger.info(f"Mock reschedule for {berater} (no write access)")
 
