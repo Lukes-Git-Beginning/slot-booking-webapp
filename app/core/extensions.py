@@ -62,9 +62,9 @@ def init_extensions(app: Flask) -> None:
     try:
         from flask_wtf.csrf import CSRFProtect
         csrf = CSRFProtect(app)
-        logger.info("✓ CSRF Protection initialized successfully")
+        logger.info("CSRF protection initialized successfully")
     except Exception as e:
-        logger.error(f"❌ CRITICAL: Could not initialize CSRF Protection: {e}")
+        logger.error(f"CRITICAL: Could not initialize CSRF protection: {e}")
         csrf = None
 
     # Initialize Flask-Limiter for rate limiting (security)
@@ -93,9 +93,9 @@ def init_extensions(app: Flask) -> None:
         init_rate_limiter(limiter)
 
         if redis_url:
-            logger.info("✓ Rate limiting initialized with Redis backend")
+            logger.info("Rate limiting initialized with Redis backend")
         else:
-            logger.info("✓ Rate limiting initialized with memory backend")
+            logger.info("Rate limiting initialized with memory backend")
     except Exception as e:
         logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
         limiter = None
@@ -103,7 +103,7 @@ def init_extensions(app: Flask) -> None:
     # Initialize Flask-Session with Redis backend (if available)
     init_session_storage(app)
 
-    logger.info("✓ All extensions initialized successfully")
+    logger.info("All extensions initialized successfully")
 
 
 def init_session_storage(app: Flask) -> None:
@@ -134,19 +134,19 @@ def init_session_storage(app: Flask) -> None:
 
             # Initialize Flask-Session
             sess = Session(app)
-            logger.info("✅ Redis Session-Storage aktiviert")
+            logger.info("Redis session storage activated")
 
             # Also update Flask-Limiter to use Redis
             global limiter
             if limiter:
-                logger.info("✅ Flask-Limiter auf Redis umgestellt")
+                logger.info("Flask-Limiter switched to Redis backend")
 
         except Exception as e:
-            logger.warning(f"⚠️ Redis-Session nicht verfügbar, nutze Filesystem-Sessions: {e}")
+            logger.warning(f"WARNING: Redis session unavailable, falling back to filesystem sessions: {e}")
             # Fallback to filesystem sessions (Flask default)
             app.config['SESSION_TYPE'] = 'filesystem'
             sess = None
     else:
-        logger.info("ℹ️ REDIS_URL nicht gesetzt, nutze Filesystem-Sessions")
+        logger.info("REDIS_URL not set, using filesystem sessions")
         app.config['SESSION_TYPE'] = 'filesystem'
         sess = None

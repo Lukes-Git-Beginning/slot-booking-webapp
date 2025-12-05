@@ -47,9 +47,9 @@ class CacheManager:
                     # Test connection
                     self.redis_client.ping()
                     self.use_redis = True
-                    print("✅ Redis-Cache aktiviert")
+                    print("Redis cache activated")
                 except Exception as e:
-                    print(f"⚠️ Redis nicht verfügbar, nutze File-Cache: {e}")
+                    print(f"WARNING: Redis unavailable, falling back to file cache: {e}")
                     self.redis_client = None
                     self.use_redis = False
 
@@ -82,11 +82,11 @@ class CacheManager:
                     return None
 
                 cached_data = pickle.loads(cached_data_bytes)
-                print(f"✅ Redis Cache hit: {cache_type}_{key}")
+                print(f"Redis cache hit: {cache_type}_{key}")
                 return cached_data
 
             except Exception as e:
-                print(f"⚠️ Redis error, fallback to file cache: {e}")
+                print(f"WARNING: Redis error, falling back to file cache: {e}")
                 # Fallback zu File-Cache
 
         # File-based Cache (Fallback oder Default)
@@ -101,14 +101,14 @@ class CacheManager:
             with open(cache_path, 'rb') as f:
                 cached_data = pickle.load(f)
 
-            print(f"✅ Cache hit: {cache_type}_{key}")
+            print(f"Cache hit: {cache_type}_{key}")
             return cached_data
 
         except (FileNotFoundError, pickle.PickleError):
             # Stumm für normale Cache-Misses
             return None
         except Exception as e:
-            print(f"❌ Cache error: {e}")
+            print(f"ERROR: Cache error: {e}")
             return None
 
     def set(self, cache_type: str, key: str, data: Any) -> bool:
@@ -124,11 +124,11 @@ class CacheManager:
 
                 # Mit TTL speichern
                 self.redis_client.setex(redis_key, max_age, pickled_data)
-                print(f"💾 Redis Cached: {cache_type}_{key} (TTL: {max_age}s)")
+                print(f"Redis cached: {cache_type}_{key} (TTL: {max_age}s)")
                 return True
 
             except Exception as e:
-                print(f"⚠️ Redis error, fallback to file cache: {e}")
+                print(f"WARNING: Redis error, falling back to file cache: {e}")
                 # Fallback zu File-Cache
 
         # File-based Cache (Fallback oder Default)
@@ -139,11 +139,11 @@ class CacheManager:
             with open(cache_path, 'wb') as f:
                 pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-            print(f"💾 Cached: {cache_type}_{key}")
+            print(f"Cached: {cache_type}_{key}")
             return True
 
         except Exception as e:
-            print(f"❌ Cache save error: {e}")
+            print(f"ERROR: Cache save error: {e}")
             return False
 
     def invalidate(self, cache_type: str, key: str = "") -> bool:
@@ -154,21 +154,21 @@ class CacheManager:
                 redis_key = f"{cache_type}:{key}"
                 deleted = self.redis_client.delete(redis_key)
                 if deleted:
-                    print(f"🗑️ Redis Cache invalidated: {cache_type}_{key}")
+                    print(f"Redis cache invalidated: {cache_type}_{key}")
                 return bool(deleted)
             except Exception as e:
-                print(f"⚠️ Redis error: {e}")
+                print(f"WARNING: Redis error: {e}")
 
         # File-based Cache
         try:
             cache_path = self._get_cache_path(cache_type, key)
             if os.path.exists(cache_path):
                 os.remove(cache_path)
-                print(f"🗑️ Cache invalidated: {cache_type}")
+                print(f"Cache invalidated: {cache_type}")
                 return True
             return False
         except Exception as e:
-            print(f"❌ Cache invalidation error: {e}")
+            print(f"ERROR: Cache invalidation error: {e}")
             return False
 
     def clear_all(self) -> bool:
@@ -179,9 +179,9 @@ class CacheManager:
         if self.use_redis and self.redis_client:
             try:
                 self.redis_client.flushdb()
-                print("🗑️ Redis cache cleared")
+                print("Redis cache cleared")
             except Exception as e:
-                print(f"⚠️ Redis clear error: {e}")
+                print(f"WARNING: Redis clear error: {e}")
                 success = False
 
         # File-based Cache
@@ -189,9 +189,9 @@ class CacheManager:
             for filename in os.listdir(self.cache_dir):
                 if filename.endswith('.cache'):
                     os.remove(os.path.join(self.cache_dir, filename))
-            print("🗑️ File cache cleared")
+            print("File cache cleared")
         except Exception as e:
-            print(f"❌ Cache clear error: {e}")
+            print(f"ERROR: Cache clear error: {e}")
             success = False
 
         return success

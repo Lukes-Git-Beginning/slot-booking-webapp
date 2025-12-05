@@ -103,7 +103,7 @@ class RequestDeduplicator:
                 self.slot_locks[slot_key] = set()
             self.slot_locks[slot_key].add(request_id)
             
-            print(f"🔒 Slot locked: {slot_key} by {user_id} ({request_id[:8]})")
+            print(f"Slot locked: {slot_key} by {user_id} ({request_id[:8]})")
             return request_id
     
     def release_slot_lock(self, request_id: str) -> bool:
@@ -127,7 +127,7 @@ class RequestDeduplicator:
             for slot_key, request_set in self.slot_locks.items():
                 if request_id in request_set:
                     request_set.remove(request_id)
-                    print(f"🔓 Slot unlocked: {slot_key} ({request_id[:8]})")
+                    print(f"Slot unlocked: {slot_key} ({request_id[:8]})")
                     
                     # Clean up empty slot locks
                     if not request_set:
@@ -169,7 +169,7 @@ class RequestDeduplicator:
             count = len(self.active_requests)
             self.active_requests.clear()
             self.slot_locks.clear()
-            print(f"🧹 Cleared {count} active locks")
+            print(f"Cleared {count} active locks")
             return count
 
 # Context manager for automatic lock management

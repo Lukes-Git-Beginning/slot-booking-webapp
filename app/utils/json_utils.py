@@ -92,7 +92,7 @@ def atomic_write_json(filepath: str, data: Any, compress: bool = False, indent: 
                 os.unlink(tmp_filepath)
             except:
                 pass
-        print(f"❌ Atomic JSON write error for {filepath}: {e}")
+        print(f"ERROR: Atomic JSON write failed for {filepath}: {e}")
         return False
 
 def atomic_read_json(filepath: str, default: Any = None, compressed: bool = None) -> Any:
@@ -129,10 +129,10 @@ def atomic_read_json(filepath: str, default: Any = None, compressed: bool = None
                     return json.load(f)
 
     except (json.JSONDecodeError, FileNotFoundError) as e:
-        print(f"⚠️ JSON read error for {filepath}: {e}")
+        print(f"WARNING: JSON read error for {filepath}: {e}")
         return default
     except Exception as e:
-        print(f"❌ Atomic JSON read error for {filepath}: {e}")
+        print(f"ERROR: Atomic JSON read failed for {filepath}: {e}")
         return default
 
 def atomic_update_json(filepath: str, update_func, default: Any = None, compress: bool = False) -> bool:
@@ -160,7 +160,7 @@ def atomic_update_json(filepath: str, update_func, default: Any = None, compress
             return atomic_write_json(filepath, updated_data, compress=compress)
 
     except Exception as e:
-        print(f"❌ Atomic JSON update error for {filepath}: {e}")
+        print(f"ERROR: Atomic JSON update failed for {filepath}: {e}")
         return False
 
 def compress_json_file(filepath: str, remove_original: bool = True) -> bool:
@@ -195,7 +195,7 @@ def compress_json_file(filepath: str, remove_original: bool = True) -> bool:
         return success
 
     except Exception as e:
-        print(f"❌ JSON compression error for {filepath}: {e}")
+        print(f"ERROR: JSON compression failed for {filepath}: {e}")
         return False
 
 def get_file_size_mb(filepath: str) -> float:

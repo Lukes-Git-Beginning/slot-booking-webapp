@@ -97,10 +97,10 @@ def init_db(app=None) -> None:
         # Alle Tables erstellen (falls nicht vorhanden)
         Base.metadata.create_all(_engine)
 
-        logger.info(f"✅ Database initialisiert: {database_url.split('@')[1]}")
+        logger.info(f"Database initialized: {database_url.split('@')[1]}")
 
     except Exception as e:
-        logger.error(f"❌ Database-Initialisierung fehlgeschlagen: {e}")
+        logger.error(f"Database initialization failed: {e}")
         raise
 
 

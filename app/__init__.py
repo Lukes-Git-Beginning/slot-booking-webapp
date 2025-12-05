@@ -145,13 +145,13 @@ def init_sentry(app: Flask) -> None:
                 ],
                 before_send=lambda event, hint: _filter_sentry_event(event, hint),
             )
-            app.logger.info(f"✓ Sentry initialized for environment: {'production' if not app.debug else 'development'}")
+            app.logger.info(f"Sentry initialized for environment: {'production' if not app.debug else 'development'}")
         except ImportError:
-            app.logger.warning("⚠️ Sentry SDK not installed, skipping error tracking")
+            app.logger.warning("Sentry SDK not installed, skipping error tracking")
         except Exception as e:
-            app.logger.error(f"❌ Failed to initialize Sentry: {e}")
+            app.logger.error(f"Failed to initialize Sentry: {e}")
     else:
-        app.logger.warning("⚠️ SENTRY_DSN not configured - Error tracking disabled! Set SENTRY_DSN env var for production monitoring.")
+        app.logger.warning("SENTRY_DSN not configured - error tracking disabled. Set SENTRY_DSN env var for production monitoring.")
 
 
 def _filter_sentry_event(event, hint):

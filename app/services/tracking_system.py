@@ -131,21 +131,21 @@ class BookingTracker:
                     session.commit()
                     session.close()
                     postgres_success = True
-                    logger.info(f"✅ Booking tracked to PostgreSQL: {booking_id} ({customer_name})")
+                    logger.info(f"Booking tracked to PostgreSQL: {booking_id} ({customer_name})")
                 except Exception as e:
                     postgres_error = str(e)
-                    logger.error(f"❌ PostgreSQL write failed for {booking_id} ({customer_name}): {e}")
+                    logger.error(f"PostgreSQL write failed for {booking_id} ({customer_name}): {e}")
 
             # 2. JSONL schreiben (immer, als Fallback)
             try:
                 os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
                 with open(self.bookings_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
-                logger.info(f"✅ Booking tracked to JSONL: {booking_id} ({customer_name})")
+                logger.info(f"Booking tracked to JSONL: {booking_id} ({customer_name})")
                 return booking_data
             except Exception as json_error:
                 # CRITICAL: Beide Writes fehlgeschlagen!
-                logger.critical(f"🚨 BOTH PostgreSQL AND JSONL write failed!")
+                logger.critical("CRITICAL: Both PostgreSQL and JSONL write failed!")
                 logger.critical(f"   Booking ID: {booking_id}")
                 logger.critical(f"   Customer: {customer_name}")
                 logger.critical(f"   Date/Time: {date} {time_slot}")
@@ -155,7 +155,7 @@ class BookingTracker:
                 return None  # Signal complete failure to caller
 
         except Exception as e:
-            logger.critical(f"🚨 CRITICAL: Unexpected error in track_booking: {e}", exc_info=True)
+            logger.critical(f"CRITICAL: Unexpected error in track_booking: {e}", exc_info=True)
             logger.critical(f"   Booking: {customer_name} on {date} at {time_slot}")
             return None
     
