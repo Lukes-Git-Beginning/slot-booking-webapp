@@ -144,19 +144,32 @@ class BookingTracker:
                 logger.info(f"Booking tracked to JSONL: {booking_id} ({customer_name})")
                 return booking_data
             except Exception as json_error:
-                # CRITICAL: Beide Writes fehlgeschlagen!
-                logger.critical("CRITICAL: Both PostgreSQL and JSONL write failed!")
-                logger.critical(f"   Booking ID: {booking_id}")
-                logger.critical(f"   Customer: {customer_name}")
-                logger.critical(f"   Date/Time: {date} {time_slot}")
-                logger.critical(f"   User: {user}")
-                logger.critical(f"   PostgreSQL Error: {postgres_error or 'N/A'}")
-                logger.critical(f"   JSONL Error: {json_error}")
+                # Both write methods failed - booking may be lost
+                logger.error(
+                    "Dual-write tracking failed for booking",
+                    extra={
+                        'booking_id': booking_id,
+                        'customer': customer_name,
+                        'date': date,
+                        'time_slot': time_slot,
+                        'user': user,
+                        'postgres_error': postgres_error or 'N/A',
+                        'jsonl_error': str(json_error)
+                    },
+                    exc_info=True
+                )
                 return None  # Signal complete failure to caller
 
         except Exception as e:
-            logger.critical(f"CRITICAL: Unexpected error in track_booking: {e}", exc_info=True)
-            logger.critical(f"   Booking: {customer_name} on {date} at {time_slot}")
+            logger.error(
+                f"Unexpected error in track_booking: {e}",
+                extra={
+                    'customer': customer_name,
+                    'date': date,
+                    'time_slot': time_slot
+                },
+                exc_info=True
+            )
             return None
     
     def check_daily_outcomes(self, check_date=None):

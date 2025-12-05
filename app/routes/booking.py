@@ -35,7 +35,6 @@ def add_points_to_user(user, points):
     """
     Add points to user with Achievement System Integration
     Migrated from original slot_booking_webapp.py
-    Enhanced with memory-safe error handling to prevent SIGSEGV crashes
 
     Coins System Integration:
     - Points are added to scores.json (permanent, never reduced)
@@ -43,7 +42,7 @@ def add_points_to_user(user, points):
     - Coins separate from points to preserve scoreboard integrity
     """
     try:
-        # Load scores with robust persistence system
+        # Load scores
         scores = data_persistence.load_scores()
 
         month = datetime.now(TZ).strftime("%Y-%m")
@@ -65,26 +64,24 @@ def add_points_to_user(user, points):
             booking_logger.error(f"Error adding coins to user {user}: {e}", exc_info=True)
             # Continue even if coins fail - points are still awarded
 
-        # Achievement system integration with memory-safe guards
+        # Achievement system integration
         new_badges = []
         try:
-            # Safe import with memory protection
             achievement_module = safe_import('app.services.achievement_system')
 
             if achievement_module and hasattr(achievement_module, 'achievement_system'):
                 achievement_system = achievement_module.achievement_system
 
                 if achievement_system:
-                    # Process achievements with size limits to prevent memory overflow
                     new_badges = achievement_system.process_user_achievements(user)
-                    # Limit badge list size to prevent memory issues
+                    # Limit badge list to reasonable size
                     if isinstance(new_badges, list) and len(new_badges) > 20:
                         booking_logger.warning(f"Achievement system returned {len(new_badges)} badges, limiting to 20")
                         new_badges = new_badges[:20]
 
         except MemoryError:
             booking_logger.error(f"Memory error in achievement system for user {user}")
-            force_garbage_collection()  # Versuche Speicher freizugeben
+            force_garbage_collection()  # Attempt garbage collection
             pass
         except Exception as e:
             booking_logger.error(f"Could not process achievements for user {user}: {e}", exc_info=True)
@@ -301,7 +298,7 @@ def book():
                 if booking_data is None:
                     error_id = generate_error_id("TRK")
                     booking_logger.error(
-                        f"CRITICAL: Dual-write tracking failed {error_id}: "
+                        f"Dual-write tracking failed {error_id}: "
                         f"customer={last}, {first}, date={date}, hour={hour}, "
                         f"calendar_event_id={result.get('id', 'unknown')}",
                         extra={'error_id': error_id, 'calendar_event_id': result.get('id')}
@@ -328,7 +325,7 @@ def book():
         except Exception as e:
             error_id = generate_error_id("TRK")
             booking_logger.error(
-                f"CRITICAL: Tracking exception {error_id}: {e}, customer={last}, {first}, date={date}, hour={hour}",
+                f"Tracking exception {error_id}: {e}, customer={last}, {first}, date={date}, hour={hour}",
                 exc_info=True,
                 extra={'error_id': error_id}
             )
@@ -337,7 +334,7 @@ def book():
             flash(f"{error_msg['message']} (Fehler-ID: {error_id})", "warning")
             flash("WICHTIG: Ihr Termin wurde erfolgreich im Kalender erstellt und ist gültig!", "success")
 
-        # Achievement System Integration with Enhanced Error Handling
+        # Achievement System Integration
         new_badges = []
         if user and user != "unknown":
             try:

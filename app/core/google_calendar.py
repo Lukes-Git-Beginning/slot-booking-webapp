@@ -167,7 +167,7 @@ class GoogleCalendarService:
                     calendar_logger.error(f"SSL/Network error in calendar API call: {e}")
                     if attempt < max_retries - 1:
                         calendar_logger.warning(f"Retrying after SSL error, waiting {wait_time}s (attempt {attempt + 1})")
-                        # CRITICAL FIX: Reinitialize service after SSL error to reset connection pool
+                        # Reinitialize service after SSL error to reset connection pool
                         try:
                             calendar_logger.info("Reinitializing Google Calendar service after SSL error")
                             self._initialize_service()
@@ -197,7 +197,7 @@ class GoogleCalendarService:
                 'timeMax': t_max,
                 'singleEvents': True,
                 'orderBy': 'startTime',
-                # CRITICAL: Request description field explicitly!
+                # Request description field explicitly for booking tracking
                 'fields': 'items(id,summary,description,start,end,colorId,status),nextPageToken'
             }
             if max_res:
