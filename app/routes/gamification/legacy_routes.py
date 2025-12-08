@@ -241,6 +241,7 @@ def customization_shop():
 
 # ===== API ROUTES =====
 
+@csrf.exempt
 @gamification_bp.route('/api/claim-quest', methods=['POST'])
 @require_login
 def api_claim_quest():
@@ -296,6 +297,7 @@ def api_claim_daily_reward():
         logger.error(f"Error in api_claim_daily_reward: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Einlösen"})
 
+@csrf.exempt
 @gamification_bp.route('/api/spin-wheel', methods=['POST'])
 @require_login
 def api_spin_wheel():
@@ -311,6 +313,7 @@ def api_spin_wheel():
         logger.error(f"Error in api_spin_wheel: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Drehen des Glücksrads"})
 
+@csrf.exempt
 @gamification_bp.route('/api/perform-prestige', methods=['POST'])
 @require_login
 def api_perform_prestige():
@@ -326,6 +329,7 @@ def api_perform_prestige():
         logger.error(f"Error in api_perform_prestige: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Prestige-Upgrade"})
 
+@csrf.exempt
 @gamification_bp.route('/api/upgrade-mastery', methods=['POST'])
 @require_login
 def api_upgrade_mastery():
@@ -347,6 +351,7 @@ def api_upgrade_mastery():
         logger.error(f"Error in api_upgrade_mastery: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Mastery-Upgrade"})
 
+@csrf.exempt
 @gamification_bp.route('/api/update-customization', methods=['POST'])
 @require_login
 def api_update_customization():
@@ -374,6 +379,7 @@ def api_update_customization():
         logger.error(f"Error in api_update_customization: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Speichern der Anpassungen"})
 
+@csrf.exempt
 @gamification_bp.route('/api/create-personal-goal', methods=['POST'])
 @require_login
 def api_create_personal_goal():
@@ -397,6 +403,7 @@ def api_create_personal_goal():
         logger.error(f"Error in api_create_personal_goal: {e}")
         return jsonify({"success": False, "message": "Server-Fehler beim Erstellen des Ziels"})
 
+@csrf.exempt
 @gamification_bp.route('/api/claim-goal-reward', methods=['POST'])
 @require_login
 def api_claim_goal_reward():
@@ -666,6 +673,7 @@ def cosmetics_shop_view():
             owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0}
         )
 
+@csrf.exempt
 @gamification_bp.route('/cosmetics/purchase', methods=['POST'])
 @require_login
 def purchase_cosmetic():
@@ -700,6 +708,7 @@ def purchase_cosmetic():
         logger.error(f"Error purchasing cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Kauf"})
 
+@csrf.exempt
 @gamification_bp.route('/cosmetics/equip', methods=['POST'])
 @require_login  
 def equip_cosmetic():
@@ -721,6 +730,7 @@ def equip_cosmetic():
         logger.error(f"Error equipping cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Ausrüsten"})
 
+@csrf.exempt
 @gamification_bp.route('/cosmetics/unequip', methods=['POST'])
 @require_login
 def unequip_cosmetic():
@@ -742,6 +752,7 @@ def unequip_cosmetic():
         logger.error(f"Error unequipping cosmetic: {e}")
         return jsonify({"success": False, "message": "Fehler beim Entfernen"})
 
+@csrf.exempt
 @gamification_bp.route('/admin/unlock-all-cosmetics', methods=['POST'])
 @require_login
 def admin_unlock_all_cosmetics():

@@ -9,7 +9,7 @@ from datetime import datetime
 import pytz
 
 from app.config.base import slot_config
-from app.core.extensions import data_persistence, level_system
+from app.core.extensions import data_persistence, level_system, csrf
 from app.utils.decorators import require_login
 
 api_bp = Blueprint('api', __name__)
@@ -73,6 +73,7 @@ def api_user_avatar(username):
 
 
 @api_bp.route("/user/badges/mark-seen", methods=["POST"])
+@csrf.exempt
 @require_login
 def api_mark_badges_seen():
     """Mark user's badges as seen"""

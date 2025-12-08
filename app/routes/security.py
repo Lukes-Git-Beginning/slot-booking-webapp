@@ -7,11 +7,13 @@ Passwort-Änderung und 2FA-Management
 from flask import Blueprint, request, jsonify, session, render_template
 from app.services.security_service import security_service
 from app.utils.decorators import require_login
+from app.core.extensions import csrf
 
 security_bp = Blueprint('security', __name__)
 
 
 @security_bp.route("/change-password", methods=["POST"])
+@csrf.exempt
 @require_login
 def change_password():
     """Ändere Benutzerpasswort"""
@@ -39,6 +41,7 @@ def change_password():
 
 
 @security_bp.route("/2fa/setup", methods=["POST"])
+@csrf.exempt
 @require_login
 def setup_2fa():
     """Richte 2FA ein"""
@@ -55,6 +58,7 @@ def setup_2fa():
 
 
 @security_bp.route("/2fa/enable", methods=["POST"])
+@csrf.exempt
 @require_login
 def enable_2fa():
     """Aktiviere 2FA nach Verifizierung"""
@@ -71,6 +75,7 @@ def enable_2fa():
 
 
 @security_bp.route("/2fa/disable", methods=["POST"])
+@csrf.exempt
 @require_login
 def disable_2fa():
     """Deaktiviere 2FA"""

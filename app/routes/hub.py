@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 from app.services.notification_service import notification_service
+from app.core.extensions import csrf
 
 # Blueprint erstellen
 hub_bp = Blueprint('hub', __name__)
@@ -63,6 +64,7 @@ def api_notifications():
     return jsonify(notifications)
 
 
+@csrf.exempt
 @hub_bp.route('/api/notifications/<notification_id>/read', methods=['POST'])
 def api_mark_notification_read(notification_id):
     """
@@ -101,6 +103,7 @@ def api_popup_notifications():
     })
 
 
+@csrf.exempt
 @hub_bp.route('/api/notifications/dismiss', methods=['POST'])
 def api_dismiss_notification():
     """
@@ -121,6 +124,7 @@ def api_dismiss_notification():
     return jsonify({'success': success})
 
 
+@csrf.exempt
 @hub_bp.route('/api/notifications/mark-all-read', methods=['POST'])
 def api_mark_all_read():
     """
@@ -692,6 +696,7 @@ def settings():
     return render_template('hub/settings.html', **settings_data)
 
 
+@csrf.exempt
 @hub_bp.route('/settings/update', methods=['POST'])
 def update_settings():
     """
