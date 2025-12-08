@@ -6,6 +6,7 @@ New probability-based drawing system
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from app.utils.decorators import require_login
+from app.core.extensions import csrf
 from app.services.t2_bucket_system import (
     draw_closer,
     get_probabilities,
@@ -55,6 +56,7 @@ def register_bucket_routes(t2_bp):
 
     @t2_bp.route("/api/draw-closer", methods=['POST'])
     @require_login
+    @csrf.exempt
     def api_draw_closer():
         """Perform draw from bucket"""
         try:
