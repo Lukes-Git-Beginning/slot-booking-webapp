@@ -8,6 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 from collections import defaultdict
+from sqlalchemy import func, extract
 from app.core.extensions import data_persistence
 from app.utils.helpers import get_userlist
 
@@ -23,6 +24,17 @@ def _get_db_session():
     except Exception as e:
         logger.debug(f"Could not get database session: {e}")
         return None
+
+
+# Helper function to get Booking models
+def _get_booking_models():
+    """Get Booking models (returns None if not available)"""
+    try:
+        from app.models.booking import Booking, BookingOutcome
+        return Booking, BookingOutcome
+    except Exception as e:
+        logger.debug(f"Could not import Booking models: {e}")
+        return None, None
 
 
 class AnalyticsService:
@@ -182,35 +194,113 @@ class AnalyticsService:
         return {'data': trend_data}
 
     def get_berater_stats(self) -> Dict[str, List]:
-        """Berater-Statistiken für Charts"""
-        scores = data_persistence.load_scores()
-        current_month = datetime.now().strftime('%Y-%m')
+        """Berater-Statistiken für Charts mit echten PostgreSQL-Daten"""
+        db = _get_db_session()
+        Booking, BookingOutcome = _get_booking_models()
+
+        # Fallback to scores if PostgreSQL not available
+        if not db or not Booking:
+            logger.warning("PostgreSQL not available, using scores fallback for berater stats")
+            scores = data_persistence.load_scores()
+            current_month = datetime.now().strftime('%Y-%m')
+            berater_data = []
+            for user, months in scores.items():
+                month_points = months.get(current_month, 0)
+                berater_data.append({
+                    'name': user,
+                    'bookings': month_points // 3,
+                    'conversion_rate': 20 + (month_points % 15),
+                    'revenue': (month_points // 3) * 1850 * 0.25
+                })
+            return {'berater': berater_data}
+
+        # Real PostgreSQL queries
+        now = datetime.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Get bookings per user for current month
+        bookings_by_user = db.query(
+            Booking.username,
+            func.count(Booking.id).label('booking_count')
+        ).filter(
+            Booking.date >= month_start
+        ).group_by(Booking.username).all()
 
         berater_data = []
-        for user, months in scores.items():
-            month_points = months.get(current_month, 0)
+        for username, booking_count in bookings_by_user:
+            # Calculate conversion rate from outcomes if available
+            if BookingOutcome:
+                completed_count = db.query(func.count(BookingOutcome.id)).filter(
+                    BookingOutcome.date >= month_start,
+                    BookingOutcome.outcome == 'completed',
+                    extract('month', BookingOutcome.date) == now.month
+                ).scalar() or 0
+
+                total_outcomes = db.query(func.count(BookingOutcome.id)).filter(
+                    BookingOutcome.date >= month_start,
+                    extract('month', BookingOutcome.date) == now.month
+                ).scalar() or 1
+
+                conversion_rate = round((completed_count / total_outcomes) * 100, 1) if total_outcomes > 0 else 0
+            else:
+                # Fallback: estimate 70-85% conversion
+                conversion_rate = 75.0
+
             berater_data.append({
-                'name': user,
-                'bookings': month_points // 3,
-                'conversion_rate': 20 + (month_points % 15),
-                'revenue': (month_points // 3) * 1850 * 0.25
+                'name': username,
+                'bookings': booking_count,
+                'conversion_rate': conversion_rate,
+                'revenue': booking_count * 1850 * 0.25  # Estimated revenue per booking
             })
+
+        # Sort by bookings descending
+        berater_data.sort(key=lambda x: x['bookings'], reverse=True)
 
         return {'berater': berater_data}
 
     # === Private Helper Methods ===
 
     def _get_overview_stats(self) -> Dict[str, Any]:
-        """Übersichts-Statistiken with real growth rate calculation"""
-        scores = data_persistence.load_scores()
-        current_month = datetime.now().strftime('%Y-%m')
+        """Übersichts-Statistiken with real PostgreSQL data"""
+        db = _get_db_session()
+        Booking, _ = _get_booking_models()
+
+        # Fallback to scores if PostgreSQL not available
+        if not db or not Booking:
+            logger.warning("PostgreSQL not available, using scores fallback")
+            scores = data_persistence.load_scores()
+            current_month = datetime.now().strftime('%Y-%m')
+            total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
+            prev_month = (datetime.now() - timedelta(days=30)).strftime('%Y-%m')
+            prev_bookings = sum(months.get(prev_month, 0) // 3 for user, months in scores.items())
+            growth_rate = ((total_bookings - prev_bookings) / prev_bookings) * 100 if prev_bookings > 0 else 0.0
+            return {
+                'total_bookings_month': total_bookings,
+                'total_users': len(scores),
+                'avg_bookings_per_user': total_bookings / len(scores) if scores else 0,
+                'growth_rate': round(growth_rate, 1)
+            }
+
+        # Real PostgreSQL queries
+        now = datetime.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        prev_month_start = (month_start - timedelta(days=1)).replace(day=1)
 
         # Current month bookings
-        total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
+        total_bookings = db.query(func.count(Booking.id)).filter(
+            Booking.date >= month_start
+        ).scalar() or 0
 
-        # Previous month bookings for growth rate
-        prev_month = (datetime.now() - timedelta(days=30)).strftime('%Y-%m')
-        prev_bookings = sum(months.get(prev_month, 0) // 3 for user, months in scores.items())
+        # Previous month bookings
+        prev_bookings = db.query(func.count(Booking.id)).filter(
+            Booking.date >= prev_month_start,
+            Booking.date < month_start
+        ).scalar() or 0
+
+        # Unique users who booked this month
+        total_users = db.query(func.count(func.distinct(Booking.username))).filter(
+            Booking.date >= month_start
+        ).scalar() or 1  # Avoid division by zero
 
         # Calculate real growth rate
         if prev_bookings > 0:
@@ -220,9 +310,9 @@ class AnalyticsService:
 
         return {
             'total_bookings_month': total_bookings,
-            'total_users': len(scores),
-            'avg_bookings_per_user': total_bookings / len(scores) if scores else 0,
-            'growth_rate': round(growth_rate, 1)  # Real calculation instead of mock
+            'total_users': total_users,
+            'avg_bookings_per_user': round(total_bookings / total_users, 1) if total_users > 0 else 0,
+            'growth_rate': round(growth_rate, 1)
         }
 
     def _get_recent_activity(self) -> List[Dict]:

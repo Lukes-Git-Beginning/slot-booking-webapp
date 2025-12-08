@@ -152,29 +152,8 @@
       setTimeout(() => lucide.createIcons(), 100);
     });
 
-    // CSRF Protection Helper - Auto-inject CSRF token into all POST requests
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-
-    // Override fetch to automatically include CSRF token in POST requests
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      let [resource, config] = args;
-
-      // Add CSRF token to POST, PUT, PATCH, DELETE requests
-      if (config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method?.toUpperCase())) {
-        // If body is FormData, append csrf_token
-        if (config.body instanceof FormData) {
-          config.body.append('csrf_token', csrfToken);
-        }
-        // If headers exist, add X-CSRFToken header
-        else {
-          config.headers = config.headers || {};
-          config.headers['X-CSRFToken'] = csrfToken;
-        }
-      }
-
-      return originalFetch.apply(this, args);
-    };
+    // CSRF Protection: Routes use @csrf.exempt decorator - no client-side token injection needed
+    // See docs/CSRF_STRATEGY.md for details
   </script>
 
   {% block extra_js %}{% endblock %}

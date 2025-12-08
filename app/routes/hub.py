@@ -217,6 +217,14 @@ def get_dashboard_data(username):
     # Gamification-Overview (falls eingeloggt in Slots)
     dashboard_data['gamification'] = get_gamification_overview(username)
 
+    # Daily Reward Status
+    try:
+        from app.services.daily_reward_system import daily_reward_system
+        dashboard_data['daily_reward'] = daily_reward_system.check_daily_reward(username)
+    except Exception as e:
+        logger.error(f"Error loading daily reward status: {e}")
+        dashboard_data['daily_reward'] = None
+
     # Load user's active theme for CSS injection
     user_theme = get_user_active_theme(username)
     if user_theme:

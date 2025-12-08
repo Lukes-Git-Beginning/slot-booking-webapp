@@ -1,0 +1,299 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Tägliche Belohnung - {{ current_user }}{% endblock %}
+
+{% block content %}
+
+<!-- Error Message -->
+{% if system_error or error %}
+<div class="alert alert-error mb-8" data-aos="fade-down">
+    <i data-lucide="alert-circle" class="w-6 h-6"></i>
+    <span>{{ system_error or error }}</span>
+</div>
+{% endif %}
+
+<!-- Hero Section with Streak Display -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 relative overflow-hidden" data-aos="fade-down">
+    <div class="gradient-bg absolute inset-0 opacity-20"></div>
+
+    <div class="relative z-10">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <i data-lucide="gift" class="w-12 h-12 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-bold text-white">Tägliche Belohnung</h1>
+                    <p class="text-xl text-white/80 mt-2">Täglich einloggen und Belohnungen kassieren!</p>
+                </div>
+            </div>
+
+            <!-- Coin Balance -->
+            <div class="text-center bg-white/10 rounded-2xl px-6 py-4">
+                <div class="text-sm text-white/70 mb-1">Deine Coins</div>
+                <div class="text-4xl font-bold text-primary flex items-center gap-2">
+                    <i data-lucide="coins" class="w-10 h-10"></i>
+                    {{ user_coins }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if reward_info %}
+<!-- Main Reward Card -->
+<div class="glass rounded-3xl p-8 md:p-12 mb-8 relative overflow-hidden
+    {% if reward_info.available %}bg-gradient-to-br from-accent/20 to-primary/20{% else %}bg-white/5{% endif %}"
+    data-aos="fade-up" data-aos-delay="100">
+
+    <div class="relative z-10">
+        <!-- Streak Counter -->
+        <div class="flex items-center justify-center mb-8">
+            <div class="relative">
+                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="text-5xl font-bold text-white">{{ reward_info.streak }}</div>
+                        <div class="text-sm text-white/90">Tag{% if reward_info.streak != 1 %}e{% endif %}</div>
+                    </div>
+                </div>
+                <div class="absolute -top-2 -right-2 w-12 h-12 rounded-full bg-warning flex items-center justify-center">
+                    <i data-lucide="flame" class="w-7 h-7 text-white"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Reward -->
+        {% if reward_info.available %}
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-4">Belohnung bereit!</h2>
+            <div class="flex items-center justify-center gap-4 mb-6">
+                <div class="bg-white/10 rounded-2xl px-6 py-4">
+                    <div class="text-sm text-white/70 mb-1">Basis-Belohnung</div>
+                    <div class="text-3xl font-bold text-primary">+{{ reward_info.reward_amount }}</div>
+                    <div class="text-sm text-white/70">Coins</div>
+                </div>
+
+                {% if reward_info.milestone_bonus > 0 %}
+                <div class="text-3xl text-white">+</div>
+                <div class="bg-gradient-to-br from-warning/20 to-error/20 rounded-2xl px-6 py-4 border-2 border-warning">
+                    <div class="text-sm text-warning mb-1">Meilenstein-Bonus!</div>
+                    <div class="text-3xl font-bold text-warning">+{{ reward_info.milestone_bonus }}</div>
+                    <div class="text-sm text-white/70">Coins</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Claim Button -->
+            <button id="claimRewardBtn"
+                class="btn btn-primary btn-lg gap-2 hover:scale-105 transition-transform">
+                <i data-lucide="gift" class="w-6 h-6"></i>
+                Belohnung einlösen
+                <span class="badge badge-accent">+{{ reward_info.reward_amount + reward_info.milestone_bonus }} Coins</span>
+            </button>
+
+            {% if reward_info.is_first_time %}
+            <p class="text-sm text-white/60 mt-4">Deine erste tägliche Belohnung!</p>
+            {% elif reward_info.streak_continued %}
+            <p class="text-sm text-success mt-4">Streak fortgesetzt!</p>
+            {% endif %}
+        </div>
+
+        {% else %}
+        <!-- Already Claimed -->
+        <div class="text-center mb-8">
+            <i data-lucide="check-circle" class="w-16 h-16 text-success mx-auto mb-4"></i>
+            <h2 class="text-3xl font-bold text-white mb-2">Bereits eingelöst!</h2>
+            <p class="text-lg text-white/70 mb-4">Komm morgen wieder für deine nächste Belohnung</p>
+
+            <div class="bg-white/10 rounded-2xl px-6 py-3 inline-block">
+                <div class="text-sm text-white/70">Nächste Belohnung in</div>
+                <div class="text-2xl font-bold text-primary">{{ reward_info.next_reward_in }}</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Milestone Progress -->
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="200">
+    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+        <i data-lucide="trophy" class="w-7 h-7 text-warning"></i>
+        Meilensteine
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 7 Days Milestone -->
+        <div class="bg-white/5 rounded-2xl p-6 text-center border-2
+            {% if reward_info.streak >= 7 %}border-success bg-success/10{% else %}border-white/10{% endif %}">
+            <div class="w-16 h-16 rounded-full
+                {% if reward_info.streak >= 7 %}bg-success{% else %}bg-white/10{% endif %}
+                flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="award" class="w-8 h-8 text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">7 Tage</h3>
+            <p class="text-sm text-white/60 mb-3">1 Woche Streak</p>
+            <div class="text-2xl font-bold text-primary">+100 Coins</div>
+            {% if reward_info.streak >= 7 %}
+            <div class="badge badge-success mt-3">Erreicht!</div>
+            {% else %}
+            <div class="text-sm text-white/50 mt-3">{{ 7 - reward_info.streak }} Tage verbleibend</div>
+            {% endif %}
+        </div>
+
+        <!-- 30 Days Milestone -->
+        <div class="bg-white/5 rounded-2xl p-6 text-center border-2
+            {% if reward_info.streak >= 30 %}border-warning bg-warning/10{% else %}border-white/10{% endif %}">
+            <div class="w-16 h-16 rounded-full
+                {% if reward_info.streak >= 30 %}bg-warning{% else %}bg-white/10{% endif %}
+                flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="star" class="w-8 h-8 text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">30 Tage</h3>
+            <p class="text-sm text-white/60 mb-3">1 Monat Streak</p>
+            <div class="text-2xl font-bold text-warning">+500 Coins</div>
+            {% if reward_info.streak >= 30 %}
+            <div class="badge badge-warning mt-3">Erreicht!</div>
+            {% else %}
+            <div class="text-sm text-white/50 mt-3">{{ 30 - reward_info.streak }} Tage verbleibend</div>
+            {% endif %}
+        </div>
+
+        <!-- 100 Days Milestone -->
+        <div class="bg-white/5 rounded-2xl p-6 text-center border-2
+            {% if reward_info.streak >= 100 %}border-error bg-error/10{% else %}border-white/10{% endif %}">
+            <div class="w-16 h-16 rounded-full
+                {% if reward_info.streak >= 100 %}bg-error{% else %}bg-white/10{% endif %}
+                flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="crown" class="w-8 h-8 text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">100 Tage</h3>
+            <p class="text-sm text-white/60 mb-3">Legendär!</p>
+            <div class="text-2xl font-bold text-error">+2000 Coins</div>
+            {% if reward_info.streak >= 100 %}
+            <div class="badge badge-error mt-3">Erreicht!</div>
+            {% else %}
+            <div class="text-sm text-white/50 mt-3">{{ 100 - reward_info.streak }} Tage verbleibend</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Stats Card -->
+<div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+        <i data-lucide="bar-chart" class="w-6 h-6 text-primary"></i>
+        Deine Statistiken
+    </h3>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white/5 rounded-xl p-4 text-center">
+            <div class="text-sm text-white/60 mb-1">Aktueller Streak</div>
+            <div class="text-3xl font-bold text-primary">{{ reward_info.streak }}</div>
+            <div class="text-xs text-white/50">Tage</div>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4 text-center">
+            <div class="text-sm text-white/60 mb-1">Gesamt verdient</div>
+            <div class="text-3xl font-bold text-accent">{{ total_rewards_claimed }}</div>
+            <div class="text-xs text-white/50">Coins</div>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4 text-center">
+            <div class="text-sm text-white/60 mb-1">Nächste Belohnung</div>
+            <div class="text-3xl font-bold text-warning">{{ reward_info.reward_amount + 5 }}</div>
+            <div class="text-xs text-white/50">Coins (bei Streak)</div>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4 text-center">
+            <div class="text-sm text-white/60 mb-1">Nächster Meilenstein</div>
+            <div class="text-3xl font-bold text-success">
+                {% if reward_info.streak < 7 %}7
+                {% elif reward_info.streak < 30 %}30
+                {% elif reward_info.streak < 100 %}100
+                {% else %}✓{% endif %}
+            </div>
+            <div class="text-xs text-white/50">
+                {% if reward_info.streak < 7 %}({{ 7 - reward_info.streak }} Tage)
+                {% elif reward_info.streak < 30 %}({{ 30 - reward_info.streak }} Tage)
+                {% elif reward_info.streak < 100 %}({{ 100 - reward_info.streak }} Tage)
+                {% else %}Alle erreicht!{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Info Box -->
+<div class="glass rounded-2xl p-6 mt-8 bg-info/5 border border-info/20" data-aos="fade-up" data-aos-delay="400">
+    <div class="flex items-start gap-4">
+        <i data-lucide="info" class="w-6 h-6 text-info flex-shrink-0 mt-1"></i>
+        <div class="text-white/80 text-sm">
+            <p class="mb-2"><strong class="text-white">Wie funktioniert's?</strong></p>
+            <ul class="list-disc list-inside space-y-1">
+                <li>Logge dich täglich ein, um deine Belohnung zu erhalten</li>
+                <li>Dein Streak erhöht sich um 1 für jeden aufeinanderfolgenden Tag</li>
+                <li>Höhere Streaks = höhere Belohnungen (bis zu +50 Coins täglich!)</li>
+                <li>Erreiche Meilensteine für große Bonus-Belohnungen</li>
+                <li>Wenn du einen Tag verpasst, startet dein Streak von vorne</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// Claim Reward Button Handler
+document.getElementById('claimRewardBtn')?.addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading loading-spinner"></span> Wird eingelöst...';
+
+    try {
+        const response = await fetch('/gamification/api/claim-daily-reward', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Show success message
+            const successToast = document.createElement('div');
+            successToast.className = 'alert alert-success fixed top-4 right-4 w-auto z-50';
+            successToast.innerHTML = `
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                <span>${data.message}</span>
+            `;
+            document.body.appendChild(successToast);
+            lucide.createIcons();
+
+            // Reload page after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            // Show error message
+            const errorToast = document.createElement('div');
+            errorToast.className = 'alert alert-error fixed top-4 right-4 w-auto z-50';
+            errorToast.innerHTML = `
+                <i data-lucide="alert-circle" class="w-6 h-6"></i>
+                <span>${data.message}</span>
+            `;
+            document.body.appendChild(errorToast);
+            lucide.createIcons();
+
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="gift" class="w-6 h-6"></i> Belohnung einlösen';
+            lucide.createIcons();
+        }
+    } catch (error) {
+        console.error('Error claiming reward:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="gift" class="w-6 h-6"></i> Belohnung einlösen';
+        lucide.createIcons();
+    }
+});
+</script>
+
+{% endblock %}

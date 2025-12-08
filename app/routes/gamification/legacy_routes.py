@@ -119,6 +119,52 @@ def daily_quests():
 # REMOVED: /analytics-dashboard route (legacy analytics_system deleted)
 # Use /admin/analytics or /analytics endpoints instead
 
+@gamification_bp.route('/daily-reward')
+@require_login
+def daily_reward():
+    """Daily Reward Dashboard"""
+    try:
+        user = session.get('user')
+        if not user:
+            return redirect('/login')
+
+        # Check if system is available
+        if not daily_reward_system:
+            return render_template('daily_reward.html',
+                current_user=user,
+                reward_info=None,
+                user_coins=0,
+                system_error="Daily Reward System ist derzeit nicht verfügbar."
+            )
+
+        # Get Daily Reward Status
+        reward_info = daily_reward_system.check_daily_reward(user)
+
+        # Get User Coins
+        user_coins = daily_quest_system.get_user_coins(user) if daily_quest_system else 0
+
+        # Get Reward History (last 7 days)
+        rewards_data = daily_reward_system._load_rewards_data()
+        user_data = rewards_data.get(user, {})
+        total_rewards_claimed = user_data.get('total_rewards_claimed', 0)
+
+        return render_template('daily_reward.html',
+            current_user=user,
+            reward_info=reward_info,
+            user_coins=user_coins,
+            total_rewards_claimed=total_rewards_claimed
+        )
+    except Exception as e:
+        logger.error(f"Error in daily_reward route: {e}")
+        traceback.print_exc()
+        return render_template('daily_reward.html',
+            current_user=session.get('user', ''),
+            reward_info=None,
+            user_coins=0,
+            total_rewards_claimed=0,
+            error="Fehler beim Laden der Daily Rewards"
+        )
+
 @gamification_bp.route('/prestige-dashboard')
 @require_login
 def prestige_dashboard():

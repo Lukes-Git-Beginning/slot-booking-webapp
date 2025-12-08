@@ -25,6 +25,42 @@
     </div>
 </div>
 
+<!-- Daily Reward Notification Banner -->
+{% if daily_reward and daily_reward.available %}
+<a href="/gamification/daily-reward"
+   class="glass rounded-2xl p-6 mb-8 bg-gradient-to-r from-accent/20 to-primary/20 hover:from-accent/30 hover:to-primary/30 border-2 border-primary/40 transition-all hover:scale-105 block"
+   data-aos="fade-down" data-aos-delay="100">
+    <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center relative">
+                <i data-lucide="gift" class="w-8 h-8 text-white"></i>
+                <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-warning"></span>
+                </span>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    Tägliche Belohnung verfügbar!
+                    {% if daily_reward.milestone_bonus > 0 %}
+                    <span class="badge badge-warning badge-sm">Meilenstein!</span>
+                    {% endif %}
+                </h3>
+                <p class="text-white/70 text-sm mt-1">
+                    +{{ daily_reward.reward_amount + daily_reward.milestone_bonus }} Coins • {{ daily_reward.streak }} Tage Streak 🔥
+                </p>
+            </div>
+        </div>
+        <div class="text-right">
+            <button class="btn btn-primary btn-sm gap-2">
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                Einlösen
+            </button>
+        </div>
+    </div>
+</a>
+{% endif %}
+
 <!-- Tools Grid -->
 <div x-data="{ layout: localStorage.getItem('dashboard_layout') || 'grid' }"
      :class="{

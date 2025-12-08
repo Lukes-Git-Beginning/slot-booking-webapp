@@ -375,6 +375,258 @@ python -c "from app.services.data_persistence import data_persistence; data_pers
 python -c "from app.core.extensions import cache_manager; cache_manager.clear_all()"
 ```
 
+## 🚨 Error Handling & Monitoring
+
+### Übersicht (v3.3.14 - 2025-12-03)
+
+Das System verwendet ein **3-stufiges Error-Handling**:
+
+1. **User-Facing Errors:** Spezifische, hilfreiche Fehlermeldungen mit Error-IDs
+2. **Lokales Logging:** JSONL-Files für kritische Errors + Admin-Notifications
+3. **Sentry Integration:** Zentrales Error-Tracking mit Dashboard
+
+### Error-ID System
+
+**Format:** `<CATEGORY>-<YYYYMMDD>-<HHMMSS>-<4-CHAR-UUID>`
+
+**Kategorien:**
+- `BOOK-*` - Booking-Fehler (validation, slot full, date parsing)
+- `CAL-*` - Google Calendar API Fehler (quota, rate limit, network)
+- `TRK-*` - Tracking-Fehler (PostgreSQL/JSON dual-write)
+- `ERR-*` - Generische Fehler
+
+**Beispiel:** `CAL-20251203-143022-A8F2`
+
+### Sentry Integration
+
+**Status:** ✅ Konfiguriert (Deutsche Region)
+
+**DSN:** `https://e68ba1d78661d5be5894d1e59d13e115@o4510341090836485.ingest.de.sentry.io/4510341094703184`
+
+**Environment-Variable:**
+```bash
+# In /etc/systemd/system/business-hub.service:
+Environment="SENTRY_DSN=https://e68ba1d78661d5be5894d1e59d13e115@o4510341090836485.ingest.de.sentry.io/4510341094703184"
+```
+
+**Was wird getrackt:**
+- ✅ Alle 500+ HTTP Errors automatisch
+- ✅ Uncaught Exceptions mit vollständigem Stacktrace
+- ✅ Request Context (URL, User, IP, Browser)
+- ✅ Custom Error-IDs als Tags
+- ✅ Performance-Daten (optional)
+
+**Vorteile gegenüber JSONL-Logging:**
+| Feature | JSONL-Logs | Sentry |
+|---------|-----------|--------|
+| **Zentrale Übersicht** | ❌ Manuell durchsuchen | ✅ Dashboard |
+| **Error-Grouping** | ❌ Jede Zeile separat | ✅ Intelligente Gruppierung |
+| **Automatische Alerts** | ❌ Manuell prüfen | ✅ Email/Slack/Discord |
+| **Stacktraces** | ⚠️ In Logs vergraben | ✅ Visuell aufbereitet |
+| **Trends** | ❌ Keine Visualisierung | ✅ Grafiken & Statistiken |
+| **Performance** | ❌ Nicht verfügbar | ✅ Slow-Request-Tracking |
+| **Release-Tracking** | ❌ Nicht verfügbar | ✅ Error-Rate pro Version |
+
+**Zugriff:**
+- Dashboard: https://sentry.io
+- Login mit deinem Account
+- Projekt: `business-hub`
+
+**Test-Error senden:**
+```bash
+ssh -i ~/.ssh/server_key root@91.98.192.233 "cd /opt/business-hub && source venv/bin/activate && python3 << 'EOFPY'
+import os
+os.environ['SENTRY_DSN'] = 'https://e68ba1d78661d5be5894d1e59d13e115@o4510341090836485.ingest.de.sentry.io/4510341094703184'
+import sentry_sdk
+sentry_sdk.init(dsn=os.environ['SENTRY_DSN'], traces_sample_rate=1.0)
+try:
+    1 / 0
+except Exception as e:
+    sentry_sdk.capture_exception(e)
+    print('✅ Test-Error gesendet!')
+sentry_sdk.flush()
+EOFPY
+"
+```
+
+### Error-Kategorien
+
+**Location:** `app/utils/error_categories.py`
+
+**Definierte Kategorien (17 total):**
+```python
+# User-fixable
+VALIDATION, SLOT_FULL, SLOT_LOCKED, HOLIDAY_BLOCKED
+
+# Calendar API
+CALENDAR_QUOTA, CALENDAR_RATE_LIMIT, CALENDAR_NETWORK,
+CALENDAR_INVALID_DATA, CALENDAR_UNAVAILABLE
+
+# Tracking
+TRACKING_FAILED
+
+# Auth
+CSRF_TOKEN, SESSION_EXPIRED
+
+# System
+DATABASE, INTERNAL, CONFIGURATION
+```
+
+### User-Friendly Messages
+
+**Location:** `app/utils/error_messages.py`
+
+**Jede Kategorie hat:**
+- `title`: Kurze Überschrift (z.B. "Kalender-Limit erreicht")
+- `message`: User-verständliche Erklärung
+- `severity`: LOW/MEDIUM/HIGH/CRITICAL
+- `show_error_id`: Ob Error-ID angezeigt wird
+- `show_support`: Ob Support-Kontakt angezeigt wird
+
+**Beispiel:**
+```python
+"CALENDAR_QUOTA": {
+    "title": "Kalender-Limit erreicht",
+    "message": "Das tägliche API-Limit wurde erreicht. Das System nutzt Cache-Daten.",
+    "severity": "MEDIUM",
+    "show_error_id": True,
+    "show_support": True
+}
+```
+
+### Error-Templates
+
+**Location:** `templates/errors/`
+
+**Standardisierte Tailwind-Templates:**
+- `error_base.html` - Basis-Template (Tailwind + hub/base.html)
+- `400.html` - Bad Request
+- `401.html` - Unauthorized (mit Login-Button)
+- `403.html` - Forbidden
+- `404.html` - Not Found
+- `500.html` - Internal Server Error
+- `generic.html` - Fallback für andere Errors
+
+**Features:**
+- ✅ ZFA Color Scheme (#d4af6a Gold, #207487 Blau)
+- ✅ Error-ID Display für Support
+- ✅ Lucide Icons
+- ✅ Responsive (DaisyUI)
+- ✅ Glow-Effekte für Error-Codes
+
+### Lokales Error-Logging
+
+**Critical Errors (500+):**
+- **Location:** `data/persistent/logs/critical_errors.jsonl`
+- **Format:** JSON Lines (ein Error pro Zeile)
+- **Struktur:**
+  ```json
+  {
+    "error_id": "CAL-20251203-143022-A8F2",
+    "status_code": 500,
+    "url": "/slots/book",
+    "user": "luke.hoppe",
+    "timestamp": "2025-12-03T14:30:22.123456",
+    "error_category": "CALENDAR_QUOTA",
+    "technical_error": "Daily quota limit reached (5000/5000)"
+  }
+  ```
+
+**Admin-Notifications:**
+- Automatisch für: Tracking-Fehler, Calendar-Service-Down, 500+ Errors
+- Erscheinen als Notification im Hub
+- `show_popup=True` für kritische Fehler
+
+### Häufige Error-Szenarien
+
+**1. Booking-Fehler (BOOK-*):**
+```python
+# Date Parsing Error
+error_id = generate_error_id("BOOK")
+flash(f"Ungültiges Datums-/Zeitformat. (Fehler-ID: {error_id})", "danger")
+
+# Slot Full
+flash("Slot ist bereits voll belegt.", "danger")
+```
+
+**2. Calendar API Fehler (CAL-*):**
+```python
+# Quota Exceeded
+error_msg = get_error_message('CALENDAR_QUOTA')
+flash(f"{error_msg['title']}: {error_msg['message']} (Fehler-ID: {error_id})", "danger")
+
+# Rate Limit
+error_msg = get_error_message('CALENDAR_RATE_LIMIT')
+flash(error_msg['message'], "danger")
+```
+
+**3. Tracking-Fehler (TRK-*):**
+```python
+# Dual-Write Failed
+error_msg = get_error_message('TRACKING_FAILED')
+flash(f"{error_msg['message']} (Fehler-ID: {error_id})", "warning")
+flash("WICHTIG: Ihr Termin wurde erfolgreich im Kalender erstellt!", "success")
+```
+
+### Error-Handling in Code
+
+**Booking Route (`app/routes/booking.py`):**
+```python
+from app.utils.error_messages import get_error_message
+from app.utils.error_tracking import generate_error_id
+
+# Enhanced Calendar Event Creation
+result, error_context = calendar_service.create_event_with_context(
+    calendar_id=config.CENTRAL_CALENDAR_ID,
+    event_data=event_body
+)
+
+if not result:
+    error_id = generate_error_id("CAL")
+    error_category = error_context.get('category', 'CALENDAR_UNAVAILABLE')
+    error_msg = get_error_message(error_category)
+
+    flash_message = f"{error_msg['title']}: {error_msg['message']}"
+    if error_msg.get('show_error_id', False):
+        flash_message += f" (Fehler-ID: {error_id})"
+
+    flash(flash_message, "danger")
+```
+
+**Google Calendar Service (`app/core/google_calendar.py`):**
+```python
+def create_event_with_context(self, calendar_id: str, event_data: dict) -> tuple[Optional[Dict], Dict]:
+    """
+    Returns: (result_dict or None, error_context_dict)
+
+    Error context includes:
+    - 'category': ErrorCategory string (e.g., 'CALENDAR_QUOTA')
+    - 'technical_error': Original exception message
+    - 'status_code': HTTP status code
+    - 'retry_after': Seconds to wait
+    """
+```
+
+### Health-Check
+
+**Endpoint:** `/health`
+
+**Sentry-Check:**
+```json
+{
+  "sentry": {
+    "configured": true,
+    "message": "Sentry error tracking enabled",
+    "status": "healthy"
+  }
+}
+```
+
+**Test:**
+```bash
+curl http://91.98.192.233/health | jq '.checks.sentry'
+```
+
 ## Git Commit-Richtlinien
 - **NIEMALS** Claude Code-Attribution einschließen
 - **NIEMALS** "🤖 Generated with Claude Code" oder "Co-Authored-By: Claude"
