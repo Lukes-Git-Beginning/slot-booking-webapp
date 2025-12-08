@@ -17,7 +17,11 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import random
 import pytz
+import logging
 
+from app.utils.timezone_utils import parse_iso_to_utc, now_utc, format_berlin_iso
+
+logger = logging.getLogger(__name__)
 TZ = pytz.timezone("Europe/Berlin")
 
 # T2-Only Closers (keine Opener!)
@@ -245,31 +249,45 @@ def check_user_timeout(username: str, draw_type: str = "T2") -> Dict:
     """
     Check if user can draw or is in timeout
 
+    Uses UTC normalization to avoid timezone comparison bugs.
+
     Returns: {can_draw: bool, timeout_remaining_seconds: int, message: str}
     """
     data = load_bucket_data()
     user_last_draw = data.get("user_last_draw", {})
 
     if username not in user_last_draw:
+        logger.debug(f"User {username} has no previous draw, allowing draw")
         return {"can_draw": True, "timeout_remaining_seconds": 0, "message": "Ready to draw"}
 
     last_draw_iso = user_last_draw[username].get("timestamp")
     if not last_draw_iso:
+        logger.debug(f"User {username} has no timestamp, allowing draw")
         return {"can_draw": True, "timeout_remaining_seconds": 0, "message": "Ready to draw"}
 
     try:
-        last_draw = datetime.fromisoformat(last_draw_iso)
-        now = datetime.now(TZ)
+        # Parse last draw timestamp to UTC (handles various formats)
+        last_draw_utc = parse_iso_to_utc(last_draw_iso)
+
+        # Get current time in UTC
+        now_utc_time = now_utc()
 
         # Get timeout duration
         timeout_minutes = BUCKET_CONFIG.get(f"{draw_type.lower()}_timeout_minutes", 1)
         timeout_delta = timedelta(minutes=timeout_minutes)
 
-        time_since_draw = now - last_draw
+        # Calculate time since last draw (both in UTC = safe)
+        time_since_draw = now_utc_time - last_draw_utc
+        seconds_elapsed = int(time_since_draw.total_seconds())
 
         if time_since_draw < timeout_delta:
             remaining = timeout_delta - time_since_draw
             remaining_seconds = int(remaining.total_seconds())
+
+            logger.info(
+                f"User {username} blocked by timeout: {seconds_elapsed}s elapsed, "
+                f"{remaining_seconds}s remaining (timeout: {timeout_minutes}min)"
+            )
 
             return {
                 "can_draw": False,
@@ -277,10 +295,15 @@ def check_user_timeout(username: str, draw_type: str = "T2") -> Dict:
                 "message": f"Please wait {remaining_seconds} seconds before drawing again"
             }
 
+        logger.debug(
+            f"User {username} passed timeout check: {seconds_elapsed}s elapsed "
+            f"(timeout: {timeout_minutes}min = {timeout_minutes * 60}s)"
+        )
         return {"can_draw": True, "timeout_remaining_seconds": 0, "message": "Ready to draw"}
 
     except Exception as e:
-        print(f"Error checking timeout: {e}")
+        logger.error(f"Error checking timeout for {username}: {e}", exc_info=True)
+        # On error, allow draw (fail-safe behavior)
         return {"can_draw": True, "timeout_remaining_seconds": 0, "message": "Ready to draw"}
 
 

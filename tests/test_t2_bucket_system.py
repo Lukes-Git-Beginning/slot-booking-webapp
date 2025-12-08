@@ -527,3 +527,144 @@ class TestT2BucketSystemPersistence:
 
         stats = get_system_stats()
         assert len(stats['recent_draws']) >= 2
+
+
+class TestTimezoneBugFix:
+    """Integration tests for timezone bug fix"""
+
+    @pytest.fixture(autouse=True)
+    def setup_temp_data_dir(self, temp_data_dir):
+        """Setup temporary data directory for each test"""
+        self.temp_dir = temp_data_dir
+        data_dir = temp_data_dir / "persistent"
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        import app.services.t2_bucket_system as t2_module
+
+        self.original_data_dir = t2_module.DATA_DIR
+        self.original_bucket_file = t2_module.BUCKET_FILE
+
+        t2_module.DATA_DIR = str(data_dir)
+        t2_module.BUCKET_FILE = str(data_dir / "t2_bucket_system.json")
+
+        yield
+
+        t2_module.DATA_DIR = self.original_data_dir
+        t2_module.BUCKET_FILE = self.original_bucket_file
+
+    @pytest.mark.unit
+    def test_old_timestamp_format_compatibility(self):
+        """Test that old timestamp format (+01:00 offset) works correctly"""
+        from app.services.t2_bucket_system import check_user_timeout, load_bucket_data, save_bucket_data
+
+        # Simulate old timestamp format (before timezone utils)
+        old_timestamp = "2025-12-05T16:43:51.610017+01:00"
+
+        # Manually create user_last_draw with old format
+        data = load_bucket_data()
+        data['user_last_draw'] = {
+            'ann-kathrin.welge': {
+                'timestamp': old_timestamp,
+                'closer': 'Alex',
+                'draw_type': 'T2',
+                'customer_name': 'Marco Menn'
+            }
+        }
+        save_bucket_data(data)
+
+        # Check timeout - should work correctly with old format
+        result = check_user_timeout('ann-kathrin.welge', 'T2')
+
+        # Timeout should have expired (3+ days old)
+        assert result['can_draw'] is True
+        assert result['timeout_remaining_seconds'] == 0
+
+    @pytest.mark.unit
+    def test_multi_day_old_timestamp_allows_draw(self):
+        """Test that timestamps from 3+ days ago allow drawing"""
+        from app.services.t2_bucket_system import check_user_timeout, load_bucket_data, save_bucket_data
+        from app.utils.timezone_utils import now_utc, format_berlin_iso
+
+        # Create a timestamp from 3 days ago
+        three_days_ago = now_utc() - timedelta(days=3)
+        old_timestamp = format_berlin_iso(three_days_ago)
+
+        # Set user's last draw to 3 days ago
+        data = load_bucket_data()
+        data['user_last_draw'] = {
+            'test.user': {
+                'timestamp': old_timestamp,
+                'closer': 'David',
+                'draw_type': 'T2'
+            }
+        }
+        save_bucket_data(data)
+
+        # Check timeout
+        result = check_user_timeout('test.user', 'T2')
+
+        # Should definitely be able to draw
+        assert result['can_draw'] is True
+        assert result['timeout_remaining_seconds'] == 0
+        assert 'Ready to draw' in result['message']
+
+    @pytest.mark.unit
+    def test_recent_draw_blocks_correctly(self):
+        """Test that recent draws (within timeout) still block correctly"""
+        from app.services.t2_bucket_system import check_user_timeout, load_bucket_data, save_bucket_data
+        from app.utils.timezone_utils import now_utc, format_berlin_iso
+
+        # Create a timestamp from 30 seconds ago (within 1 minute timeout)
+        thirty_seconds_ago = now_utc() - timedelta(seconds=30)
+        recent_timestamp = format_berlin_iso(thirty_seconds_ago)
+
+        # Set user's last draw to 30 seconds ago
+        data = load_bucket_data()
+        data['user_last_draw'] = {
+            'test.user': {
+                'timestamp': recent_timestamp,
+                'closer': 'Jose',
+                'draw_type': 'T2'
+            }
+        }
+        save_bucket_data(data)
+
+        # Check timeout
+        result = check_user_timeout('test.user', 'T2')
+
+        # Should still be blocked
+        assert result['can_draw'] is False
+        assert result['timeout_remaining_seconds'] > 0
+        assert result['timeout_remaining_seconds'] <= 35  # Should be ~30 seconds or less
+
+    @pytest.mark.unit
+    def test_mixed_timezone_representations(self):
+        """Test that different timezone representations compare correctly"""
+        from app.services.t2_bucket_system import check_user_timeout, load_bucket_data, save_bucket_data
+        import pytz
+
+        # Test with explicit offset format (old system)
+        explicit_offset = "2025-12-05T16:43:51+01:00"
+
+        # Test with Berlin TZ format (new system)
+        berlin_tz = pytz.timezone("Europe/Berlin")
+        berlin_dt = berlin_tz.localize(datetime(2025, 12, 5, 16, 43, 51))
+        berlin_iso = berlin_dt.isoformat()
+
+        # Both should work
+        for timestamp_format, format_name in [(explicit_offset, "explicit"), (berlin_iso, "berlin")]:
+            data = load_bucket_data()
+            data['user_last_draw'] = {
+                f'user.{format_name}': {
+                    'timestamp': timestamp_format,
+                    'closer': 'Alex',
+                    'draw_type': 'T2'
+                }
+            }
+            save_bucket_data(data)
+
+            result = check_user_timeout(f'user.{format_name}', 'T2')
+
+            # Both should allow draw (old timestamps)
+            assert result['can_draw'] is True, f"Failed for {format_name} format"
+            assert result['timeout_remaining_seconds'] == 0, f"Failed for {format_name} format"
