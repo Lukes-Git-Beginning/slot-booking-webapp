@@ -5,6 +5,7 @@ Neue Routes für Prestige, Daily Quests, Analytics und Customization
 """
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
+from app.core.extensions import csrf
 from functools import wraps
 import traceback
 import logging
@@ -262,6 +263,7 @@ def api_claim_quest():
         return jsonify({"success": False, "message": "Server-Fehler beim Einlösen der Quest-Belohnung"})
 
 @gamification_bp.route('/api/claim-daily-reward', methods=['POST'])
+@csrf.exempt
 @require_login
 def api_claim_daily_reward():
     """API: Daily Reward einlösen"""

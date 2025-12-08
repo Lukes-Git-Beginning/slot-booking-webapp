@@ -248,7 +248,7 @@ document.getElementById('claimRewardBtn')?.addEventListener('click', async funct
     btn.innerHTML = '<span class="loading loading-spinner"></span> Wird eingelöst...';
 
     try {
-        const response = await fetch('/gamification/api/claim-daily-reward', {
+        const response = await fetch('/slots/api/claim-daily-reward', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
