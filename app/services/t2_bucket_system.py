@@ -18,11 +18,29 @@ from typing import Dict, List, Optional, Tuple
 import random
 import pytz
 import logging
+from contextlib import contextmanager
 
 from app.utils.timezone_utils import parse_iso_to_utc, now_utc, format_berlin_iso
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone("Europe/Berlin")
+
+# PostgreSQL Support (Dual-Write Pattern)
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models import (
+        get_db_session,
+        T2CloserConfig,
+        T2BucketState,
+        T2DrawHistory,
+        T2UserLastDraw
+    )
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    logger.warning("PostgreSQL models not available, using JSON-only mode")
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 # T2-Only Closers (keine Opener!)
 T2_CLOSERS = {
@@ -67,6 +85,28 @@ def _ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
 
 
+@contextmanager
+def get_db_context():
+    """
+    Context manager for database sessions with automatic commit/rollback
+    Falls back gracefully if PostgreSQL is unavailable
+    """
+    if not USE_POSTGRES or not POSTGRES_AVAILABLE:
+        yield None
+        return
+
+    session = get_db_session()
+    try:
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Database error (falling back to JSON): {e}")
+        raise
+    finally:
+        session.close()
+
+
 def _sync_closers_from_data(closers_data: Dict):
     """
     Sync closers from persistent storage to global T2_CLOSERS dictionary
@@ -78,9 +118,59 @@ def _sync_closers_from_data(closers_data: Dict):
 
 
 def load_bucket_data() -> Dict:
-    """Load bucket system data"""
+    """
+    Load bucket system data (PostgreSQL-first, JSON fallback)
+
+    Strategy:
+    1. Try PostgreSQL (if enabled)
+    2. Fallback to JSON if PostgreSQL fails or disabled
+    """
     _ensure_dirs()
 
+    # TRY POSTGRESQL FIRST
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            with get_db_context() as session:
+                if session:
+                    # Load bucket state (singleton)
+                    bucket_state = session.query(T2BucketState).filter_by(singleton_id=1).first()
+
+                    if bucket_state:
+                        # Load closers
+                        closers_query = session.query(T2CloserConfig).filter_by(is_active=True).all()
+                        closers_dict = {
+                            closer.name: {
+                                "full_name": closer.full_name,
+                                "color": closer.color,
+                                "default_probability": closer.default_probability
+                            }
+                            for closer in closers_query
+                        }
+
+                        _sync_closers_from_data(closers_dict)
+
+                        # Convert to dict format
+                        data = {
+                            "closers": closers_dict,
+                            "probabilities": bucket_state.probabilities,
+                            "default_probabilities": {name: info["default_probability"] for name, info in closers_dict.items()},
+                            "bucket": bucket_state.bucket,
+                            "draw_history": [],  # Not loaded here (query separately if needed)
+                            "user_last_draw": {},  # Not loaded here (query separately if needed)
+                            "stats": bucket_state.stats,
+                            "total_draws": bucket_state.total_draws,
+                            "last_reset": bucket_state.last_reset.isoformat() if bucket_state.last_reset else datetime.now(TZ).isoformat(),
+                            "bucket_size_config": bucket_state.max_draws_before_reset
+                        }
+
+                        logger.debug("✅ Loaded bucket data from PostgreSQL")
+                        return data
+                    else:
+                        logger.debug("⏭️  No PostgreSQL bucket state, using JSON")
+        except Exception as e:
+            logger.warning(f"PostgreSQL read failed, falling back to JSON: {e}")
+
+    # FALLBACK TO JSON
     if not os.path.exists(BUCKET_FILE):
         return _initialize_bucket_data()
 
@@ -105,24 +195,84 @@ def load_bucket_data() -> Dict:
                 data["user_last_draw"] = {}
             if "stats" not in data:
                 data["stats"] = {name: 0 for name in T2_CLOSERS.keys()}
+
+            logger.debug("✅ Loaded bucket data from JSON")
             return data
     except Exception as e:
-        print(f"Error loading bucket data: {e}")
+        logger.error(f"Error loading bucket data: {e}")
         return _initialize_bucket_data()
 
 
 def save_bucket_data(data: Dict):
-    """Save bucket system data"""
+    """
+    Save bucket system data (DUAL-WRITE: PostgreSQL + JSON)
+
+    Strategy:
+    1. Try PostgreSQL (if enabled)
+    2. Always write to JSON as backup
+    3. Log if PostgreSQL fails but continue with JSON
+    """
     _ensure_dirs()
 
+    # WRITE TO POSTGRESQL FIRST
+    postgres_success = False
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            with get_db_context() as session:
+                if session:
+                    # Upsert T2BucketState (singleton)
+                    bucket_state = session.query(T2BucketState).filter_by(singleton_id=1).with_for_update().first()
+
+                    # Parse last_reset if string
+                    last_reset = data.get('last_reset')
+                    if isinstance(last_reset, str):
+                        last_reset = datetime.fromisoformat(last_reset)
+                    elif last_reset is None:
+                        last_reset = datetime.now(TZ)
+
+                    if bucket_state:
+                        # UPDATE existing singleton
+                        bucket_state.probabilities = data.get('probabilities', {})
+                        bucket_state.bucket = data.get('bucket', [])
+                        bucket_state.total_draws = data.get('total_draws', 0)
+                        bucket_state.stats = data.get('stats', {})
+                        bucket_state.max_draws_before_reset = data.get('bucket_size_config', 20)
+                        bucket_state.last_reset = last_reset
+                        logger.debug("✅ Updated T2BucketState in PostgreSQL")
+                    else:
+                        # INSERT new singleton
+                        bucket_state = T2BucketState(
+                            singleton_id=1,
+                            probabilities=data.get('probabilities', {}),
+                            bucket=data.get('bucket', []),
+                            total_draws=data.get('total_draws', 0),
+                            stats=data.get('stats', {}),
+                            max_draws_before_reset=data.get('bucket_size_config', 20),
+                            last_reset=last_reset
+                        )
+                        session.add(bucket_state)
+                        logger.debug("✅ Created T2BucketState in PostgreSQL")
+
+                    postgres_success = True
+        except Exception as e:
+            logger.error(f"PostgreSQL write failed, continuing with JSON: {e}")
+
+    # ALWAYS WRITE TO JSON (backup)
     try:
         # Always save current closers to data
         data["closers"] = T2_CLOSERS.copy()
 
         with open(BUCKET_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+        if postgres_success:
+            logger.debug("✅ Dual-write complete: PostgreSQL + JSON")
+        else:
+            logger.debug("✅ Saved bucket data to JSON (PostgreSQL skipped)")
     except Exception as e:
-        print(f"Error saving bucket data: {e}")
+        logger.error(f"Error saving bucket data to JSON: {e}")
+        if not postgres_success:
+            raise  # If both fail, raise error
 
 
 def _initialize_bucket_data() -> Dict:
@@ -387,6 +537,52 @@ def draw_closer(username: str, draw_type: str = "T2", customer_name: str = None)
         data["total_draws"] = 0
         data["last_reset"] = datetime.now(TZ).isoformat()
 
+    # DUAL-WRITE: Write draw history and user timeout to PostgreSQL
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            with get_db_context() as session:
+                if session:
+                    draw_time = datetime.now(TZ)
+
+                    # 1. Create T2DrawHistory record (audit trail)
+                    draw_record = T2DrawHistory(
+                        username=username,
+                        closer_drawn=drawn_closer,
+                        draw_type=draw_type,
+                        customer_name=customer_name,
+                        bucket_size_after=len(bucket),
+                        probability_after=new_prob,
+                        drawn_at=draw_time
+                    )
+                    session.add(draw_record)
+                    logger.debug(f"✅ Created T2DrawHistory record for {username} → {drawn_closer}")
+
+                    # 2. Upsert T2UserLastDraw (timeout tracking)
+                    user_last_draw = session.query(T2UserLastDraw).filter_by(username=username).first()
+                    if user_last_draw:
+                        # UPDATE existing record
+                        user_last_draw.last_draw_at = draw_time
+                        user_last_draw.last_closer_drawn = drawn_closer
+                        user_last_draw.last_draw_type = draw_type
+                        user_last_draw.last_customer_name = customer_name
+                        logger.debug(f"✅ Updated T2UserLastDraw for {username}")
+                    else:
+                        # INSERT new record
+                        user_last_draw = T2UserLastDraw(
+                            username=username,
+                            last_draw_at=draw_time,
+                            last_closer_drawn=drawn_closer,
+                            last_draw_type=draw_type,
+                            last_customer_name=customer_name
+                        )
+                        session.add(user_last_draw)
+                        logger.debug(f"✅ Created T2UserLastDraw for {username}")
+
+                    # Commit is handled by context manager
+        except Exception as e:
+            logger.error(f"PostgreSQL draw tracking failed (continuing with JSON): {e}")
+
+    # Save bucket state (will dual-write to PostgreSQL + JSON)
     save_bucket_data(data)
 
     return {
