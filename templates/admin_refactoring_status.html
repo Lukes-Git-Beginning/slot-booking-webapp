@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Refactoring Status - Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind CSS + DaisyUI (Local) -->
+  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
+  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+
+  <!-- Lucide Icons (Local) -->
+  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#d4af6a',
+            'primary-dark': '#c2ae7f',
+            'secondary': '#207487',
+            'accent': '#294c5d',
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+
+  <!-- Header -->
+  <div class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost btn-sm mb-4">
+          <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Zurück zum Admin Dashboard
+        </a>
+        <h1 class="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+          <i data-lucide="trending-up" class="w-10 h-10 text-primary"></i>
+          Refactoring Status Dashboard
+        </h1>
+        <p class="text-gray-400">Real-time progress tracking for codebase modernization</p>
+      </div>
+      <div class="text-right text-sm text-gray-500">
+        <div>Last Updated: {{ current_time }}</div>
+        <button onclick="location.reload()" class="btn btn-sm btn-ghost mt-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Overall Progress Card -->
+    <div class="card glass mb-6 shadow-2xl">
+      <div class="card-body">
+        <h2 class="card-title text-white mb-4 flex items-center gap-2">
+          <i data-lucide="target" class="w-6 h-6 text-primary"></i>
+          Overall Roadmap Progress
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="stat bg-base-300/50 rounded-lg">
+            <div class="stat-title">Total Hours</div>
+            <div class="stat-value text-primary">{{ status.roadmap.total_hours }}</div>
+          </div>
+          <div class="stat bg-base-300/50 rounded-lg">
+            <div class="stat-title">Completed</div>
+            <div class="stat-value text-success">{{ status.roadmap.completed_hours }}</div>
+          </div>
+          <div class="stat bg-base-300/50 rounded-lg">
+            <div class="stat-title">Remaining</div>
+            <div class="stat-value text-warning">{{ status.roadmap.remaining_hours }}</div>
+          </div>
+          <div class="stat bg-base-300/50 rounded-lg">
+            <div class="stat-title">Completion</div>
+            <div class="stat-value text-info">{{ status.roadmap.completion_percentage }}%</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-700 rounded-full h-6 mb-2">
+          <div class="bg-gradient-to-r from-primary to-secondary h-6 rounded-full flex items-center justify-center text-white text-sm font-bold transition-all duration-500"
+               style="width: {{ status.roadmap.completion_percentage }}%">
+            {{ status.roadmap.completion_percentage }}%
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase Breakdown Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {% for phase_name, phase_data in status.roadmap.phases.items() %}
+      <div class="card glass shadow-xl" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+        <div class="card-body">
+          <h3 class="card-title text-white mb-3 flex items-center gap-2">
+            {% if phase_data.status == 'complete' %}
+              <span class="text-2xl">✅</span>
+            {% elif phase_data.status == 'in_progress' %}
+              <span class="text-2xl">🔄</span>
+            {% else %}
+              <span class="text-2xl">⏸️</span>
+            {% endif %}
+            {{ phase_name }}
+          </h3>
+
+          <div class="mb-3">
+            <div class="flex justify-between text-sm mb-1">
+              <span>Progress</span>
+              <span>{{ phase_data.completed_hours }}/{{ phase_data.total_hours }}h</span>
+            </div>
+            <progress class="progress {% if phase_data.status == 'complete' %}progress-success{% elif phase_data.status == 'in_progress' %}progress-primary{% else %}progress-ghost{% endif %}"
+                      value="{{ phase_data.completed_hours }}"
+                      max="{{ phase_data.total_hours }}"></progress>
+          </div>
+
+          <div class="space-y-2">
+            {% for task in phase_data.tasks %}
+            <div class="flex items-center gap-2 text-sm">
+              {% if task.status == 'complete' %}
+                <span class="badge badge-success badge-sm">✓</span>
+              {% elif task.status == 'in_progress' %}
+                <span class="badge badge-warning badge-sm">⏳</span>
+              {% else %}
+                <span class="badge badge-ghost badge-sm">○</span>
+              {% endif %}
+              <span class="{% if task.status == 'complete' %}text-gray-500 line-through{% else %}text-white{% endif %}">
+                {{ task.name }}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- PostgreSQL Migration Status -->
+    <div class="card glass mb-6 shadow-xl" data-aos="fade-up">
+      <div class="card-body">
+        <h2 class="card-title text-white mb-4 flex items-center gap-2">
+          <i data-lucide="database" class="w-6 h-6 text-primary"></i>
+          PostgreSQL Migration Status
+        </h2>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="stat bg-green-500/20 rounded-lg">
+            <div class="stat-title">Completed</div>
+            <div class="stat-value text-success">{{ status.postgres_migration.completed }}</div>
+          </div>
+          <div class="stat bg-yellow-500/20 rounded-lg">
+            <div class="stat-title">In Progress</div>
+            <div class="stat-value text-warning">{{ status.postgres_migration.in_progress }}</div>
+          </div>
+          <div class="stat bg-gray-500/20 rounded-lg">
+            <div class="stat-title">Pending</div>
+            <div class="stat-value text-gray-400">{{ status.postgres_migration.pending }}</div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>JSON File</th>
+                <th>PostgreSQL Model</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for file_name, migration in status.postgres_migration.migrations.items() %}
+              <tr>
+                <td>
+                  <code class="text-sm text-primary">{{ file_name }}</code>
+                </td>
+                <td>
+                  {% if migration.model %}
+                    <span class="badge badge-primary badge-sm">{{ migration.model }}</span>
+                  {% else %}
+                    <span class="text-gray-500">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if migration.status == 'complete' %}
+                    <span class="badge badge-success gap-2">
+                      <i data-lucide="check-circle" class="w-3 h-3"></i>
+                      Complete
+                    </span>
+                  {% elif migration.status == 'in_progress' %}
+                    <span class="badge badge-warning gap-2">
+                      <i data-lucide="loader" class="w-3 h-3"></i>
+                      In Progress
+                    </span>
+                  {% else %}
+                    <span class="badge badge-ghost gap-2">
+                      <i data-lucide="circle" class="w-3 h-3"></i>
+                      Pending
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if migration.status == 'in_progress' %}
+                    <div class="text-xs space-y-1">
+                      <div>Model: {% if migration.model_exists %}✅{% else %}❌{% endif %}</div>
+                      <div>Migration: {% if migration.migration_exists %}✅{% else %}❌{% endif %}</div>
+                      <div>Service: {% if migration.service_refactored %}✅{% else %}❌{% endif %}</div>
+                    </div>
+                  {% else %}
+                    <span class="text-xs text-gray-500">{{ migration.description }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Refactoring Status -->
+    <div class="card glass mb-6 shadow-xl" data-aos="fade-up" data-aos-delay="100">
+      <div class="card-body">
+        <h2 class="card-title text-white mb-4 flex items-center gap-2">
+          <i data-lucide="code" class="w-6 h-6 text-primary"></i>
+          Service Layer Refactoring
+        </h2>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="stat bg-green-500/20 rounded-lg">
+            <div class="stat-title">Refactored</div>
+            <div class="stat-value text-success">{{ status.service_refactoring.refactored }}</div>
+          </div>
+          <div class="stat bg-blue-500/20 rounded-lg">
+            <div class="stat-title">Dual-Write</div>
+            <div class="stat-value text-info">{{ status.service_refactoring.dual_write }}</div>
+          </div>
+          <div class="stat bg-gray-500/20 rounded-lg">
+            <div class="stat-title">Legacy JSON</div>
+            <div class="stat-value text-gray-400">{{ status.service_refactoring.legacy }}</div>
+          </div>
+        </div>
+
+        <!-- Service Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {% for service_name, service_data in status.service_refactoring.services.items() %}
+          <div class="bg-base-300/50 rounded-lg p-3">
+            <div class="flex items-center justify-between mb-2">
+              <code class="text-xs text-white">{{ service_name }}</code>
+              {% if service_data.status == 'refactored' %}
+                <span class="badge badge-success badge-xs">PostgreSQL</span>
+              {% elif service_data.status == 'dual_write' %}
+                <span class="badge badge-info badge-xs">Dual-Write</span>
+              {% elif service_data.status == 'legacy' %}
+                <span class="badge badge-ghost badge-xs">JSON</span>
+              {% else %}
+                <span class="badge badge-error badge-xs">Unknown</span>
+              {% endif %}
+            </div>
+            <div class="flex gap-2 text-xs">
+              <span class="{% if service_data.uses_postgres %}text-green-400{% else %}text-gray-600{% endif %}">
+                {% if service_data.uses_postgres %}✓{% else %}✗{% endif %} PG
+              </span>
+              <span class="{% if service_data.uses_json %}text-yellow-400{% else %}text-gray-600{% endif %}">
+                {% if service_data.uses_json %}✓{% else %}✗{% endif %} JSON
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- TODO/FIXME Tracker -->
+    <div class="card glass mb-6 shadow-xl" data-aos="fade-up" data-aos-delay="200">
+      <div class="card-body">
+        <h2 class="card-title text-white mb-4 flex items-center gap-2">
+          <i data-lucide="file-text" class="w-6 h-6 text-primary"></i>
+          TODO & FIXME Tracker
+        </h2>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="stat bg-blue-500/20 rounded-lg">
+            <div class="stat-title">TODOs</div>
+            <div class="stat-value text-info">{{ status.todo_fixme.todo_count }}</div>
+          </div>
+          <div class="stat bg-red-500/20 rounded-lg">
+            <div class="stat-title">FIXMEs</div>
+            <div class="stat-value text-error">{{ status.todo_fixme.fixme_count }}</div>
+          </div>
+          <div class="stat bg-purple-500/20 rounded-lg">
+            <div class="stat-title">Total</div>
+            <div class="stat-value text-purple-400">{{ status.todo_fixme.total_count }}</div>
+          </div>
+        </div>
+
+        {% if status.todo_fixme.todos %}
+        <div class="collapse collapse-arrow bg-base-300/50 mb-2">
+          <input type="checkbox" />
+          <div class="collapse-title font-medium">
+            View Recent TODOs ({{ status.todo_fixme.todos|length }})
+          </div>
+          <div class="collapse-content">
+            <div class="space-y-2">
+              {% for todo in status.todo_fixme.todos %}
+              <div class="text-sm border-l-4 border-blue-500 pl-3 py-1">
+                <div class="font-mono text-xs text-gray-400">{{ todo.file }}:{{ todo.line }}</div>
+                <div class="text-white">{{ todo.text }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if status.todo_fixme.fixmes %}
+        <div class="collapse collapse-arrow bg-base-300/50">
+          <input type="checkbox" />
+          <div class="collapse-title font-medium">
+            View Recent FIXMEs ({{ status.todo_fixme.fixmes|length }})
+          </div>
+          <div class="collapse-content">
+            <div class="space-y-2">
+              {% for fixme in status.todo_fixme.fixmes %}
+              <div class="text-sm border-l-4 border-red-500 pl-3 py-1">
+                <div class="font-mono text-xs text-gray-400">{{ fixme.file }}:{{ fixme.line }}</div>
+                <div class="text-white">{{ fixme.text }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Test Coverage -->
+    <div class="card glass shadow-xl" data-aos="fade-up" data-aos-delay="300">
+      <div class="card-body">
+        <h2 class="card-title text-white mb-4 flex items-center gap-2">
+          <i data-lucide="test-tube" class="w-6 h-6 text-primary"></i>
+          Test Coverage
+        </h2>
+
+        <div class="mb-4">
+          <div class="flex justify-between mb-2">
+            <span>Overall Coverage</span>
+            <span class="font-bold">{{ status.test_coverage.overall_coverage }}% / {{ status.test_coverage.target_coverage }}%</span>
+          </div>
+          <progress class="progress progress-info"
+                    value="{{ status.test_coverage.overall_coverage }}"
+                    max="{{ status.test_coverage.target_coverage }}"></progress>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Coverage</th>
+                <th>Visual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for service_name, coverage in status.test_coverage.services.items() %}
+              <tr>
+                <td><code class="text-xs">{{ service_name }}</code></td>
+                <td>
+                  <span class="badge badge-sm
+                    {% if coverage >= 90 %}badge-success
+                    {% elif coverage >= 60 %}badge-warning
+                    {% else %}badge-error{% endif %}">
+                    {{ coverage }}%
+                  </span>
+                </td>
+                <td>
+                  <progress class="progress progress-sm w-32
+                    {% if coverage >= 90 %}progress-success
+                    {% elif coverage >= 60 %}progress-warning
+                    {% else %}progress-error{% endif %}"
+                    value="{{ coverage }}" max="100"></progress>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+  </script>
+
+</body>
+</html>

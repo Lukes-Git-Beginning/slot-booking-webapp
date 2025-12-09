@@ -102,6 +102,14 @@ def admin_dashboard():
                 'icon': 'calendar-x',
                 'color': 'from-red-500/20 to-orange-500/20',
                 'status': 'active'
+            },
+            {
+                'name': 'Refactoring Status',
+                'description': 'PostgreSQL migration & modernization progress',
+                'url': '/admin/refactoring-status',
+                'icon': 'trending-up',
+                'color': 'from-violet-500/20 to-purple-500/20',
+                'status': 'active'
             }
         ]
 
@@ -155,6 +163,24 @@ def admin_online_users():
 
     except Exception as e:
         flash(f"Fehler beim Laden der Online-User: {str(e)}", "danger")
+        return redirect(url_for("admin.admin_dashboard"))
+
+
+@admin_bp.route("/refactoring-status")
+@require_admin
+def refactoring_status():
+    """Refactoring progress dashboard"""
+    try:
+        from app.services.refactoring_status_service import refactoring_status_service
+
+        status = refactoring_status_service.get_full_status()
+
+        return render_template("admin_refactoring_status.html",
+                             status=status,
+                             current_time=datetime.now(TZ).strftime("%d.%m.%Y %H:%M"))
+
+    except Exception as e:
+        flash(f"Fehler beim Laden des Refactoring Status: {str(e)}", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
 
