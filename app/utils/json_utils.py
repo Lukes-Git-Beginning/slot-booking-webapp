@@ -7,39 +7,13 @@ import os
 import json
 import tempfile
 import shutil
-try:
-    import fcntl
-except ImportError:
-    # fcntl is not available on Windows
-    fcntl = None
 import time
 from contextlib import contextmanager
 from typing import Any, Dict, Optional
 import gzip
-import threading
 
-# Thread-local lock storage for per-file locking
-_file_locks = threading.local()
-
-def get_file_lock(filepath: str):
-    """Get or create a lock for a specific file path"""
-    if not hasattr(_file_locks, 'locks'):
-        _file_locks.locks = {}
-
-    if filepath not in _file_locks.locks:
-        _file_locks.locks[filepath] = threading.RLock()
-
-    return _file_locks.locks[filepath]
-
-@contextmanager
-def file_lock(filepath: str):
-    """Context manager for file-level locking"""
-    lock = get_file_lock(filepath)
-    lock.acquire()
-    try:
-        yield
-    finally:
-        lock.release()
+# Use OS-level file locking for multi-process safety (Gunicorn workers)
+from app.utils.file_lock import file_lock
 
 def atomic_write_json(filepath: str, data: Any, compress: bool = False, indent: int = 2) -> bool:
     """
