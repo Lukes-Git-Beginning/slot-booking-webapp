@@ -32,6 +32,10 @@ class T2AnalyticsService:
         self.data_dir = DATA_DIR
         os.makedirs(self.data_dir, exist_ok=True)
 
+        # Initialize data_persistence for PostgreSQL/JSON dual-read
+        from app.services.data_persistence import data_persistence
+        self.data_persistence = data_persistence
+
     def _load_bucket_data(self) -> Dict:
         """Load T2 bucket system data with draw history"""
         try:
@@ -395,7 +399,18 @@ class T2AnalyticsService:
 
         # Lade alle T2-Buchungen
         all_bookings_data = self.data_persistence.load_data('t2_bookings', {'bookings': []})
-        all_bookings = all_bookings_data.get('bookings', [])
+
+        # Handle both list and dict formats (defensive programming)
+        if isinstance(all_bookings_data, list):
+            # Legacy format: list directly
+            all_bookings = all_bookings_data
+            logger.warning("T2 bookings in legacy list format, converting to dict recommended")
+        elif isinstance(all_bookings_data, dict):
+            # New format: {'bookings': [...]}
+            all_bookings = all_bookings_data.get('bookings', [])
+        else:
+            logger.error(f"Unexpected t2_bookings format: {type(all_bookings_data)}")
+            all_bookings = []
 
         # Filter nach Zeitraum
         from datetime import datetime

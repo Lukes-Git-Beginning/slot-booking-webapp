@@ -380,7 +380,12 @@ def get_monthly_closer_stats(month_str: str) -> Dict[str, int]:
     try:
         from app.services.data_persistence import data_persistence
 
-        bookings = data_persistence.load_data('t2_bookings', [])
+        bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
+        # Handle both list and dict formats
+        if isinstance(bookings_data, dict):
+            bookings = bookings_data.get('bookings', [])
+        else:
+            bookings = bookings_data  # Legacy list format
 
         stats = defaultdict(int)
         for booking in bookings:
@@ -530,9 +535,16 @@ def save_t2_booking(booking_data: Dict):
     try:
         from app.services.data_persistence import data_persistence
 
-        bookings = data_persistence.load_data('t2_bookings', [])
+        bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
+        # Handle both list and dict formats
+        if isinstance(bookings_data, dict):
+            bookings = bookings_data.get('bookings', [])
+        else:
+            bookings = bookings_data  # Legacy list format
+
         bookings.append(booking_data)
-        data_persistence.save_data('t2_bookings', bookings)
+        # Always save in dict format
+        data_persistence.save_data('t2_bookings', {'bookings': bookings})
 
         logger.info(f"T2 booking saved: {booking_data['id']}")
 
@@ -545,7 +557,12 @@ def load_t2_bookings() -> List[Dict]:
     """Alle T2-Buchungen laden"""
     try:
         from app.services.data_persistence import data_persistence
-        return data_persistence.load_data('t2_bookings', [])
+        bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
+        # Handle both list and dict formats
+        if isinstance(bookings_data, dict):
+            return bookings_data.get('bookings', [])
+        else:
+            return bookings_data  # Legacy list format
     except:
         return []
 
