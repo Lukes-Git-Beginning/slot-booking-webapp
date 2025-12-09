@@ -130,41 +130,41 @@ def get_user_bookings_from_db(username, days_back=30, days_forward=90):
     logger = logging.getLogger(__name__)
 
     try:
-        from app.models import init_db, get_db_session, Booking
+        from app.models import init_db, Booking
+        from app.utils.db_utils import db_session_scope_no_commit
 
         # Ensure database is initialized before querying
         init_db()
 
         start_date = date.today() - timedelta(days=days_back)
         end_date = date.today() + timedelta(days=days_forward)
-        session = get_db_session()
 
-        # Query bookings for this user within date range (past + future)
-        bookings = session.query(Booking).filter(
-            Booking.username == username,
-            Booking.date >= start_date,
-            Booking.date <= end_date
-        ).order_by(Booking.date.desc()).all()
+        with db_session_scope_no_commit() as session:
+            # Query bookings for this user within date range (past + future)
+            bookings = session.query(Booking).filter(
+                Booking.username == username,
+                Booking.date >= start_date,
+                Booking.date <= end_date
+            ).order_by(Booking.date.desc()).all()
 
-        # Convert to dict format (same as JSONL)
-        user_bookings = []
-        for booking in bookings:
-            user_bookings.append({
-                'id': booking.booking_id,
-                'user': booking.username,
-                'customer': booking.customer,
-                'date': booking.date.strftime('%Y-%m-%d'),
-                'time': booking.time,
-                'weekday': booking.weekday,
-                'week_number': booking.week_number,
-                'color_id': booking.color_id,
-                'potential_type': booking.potential_type,
-                'description_length': booking.description_length,
-                'has_description': booking.has_description,
-                'timestamp': booking.booking_timestamp.isoformat()
-            })
+            # Convert to dict format (same as JSONL)
+            user_bookings = []
+            for booking in bookings:
+                user_bookings.append({
+                    'id': booking.booking_id,
+                    'user': booking.username,
+                    'customer': booking.customer,
+                    'date': booking.date.strftime('%Y-%m-%d'),
+                    'time': booking.time,
+                    'weekday': booking.weekday,
+                    'week_number': booking.week_number,
+                    'color_id': booking.color_id,
+                    'potential_type': booking.potential_type,
+                    'description_length': booking.description_length,
+                    'has_description': booking.has_description,
+                    'timestamp': booking.booking_timestamp.isoformat()
+                })
 
-        session.close()
         logger.debug(f"Loaded {len(user_bookings)} bookings from PostgreSQL for {username}")
         return user_bookings
 
