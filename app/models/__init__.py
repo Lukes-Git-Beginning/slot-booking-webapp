@@ -84,6 +84,14 @@ from app.models.booking import (
     BookingOutcome
 )
 
+# T2 Bucket Models
+from app.models.t2_bucket import (
+    T2CloserConfig,
+    T2BucketState,
+    T2DrawHistory,
+    T2UserLastDraw
+)
+
 __all__ = [
     # Base
     'Base',
@@ -118,4 +126,9 @@ __all__ = [
     # Booking
     'Booking',
     'BookingOutcome',
+    # T2 Bucket
+    'T2CloserConfig',
+    'T2BucketState',
+    'T2DrawHistory',
+    'T2UserLastDraw',
 ]
