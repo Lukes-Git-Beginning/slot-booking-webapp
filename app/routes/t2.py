@@ -528,13 +528,56 @@ def get_closer_availability(closer_name: str, date_str: str) -> List[Dict]:
     return available_slots
 
 
-# ========== DATENBANK-OPERATIONEN ==========
+# ========== DATENBANK-OPERATIONEN (DUAL-WRITE: PostgreSQL + JSON) ==========
 
 def save_t2_booking(booking_data: Dict):
-    """Buchung speichern"""
+    """
+    Buchung speichern (DUAL-WRITE: PostgreSQL + JSON)
+
+    Strategy:
+    1. Try PostgreSQL (if enabled)
+    2. Always write to JSON as backup
+    3. Log if PostgreSQL fails but continue with JSON
+    """
     try:
         from app.services.data_persistence import data_persistence
+        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        from datetime import datetime
 
+        # WRITE TO POSTGRESQL FIRST
+        postgres_success = False
+        if is_postgres_enabled():
+            try:
+                session = get_db_session()
+                if session:
+                    # Convert booking_data to T2Booking model
+                    booking = T2Booking(
+                        booking_id=booking_data['id'],
+                        coach=booking_data.get('coach', ''),
+                        berater=booking_data.get('berater', ''),
+                        customer=booking_data.get('customer', ''),
+                        date=datetime.strptime(booking_data['date'], '%Y-%m-%d').date() if booking_data.get('date') else None,
+                        time=booking_data.get('time', ''),
+                        topic=booking_data.get('topic', ''),
+                        email=booking_data.get('email', ''),
+                        user=booking_data.get('user', ''),
+                        event_id=booking_data.get('event_id'),
+                        calendar_id=booking_data.get('calendar_id'),
+                        status=booking_data.get('status', 'active'),
+                        is_rescheduled_from=booking_data.get('is_rescheduled_from')
+                        # Note: created_at/updated_at are set automatically by Base class
+                    )
+
+                    session.add(booking)
+                    session.commit()
+                    postgres_success = True
+                    logger.info(f"✅ T2 booking saved to PostgreSQL: {booking_data['id']}")
+                    session.close()
+            except Exception as e:
+                logger.error(f"⚠️ PostgreSQL save failed for T2 booking {booking_data['id']}: {e}")
+                # Continue to JSON fallback
+
+        # ALWAYS WRITE TO JSON (Backup)
         bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
         # Handle both list and dict formats
         if isinstance(bookings_data, dict):
@@ -546,7 +589,10 @@ def save_t2_booking(booking_data: Dict):
         # Always save in dict format
         data_persistence.save_data('t2_bookings', {'bookings': bookings})
 
-        logger.info(f"T2 booking saved: {booking_data['id']}")
+        if postgres_success:
+            logger.info(f"✅ T2 booking saved (PostgreSQL + JSON): {booking_data['id']}")
+        else:
+            logger.info(f"⚠️ T2 booking saved (JSON only): {booking_data['id']}")
 
     except Exception as e:
         logger.error(f"Error saving booking: {e}")
@@ -554,16 +600,45 @@ def save_t2_booking(booking_data: Dict):
 
 
 def load_t2_bookings() -> List[Dict]:
-    """Alle T2-Buchungen laden"""
+    """
+    Alle T2-Buchungen laden (PostgreSQL-first, JSON fallback)
+
+    Strategy:
+    1. Try PostgreSQL (if enabled)
+    2. Fallback to JSON if PostgreSQL fails or disabled
+    """
     try:
+        from app.models import T2Booking, get_db_session, is_postgres_enabled
+
+        # TRY POSTGRESQL FIRST
+        if is_postgres_enabled():
+            try:
+                session = get_db_session()
+                if session:
+                    bookings = session.query(T2Booking).all()
+                    session.close()
+
+                    # Convert to dict format
+                    result = [booking.to_dict() for booking in bookings]
+                    logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL")
+                    return result
+            except Exception as e:
+                logger.error(f"⚠️ PostgreSQL load failed for T2 bookings: {e}")
+                # Fallback to JSON
+
+        # FALLBACK TO JSON
         from app.services.data_persistence import data_persistence
         bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
         # Handle both list and dict formats
         if isinstance(bookings_data, dict):
-            return bookings_data.get('bookings', [])
+            result = bookings_data.get('bookings', [])
         else:
-            return bookings_data  # Legacy list format
-    except:
+            result = bookings_data  # Legacy list format
+
+        logger.debug(f"⚠️ Loaded {len(result)} T2 bookings from JSON (fallback)")
+        return result
+    except Exception as e:
+        logger.error(f"Error loading bookings: {e}")
         return []
 
 
@@ -1410,7 +1485,7 @@ def api_book_2h_slot():
             'description': event_description,
             'start': {'dateTime': start_iso, 'timeZone': 'Europe/Berlin'},
             'end': {'dateTime': end_iso, 'timeZone': 'Europe/Berlin'},
-            'colorId': '4'  # Flamingo (T2-Farbe)
+            'colorId': '5'  # Banana (Gelb - T2-Farbe für visuelle Unterscheidung von T1)
         }
 
         # Nur schreiben wenn can_write=True
@@ -1731,9 +1806,8 @@ def api_cancel_booking():
 
         booking_id = data['booking_id']
 
-        # Lade alle Buchungen
-        all_bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
-        all_bookings = all_bookings_data.get('bookings', [])
+        # Lade alle Buchungen (PostgreSQL-first, JSON fallback)
+        all_bookings = load_t2_bookings()
 
         # Finde Buchung
         booking = None
@@ -1784,15 +1858,31 @@ def api_cancel_booking():
         all_bookings[booking_index]['cancelled_at'] = datetime.now().isoformat()
         all_bookings[booking_index]['cancelled_by'] = user
 
-        # Speichern
+        # 3. PostgreSQL Update (if enabled)
+        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        if is_postgres_enabled():
+            try:
+                db_session = get_db_session()
+                if db_session:
+                    db_booking = db_session.query(T2Booking).filter_by(booking_id=booking_id).first()
+                    if db_booking:
+                        db_booking.status = 'cancelled'
+                        db_session.commit()
+                        logger.info(f"✅ Updated T2 booking status in PostgreSQL: {booking_id}")
+                    db_session.close()
+            except Exception as e:
+                logger.error(f"⚠️ PostgreSQL update failed for T2 booking {booking_id}: {e}")
+                # Continue with JSON update anyway
+
+        # 4. Speichern (JSON Backup)
         data_persistence.save_data('t2_bookings', {'bookings': all_bookings})
 
-        # 3. Ticket zurückgeben
+        # 5. Ticket zurückgeben
         booking_user = booking.get('user')
         if booking_user:
             return_user_ticket(booking_user)
 
-        # 4. Cache invalidieren
+        # 6. Cache invalidieren
         booking_date_str = booking.get('date')
         if booking_date_str and berater and berater in T2_CLOSERS:
             try:
@@ -1853,9 +1943,8 @@ def api_reschedule_booking():
         new_date_str = data['new_date']
         new_time_str = data['new_time']
 
-        # Lade alle Buchungen
-        all_bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
-        all_bookings = all_bookings_data.get('bookings', [])
+        # Lade alle Buchungen (PostgreSQL-first, JSON fallback)
+        all_bookings = load_t2_bookings()
 
         # Finde Buchung
         booking = None
@@ -1905,6 +1994,22 @@ def api_reschedule_booking():
         all_bookings[booking_index]['rescheduled_by'] = user
         all_bookings[booking_index]['rescheduled_to'] = new_date_str
 
+        # 1a. PostgreSQL Update für alte Buchung (if enabled)
+        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        if is_postgres_enabled():
+            try:
+                db_session = get_db_session()
+                if db_session:
+                    old_booking = db_session.query(T2Booking).filter_by(booking_id=booking_id).first()
+                    if old_booking:
+                        old_booking.status = 'rescheduled'
+                        db_session.commit()
+                        logger.info(f"✅ Updated old T2 booking status in PostgreSQL: {booking_id}")
+                    db_session.close()
+            except Exception as e:
+                logger.error(f"⚠️ PostgreSQL update failed for old booking {booking_id}: {e}")
+                # Continue anyway
+
         # 2. Neue Buchung erstellen
         coach = booking.get('coach')
         customer = booking.get('customer')
@@ -1931,7 +2036,7 @@ def api_reschedule_booking():
             'description': f"T2-Termin (UMGEBUCHT)\n\nKunde: {customer}\nCoach: {coach}\nBerater: {berater}\nThema: {topic}\nEmail: {email}\n\n[Booked by: {booking.get('user')}]\n[Rescheduled by: {user}]",
             'start': {'dateTime': start_iso, 'timeZone': 'Europe/Berlin'},
             'end': {'dateTime': end_iso, 'timeZone': 'Europe/Berlin'},
-            'colorId': '4'
+            'colorId': '5'  # Banana (Gelb - T2-Farbe für visuelle Unterscheidung von T1)
         }
 
         # Google Calendar Event erstellen (wenn Schreibrechte)
@@ -1983,9 +2088,10 @@ def api_reschedule_booking():
             'calendar_id': reschedule_calendar_id
         }
 
-        all_bookings.append(new_booking)
+        # 3. Neue Buchung speichern (DUAL-WRITE: PostgreSQL + JSON)
+        save_t2_booking(new_booking)
 
-        # Speichern
+        # 3a. Alte Buchung JSON Update (nur für Rescheduled-Status)
         data_persistence.save_data('t2_bookings', {'bookings': all_bookings})
 
         # Tracking (PostgreSQL + JSONL)

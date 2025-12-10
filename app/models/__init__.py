@@ -92,6 +92,9 @@ from app.models.t2_bucket import (
     T2UserLastDraw
 )
 
+# T2 Booking Model
+from app.models.t2_booking import T2Booking
+
 __all__ = [
     # Base
     'Base',
@@ -131,4 +134,6 @@ __all__ = [
     'T2BucketState',
     'T2DrawHistory',
     'T2UserLastDraw',
+    # T2 Booking
+    'T2Booking',
 ]

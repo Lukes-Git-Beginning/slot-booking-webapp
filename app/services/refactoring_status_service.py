@@ -187,13 +187,13 @@ class RefactoringStatusService:
                 'description': 'User authentication/profiles'
             },
             't2_bookings.json': {
-                'model': None,
-                'status': 'pending',
+                'model': 'T2Booking',
+                'status': 'in_progress',
                 'migrated': False,
-                'model_exists': False,
-                'migration_exists': False,
-                'service_refactored': False,
-                'description': 'T2 closer bookings'
+                'model_exists': True,
+                'migration_exists': True,
+                'service_refactored': True,
+                'description': 'T2 closer bookings (Dual-Write: PostgreSQL + JSON)'
             },
             'user_analytics.json': {
                 'model': None,
