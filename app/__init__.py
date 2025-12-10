@@ -211,11 +211,18 @@ def register_blueprints(app: Flask) -> None:
         # CRITICAL: Legacy slots blueprints are required for production
         # If this error occurs, the app cannot function properly
 
-    # T2-Closer-System Blueprint
+    # T2-Closer-System Blueprint (Feature Flag Toggle)
     try:
-        from app.routes.t2 import t2_bp
-        app.register_blueprint(t2_bp, url_prefix='/t2')
-        app.logger.info("T2-Closer blueprint registered")
+        if app.config.get('T2_MODULAR_BLUEPRINTS', False):
+            # NEW: Modular blueprint structure (Phase 2+)
+            from app.routes.t2 import init_app as init_t2
+            init_t2(app)
+            app.logger.info("✅ T2 Modular Blueprints ENABLED")
+        else:
+            # LEGACY: Monolithic t2.py (default, backward compatible)
+            from app.routes.t2_legacy import t2_bp
+            app.register_blueprint(t2_bp, url_prefix='/t2')
+            app.logger.info("✅ T2 Legacy Blueprint ENABLED (default)")
     except ImportError as e:
         app.logger.warning(f"T2-Closer blueprint error: {e}")
 

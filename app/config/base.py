@@ -15,6 +15,9 @@ class Config:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-key-change-in-production")
     DEBUG: bool = os.getenv("FLASK_DEBUG", "False").lower() in ["true", "1", "yes"]
 
+    # Feature Flags
+    T2_MODULAR_BLUEPRINTS: bool = os.getenv("T2_MODULAR_BLUEPRINTS", "false").lower() in ["true", "1", "yes"]
+
     # Google Calendar API
     GOOGLE_CREDS_BASE64: str = os.getenv("GOOGLE_CREDS_BASE64", "")
     CENTRAL_CALENDAR_ID: str = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail.com")
