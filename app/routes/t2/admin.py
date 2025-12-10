@@ -25,8 +25,9 @@ ADVANCED (13+ additional admin routes)
 Migration Status: Phase 2 - Stub created, implementation in Phase 6 (Day 2)
 """
 
-from flask import Blueprint, render_template, jsonify, request, send_file
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, jsonify, request, send_file, session
+from app.utils.decorators import require_login
+from .utils import is_admin_user
 from functools import wraps
 
 # Create sub-blueprint
@@ -36,9 +37,10 @@ admin_bp = Blueprint('admin', __name__)
 def admin_required(f):
     """Decorator for admin-only routes"""
     @wraps(f)
-    @login_required
+    @require_login
     def decorated(*args, **kwargs):
-        if not current_user.is_admin:
+        user = session.get('user')
+        if not is_admin_user(user):
             return render_template('errors/403.html'), 403
         return f(*args, **kwargs)
     return decorated
@@ -49,7 +51,7 @@ def admin_required(f):
 # ============================================================================
 
 @admin_bp.route('/my-analytics')
-@login_required
+@require_login
 def my_analytics():
     """
     User analytics dashboard
@@ -85,7 +87,7 @@ def admin_analytics():
 
 
 @admin_bp.route('/api/analytics-data', methods=['GET', 'POST'])
-@login_required
+@require_login
 def analytics_data():
     """
     Analytics API data endpoint

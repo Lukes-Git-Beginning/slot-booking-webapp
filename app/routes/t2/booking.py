@@ -18,15 +18,15 @@ Routes (11 total):
 Migration Status: Phase 2 - Stub created, implementation in Phase 5
 """
 
-from flask import Blueprint, render_template, jsonify, request
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, jsonify, request, session
+from app.utils.decorators import require_login
 
 # Create sub-blueprint
 booking_bp = Blueprint('booking', __name__)
 
 
 @booking_bp.route('/booking/calendly')
-@login_required
+@require_login
 def calendly():
     """
     Main Calendly-style booking interface
@@ -46,7 +46,7 @@ def calendly():
 
 
 @booking_bp.route('/api/available-dates', methods=['POST'])
-@login_required
+@require_login
 def available_dates():
     """
     Get available dates for selected consultant
@@ -68,7 +68,7 @@ def available_dates():
 
 
 @booking_bp.route('/api/available-times', methods=['POST'])
-@login_required
+@require_login
 def available_times():
     """
     Get available time slots for selected date
@@ -86,7 +86,7 @@ def available_times():
 
 
 @booking_bp.route('/api/book-appointment', methods=['POST'])
-@login_required
+@require_login
 def book_appointment():
     """
     Submit booking and create Google Calendar event
@@ -107,7 +107,7 @@ def book_appointment():
 
 
 @booking_bp.route('/my-bookings')
-@login_required
+@require_login
 def my_bookings():
     """
     User's T2 appointments list
@@ -128,7 +128,7 @@ def my_bookings():
 
 
 @booking_bp.route('/api/cancel-booking', methods=['POST'])
-@login_required
+@require_login
 def cancel_booking():
     """
     Cancel appointment and delete calendar event
@@ -142,7 +142,7 @@ def cancel_booking():
 
 
 @booking_bp.route('/api/reschedule-booking', methods=['POST'])
-@login_required
+@require_login
 def reschedule_booking():
     """
     Reschedule appointment request
@@ -156,7 +156,7 @@ def reschedule_booking():
 
 
 @booking_bp.route('/api/get-reschedule-slots', methods=['POST'])
-@login_required
+@require_login
 def get_reschedule_slots():
     """
     Get available slots for rescheduling
@@ -170,7 +170,7 @@ def get_reschedule_slots():
 
 
 @booking_bp.route('/booking/success')
-@login_required
+@require_login
 def booking_success():
     """
     Booking success page
@@ -182,7 +182,7 @@ def booking_success():
 
 
 @booking_bp.route('/booking/error')
-@login_required
+@require_login
 def booking_error():
     """
     Booking error page
@@ -194,7 +194,7 @@ def booking_error():
 
 
 @booking_bp.route('/api/booking-stats', methods=['GET'])
-@login_required
+@require_login
 def booking_stats():
     """
     Booking statistics API

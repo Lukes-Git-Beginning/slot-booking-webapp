@@ -16,15 +16,16 @@ Migration Status: Phase 2 - Stub created, implementation in Phase 6 (HIGH RISK!)
 CRITICAL: Draw closer is most-used T2 feature, requires extensive testing
 """
 
-from flask import Blueprint, render_template, jsonify, request
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, jsonify, request, session
+from app.utils.decorators import require_login
+from .utils import is_admin_user
 
 # Create sub-blueprint
 bucket_bp = Blueprint('bucket', __name__)
 
 
 @bucket_bp.route('/draw-closer')
-@login_required
+@require_login
 def draw_closer():
     """
     Main closer draw interface (CRITICAL FEATURE!)
@@ -48,7 +49,7 @@ def draw_closer():
 
 
 @bucket_bp.route('/api/draw-closer', methods=['POST'])
-@login_required
+@require_login
 def api_draw_closer():
     """
     Execute closer draw (CRITICAL API!)
@@ -71,7 +72,7 @@ def api_draw_closer():
 
 
 @bucket_bp.route('/get-user-tickets')
-@login_required
+@require_login
 def get_user_tickets():
     """
     Get user's remaining ticket count
@@ -88,7 +89,7 @@ def get_user_tickets():
 
 
 @bucket_bp.route('/admin/reset-bucket', methods=['POST'])
-@login_required
+@require_login
 def reset_bucket():
     """
     Manual bucket reset (Admin only)
@@ -102,7 +103,8 @@ def reset_bucket():
     - Log reset action
     """
     # Stub
-    if not current_user.is_admin:
+    user = session.get('user')
+    if not is_admin_user(user):
         return jsonify({'error': 'Admin only'}), 403
 
     return jsonify({
@@ -112,7 +114,7 @@ def reset_bucket():
 
 
 @bucket_bp.route('/admin/bucket-history')
-@login_required
+@require_login
 def bucket_history():
     """
     Draw history view (Admin only)
@@ -123,7 +125,8 @@ def bucket_history():
     TODO Phase 6: Implement history display
     """
     # Stub
-    if not current_user.is_admin:
+    user = session.get('user')
+    if not is_admin_user(user):
         return render_template('errors/403.html'), 403
 
     return render_template('t2/bucket_history.html',
@@ -133,7 +136,7 @@ def bucket_history():
 
 
 @bucket_bp.route('/admin/bucket-config')
-@login_required
+@require_login
 def bucket_config():
     """
     Bucket configuration UI (Admin only)
@@ -144,7 +147,8 @@ def bucket_config():
     TODO Phase 6: Implement config UI
     """
     # Stub
-    if not current_user.is_admin:
+    user = session.get('user')
+    if not is_admin_user(user):
         return render_template('errors/403.html'), 403
 
     return render_template('t2/admin_bucket_config.html',
@@ -154,7 +158,7 @@ def bucket_config():
 
 
 @bucket_bp.route('/api/update-bucket-config', methods=['POST'])
-@login_required
+@require_login
 def update_bucket_config():
     """
     Update bucket configuration (Admin only)
@@ -164,7 +168,8 @@ def update_bucket_config():
     TODO Phase 6: Implement config updates
     """
     # Stub
-    if not current_user.is_admin:
+    user = session.get('user')
+    if not is_admin_user(user):
         return jsonify({'error': 'Admin only'}), 403
 
     return jsonify({
@@ -174,7 +179,7 @@ def update_bucket_config():
 
 
 @bucket_bp.route('/api/bucket-stats', methods=['GET'])
-@login_required
+@require_login
 def bucket_stats():
     """
     Bucket statistics API
