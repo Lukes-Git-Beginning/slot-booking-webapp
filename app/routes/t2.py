@@ -1414,6 +1414,9 @@ def api_book_2h_slot():
         }
 
         # Nur schreiben wenn can_write=True
+        event_id = None
+        event_calendar_id = None
+
         if T2_CLOSERS[berater].get('can_write', False):
             try:
                 from app.utils.error_messages import get_error_message
@@ -1423,7 +1426,9 @@ def api_book_2h_slot():
                 result, error_context = calendar_service.create_event_with_context(calendar_id, event_body)
 
                 if result:
-                    logger.info(f"Google Calendar event created: {result.get('id')}")
+                    event_id = result.get('id')
+                    event_calendar_id = calendar_id
+                    logger.info(f"Google Calendar event created: {event_id}")
                 else:
                     error_id = generate_error_id("CAL")
                     error_category = error_context.get('category', 'CALENDAR_UNAVAILABLE')
@@ -1454,7 +1459,10 @@ def api_book_2h_slot():
             'topic': data.get('topic', ''),
             'email': data.get('email', ''),
             'user': user,
-            'created_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat(),
+            # NEW: Store event_id for deletion
+            'event_id': event_id,
+            'calendar_id': event_calendar_id
         }
 
         save_t2_booking(t2_booking_data)
@@ -1747,13 +1755,27 @@ def api_cancel_booking():
         if booking.get('status') == 'cancelled':
             return jsonify({'success': False, 'error': 'Buchung bereits storniert'}), 400
 
-        # 1. Google Calendar Event löschen (wenn Berater Schreibrechte hat)
+        # 1. Google Calendar Event löschen (wenn vorhanden)
+        event_id = booking.get('event_id')
+        calendar_id = booking.get('calendar_id')
         berater = booking.get('berater')
-        if berater and berater in T2_CLOSERS and T2_CLOSERS[berater].get('can_write', False):
-            # TODO: Event löschen via Google Calendar API
-            # calendar_service.delete_event(calendar_id, event_id)
-            # Problem: Wir haben die event_id nicht gespeichert!
-            logger.warning(f"Calendar deletion not implemented (missing event_id) for booking {booking_id}")
+
+        if event_id and calendar_id:
+            try:
+                from app.core.google_calendar import GoogleCalendarService
+                calendar_service = GoogleCalendarService()
+                success, error = calendar_service.delete_event(calendar_id, event_id)
+
+                if success:
+                    logger.info(f"Successfully deleted calendar event {event_id} for booking {booking_id}")
+                else:
+                    logger.error(f"Failed to delete calendar event {event_id}: {error}")
+                    # Continue with cancellation anyway - calendar failure shouldn't block booking cancellation
+            except Exception as e:
+                logger.error(f"Exception deleting calendar event: {e}")
+                # Continue with cancellation anyway
+        elif berater and berater in T2_CLOSERS and T2_CLOSERS[berater].get('can_write', False):
+            logger.warning(f"Booking {booking_id} has no event_id - manual calendar cleanup required")
         else:
             logger.info(f"Skipping calendar deletion for {berater} (no write access or mock)")
 
@@ -1913,6 +1935,9 @@ def api_reschedule_booking():
         }
 
         # Google Calendar Event erstellen (wenn Schreibrechte)
+        reschedule_event_id = None
+        reschedule_calendar_id = None
+
         if T2_CLOSERS[berater].get('can_write', False):
             try:
                 from app.utils.error_messages import get_error_message
@@ -1922,7 +1947,9 @@ def api_reschedule_booking():
                 result, error_context = calendar_service.create_event_with_context(calendar_id, event_body)
 
                 if result:
-                    logger.info(f"New calendar event created for rescheduled booking: {result.get('id')}")
+                    reschedule_event_id = result.get('id')
+                    reschedule_calendar_id = calendar_id
+                    logger.info(f"New calendar event created for rescheduled booking: {reschedule_event_id}")
                 else:
                     error_id = generate_error_id("CAL")
                     error_category = error_context.get('category', 'CALENDAR_UNAVAILABLE')
@@ -1950,7 +1977,10 @@ def api_reschedule_booking():
             'user': booking.get('user'),
             'status': 'active',
             'created_at': datetime.now().isoformat(),
-            'is_rescheduled_from': booking_id
+            'is_rescheduled_from': booking_id,
+            # NEW: Store event_id for deletion
+            'event_id': reschedule_event_id,
+            'calendar_id': reschedule_calendar_id
         }
 
         all_bookings.append(new_booking)

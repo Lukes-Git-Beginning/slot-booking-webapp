@@ -464,18 +464,48 @@ class GoogleCalendarService:
 
         return self.safe_calendar_call(_update_event)
 
-    def delete_event(self, calendar_id: str, event_id: str):
-        """Delete a calendar event"""
-        if not self.service:
-            return None
+    def delete_event(self, calendar_id: str, event_id: str) -> tuple[bool, Optional[str]]:
+        """
+        Delete a Google Calendar event
 
-        def _delete_event():
-            return self.service.events().delete(
+        Returns: (success: bool, error_message: Optional[str])
+
+        Success cases:
+        - Event deleted successfully
+        - Event not found (404/410) - already deleted, no problem
+
+        Error cases:
+        - Google Calendar not configured
+        - Network errors
+        - Permission errors
+        """
+        if not self.service:
+            return False, "Google Calendar not configured"
+
+        try:
+            self.service.events().delete(
                 calendarId=calendar_id,
                 eventId=event_id
             ).execute()
 
-        return self.safe_calendar_call(_delete_event)
+            calendar_logger.info(f"Deleted calendar event {event_id} from {calendar_id}")
+            return True, None
+
+        except HttpError as e:
+            if e.resp.status == 404:
+                calendar_logger.warning(f"Event {event_id} not found (already deleted?)")
+                return True, None  # Already gone, no problem
+            elif e.resp.status == 410:
+                calendar_logger.warning(f"Event {event_id} permanently deleted")
+                return True, None  # Already deleted
+            else:
+                error_msg = f"HTTP {e.resp.status}: {str(e)}"
+                calendar_logger.error(f"Failed to delete event {event_id}: {error_msg}")
+                return False, error_msg
+        except Exception as e:
+            error_msg = str(e)
+            calendar_logger.error(f"Unexpected error deleting event {event_id}: {error_msg}")
+            return False, error_msg
 
 
 # Global instance - lazy-loaded
