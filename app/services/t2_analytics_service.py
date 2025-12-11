@@ -15,6 +15,14 @@ from collections import defaultdict, Counter
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone("Europe/Berlin")
 
+# PostgreSQL Imports (for draw history migration)
+try:
+    from app.models import T2DrawHistory, get_db_session, is_postgres_enabled
+    POSTGRES_IMPORTS_AVAILABLE = True
+except ImportError:
+    POSTGRES_IMPORTS_AVAILABLE = False
+    logger.warning("PostgreSQL models not available for T2 analytics")
+
 # Data Persistence Paths
 PERSIST_BASE = os.getenv("PERSIST_BASE", "/opt/business-hub/data")
 if not os.path.exists(PERSIST_BASE):
@@ -90,6 +98,8 @@ class T2AnalyticsService:
         """
         Get user-specific draw history with pagination and filters
 
+        NOW READS FROM PostgreSQL (with JSON fallback for compatibility)
+
         Args:
             username: Username to filter draws
             limit: Maximum number of draws to return
@@ -101,6 +111,82 @@ class T2AnalyticsService:
         Returns:
             Dict with draws, total_count, has_more
         """
+        # TRY POSTGRESQL FIRST (persistent storage, survives bucket resets!)
+        if POSTGRES_IMPORTS_AVAILABLE:
+            try:
+                if is_postgres_enabled():
+                    session = get_db_session()
+                    if session:
+                        # Build query
+                        query = session.query(T2DrawHistory).filter(
+                            T2DrawHistory.username == username
+                        )
+
+                        # Apply date filters
+                        if start_date:
+                            try:
+                                start_dt = datetime.fromisoformat(start_date)
+                                query = query.filter(T2DrawHistory.drawn_at >= start_dt)
+                            except:
+                                logger.warning(f"Invalid start_date format: {start_date}")
+
+                        if end_date:
+                            try:
+                                end_dt = datetime.fromisoformat(end_date)
+                                query = query.filter(T2DrawHistory.drawn_at <= end_dt)
+                            except:
+                                logger.warning(f"Invalid end_date format: {end_date}")
+
+                        # Apply closer filter
+                        if closer_filter:
+                            query = query.filter(T2DrawHistory.closer_drawn == closer_filter)
+
+                        # Order by timestamp DESC (newest first)
+                        query = query.order_by(T2DrawHistory.drawn_at.desc())
+
+                        # Get total count (before pagination)
+                        total_count = query.count()
+
+                        # Apply pagination
+                        user_draws_orm = query.offset(offset).limit(limit).all()
+
+                        # Convert to dict format
+                        paginated_draws = []
+                        for draw_orm in user_draws_orm:
+                            draw_dict = draw_orm.to_dict()
+
+                            # Format timestamps for display
+                            try:
+                                dt = draw_orm.drawn_at
+                                if dt.tzinfo is None:
+                                    dt = TZ.localize(dt)
+                                draw_dict["formatted_date"] = dt.strftime("%d.%m.%Y")
+                                draw_dict["formatted_time"] = dt.strftime("%H:%M")
+                                draw_dict["formatted_datetime"] = dt.strftime("%d.%m.%Y %H:%M")
+                            except:
+                                draw_dict["formatted_date"] = "N/A"
+                                draw_dict["formatted_time"] = "N/A"
+                                draw_dict["formatted_datetime"] = "N/A"
+
+                            paginated_draws.append(draw_dict)
+
+                        session.close()
+
+                        logger.info(f"✅ Loaded {len(paginated_draws)}/{total_count} draws from PostgreSQL for {username}")
+
+                        return {
+                            "draws": paginated_draws,
+                            "total_count": total_count,
+                            "returned_count": len(paginated_draws),
+                            "offset": offset,
+                            "limit": limit,
+                            "has_more": (offset + limit) < total_count
+                        }
+            except Exception as e:
+                logger.warning(f"PostgreSQL read failed, using JSON fallback: {e}", exc_info=True)
+
+        # FALLBACK TO JSON (old behavior - only shows draws since last reset!)
+        logger.warning(f"⚠️  Using JSON fallback for draw history (may be incomplete after bucket reset)")
         bucket_data = self._load_bucket_data()
         all_draws = bucket_data.get("draw_history", [])
 
@@ -109,12 +195,18 @@ class T2AnalyticsService:
 
         # Apply date filters
         if start_date:
-            start_dt = datetime.fromisoformat(start_date)
-            user_draws = [d for d in user_draws if datetime.fromisoformat(d["timestamp"]) >= start_dt]
+            try:
+                start_dt = datetime.fromisoformat(start_date)
+                user_draws = [d for d in user_draws if datetime.fromisoformat(d["timestamp"]) >= start_dt]
+            except:
+                pass
 
         if end_date:
-            end_dt = datetime.fromisoformat(end_date)
-            user_draws = [d for d in user_draws if datetime.fromisoformat(d["timestamp"]) <= end_dt]
+            try:
+                end_dt = datetime.fromisoformat(end_date)
+                user_draws = [d for d in user_draws if datetime.fromisoformat(d["timestamp"]) <= end_dt]
+            except:
+                pass
 
         # Apply closer filter
         if closer_filter:

@@ -96,7 +96,7 @@ def register_bucket_routes(t2_bp):
             user = session.get('user')
 
             # Check admin
-            from app.routes.t2 import is_admin_user
+            from app.routes.t2.utils import is_admin_user
             if not is_admin_user(user):
                 return redirect(url_for('t2.dashboard'))
 
@@ -161,7 +161,7 @@ def register_bucket_routes(t2_bp):
         user = session.get('user')
 
         # Check admin
-        from app.routes.t2 import is_admin_user
+        from app.routes.t2.utils import is_admin_user
         if not is_admin_user(user):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
@@ -192,7 +192,7 @@ def register_bucket_routes(t2_bp):
         user = session.get('user')
 
         # Check admin
-        from app.routes.t2 import is_admin_user
+        from app.routes.t2.utils import is_admin_user
         if not is_admin_user(user):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
@@ -219,7 +219,7 @@ def register_bucket_routes(t2_bp):
         user = session.get('user')
 
         # Check admin
-        from app.routes.t2 import is_admin_user
+        from app.routes.t2.utils import is_admin_user
         if not is_admin_user(user):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
@@ -249,7 +249,7 @@ def register_bucket_routes(t2_bp):
         user = session.get('user')
 
         # Check admin
-        from app.routes.t2 import is_admin_user
+        from app.routes.t2.utils import is_admin_user
         if not is_admin_user(user):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
@@ -288,7 +288,7 @@ def register_bucket_routes(t2_bp):
         user = session.get('user')
 
         # Check admin
-        from app.routes.t2 import is_admin_user
+        from app.routes.t2.utils import is_admin_user
         if not is_admin_user(user):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
@@ -324,7 +324,7 @@ def register_bucket_routes(t2_bp):
         user = session.get('user')
 
         # Check admin
-        from app.routes.t2 import is_admin_user
+        from app.routes.t2.utils import is_admin_user
         if not is_admin_user(user):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 

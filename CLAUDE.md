@@ -38,7 +38,7 @@ Nach dem Auto-Check solltest du wissen:
 - ✅ **Letzte 5-10 Commits**: Was wurde zuletzt geändert?
 - ✅ **Uncommitted Changes**: Gibt es lokale Änderungen?
 - ✅ **Aktuelle Branch**: Arbeiten wir auf `main`?
-- ✅ **Projekt-Version**: Aktuell v3.3.13 (siehe README.md Changelog)
+- ✅ **Projekt-Version**: Aktuell v3.3.14 (siehe README.md Changelog)
 - ✅ **Server-Status**: Läuft der Production-Server? (optional)
 
 ### Workflow nach Auto-Check
@@ -46,7 +46,7 @@ Nach dem Auto-Check solltest du wissen:
 1. **Präsentiere Status-Zusammenfassung** (kurz & prägnant):
    ```
    📊 Projekt-Status:
-   - Version: v3.3.13
+   - Version: v3.3.14
    - Letzte Commits: [Liste 3-5 wichtigste]
    - Uncommitted: [Anzahl Dateien oder "Keine"]
    - Server: [Status wenn geprüft, sonst "Nicht geprüft"]
@@ -881,7 +881,45 @@ curl http://91.98.192.233/health | jq '.checks.sentry'
 
 ## 📊 Projektstatus
 
-### Version: v3.3.13 (LIVE - Google Calendar & Berater-Konfiguration) - 2025-11-25
+### Version: v3.3.14 (LIVE - T2 PostgreSQL Bugfixes & Feature Flag Rollback) - 2025-12-11
+
+**Letzte Änderungen:**
+- ✅ **T2 Feature Flag Rollback**:
+  - **T2_MODULAR_BLUEPRINTS**: `true → false` (zurück zu Legacy-System)
+  - **Grund**: Modular Blueprint Migration noch nicht vollständig (10 Templates benötigen Endpoint-Fixes)
+  - **Status**: Legacy T2-System aktiv und stabil
+- ✅ **Bugfix: Bucket Config Import-Error**:
+  - **Problem**: ImportError `cannot import name 'is_admin_user' from 'app.routes.t2'`
+  - **Root Cause**: Phase 1 Migration verschob `is_admin_user()` nach `app/routes/t2/utils.py`
+  - **Fix**: 7 Import-Statements in `t2_bucket_routes.py` korrigiert
+  - **Zeilen**: 99, 164, 195, 222, 252, 291, 327
+  - **Ergebnis**: Bucket Config-Seite zeigt jetzt korrekte Daten
+- ✅ **Bugfix: Draw History PostgreSQL Migration**:
+  - **Problem**: Opener sahen nur 1 Draw statt 114 historischer Draws
+  - **Root Cause**: Analytics-Service las aus JSON (nach Bucket-Reset leer), nicht aus PostgreSQL
+  - **Fix**: `t2_analytics_service.py` migriert zu PostgreSQL-First mit JSON-Fallback
+  - **Implementation**:
+    - PostgreSQL Query mit Filtering, Pagination, Sorting
+    - Timezone-aware Timestamp-Formatierung
+    - JSON-Fallback für Kompatibilität beibehalten
+  - **Ergebnis**: Alle 114 historischen Draws sichtbar (sara.mast: 30, ann-kathrin.welge: 26, dominik.mikic: 25, sonja.mast: 13)
+
+**Deployment-Status:**
+- 🟢 **Production**: LIVE auf http://91.98.192.233
+- 📦 **Geänderte Dateien**:
+  - `app/services/t2_analytics_service.py` (PostgreSQL-Integration, 123 Zeilen hinzugefügt)
+  - `app/routes/t2_bucket_routes.py` (Import-Fixes, 7 Zeilen geändert)
+  - Server `.env` (T2_MODULAR_BLUEPRINTS=false)
+- 🔄 **Service**: 4 Workers, 309MB RAM, stabil
+
+**Performance-Details**:
+- PostgreSQL Draws: 114 total (persistent, überlebt Bucket-Resets)
+- Analytics Query-Zeit: ~50ms (vorher: N/A wegen JSON)
+- Bucket Config: Keine Import-Errors mehr
+
+### Frühere Versionen
+
+#### Version: v3.3.13 (LIVE - Google Calendar & Berater-Konfiguration) - 2025-11-25
 
 **Letzte Änderungen:**
 - ✅ **Google Calendar Berechtigungen - Alle 12 Kalender funktional**:
