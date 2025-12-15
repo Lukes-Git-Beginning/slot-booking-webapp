@@ -469,19 +469,19 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 **Standard-Berater (Vollzeit - immer verfügbar):**
 | Name | Calendar-ID | Typ |
 |------|-------------|-----|
-| ~~Patrick~~ | ~~`0d5nq65ogpekomad34ti234h1g@group.calendar.google.com`~~ | ~~Vollzeit~~ (removed 2025-11-26) |
-| Ann-Kathrin | `a.welge.zfa@gmail.com` | Vollzeit |
-| Sara | `mastsara2@gmail.com` | Vollzeit |
-| Dominik | `mikic.dom@gmail.com` | Vollzeit |
+| ~~Patrick~~ | ~~`consultant-patrick@example.com`~~ | ~~Vollzeit~~ (removed 2025-11-26) |
+| Ann-Kathrin | `consultant-ann-kathrin@example.com` | Vollzeit |
+| Sara | `consultant-sara@example.com` | Vollzeit |
+| Dominik | `consultant-dominik@example.com` | Vollzeit |
 
 **Extended-Berater (Teilzeit/T2-Priorität - bei Bedarf):**
 | Name | Calendar-ID | Begründung |
 |------|-------------|------------|
-| Simon | `simonmast9@gmail.com` | Hauptaufgabe anderswo, verfügbar 20:00 Uhr |
-| Sonja | `sonjamast98@gmail.com` | Variable Verfügbarkeit (Neugeborenes) |
-| Tim | `tim.kreisel71@gmail.com` | T2/T3 Priorität |
-| Christian | `chmast95@gmail.com` | T2/T3 Priorität |
-| Daniel | `daniel.herbort.zfa@gmail.com` | T2/T3 Priorität |
+| Simon | `consultant-simon@example.com` | Hauptaufgabe anderswo, verfügbar 20:00 Uhr |
+| Sonja | `consultant-sonja@example.com` | Variable Verfügbarkeit (Neugeborenes) |
+| Tim | `consultant-tim@example.com` | T2/T3 Priorität |
+| Christian | `consultant-christian@example.com` | T2/T3 Priorität |
+| Daniel | `consultant-daniel@example.com` | T2/T3 Priorität |
 
 **Konfiguration:**
 - Slot-Zeiten: 09:00, 11:00, 14:00, 16:00, 18:00, 20:00 Uhr
@@ -496,16 +496,16 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 **Coaches (würfelbar - MIT Schreibrechten):**
 | Name | Calendar-ID | Schreibrecht | Status |
 |------|-------------|--------------|--------|
-| David Nehm | `david.nehm@googlemail.com` | ✅ Ja | Coach + Admin |
-| Alexander Nehm | `qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com` | ✅ Ja | Coach + Admin (Group Calendar) |
-| Jose Torspecken | `jtldiw@gmail.com` | ✅ Ja | Coach + Closer |
+| David Nehm | `coach-david@example.com` | ✅ Ja | Coach + Admin |
+| Alexander Nehm | `coach-alexander-group@example.com` | ✅ Ja | Coach + Admin (Group Calendar) |
+| Jose Torspecken | `coach-jose@example.com` | ✅ Ja | Coach + Closer |
 
 **Berater (ausführend - MIT Schreibrechten):**
 | Name | Calendar-ID | Rolle |
 |------|-------------|-------|
-| Christian | `chmast95@gmail.com` | Berater + Closer + Opener |
-| Daniel | `daniel.herbort.zfa@gmail.com` | Berater + Closer + Opener |
-| Tim | `tim.kreisel71@gmail.com` | Berater + Closer + Opener |
+| Christian | `consultant-christian@example.com` | Berater + Closer + Opener |
+| Daniel | `consultant-daniel@example.com` | Berater + Closer + Opener |
+| Tim | `consultant-tim@example.com` | Berater + Closer + Opener |
 
 **Workflow:**
 1. User würfelt Coach (David/Alexander/Jose)
@@ -537,7 +537,7 @@ python -c "from app.core.extensions import cache_manager; cache_manager.clear_al
 **Letzte Änderungen:**
 - ✅ **Google Calendar Berechtigungen - Alle 12 Kalender funktional**:
   - **3 Coaches hinzugefügt**: David Nehm, Alexander Nehm, Jose Torspecken
-  - **Alexander's Calendar-ID korrigiert**: Group Calendar (`qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com`)
+  - **Alexander's Calendar-ID korrigiert**: Group Calendar (`coach-alexander-group@example.com`)
   - **Berechtigungs-Test**: 12/12 Kalender erfolgreich (11 sofort, 1 nach ID-Korrektur)
   - **CONSULTANTS erweitert**: Von 9 auf 12 Kalender (9 Consultants + 3 Coaches)
 - ✅ **Notification-Rollen erweitert**:

@@ -244,7 +244,7 @@ SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
 
 # Google Calendar (von Render kopieren)
 GOOGLE_CREDS_BASE64=<von-render-kopieren>
-CENTRAL_CALENDAR_ID=zentralkalenderzfa@gmail.com
+CENTRAL_CALENDAR_ID=central-calendar@example.com
 
 # Consultants (von Render kopieren)
 CONSULTANTS=<von-render-kopieren>

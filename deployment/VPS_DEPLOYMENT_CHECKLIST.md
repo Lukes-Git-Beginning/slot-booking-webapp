@@ -112,9 +112,9 @@ sudo -u business-hub nano .env
 SECRET_KEY=<neu-generiert>
 FLASK_ENV=production
 GOOGLE_CREDS_BASE64=<base64-encoded>
-CENTRAL_CALENDAR_ID=zentralkalenderzfa@gmail.com
-CONSULTANTS=Name1:email1,Name2:email2
-T2_CLOSERS=Name1:email1,Name2:email2
+CENTRAL_CALENDAR_ID=central-calendar@example.com
+CONSULTANTS=Name1:consultant1@example.com,Name2:consultant2@example.com
+T2_CLOSERS=Name1:closer1@example.com,Name2:closer2@example.com
 USERLIST=user1:pass1,user2:pass2
 ADMIN_USERS=admin,user1
 PERSIST_BASE=/opt/business-hub/data

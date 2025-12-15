@@ -29,6 +29,59 @@ T2_CONFIG = {
 
 
 # ============================================================================
+# T2 CLOSERS CONFIGURATION (from t2_legacy.py line 27-73)
+# ============================================================================
+
+T2_CLOSERS = {
+    # === COACHES (würfelbar) - MIT Schreibrechten ===
+    "David": {
+        "calendar_id": "david.nehm@googlemail.com",
+        "email": "david.nehm@googlemail.com",
+        "role": "coach",
+        "can_write": True,  # Coaches können eigene Termine buchen
+        "color": "#9C27B0"
+    },
+    "Alex": {
+        "calendar_id": "qfcpmp08okjoljs3noupl64m2c@group.calendar.google.com",  # Group Calendar
+        "email": "alexandernehm84@gmail.com",
+        "role": "coach",
+        "can_write": True,  # Coaches können eigene Termine buchen
+        "color": "#2196F3"
+    },
+    "Jose": {
+        "calendar_id": "jtldiw@gmail.com",
+        "email": "jtldiw@gmail.com",
+        "role": "coach",
+        "can_write": True,  # Coaches können eigene Termine buchen
+        "color": "#795548"
+    },
+
+    # === BERATER (ausführend) - MIT Schreibrechten ===
+    "Christian": {
+        "calendar_id": "chmast95@gmail.com",
+        "email": "chmast95@gmail.com",
+        "role": "berater",
+        "can_write": True,
+        "color": "#4CAF50"
+    },
+    "Daniel": {
+        "calendar_id": "daniel.herbort.zfa@gmail.com",
+        "email": "daniel.herbort.zfa@gmail.com",
+        "role": "berater",
+        "can_write": True,
+        "color": "#FF9800"
+    },
+    "Tim": {
+        "calendar_id": "tim.kreisel71@gmail.com",
+        "email": "tim.kreisel71@gmail.com",
+        "role": "berater",
+        "can_write": True,
+        "color": "#00BCD4"
+    }
+}
+
+
+# ============================================================================
 # ADMIN & USER CHECKS (from t2_legacy.py line 795-821)
 # ============================================================================
 
@@ -121,6 +174,34 @@ def consume_user_ticket(username: str):
         logger.error(f"Error consuming ticket: {e}")
 
 
+def return_user_ticket(username: str):
+    """
+    Gibt Ticket zurück nach Stornierung.
+
+    Reduziert used-Counter um 1 für aktuellen Monat.
+
+    MIGRATED FROM: t2_legacy.py line 685
+    """
+    try:
+        from app.services.data_persistence import data_persistence
+
+        current_month = datetime.now().strftime('%Y-%m')
+        ticket_data = data_persistence.load_data('t2_tickets', {})
+
+        if username in ticket_data and current_month in ticket_data[username]:
+            current_used = ticket_data[username][current_month].get('used', 0)
+            ticket_data[username][current_month]['used'] = max(0, current_used - 1)
+
+            data_persistence.save_data('t2_tickets', ticket_data)
+
+            logger.info(f"Ticket returned for {username} in {current_month} (new used: {ticket_data[username][current_month]['used']})")
+        else:
+            logger.warning(f"No ticket data found for {username} in {current_month}")
+
+    except Exception as e:
+        logger.error(f"Error returning ticket: {e}")
+
+
 def get_next_ticket_reset() -> str:
     """
     Nächstes Ticket-Reset-Datum
@@ -133,8 +214,79 @@ def get_next_ticket_reset() -> str:
 
 
 # ============================================================================
-# BOOKING FUNCTIONS (from t2_legacy.py line 602-668)
+# BOOKING FUNCTIONS (from t2_legacy.py line 533-668)
 # ============================================================================
+
+def save_t2_booking(booking_data: Dict):
+    """
+    Buchung speichern (DUAL-WRITE: PostgreSQL + JSON)
+
+    Strategy:
+    1. Try PostgreSQL (if enabled)
+    2. Always write to JSON as backup
+    3. Log if PostgreSQL fails but continue with JSON
+
+    MIGRATED FROM: t2_legacy.py line 533
+    """
+    try:
+        from app.services.data_persistence import data_persistence
+        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        from datetime import datetime
+
+        # WRITE TO POSTGRESQL FIRST
+        postgres_success = False
+        if is_postgres_enabled():
+            try:
+                session = get_db_session()
+                if session:
+                    # Convert booking_data to T2Booking model
+                    booking = T2Booking(
+                        booking_id=booking_data['id'],
+                        coach=booking_data.get('coach', ''),
+                        berater=booking_data.get('berater', ''),
+                        customer=booking_data.get('customer', ''),
+                        date=datetime.strptime(booking_data['date'], '%Y-%m-%d').date() if booking_data.get('date') else None,
+                        time=booking_data.get('time', ''),
+                        topic=booking_data.get('topic', ''),
+                        email=booking_data.get('email', ''),
+                        user=booking_data.get('user', ''),
+                        event_id=booking_data.get('event_id'),
+                        calendar_id=booking_data.get('calendar_id'),
+                        status=booking_data.get('status', 'active'),
+                        is_rescheduled_from=booking_data.get('is_rescheduled_from')
+                        # Note: created_at/updated_at are set automatically by Base class
+                    )
+
+                    session.add(booking)
+                    session.commit()
+                    postgres_success = True
+                    logger.info(f"✅ T2 booking saved to PostgreSQL: {booking_data['id']}")
+                    session.close()
+            except Exception as e:
+                logger.error(f"⚠️ PostgreSQL save failed for T2 booking {booking_data['id']}: {e}")
+                # Continue to JSON fallback
+
+        # ALWAYS WRITE TO JSON (Backup)
+        bookings_data = data_persistence.load_data('t2_bookings', {'bookings': []})
+        # Handle both list and dict formats
+        if isinstance(bookings_data, dict):
+            bookings = bookings_data.get('bookings', [])
+        else:
+            bookings = bookings_data  # Legacy list format
+
+        bookings.append(booking_data)
+        # Always save in dict format
+        data_persistence.save_data('t2_bookings', {'bookings': bookings})
+
+        if postgres_success:
+            logger.info(f"✅ T2 booking saved (PostgreSQL + JSON): {booking_data['id']}")
+        else:
+            logger.info(f"⚠️ T2 booking saved (JSON only): {booking_data['id']}")
+
+    except Exception as e:
+        logger.error(f"Error saving booking: {e}")
+        raise
+
 
 def load_t2_bookings() -> List[Dict]:
     """
@@ -213,6 +365,22 @@ def get_next_t2_appointments(username: str) -> List[Dict]:
     future_bookings.sort(key=lambda x: (x.get('date', ''), x.get('time', '')))
 
     return future_bookings[:5]
+
+
+def can_modify_booking(booking: Dict, username: str) -> bool:
+    """
+    Prüft ob User berechtigt ist Buchung zu ändern/stornieren.
+
+    Args:
+        booking: Buchungs-Dictionary
+        username: Aktueller User
+
+    Returns:
+        True wenn User = Booker ODER User = Admin
+
+    MIGRATED FROM: t2_legacy.py line 671
+    """
+    return booking.get('user') == username or is_admin_user(username)
 
 
 # ============================================================================

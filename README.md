@@ -254,8 +254,8 @@ PREFERRED_URL_SCHEME=https
 # GOOGLE CALENDAR INTEGRATION
 # ========================================
 GOOGLE_CREDS_BASE64=<base64-kodierte-service-account-json>
-CENTRAL_CALENDAR_ID=zentralkalenderzfa@gmail.com
-CONSULTANTS=Name1:email1@gmail.com,Name2:email2@gmail.com
+CENTRAL_CALENDAR_ID=central-calendar@example.com
+CONSULTANTS=Name1:consultant1@example.com,Name2:consultant2@example.com
 
 # ========================================
 # SECURITY SETTINGS
@@ -650,6 +650,149 @@ ssh -i ~/.ssh/server_key root@91.98.192.233 "ls -lh /opt/business-hub/data/backu
 # Backup wiederherstellen (Vorsicht!)
 ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/backup_YYYYMMDD.json /opt/business-hub/data/persistent/file.json"
 ```
+
+## 🚨 Error Handling & Monitoring
+
+### Error-ID System
+
+**Format:** `<CATEGORY>-<YYYYMMDD>-<HHMMSS>-<4-CHAR-UUID>`
+
+**Kategorien:**
+- `BOOK-*` - Booking-Fehler (validation, slot full, date parsing)
+- `CAL-*` - Google Calendar API Fehler (quota, rate limit, network)
+- `TRK-*` - Tracking-Fehler (PostgreSQL/JSON dual-write)
+- `ERR-*` - Generische Fehler
+
+**Beispiel:** `CAL-20251203-143022-A8F2`
+
+### Sentry Integration
+
+**Status:** ✅ Konfiguriert (Deutsche Region)
+
+**DSN:** `<configured-in-production-env>` (Get from https://sentry.io/settings/projects/)
+
+**Was wird getrackt:**
+- ✅ Alle 500+ HTTP Errors automatisch
+- ✅ Uncaught Exceptions mit vollständigem Stacktrace
+- ✅ Request Context (URL, User, IP, Browser)
+- ✅ Custom Error-IDs als Tags
+- ✅ Performance-Daten (optional)
+
+**Zugriff:**
+- Dashboard: https://sentry.io
+- Projekt: `business-hub`
+
+### Lokales Error-Logging
+
+**Critical Errors (500+):**
+- Location: `data/persistent/logs/critical_errors.jsonl`
+- Format: JSON Lines (ein Error pro Zeile)
+
+**Admin-Notifications:**
+- Automatisch für: Tracking-Fehler, Calendar-Service-Down, 500+ Errors
+- Erscheinen als Notification im Hub
+- `show_popup=True` für kritische Fehler
+
+## 👥 Rollen & Kalender-System
+
+### System-Rollen (17 User)
+
+| Rolle | Anzahl | Mitglieder |
+|-------|--------|------------|
+| **admin** | 4 | alexander.nehm, david.nehm, simon.mast, luke.hoppe |
+| **closer** | 6 | jose.torspecken, alexander.nehm, david.nehm, tim.kreisel, christian.mast, daniel.herbort |
+| **opener** | 8 | christian.mast, tim.kreisel, daniel.herbort, sonja.mast, simon.mast, dominik.mikic, ann-kathrin.welge, sara.mast |
+| **coach** | 3 | alexander.nehm, david.nehm, jose.torspecken |
+| **telefonist** | 9 | tim.kreisel, christian.mast, ladislav.heka, sonja.mast, simon.mast, alexandra.börner, yasmine.schumacher, ann-kathrin.welge, sara.mast |
+| **service** | 3 | alexandra.börner, vanessa.wagner, simon.mast |
+
+**Total:** 17 Unique User (manche haben mehrere Rollen)
+
+### T1 Slot-Booking Kalender (30min Slots)
+
+**Standard-Berater (Vollzeit - immer verfügbar):**
+
+| Name | Calendar-ID | Typ |
+|------|-------------|-----|
+| Ann-Kathrin | `consultant-ann-kathrin@example.com` | Vollzeit |
+| Sara | `consultant-sara@example.com` | Vollzeit |
+| Dominik | `consultant-dominik@example.com` | Vollzeit |
+
+**Extended-Berater (Teilzeit/T2-Priorität - bei Bedarf):**
+
+| Name | Calendar-ID | Begründung |
+|------|-------------|------------|
+| Simon | `consultant-simon@example.com` | Hauptaufgabe anderswo, verfügbar 20:00 Uhr |
+| Sonja | `consultant-sonja@example.com` | Variable Verfügbarkeit (Neugeborenes) |
+| Tim | `consultant-tim@example.com` | T2/T3 Priorität |
+| Christian | `consultant-christian@example.com` | T2/T3 Priorität |
+| Daniel | `consultant-daniel@example.com` | T2/T3 Priorität |
+
+**Konfiguration:**
+- Slot-Zeiten: 09:00, 11:00, 14:00, 16:00, 18:00, 20:00 Uhr
+- Slot-Dauer: 30 Minuten
+- Slots pro Berater: 3 (außer 9:00 Uhr = 2)
+- Cache: 10 Minuten
+
+### T2-System Kalender (2h Slots)
+
+**Coaches (würfelbar - MIT Schreibrechten):**
+
+| Name | Calendar-ID | Schreibrecht | Status |
+|------|-------------|--------------|--------|
+| David Nehm | `coach-david@example.com` | ✅ Ja | Coach + Admin |
+| Alexander Nehm | `coach-alexander-group@example.com` | ✅ Ja | Coach + Admin (Group Calendar) |
+| Jose Torspecken | `coach-jose@example.com` | ✅ Ja | Coach + Closer |
+
+**Berater (ausführend - MIT Schreibrechten):**
+
+| Name | Calendar-ID | Rolle |
+|------|-------------|-------|
+| Christian | `consultant-christian@example.com` | Berater + Closer + Opener |
+| Daniel | `consultant-daniel@example.com` | Berater + Closer + Opener |
+| Tim | `consultant-tim@example.com` | Berater + Closer + Opener |
+
+**Workflow:**
+1. User würfelt Coach (David/Alexander/Jose)
+2. System prüft Verfügbarkeit:
+   - Coach-Kalender (falls Coach selbst ausführen will)
+   - Berater-Kalender (Christian/Daniel/Tim als Alternative)
+3. 2h-Slots in 30-Minuten-Schritten (8:00-20:00 Uhr)
+4. Event-Erstellung in entsprechendem Kalender (Coach oder Berater)
+
+**Konfiguration:**
+- Slot-Dauer: 2 Stunden
+- Arbeitszeiten: 08:00-20:00 Uhr
+- Scanning: On-Demand (bei Buchung)
+- Cache: 10 Minuten pro Verfügbarkeitsscan
+
+### T2 Bucket-System (Würfelsystem)
+
+**Standard-Wahrscheinlichkeiten:**
+- Alex: 9.0 (9 Tickets pro Bucket-Reset)
+- David: 9.0 (9 Tickets pro Bucket-Reset)
+- Jose: 2.0 (2 Tickets pro Bucket-Reset)
+
+**Bucket-Konfiguration:**
+- Max Draws before Reset: 20
+- Degressive Wahrscheinlichkeit: Mit jedem Draw sinkt die Probability um 1
+- Min Probability: 0.0 (Closer kann auf 0 fallen und ist dann nicht mehr ziehbar)
+
+**Wie es funktioniert:**
+1. Jeder Closer startet mit seiner Standard-Wahrscheinlichkeit
+2. Mit jedem Draw wird 1 Ticket aus dem Bucket entfernt UND die Probability sinkt um 1
+3. Wenn Probability auf 0.0 fällt → Closer hat keine Tickets mehr → nicht ziehbar
+4. Nach 20 Draws: Automatischer Reset, alle Probabilities auf Standard-Werte zurückgesetzt
+
+**Admin-Interface:**
+- `/t2/admin/bucket-config` - Bucket-Verwaltung
+- Änderungen an Probabilities: Setzen den Bucket sofort zurück
+- Änderungen an Max Draws: Wirken beim nächsten Reset
+
+**WICHTIG - Datenpfad:**
+- Datei: `/opt/business-hub/data/persistent/t2_bucket_system.json`
+- `PERSIST_BASE` muss `/opt/business-hub/data` sein (OHNE `/persistent`)
+- Der Code fügt automatisch `/persistent` hinzu
 
 ## 📝 Changelog
 
