@@ -403,6 +403,118 @@ def get_uptime():
         return "unknown"
 
 
+@health_bp.route("/health/calendars")
+def health_calendars():
+    """
+    Calendar health check endpoint
+    Tests connectivity to all consultant Google Calendars
+    Admin-only endpoint for proactive monitoring
+    """
+    from app.core.google_calendar import get_google_calendar_service
+    from googleapiclient.errors import HttpError
+    from datetime import timedelta
+
+    results = {}
+    calendar_service = get_google_calendar_service()
+
+    if not calendar_service:
+        return jsonify({
+            'success': False,
+            'error': 'Calendar service not initialized'
+        }), 500
+
+    # Parse consultants from environment variable
+    consultants_env = os.getenv("CONSULTANTS", "")
+    consultants = {}
+
+    if consultants_env:
+        # Format: "Name1:email1,Name2:email2"
+        for pair in consultants_env.split(","):
+            if ":" in pair:
+                name, email = pair.split(":", 1)
+                consultants[name.strip()] = email.strip()
+
+    if not consultants:
+        # Fallback to default consultants if env var not set
+        consultants = {
+            "Daniel": "daniel.herbort.zfa@gmail.com",
+            "Simon": "simonmast9@gmail.com",
+            "Ann-Kathrin": "a.welge.zfa@gmail.com",
+            "Christian": "chmast95@gmail.com",
+            "Tim": "tim.kreisel71@gmail.com",
+            "Sara": "mastsara2@gmail.com",
+            "Dominik": "mikic.dom@gmail.com",
+            "Sonja": "sonjamast98@gmail.com"
+        }
+
+    # Test each consultant's calendar
+    for name, cal_id in consultants.items():
+        try:
+            # Minimal API call: Get 1 event from last 7 days
+            time_min = (datetime.now() - timedelta(days=7)).isoformat() + 'Z'
+            time_max = datetime.now().isoformat() + 'Z'
+
+            events = calendar_service.get_events(
+                calendar_id=cal_id,
+                time_min=time_min,
+                time_max=time_max,
+                max_results=1
+            )
+
+            # Check if we got a valid response
+            if events is not None:
+                event_count = len(events.get('items', [])) if isinstance(events, dict) else 0
+                results[name] = {
+                    'status': 'healthy',
+                    'calendar_id': cal_id,
+                    'events_found': event_count
+                }
+            else:
+                results[name] = {
+                    'status': 'error',
+                    'calendar_id': cal_id,
+                    'error_message': 'Calendar service returned None'
+                }
+
+        except HttpError as e:
+            results[name] = {
+                'status': 'error',
+                'calendar_id': cal_id,
+                'error_code': e.resp.status,
+                'error_message': str(e)
+            }
+        except Exception as e:
+            results[name] = {
+                'status': 'error',
+                'calendar_id': cal_id,
+                'error_message': str(e)
+            }
+
+    # Calculate overall health
+    healthy_count = sum(1 for r in results.values() if r['status'] == 'healthy')
+    total_count = len(results)
+    health_percentage = round(healthy_count / total_count * 100, 1) if total_count > 0 else 0
+
+    # Determine overall status
+    if health_percentage == 100:
+        overall_status = 'healthy'
+    elif health_percentage >= 80:
+        overall_status = 'degraded'
+    else:
+        overall_status = 'critical'
+
+    return jsonify({
+        'overall_status': overall_status,
+        'summary': {
+            'healthy': healthy_count,
+            'total': total_count,
+            'health_percentage': health_percentage
+        },
+        'calendars': results,
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+
 def get_uptime_seconds():
     """Get uptime in seconds"""
     try:
