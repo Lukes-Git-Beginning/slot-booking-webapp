@@ -8,6 +8,8 @@ import traceback
 from datetime import datetime
 from typing import Dict, Any, Optional, Union
 from flask import jsonify, flash, redirect, url_for, Response
+import logging
+logger = logging.getLogger(__name__)
 from enum import Enum
 
 class ErrorType(Enum):
@@ -117,10 +119,10 @@ class ErrorHandler:
     def handle_error(self, error: AppError) -> Union[Response, str]:
         """Behandle AppError"""
         # Log error (hier würde normalerweise ein Logger verwendet)
-        print(f"[{error.severity.value.upper()}] {error.error_type.value}: {error.message}")
+        logger.error(f"[{error.severity.value.upper()}] {error.error_type.value}: {error.message}")
         
         if error.details:
-            print(f"Details: {error.details}")
+            logger.error(f"Details: {error.details}")
         
         # Return appropriate response based on request type
         from flask import request

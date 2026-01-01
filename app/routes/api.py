@@ -4,6 +4,8 @@ API routes
 JSON API endpoints for AJAX calls and external integrations
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from flask import Blueprint, jsonify, session, request
 from datetime import datetime
 import pytz
@@ -67,7 +69,7 @@ def api_user_avatar(username):
             return jsonify({"avatar": username[0].upper() if username else "?"})
 
     except Exception as e:
-        print(f"Avatar API error for {username}: {e}")
+        logger.error(f"Avatar API error for {username}: {e}", exc_info=True)
         # Return first letter as fallback
         return jsonify({"avatar": username[0].upper() if username else "?"})
 

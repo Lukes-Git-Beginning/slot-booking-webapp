@@ -7,9 +7,13 @@ Verhindert gleichzeitige Buchungen auf denselben Slot
 import time
 import hashlib
 import threading
+import logging
 from typing import Dict, Optional, Set
 from datetime import datetime, timedelta
 import json
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 class RequestDeduplicator:
     def __init__(self, expiry_seconds: int = 300):
@@ -103,7 +107,7 @@ class RequestDeduplicator:
                 self.slot_locks[slot_key] = set()
             self.slot_locks[slot_key].add(request_id)
             
-            print(f"Slot locked: {slot_key} by {user_id} ({request_id[:8]})")
+            logger.debug(f"Slot locked: {slot_key} by {user_id} ({request_id[:8]})")
             return request_id
     
     def release_slot_lock(self, request_id: str) -> bool:
@@ -127,7 +131,7 @@ class RequestDeduplicator:
             for slot_key, request_set in self.slot_locks.items():
                 if request_id in request_set:
                     request_set.remove(request_id)
-                    print(f"Slot unlocked: {slot_key} ({request_id[:8]})")
+                    logger.debug(f"Slot unlocked: {slot_key} ({request_id[:8]})")
                     
                     # Clean up empty slot locks
                     if not request_set:
@@ -169,7 +173,7 @@ class RequestDeduplicator:
             count = len(self.active_requests)
             self.active_requests.clear()
             self.slot_locks.clear()
-            print(f"Cleared {count} active locks")
+            logger.debug(f"Cleared {count} active locks")
             return count
 
 # Context manager for automatic lock management

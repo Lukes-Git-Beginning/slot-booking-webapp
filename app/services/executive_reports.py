@@ -8,6 +8,8 @@ import json
 import os
 import pytz
 from datetime import datetime, timedelta
+import logging
+logger = logging.getLogger(__name__)
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
@@ -316,7 +318,7 @@ class ExecutiveReports:
                         monthly_data["user_totals"][user]["weeks_active"] += 1
 
             except Exception as e:
-                print(f"Warning: Could not process week {week}: {e}")
+                logger.warning(f"Could not process week {week}: {e}")
                 continue
 
         return monthly_data

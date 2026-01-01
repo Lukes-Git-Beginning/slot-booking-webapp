@@ -4,6 +4,8 @@ Admin dashboard routes
 Main admin interface and overview
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from flask import render_template, session, redirect, url_for, flash, jsonify, request
 from datetime import datetime, timedelta
 import pytz
@@ -47,7 +49,7 @@ def admin_dashboard():
                             today_stats['total_appointments'] = today_metrics.get('total_slots', 0)
                             today_stats['no_show_rate'] = today_metrics.get('no_show_rate', 0.0)
             except Exception as e:
-                print(f"Error loading today's stats: {e}")
+                logger.error(f"Error loading today's stats: {e}", exc_info=True)
 
         # Count active users
         from app.utils.helpers import get_userlist

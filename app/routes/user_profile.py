@@ -6,10 +6,14 @@ User Profile Routes - Detaillierte Benutzerprofile für Scoreboard
 from flask import Blueprint, render_template, session, redirect, url_for, jsonify
 from datetime import datetime, timedelta
 import pytz
+import logging
 
 from app.config.base import slot_config
 from app.core.extensions import cache_manager, data_persistence, level_system
 from app.utils.decorators import require_login
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 user_profile_bp = Blueprint('user_profile', __name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -102,7 +106,7 @@ def get_user_achievements(username):
         return achievements
 
     except Exception as e:
-        print(f"Achievement data error for {username}: {e}")
+        logger.error(f"Achievement data error for {username}: {e}", exc_info=True)
         return {'total_badges': 0, 'badges': [], 'rarity_breakdown': {}, 'recent_badges': []}
 
 
@@ -122,7 +126,7 @@ def get_user_cosmetics(username):
 
         return result
     except Exception as e:
-        print(f"Cosmetics data error for {username}: {e}")
+        logger.error(f"Cosmetics data error for {username}: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         return {
@@ -157,7 +161,7 @@ def get_user_activity_timeline(username):
         timeline.reverse()  # Chronological order
 
     except Exception as e:
-        print(f"Activity timeline error for {username}: {e}")
+        logger.error(f"Activity timeline error for {username}: {e}", exc_info=True)
 
     return timeline
 
@@ -203,7 +207,7 @@ def get_user_performance_metrics(username):
         # Add more performance calculations here...
 
     except Exception as e:
-        print(f"Performance metrics error for {username}: {e}")
+        logger.error(f"Performance metrics error for {username}: {e}", exc_info=True)
 
     return metrics
 
@@ -239,7 +243,7 @@ def get_user_social_stats(username):
             stats['top_10_percent'] = user_score >= sorted(all_scores, reverse=True)[min(len(all_scores)//10, len(all_scores)-1)]
 
     except Exception as e:
-        print(f"Social stats error for {username}: {e}")
+        logger.error(f"Social stats error for {username}: {e}", exc_info=True)
 
     return stats
 

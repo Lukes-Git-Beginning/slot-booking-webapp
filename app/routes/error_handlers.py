@@ -402,12 +402,12 @@ def send_to_error_tracking(error_context: dict):
         except Exception as e:
             logger.warning(f"Failed to send admin notification: {e}")
 
-    # Development mode: print to console
+    # Development mode: log to console
     if is_development_mode():
-        print(f"\n{'='*80}")
-        print(f"ERROR TRACKING: {error_context['error_id']}")
-        print(json.dumps(error_context, indent=2, ensure_ascii=False))
-        print(f"{'='*80}\n")
+        logger.debug(f"\n{'='*80}")
+        logger.debug(f"ERROR TRACKING: {error_context['error_id']}")
+        logger.debug(json.dumps(error_context, indent=2, ensure_ascii=False))
+        logger.debug(f"{'='*80}\n")
 
 
 # ========== CONTEXT PROCESSORS ==========

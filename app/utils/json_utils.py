@@ -8,12 +8,16 @@ import json
 import tempfile
 import shutil
 import time
+import logging
 from contextlib import contextmanager
 from typing import Any, Dict, Optional
 import gzip
 
 # Use OS-level file locking for multi-process safety (Gunicorn workers)
 from app.utils.file_lock import file_lock
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 def atomic_write_json(filepath: str, data: Any, compress: bool = False, indent: int = 2) -> bool:
     """
@@ -66,7 +70,7 @@ def atomic_write_json(filepath: str, data: Any, compress: bool = False, indent: 
                 os.unlink(tmp_filepath)
             except:
                 pass
-        print(f"ERROR: Atomic JSON write failed for {filepath}: {e}")
+        logger.error(f"Atomic JSON write failed for {filepath}: {e}", exc_info=True)
         return False
 
 def atomic_read_json(filepath: str, default: Any = None, compressed: bool = None) -> Any:
@@ -103,10 +107,10 @@ def atomic_read_json(filepath: str, default: Any = None, compressed: bool = None
                     return json.load(f)
 
     except (json.JSONDecodeError, FileNotFoundError) as e:
-        print(f"WARNING: JSON read error for {filepath}: {e}")
+        logger.warning(f"JSON read error for {filepath}: {e}")
         return default
     except Exception as e:
-        print(f"ERROR: Atomic JSON read failed for {filepath}: {e}")
+        logger.error(f"Atomic JSON read failed for {filepath}: {e}", exc_info=True)
         return default
 
 def atomic_update_json(filepath: str, update_func, default: Any = None, compress: bool = False) -> bool:
@@ -134,7 +138,7 @@ def atomic_update_json(filepath: str, update_func, default: Any = None, compress
             return atomic_write_json(filepath, updated_data, compress=compress)
 
     except Exception as e:
-        print(f"ERROR: Atomic JSON update failed for {filepath}: {e}")
+        logger.error(f"Atomic JSON update failed for {filepath}: {e}", exc_info=True)
         return False
 
 def compress_json_file(filepath: str, remove_original: bool = True) -> bool:
@@ -169,7 +173,7 @@ def compress_json_file(filepath: str, remove_original: bool = True) -> bool:
         return success
 
     except Exception as e:
-        print(f"ERROR: JSON compression failed for {filepath}: {e}")
+        logger.error(f"JSON compression failed for {filepath}: {e}", exc_info=True)
         return False
 
 def get_file_size_mb(filepath: str) -> float:
