@@ -150,6 +150,48 @@ class GoogleCalendarService:
                     calendar_logger.warning(f"Rate limit (429) hit, waiting {wait_time}s (attempt {attempt + 1})")
                     time.sleep(wait_time)
                     continue
+                elif e.resp.status == 404:
+                    # Calendar not found - log with context and return empty dict for graceful degradation
+                    calendar_logger.error(f"Calendar not found (404): {func_name}")
+
+                    # Send to Sentry with context
+                    try:
+                        import sentry_sdk
+                        with sentry_sdk.push_scope() as scope:
+                            scope.set_context("calendar_api", {
+                                "error_type": "calendar_not_found",
+                                "status_code": 404,
+                                "function": func_name,
+                                "args": str(args)[:200],
+                                "kwargs": str(kwargs)[:200]
+                            })
+                            sentry_sdk.capture_exception(e)
+                    except Exception as sentry_error:
+                        calendar_logger.debug(f"Sentry reporting failed: {sentry_error}")
+
+                    # Return empty dict for graceful degradation (prevents crashes downstream)
+                    return {}
+                elif e.resp.status == 403:
+                    # Permission denied - log with context and return empty dict
+                    calendar_logger.error(f"Calendar access denied (403): {func_name}")
+
+                    # Send to Sentry with context
+                    try:
+                        import sentry_sdk
+                        with sentry_sdk.push_scope() as scope:
+                            scope.set_context("calendar_api", {
+                                "error_type": "permission_denied",
+                                "status_code": 403,
+                                "function": func_name,
+                                "args": str(args)[:200],
+                                "kwargs": str(kwargs)[:200]
+                            })
+                            sentry_sdk.capture_exception(e)
+                    except Exception as sentry_error:
+                        calendar_logger.debug(f"Sentry reporting failed: {sentry_error}")
+
+                    # Return empty dict for graceful degradation
+                    return {}
                 elif e.resp.status in [500, 502, 503, 504] and attempt < max_retries - 1:
                     calendar_logger.warning(f"Calendar API HTTP error (attempt {attempt + 1}): {e}")
                     time.sleep(retry_delay * (2 ** attempt))
@@ -165,6 +207,22 @@ class GoogleCalendarService:
                 if is_ssl_error:
                     wait_time = retry_delay * (2 ** attempt) * 3  # Longer wait for SSL errors
                     calendar_logger.error(f"SSL/Network error in calendar API call: {e}")
+
+                    # Send to Sentry with context on last attempt
+                    if attempt == max_retries - 1:
+                        try:
+                            import sentry_sdk
+                            with sentry_sdk.push_scope() as scope:
+                                scope.set_context("calendar_api", {
+                                    "error_type": "ssl_error",
+                                    "function": func_name,
+                                    "attempt": attempt + 1,
+                                    "max_retries": max_retries
+                                })
+                                sentry_sdk.capture_exception(e)
+                        except Exception as sentry_error:
+                            calendar_logger.debug(f"Sentry reporting failed: {sentry_error}")
+
                     if attempt < max_retries - 1:
                         calendar_logger.warning(f"Retrying after SSL error, waiting {wait_time}s (attempt {attempt + 1})")
                         # Reinitialize service after SSL error to reset connection pool
@@ -181,7 +239,8 @@ class GoogleCalendarService:
                         time.sleep(retry_delay)
                         continue
 
-                return None
+                # Return empty dict for graceful degradation
+                return {}
 
         return None
 
