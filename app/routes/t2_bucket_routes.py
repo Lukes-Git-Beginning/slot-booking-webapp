@@ -56,7 +56,6 @@ def register_bucket_routes(t2_bp):
 
     @t2_bp.route("/api/draw-closer", methods=['POST'])
     @require_login
-    @csrf.exempt
     def api_draw_closer():
         """Perform draw from bucket"""
         try:
@@ -153,7 +152,6 @@ def register_bucket_routes(t2_bp):
                                  closers={},
                                  error="Fehler beim Laden der Bucket-Konfiguration")
 
-    @csrf.exempt
     @t2_bp.route("/api/admin/update-probability", methods=['POST'])
     @require_login
     def api_admin_update_probability():
@@ -184,7 +182,6 @@ def register_bucket_routes(t2_bp):
                 'message': 'Error updating probability'
             }), 500
 
-    @csrf.exempt
     @t2_bp.route("/api/admin/reset-bucket", methods=['POST'])
     @require_login
     def api_admin_reset_bucket():
@@ -211,7 +208,6 @@ def register_bucket_routes(t2_bp):
                 'message': 'Error resetting bucket'
             }), 500
 
-    @csrf.exempt
     @t2_bp.route("/api/admin/update-bucket-size", methods=['POST'])
     @require_login
     def api_admin_update_bucket_size():
@@ -241,7 +237,6 @@ def register_bucket_routes(t2_bp):
                 'message': 'Error updating bucket size'
             }), 500
 
-    @csrf.exempt
     @t2_bp.route("/api/admin/add-closer", methods=['POST'])
     @require_login
     def api_admin_add_closer():
@@ -280,7 +275,6 @@ def register_bucket_routes(t2_bp):
                 'message': 'Error adding closer'
             }), 500
 
-    @csrf.exempt
     @t2_bp.route("/api/admin/remove-closer", methods=['POST'])
     @require_login
     def api_admin_remove_closer():
@@ -316,7 +310,6 @@ def register_bucket_routes(t2_bp):
                 'message': 'Error removing closer'
             }), 500
 
-    @csrf.exempt
     @t2_bp.route("/api/admin/update-closer-info", methods=['POST'])
     @require_login
     def api_admin_update_closer_info():

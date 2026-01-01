@@ -151,7 +151,6 @@ def dashboard():
     return render_template('t2/dashboard.html', **dashboard_data)
 
 
-@csrf.exempt
 @t2_bp.route("/api/roll-closer", methods=['POST'])
 @require_login
 @rate_limit_api
@@ -254,7 +253,6 @@ def calendar_view():
 
 # ========== API-ENDPOINTS ==========
 
-@csrf.exempt
 @t2_bp.route("/api/book", methods=['POST'])
 @require_login
 @rate_limit_t2
@@ -1199,7 +1197,6 @@ def api_draw_timeline():
 
 # ========== NEW CALENDLY-STYLE BOOKING API ENDPOINTS ==========
 
-@csrf.exempt
 @t2_bp.route('/api/select-berater', methods=['POST'])
 @require_login
 @rate_limit_api
@@ -1348,7 +1345,6 @@ def api_day_slots(berater, date_str):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@csrf.exempt
 @t2_bp.route('/api/book-2h-slot', methods=['POST'])
 @require_login
 @rate_limit_api
@@ -1780,7 +1776,6 @@ def api_my_2h_bookings():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@csrf.exempt
 @t2_bp.route('/api/cancel-booking', methods=['POST'])
 @require_login
 @rate_limit_api
@@ -1904,7 +1899,6 @@ def api_cancel_booking():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@csrf.exempt
 @t2_bp.route('/api/reschedule-booking', methods=['POST'])
 @require_login
 @rate_limit_api
