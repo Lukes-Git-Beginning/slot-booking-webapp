@@ -73,7 +73,6 @@ def api_user_avatar(username):
 
 
 @api_bp.route("/user/badges/mark-seen", methods=["POST"])
-@csrf.exempt
 @require_login
 def api_mark_badges_seen():
     """Mark user's badges as seen"""

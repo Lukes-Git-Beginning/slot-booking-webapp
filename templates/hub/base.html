@@ -639,8 +639,63 @@
         }, 5000); // Changed from 1000ms to 5000ms
         updateClock();
 
-        // CSRF Protection: Routes use @csrf.exempt decorator - no client-side token injection needed
-        // See docs/CSRF_STRATEGY.md for details
+        // ========================================
+        // CSRF Protection for AJAX Requests
+        // ========================================
+
+        /**
+         * Get CSRF token from meta tag
+         * @returns {string} CSRF token
+         */
+        function getCSRFToken() {
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            return metaTag ? metaTag.getAttribute('content') : '';
+        }
+
+        /**
+         * Wrapper for fetch() that automatically includes CSRF token
+         * @param {string} url - Request URL
+         * @param {object} options - Fetch options (method, body, headers, etc.)
+         * @returns {Promise} Fetch promise
+         */
+        window.csrfFetch = function(url, options = {}) {
+            // Set default method to POST if not specified
+            options.method = options.method || 'POST';
+
+            // Initialize headers if not present
+            options.headers = options.headers || {};
+
+            // Add CSRF token to headers for non-GET requests
+            if (options.method !== 'GET') {
+                options.headers['X-CSRFToken'] = getCSRFToken();
+            }
+
+            // Set Content-Type to JSON if body is an object (not FormData)
+            if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(options.body);
+            }
+
+            return fetch(url, options);
+        };
+
+        /**
+         * Legacy: Patch global fetch to auto-include CSRF for backwards compatibility
+         * New code should use csrfFetch() explicitly
+         */
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            // Only auto-add CSRF for same-origin POST/PUT/DELETE/PATCH requests
+            if (options.method && options.method !== 'GET' && !url.startsWith('http')) {
+                options.headers = options.headers || {};
+                if (!options.headers['X-CSRFToken']) {
+                    options.headers['X-CSRFToken'] = getCSRFToken();
+                }
+            }
+            return originalFetch(url, options);
+        };
+
+        console.log('✅ CSRF Protection initialized - All AJAX requests protected');
     </script>
 
     {% block extra_js %}{% endblock %}
