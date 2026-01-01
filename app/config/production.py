@@ -32,6 +32,15 @@ class ProductionConfig(Config):
     PERMANENT_SESSION_LIFETIME = timedelta(hours=int(os.getenv('SESSION_LIFETIME_HOURS', '8')))
 
     # ========================================
+    # CSRF Protection Configuration
+    # ========================================
+    WTF_CSRF_ENABLED = True
+    # Match CSRF token lifetime to session lifetime (8 hours = 28800 seconds)
+    # Default is 3600s (1h) which causes "CSRF token expired" errors for long sessions
+    WTF_CSRF_TIME_LIMIT = int(os.getenv('SESSION_LIFETIME_HOURS', '8')) * 3600
+    WTF_CSRF_SSL_STRICT = True  # Require HTTPS for CSRF cookie
+
+    # ========================================
     # Logging Configuration
     # ========================================
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
