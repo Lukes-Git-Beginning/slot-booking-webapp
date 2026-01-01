@@ -929,7 +929,6 @@ def calendar_view():
 # MY CALENDAR - PHASE 2 API ENDPOINTS (Drag & Drop, Reschedule)
 # ============================================================================
 
-@csrf.exempt
 @calendar_bp.route('/api/update-event-status', methods=['POST'])
 @require_login
 def api_update_event_status():
@@ -1112,7 +1111,6 @@ def api_get_available_slots():
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 
-@csrf.exempt
 @calendar_bp.route('/api/reschedule-booking', methods=['POST'])
 @require_login
 def api_reschedule_booking():

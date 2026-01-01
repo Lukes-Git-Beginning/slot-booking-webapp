@@ -95,7 +95,6 @@ def add_points_to_user(user, points):
 
 
 @booking_bp.route("/book", methods=["POST"])
-@csrf.exempt  # CSRF exempt for booking endpoint (legacy form without token)
 @require_login
 @apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)
