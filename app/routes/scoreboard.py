@@ -9,10 +9,14 @@ from datetime import datetime, timedelta
 import pytz
 import json
 import time
+import logging
 
 from app.config.base import slot_config, config, gamification_config
 from app.core.extensions import cache_manager, data_persistence, level_system
 from app.utils.decorators import require_login
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 scoreboard_bp = Blueprint('scoreboard', __name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -43,9 +47,9 @@ def scoreboard():
             from app.services.cosmetics_shop import cosmetics_shop
             unlock_result = cosmetics_shop.unlock_all_for_admin(user)
             if unlock_result.get("success"):
-                print(f"Admin cosmetics unlocked for {user}")
+                logger.debug(f"Admin cosmetics unlocked for {user}")
         except Exception as e:
-            print(f"Failed to unlock admin cosmetics for {user}: {e}")
+            logger.error(f"Failed to unlock admin cosmetics for {user}: {e}", exc_info=True)
 
     # Try to get cached scoreboard data first
     cache_key = f"scoreboard_{datetime.now(TZ).strftime('%Y-%m-%d_%H')}"
@@ -62,14 +66,14 @@ def scoreboard():
             from app.utils.helpers import normalize_data_usernames
             scores = normalize_data_usernames(scores)
         except Exception as e:
-            print(f"Username normalization error: {e}")
+            logger.error(f"Username normalization error: {e}", exc_info=True)
 
         # Get badge data for leaderboard (persistent)
         try:
             from app.services.achievement_system import achievement_system
             badge_leaderboard = achievement_system.get_badge_leaderboard()
         except Exception as e:
-            print(f"Badge Leaderboard Error: {e}")
+            logger.error(f"Badge Leaderboard Error: {e}", exc_info=True)
             badge_leaderboard = []
 
         # Cache the data for 1 hour
@@ -102,7 +106,7 @@ def scoreboard():
             else:
                 user_levels[username] = {"level": 1, "level_title": "Anfänger", "xp": 0}
         except Exception as e:
-            print(f"Level calculation error for {username}: {e}")
+            logger.error(f"Level calculation error for {username}: {e}", exc_info=True)
             user_levels[username] = {"level": 1, "level_title": "Anfänger", "xp": 0}
 
         # Get cosmetics data for each user
@@ -116,7 +120,7 @@ def scoreboard():
             cosmetics_data = shop.get_user_cosmetics(username)
             user_cosmetics[username] = cosmetics_data.get('active', {})
         except Exception as e:
-            print(f"Cosmetics data error for {username}: {e}")
+            logger.error(f"Cosmetics data error for {username}: {e}", exc_info=True)
             user_cosmetics[username] = {"title": None, "theme": "default", "avatar": "🧑‍💼", "effects": []}
 
     return render_template("scoreboard.html",
@@ -215,9 +219,7 @@ def badges():
                                     reverse=True)[:5]
 
     except Exception as e:
-        print(f"Badge System Error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Badge System Error: {e}", exc_info=True)
 
         # Fallback values
         badges_earned = 0
@@ -256,7 +258,7 @@ def stream_updates():
 
                 time.sleep(5)
             except Exception as e:
-                print(f"Stream error: {e}")
+                logger.error(f"Stream error: {e}", exc_info=True)
                 break
 
     return generate(), 200, {
@@ -292,14 +294,14 @@ def gamification_dashboard():
         gamification_data['recent_badges'] = user_badges.get('badges', [])[-5:]  # Last 5 badges
 
     except Exception as e:
-        print(f"Gamification data error: {e}")
+        logger.error(f"Gamification data error: {e}", exc_info=True)
 
     # Get user badges for template
     try:
         from app.services.achievement_system import achievement_system
         user_badges = achievement_system.get_user_badges(user)
     except Exception as e:
-        print(f"Error getting user badges for gamification: {e}")
+        logger.error(f"Error getting user badges for gamification: {e}", exc_info=True)
         user_badges = {"badges": [], "total_badges": 0}
 
     # Add missing streak info
