@@ -448,9 +448,61 @@ def mock_tracking_system():
         yield mock_service
 
 
+# ========== DATABASE TESTING FIXTURES ==========
+
+@pytest.fixture(scope='session')
+def test_db_engine():
+    """Create test database engine (SQLite in-memory for fast tests)"""
+    from sqlalchemy import create_engine
+
+    # Use SQLite in-memory database for tests
+    engine = create_engine('sqlite:///:memory:', echo=False)
+
+    # Create all tables
+    from app.models.base import Base
+    Base.metadata.create_all(engine)
+
+    yield engine
+
+    # Cleanup
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture(scope='function')
+def db_session(test_db_engine):
+    """Provide transactional database session for each test"""
+    from sqlalchemy.orm import sessionmaker
+
+    # Create connection and transaction
+    connection = test_db_engine.connect()
+    transaction = connection.begin()
+
+    # Create session bound to connection
+    Session = sessionmaker(bind=connection)
+    session = Session()
+
+    yield session
+
+    # Rollback everything (isolate tests)
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture(scope='function')
+def db_with_app(app, db_session):
+    """Database session with Flask app context"""
+    with app.app_context():
+        # Patch db.session to use our test session
+        with patch('app.models.base.db.session', db_session):
+            yield db_session
+
+
 # Markers for categorizing tests
 def pytest_configure(config):
     """Configure pytest markers"""
     config.addinivalue_line("markers", "unit: Unit tests (fast, no external dependencies)")
     config.addinivalue_line("markers", "integration: Integration tests (may require mocking)")
     config.addinivalue_line("markers", "slow: Slow tests (skip with -m 'not slow')")
+    config.addinivalue_line("markers", "database: Database model tests")
