@@ -2,384 +2,381 @@
 
 {% block title %}{{ date_obj.strftime('%d.%m.%Y') }} - Slot-Booking{% endblock %}
 
-{% block content %}
-<!-- Breadcrumb -->
-<div class="slots-breadcrumb">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="{{ url_for('hub.dashboard') }}"><i class="fas fa-home"></i> Hub</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('slots.index') }}">Slot-Booking</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ date_obj.strftime('%d.%m.%Y') }}</li>
-        </ol>
-    </nav>
-</div>
+{% block header_title %}{{ date_obj.strftime('%A, %d. %B %Y') }}{% endblock %}
+{% block header_subtitle %}Verfügbare Termine für heute anzeigen und buchen{% endblock %}
 
-<!-- Header -->
-<div class="slots-header">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="display-6 fw-bold mb-2">
-                    <i class="fas fa-calendar-day me-3"></i>
-                    {{ date_obj.strftime('%A, %d. %B %Y') }}
-                </h1>
-                <p class="lead mb-0">
-                    Verfügbare Termine für heute anzeigen und buchen
-                </p>
-            </div>
-            <div class="col-md-4 text-md-end">
-                <div class="btn-group" role="group">
-                    <a href="{{ url_for('slots.day_view', date_str=(date_obj - timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="btn btn-light">
-                        <i class="fas fa-chevron-left"></i> Gestern
-                    </a>
-                    <a href="{{ url_for('slots.day_view', date_str=datetime.now().strftime('%Y-%m-%d')) }}" class="btn btn-warning">
-                        Heute
-                    </a>
-                    <a href="{{ url_for('slots.day_view', date_str=(date_obj + timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="btn btn-light">
-                        Morgen <i class="fas fa-chevron-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block content %}
+<!-- Date Navigation -->
+<div class="glass rounded-2xl p-4 mb-8 flex items-center justify-between" data-aos="fade-up">
+    <a href="{{ url_for('slots.day_view', date_str=(date_obj - timedelta(days=1)).strftime('%Y-%m-%d')) }}"
+       class="btn btn-ghost gap-2">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <span>Gestern</span>
+    </a>
+
+    <a href="{{ url_for('slots.day_view', date_str=datetime.now().strftime('%Y-%m-%d')) }}"
+       class="btn btn-primary gap-2">
+        <i data-lucide="calendar" class="w-4 h-4"></i>
+        <span>Heute</span>
+    </a>
+
+    <a href="{{ url_for('slots.day_view', date_str=(date_obj + timedelta(days=1)).strftime('%Y-%m-%d')) }}"
+       class="btn btn-ghost gap-2">
+        <span>Morgen</span>
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </a>
 </div>
 
 <!-- Week Navigation -->
-<div class="week-nav">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <button class="btn btn-outline-primary" onclick="navigateWeek('prev')">
-                    <i class="fas fa-chevron-left me-2"></i>Vorherige Woche
-                </button>
-            </div>
-            <div class="current-week">
-                KW {{ current_kw }} - {{ current_week_start.strftime('%d.%m') }} bis {{ (current_week_start + timedelta(days=6)).strftime('%d.%m.%Y') }}
-            </div>
-            <div>
-                <button class="btn btn-outline-primary" onclick="navigateWeek('next')">
-                    Nächste Woche<i class="fas fa-chevron-right ms-2"></i>
-                </button>
-            </div>
-        </div>
+<div class="glass rounded-2xl p-4 mb-8 flex items-center justify-between" data-aos="fade-up" data-aos-delay="100">
+    <button class="btn btn-ghost gap-2" onclick="navigateWeek('prev')">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <span class="hidden md:inline">Vorherige Woche</span>
+    </button>
+
+    <div class="text-center">
+        <div class="font-bold text-white">KW {{ current_kw }}</div>
+        <div class="text-sm text-white/60">{{ current_week_start.strftime('%d.%m') }} - {{ (current_week_start + timedelta(days=6)).strftime('%d.%m.%Y') }}</div>
     </div>
+
+    <button class="btn btn-ghost gap-2" onclick="navigateWeek('next')">
+        <span class="hidden md:inline">Nächste Woche</span>
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
 </div>
 
-<div class="container">
-    <div class="row">
-        <!-- Main Content -->
-        <div class="col-lg-8">
-            <!-- Week Overview -->
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-calendar-week me-2"></i>
-                        Wochenübersicht
-                    </h3>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Content -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Week Overview -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-primary"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for day in week_days %}
-                        <div class="col">
-                            <div class="text-center mb-2">
-                                <div class="fw-bold small">{{ day.strftime('%a') }}</div>
-                                <div class="small text-muted">{{ day.strftime('%d.%m') }}</div>
-                            </div>
-                            <div class="text-center">
-                                {% if day.strftime('%Y-%m-%d') == date_str %}
-                                <a href="{{ url_for('slots.day_view', date_str=day.strftime('%Y-%m-%d')) }}"
-                                   class="btn btn-primary btn-sm">
-                                    Heute
-                                </a>
-                                {% else %}
-                                <a href="{{ url_for('slots.day_view', date_str=day.strftime('%Y-%m-%d')) }}"
-                                   class="btn btn-outline-secondary btn-sm">
-                                    {{ weekly_summary.get(day.strftime('%Y-%m-%d'), {}).get('available_slots', 0) }}
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
+                <h3 class="text-xl font-bold text-white">Wochenübersicht</h3>
+            </div>
+
+            <div class="grid grid-cols-7 gap-2">
+                {% for day in week_days %}
+                <div class="text-center">
+                    <div class="font-semibold text-white/80 text-xs mb-1">{{ day.strftime('%a') }}</div>
+                    <div class="text-xs text-white/60 mb-2">{{ day.strftime('%d.%m') }}</div>
+                    {% if day.strftime('%Y-%m-%d') == date_str %}
+                    <a href="{{ url_for('slots.day_view', date_str=day.strftime('%Y-%m-%d')) }}"
+                       class="btn btn-primary btn-sm w-full">
+                        Heute
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('slots.day_view', date_str=day.strftime('%Y-%m-%d')) }}"
+                       class="btn btn-ghost btn-sm w-full">
+                        {{ weekly_summary.get(day.strftime('%Y-%m-%d'), {}).get('available_slots', 0) }}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Available Slots -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
+                        <i data-lucide="clock" class="w-5 h-5 text-success"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Verfügbare Termine</h3>
+                </div>
+                <div class="flex gap-2">
+                    <div class="badge badge-success gap-1">
+                        <i data-lucide="check" class="w-3 h-3"></i>
+                        {{ effective_availability.values()|sum(attribute='available_slots')|int }} Verfügbar
+                    </div>
+                    <div class="badge badge-warning gap-1">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                        {{ effective_availability.values()|sum(attribute='total_slots')|int - effective_availability.values()|sum(attribute='available_slots')|int }} Belegt
                     </div>
                 </div>
             </div>
 
-            <!-- Available Slots -->
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title mb-0">
-                            <i class="fas fa-clock me-2"></i>
-                            Verfügbare Termine
-                        </h3>
-                        <div>
-                            <span class="badge bg-success me-2">
-                                {{ effective_availability.values()|sum(attribute='available_slots')|int }} Verfügbar
-                            </span>
-                            <span class="badge bg-warning">
-                                {{ effective_availability.values()|sum(attribute='total_slots')|int - effective_availability.values()|sum(attribute='available_slots')|int }} Belegt
-                            </span>
+            <div id="availability-container" class="space-y-6">
+                {% for berater_name, berater_data in effective_availability.items() %}
+                <div class="berater-section" id="berater-{{ berater_name }}">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="user-check" class="w-5 h-5 text-primary"></i>
+                            <h5 class="font-bold text-white">{{ berater_name }}</h5>
+                        </div>
+                        <div class="badge {% if berater_data.available_slots > 0 %}badge-success{% else %}badge-warning{% endif %}">
+                            {{ berater_data.available_slots }} / {{ berater_data.total_slots }}
                         </div>
                     </div>
-                </div>
-                <div class="card-body" id="availability-container">
-                    {% for berater_name, berater_data in effective_availability.items() %}
-                    <div class="berater-section mb-4" id="berater-{{ berater_name }}">
-                        <h5 class="d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="fas fa-user-tie me-2 text-primary"></i>
-                                {{ berater_name }}
-                            </span>
-                            <span class="badge bg-{{ 'success' if berater_data.available_slots > 0 else 'warning' }}">
-                                {{ berater_data.available_slots }} / {{ berater_data.total_slots }}
-                            </span>
-                        </h5>
 
-                        <div class="slots-container">
-                            {% if berater_data.slots %}
-                            {% for slot in berater_data.slots %}
-                            <div class="time-slot {{ 'available' if slot.status == 'available' else 'booked' }}"
-                                 {% if slot.status == 'available' %}
-                                 onclick="quickBookSlot('{{ berater_name }}', '{{ date_str }}', '{{ slot.time }}')"
-                                 {% endif %}>
-                                <div class="slot-time">{{ slot.time }}</div>
-                                <div class="slot-duration">{{ slot.duration }}min</div>
-                                {% if slot.status != 'available' %}
-                                <div class="slot-status">
-                                    {% if slot.status == 'booked' %}
-                                        <i class="fas fa-user me-1"></i>Belegt
-                                    {% elif slot.status == 'blocked' %}
-                                        <i class="fas fa-ban me-1"></i>Gesperrt
-                                    {% endif %}
-                                </div>
+                    {% if berater_data.slots %}
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                        {% for slot in berater_data.slots %}
+                        <div class="slot-card glass rounded-xl p-3 text-center {% if slot.status == 'available' %}cursor-pointer hover:bg-success/20 border-success/40{% else %}opacity-50 cursor-not-allowed{% endif %}"
+                             {% if slot.status == 'available' %}
+                             onclick="quickBookSlot('{{ berater_name }}', '{{ date_str }}', '{{ slot.time }}')"
+                             {% endif %}>
+                            <div class="font-bold text-white text-sm">{{ slot.time }}</div>
+                            <div class="text-xs text-white/60">{{ slot.duration }}min</div>
+                            {% if slot.status != 'available' %}
+                            <div class="text-xs mt-1 flex items-center justify-center gap-1">
+                                {% if slot.status == 'booked' %}
+                                    <i data-lucide="user" class="w-3 h-3 text-warning"></i>
+                                    <span class="text-warning">Belegt</span>
+                                {% elif slot.status == 'blocked' %}
+                                    <i data-lucide="ban" class="w-3 h-3 text-error"></i>
+                                    <span class="text-error">Gesperrt</span>
                                 {% endif %}
                             </div>
-                            {% endfor %}
                             {% else %}
-                            <div class="text-center text-muted py-3">
-                                <i class="fas fa-calendar-times me-2"></i>
-                                Keine Termine verfügbar
+                            <div class="text-xs mt-1 flex items-center justify-center gap-1">
+                                <i data-lucide="check-circle" class="w-3 h-3 text-success"></i>
+                                <span class="text-success">Frei</span>
                             </div>
                             {% endif %}
                         </div>
-                    </div>
-
-                    {% if not loop.last %}<hr>{% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Slot Suggestions -->
-            {% if suggestions %}
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-lightbulb me-2"></i>
-                        Empfohlene Termine
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for suggestion in suggestions %}
-                        <div class="col-md-6 mb-3">
-                            <div class="suggestion-card p-3 border rounded">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h6 class="mb-1">{{ suggestion.berater }}</h6>
-                                        <div class="text-muted small">{{ suggestion.date }} um {{ suggestion.time }}</div>
-                                    </div>
-                                    <span class="badge bg-info">{{ suggestion.reason }}</span>
-                                </div>
-                                <p class="small text-muted mb-2">{{ suggestion.description }}</p>
-                                <button class="btn btn-sm btn-outline-primary"
-                                        onclick="quickBookSlot('{{ suggestion.berater }}', '{{ suggestion.date }}', '{{ suggestion.time }}')">
-                                    <i class="fas fa-calendar-plus me-1"></i>
-                                    Schnell buchen
-                                </button>
-                            </div>
-                        </div>
                         {% endfor %}
                     </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Sidebar -->
-        <div class="col-lg-4">
-            <!-- Quick Booking Form -->
-            <div class="booking-form mb-4">
-                <h5 class="mb-3">
-                    <i class="fas fa-zap me-2"></i>
-                    Schnellbuchung
-                </h5>
-
-                <form id="quick-booking-form" onsubmit="event.preventDefault(); submitQuickBooking();">
-                    <div class="mb-3">
-                        <label class="form-label">Berater wählen</label>
-                        <select class="form-control" name="berater" required>
-                            <option value="">Berater auswählen...</option>
-                            {% for berater_name in effective_availability.keys() %}
-                            <option value="{{ berater_name }}">{{ berater_name }}</option>
-                            {% endfor %}
-                        </select>
+                    {% else %}
+                    <div class="text-center py-6 text-white/60">
+                        <i data-lucide="calendar-x" class="w-8 h-8 mx-auto mb-2"></i>
+                        <p class="text-sm">Keine Termine verfügbar</p>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Verfügbare Zeit</label>
-                        <select class="form-control" name="time" required disabled>
-                            <option value="">Erst Berater wählen</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Dringlichkeit</label>
-                        <select class="form-control" name="urgency">
-                            <option value="normal">Normal</option>
-                            <option value="high">Hoch</option>
-                            <option value="urgent">Dringend</option>
-                        </select>
-                    </div>
-
-                    <input type="hidden" name="date" value="{{ date_str }}">
-
-                    <div class="d-grid">
-                        <button type="submit" id="quick-book-button" class="btn btn-primary" disabled>
-                            <i class="fas fa-calendar-plus me-2"></i>
-                            Schnell buchen
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Day Summary -->
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-pie me-2"></i>
-                        Tagesübersicht
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="summary-stats">
-                        <div class="stat-item">
-                            <span class="stat-number text-success">
-                                {{ effective_availability.values()|sum(attribute='available_slots')|int }}
-                            </span>
-                            <div class="stat-label">Verfügbare Slots</div>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number text-warning">
-                                {{ effective_availability.values()|sum(attribute='total_slots')|int - effective_availability.values()|sum(attribute='available_slots')|int }}
-                            </span>
-                            <div class="stat-label">Belegte Slots</div>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number text-info">{{ effective_availability|length }}</span>
-                            <div class="stat-label">Berater aktiv</div>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <h6>Berater-Verfügbarkeit</h6>
-                    {% for berater_name, berater_data in effective_availability.items() %}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span>{{ berater_name }}</span>
-                        <div>
-                            <span class="badge bg-{{ 'success' if berater_data.available_slots > 0 else 'secondary' }}">
-                                {{ berater_data.available_slots }}/{{ berater_data.total_slots }}
-                            </span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Weekly Summary -->
-            {% if weekly_summary %}
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-week me-2"></i>
-                        Wochenzusammenfassung
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="weekly-summary">
-                        {% for date_key, day_data in weekly_summary.items() %}
-                        <div class="week-day-summary">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-bold">{{ day_data.day_name }}</div>
-                                    <div class="small text-muted">{{ day_data.date_formatted }}</div>
-                                </div>
-                                <div>
-                                    {% if day_data.available_slots > 0 %}
-                                    <span class="badge bg-success">{{ day_data.available_slots }} frei</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Ausgebucht</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% if not loop.last %}<hr class="my-2">{% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Gamification Progress -->
-            {% if level and xp %}
-            <div class="gamification-widget">
-                <h6 class="text-white mb-3">
-                    <i class="fas fa-trophy me-2"></i>
-                    Dein Fortschritt heute
-                </h6>
-
-                <div class="level-display">
-                    <span class="level-number">{{ level }}</span>
-                    <small>Level</small>
+                    {% endif %}
                 </div>
 
-                <div class="xp-bar">
-                    <div class="xp-fill" style="width: {{ xp_percentage }}%"></div>
-                </div>
-
-                <div class="text-center">
-                    <small>{{ xp }} / {{ xp_next_level }} XP</small>
-                </div>
-
-                {% if badges %}
-                <div class="mt-3">
-                    <h6 class="text-white-50 mb-2">Aktuelle Badges</h6>
-                    {% for badge in badges[:3] %}
-                    <div class="achievement-badge">
-                        {{ badge.icon }} {{ badge.name }}
-                    </div>
-                    {% endfor %}
-                </div>
+                {% if not loop.last %}
+                <div class="divider"></div>
                 {% endif %}
+                {% endfor %}
+            </div>
+        </div>
 
-                <!-- Gamification Links -->
-                <div class="d-grid gap-2 mt-3">
-                    <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-trophy me-1"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-award me-1"></i> Badges
-                    </a>
-                    <a href="{{ url_for('gamification.daily_quests') }}" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-tasks me-1"></i> Quests
-                    </a>
-                    <a href="{{ url_for('gamification.prestige_dashboard') }}" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-crown me-1"></i> Prestige
-                    </a>
+        <!-- Slot Suggestions -->
+        {% if suggestions %}
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="400">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center">
+                    <i data-lucide="lightbulb" class="w-5 h-5 text-warning"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Empfohlene Termine</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for suggestion in suggestions %}
+                <div class="glass rounded-xl p-4 hover:bg-white/10 transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <h6 class="font-bold text-white">{{ suggestion.berater }}</h6>
+                            <p class="text-sm text-white/60">{{ suggestion.date }} um {{ suggestion.time }}</p>
+                        </div>
+                        <div class="badge badge-info">{{ suggestion.reason }}</div>
+                    </div>
+                    <p class="text-xs text-white/70 mb-3">{{ suggestion.description }}</p>
+                    <button class="btn btn-sm btn-primary w-full gap-2"
+                            onclick="quickBookSlot('{{ suggestion.berater }}', '{{ suggestion.date }}', '{{ suggestion.time }}')">
+                        <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                        <span>Schnell buchen</span>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Booking Form -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
+                </div>
+                <h5 class="font-bold text-white">Schnellbuchung</h5>
+            </div>
+
+            <form id="quick-booking-form" onsubmit="event.preventDefault(); submitQuickBooking();" class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text text-white">Berater wählen</span>
+                    </label>
+                    <select class="select select-bordered w-full" name="berater" required>
+                        <option value="">Berater auswählen...</option>
+                        {% for berater_name in effective_availability.keys() %}
+                        <option value="{{ berater_name }}">{{ berater_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text text-white">Verfügbare Zeit</span>
+                    </label>
+                    <select class="select select-bordered w-full" name="time" required disabled>
+                        <option value="">Erst Berater wählen</option>
+                    </select>
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text text-white">Dringlichkeit</span>
+                    </label>
+                    <select class="select select-bordered w-full" name="urgency">
+                        <option value="normal">Normal</option>
+                        <option value="high">Hoch</option>
+                        <option value="urgent">Dringend</option>
+                    </select>
+                </div>
+
+                <input type="hidden" name="date" value="{{ date_str }}">
+
+                <button type="submit" id="quick-book-button" class="btn btn-primary w-full gap-2" disabled>
+                    <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                    <span>Schnell buchen</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Day Summary -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-info/20 flex items-center justify-center">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-info"></i>
+                </div>
+                <h5 class="font-bold text-white">Tagesübersicht</h5>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-success">
+                        {{ effective_availability.values()|sum(attribute='available_slots')|int }}
+                    </div>
+                    <div class="text-xs text-white/60 mt-1">Verfügbar</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-warning">
+                        {{ effective_availability.values()|sum(attribute='total_slots')|int - effective_availability.values()|sum(attribute='available_slots')|int }}
+                    </div>
+                    <div class="text-xs text-white/60 mt-1">Belegt</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-info">
+                        {{ effective_availability|length }}
+                    </div>
+                    <div class="text-xs text-white/60 mt-1">Berater</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <h6 class="font-semibold text-white mb-3">Berater-Verfügbarkeit</h6>
+            <div class="space-y-2">
+                {% for berater_name, berater_data in effective_availability.items() %}
+                <div class="flex items-center justify-between">
+                    <span class="text-white/80 text-sm">{{ berater_name }}</span>
+                    <div class="badge {% if berater_data.available_slots > 0 %}badge-success{% else %}badge-ghost{% endif %}">
+                        {{ berater_data.available_slots }}/{{ berater_data.total_slots }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Weekly Summary -->
+        {% if weekly_summary %}
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="400">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-secondary"></i>
+                </div>
+                <h5 class="font-bold text-white">Wochenzusammenfassung</h5>
+            </div>
+
+            <div class="space-y-2">
+                {% for date_key, day_data in weekly_summary.items() %}
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="font-semibold text-white text-sm">{{ day_data.day_name }}</div>
+                        <div class="text-xs text-white/60">{{ day_data.date_formatted }}</div>
+                    </div>
+                    <div>
+                        {% if day_data.available_slots > 0 %}
+                        <div class="badge badge-success">{{ day_data.available_slots }} frei</div>
+                        {% else %}
+                        <div class="badge badge-ghost">Ausgebucht</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if not loop.last %}
+                <div class="divider my-1"></div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Gamification Progress -->
+        {% if level and xp %}
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="500">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center">
+                    <i data-lucide="trophy" class="w-5 h-5 text-warning"></i>
+                </div>
+                <h6 class="font-bold text-white">Dein Fortschritt heute</h6>
+            </div>
+
+            <div class="text-center mb-4">
+                <div class="text-5xl font-bold text-warning mb-1">{{ level }}</div>
+                <div class="text-sm text-white/60">Level</div>
+            </div>
+
+            <div class="w-full bg-white/10 rounded-full h-2 mb-2">
+                <div class="bg-gradient-to-r from-warning to-primary h-2 rounded-full transition-all"
+                     style="width: {{ xp_percentage }}%"></div>
+            </div>
+
+            <div class="text-center text-sm text-white/70 mb-4">
+                {{ xp }} / {{ xp_next_level }} XP
+            </div>
+
+            {% if badges %}
+            <div class="mb-4">
+                <h6 class="text-white/80 text-sm mb-2">Aktuelle Badges</h6>
+                <div class="space-y-1">
+                    {% for badge in badges[:3] %}
+                    <div class="badge badge-ghost w-full justify-start gap-2">
+                        <span>{{ badge.icon }}</span>
+                        <span>{{ badge.name }}</span>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
             {% endif %}
+
+            <div class="grid grid-cols-2 gap-2">
+                <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-sm btn-ghost gap-1">
+                    <i data-lucide="trophy" class="w-3 h-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-sm btn-ghost gap-1">
+                    <i data-lucide="award" class="w-3 h-3"></i>
+                    <span>Badges</span>
+                </a>
+                <a href="{{ url_for('gamification.daily_quests') }}" class="btn btn-sm btn-ghost gap-1">
+                    <i data-lucide="list-checks" class="w-3 h-3"></i>
+                    <span>Quests</span>
+                </a>
+                <a href="{{ url_for('gamification.prestige_dashboard') }}" class="btn btn-sm btn-ghost gap-1">
+                    <i data-lucide="crown" class="w-3 h-3"></i>
+                    <span>Prestige</span>
+                </a>
+            </div>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -428,6 +425,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function quickBookSlot(berater, date, time) {
+    // Pre-fill quick booking form
+    const beraterSelect = document.querySelector('[name="berater"]');
+    const timeSelect = document.querySelector('[name="time"]');
+
+    beraterSelect.value = berater;
+    beraterSelect.dispatchEvent(new Event('change'));
+
+    // Wait for time options to populate
+    setTimeout(() => {
+        timeSelect.value = time;
+        timeSelect.dispatchEvent(new Event('change'));
+
+        // Scroll to form
+        document.getElementById('quick-booking-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+}
+
 function submitQuickBooking() {
     const form = document.getElementById('quick-booking-form');
     const formData = new FormData(form);
@@ -442,7 +457,8 @@ function submitQuickBooking() {
 
     // Button state
     bookButton.disabled = true;
-    bookButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Buche...';
+    bookButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Buche...</span>';
+    setTimeout(() => lucide.createIcons(), 10);
 
     fetch('/slots/book', {
         method: 'POST',
@@ -454,33 +470,75 @@ function submitQuickBooking() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessMessage('Termin erfolgreich gebucht!');
+            // Success toast
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success fixed top-4 right-4 w-96 z-50 shadow-lg';
+            toast.innerHTML = `
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                <span>Termin erfolgreich gebucht!</span>
+            `;
+            document.body.appendChild(toast);
+            lucide.createIcons();
+
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            showErrorMessage(data.error || 'Fehler beim Buchen');
+            // Error toast
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-error fixed top-4 right-4 w-96 z-50 shadow-lg';
+            toast.innerHTML = `
+                <i data-lucide="x-circle" class="w-6 h-6"></i>
+                <span>${data.error || 'Fehler beim Buchen'}</span>
+            `;
+            document.body.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => toast.remove(), 3000);
         }
     })
     .catch(error => {
         console.error('Booking error:', error);
-        showErrorMessage('Unerwarteter Fehler beim Buchen');
+        const toast = document.createElement('div');
+        toast.className = 'alert alert-error fixed top-4 right-4 w-96 z-50 shadow-lg';
+        toast.innerHTML = `
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            <span>Unerwarteter Fehler beim Buchen</span>
+        `;
+        document.body.appendChild(toast);
+        lucide.createIcons();
+
+        setTimeout(() => toast.remove(), 3000);
     })
     .finally(() => {
         bookButton.disabled = false;
-        bookButton.innerHTML = '<i class="fas fa-calendar-plus me-2"></i>Schnell buchen';
+        bookButton.innerHTML = '<i data-lucide="calendar-plus" class="w-4 h-4"></i><span>Schnell buchen</span>';
+        lucide.createIcons();
     });
 }
 
-// Auto-refresh availability
+function navigateWeek(direction) {
+    const currentDate = new Date('{{ date_str }}');
+
+    if (direction === 'prev') {
+        currentDate.setDate(currentDate.getDate() - 7);
+    } else {
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    const newDateStr = currentDate.toISOString().split('T')[0];
+    window.location.href = `/slots/day/${newDateStr}`;
+}
+
+// Auto-refresh availability every minute
 setInterval(() => {
     fetch(`/slots/api/availability/{{ date_str }}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update availability display
                 console.log('Updated availability:', data.availability);
+                // Could update UI here if needed
             }
         })
         .catch(error => console.error('Auto-refresh error:', error));
-}, 60000); // Every minute
+}, 60000);
 </script>
 {% endblock %}

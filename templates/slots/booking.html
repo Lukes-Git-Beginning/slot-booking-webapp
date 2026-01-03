@@ -1,379 +1,383 @@
 {% extends "slots/base.html" %}
 
-{% block title %}Termin buchen - Slot-Booking{% endblock %}
+{% block title %}Termin buchen{% endblock %}
+
+{% block header_title %}Neuen Termin buchen{% endblock %}
+{% block header_subtitle %}Wähle deinen bevorzugten Berater und buche deinen Termin{% endblock %}
 
 {% block content %}
-<!-- Breadcrumb -->
-<div class="slots-breadcrumb">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="{{ url_for('hub.dashboard') }}"><i class="fas fa-home"></i> Hub</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('slots.index') }}">Slot-Booking</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Termin buchen</li>
-        </ol>
-    </nav>
-</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Booking Form Column (2/3) -->
+    <div class="lg:col-span-2">
+        <!-- Step 1: Berater Selection -->
+        <div class="glass rounded-3xl p-8 mb-6" data-aos="fade-up">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <i data-lucide="user-check" class="w-6 h-6 text-primary"></i>
+                </div>
+                Schritt 1: Berater wählen
+            </h3>
 
-<!-- Header -->
-<div class="slots-header">
-    <div class="container">
-        <h1 class="display-6 fw-bold mb-0">
-            <i class="fas fa-calendar-plus me-3"></i>
-            Neuen Termin buchen
-        </h1>
-        <p class="lead mb-0">Wähle deinen bevorzugten Berater und buche deinen Termin</p>
-    </div>
-</div>
+            <!-- Berater Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="berater-selection">
+                <!-- Mock berater data -->
+                {% set mock_berater = [
+                    {"name": "Sara", "specialty": "Allgemeine Beratung", "rating": 4.8, "available": true},
+                    {"name": "Marcus", "specialty": "Technische Beratung", "rating": 4.6, "available": true},
+                    {"name": "Lisa", "specialty": "Sales-Coaching", "rating": 4.9, "available": false},
+                    {"name": "Thomas", "specialty": "Prozessoptimierung", "rating": 4.7, "available": true}
+                ] %}
 
-<div class="container">
-    <div class="row">
-        <!-- Booking Form Column -->
-        <div class="col-lg-8">
-            <div class="booking-form fade-in-up">
-                <h3 class="mb-4">
-                    <i class="fas fa-user-tie me-2"></i>
-                    Schritt 1: Berater wählen
-                </h3>
+                {% for berater in mock_berater %}
+                <div class="relative bg-white/5 rounded-xl p-4 cursor-pointer transition-all hover:bg-white/10 hover:scale-[1.02] berater-card"
+                     data-berater="{{ berater.name }}"
+                     onclick="selectBerater(this, '{{ berater.name }}')">
+                    <!-- Availability Indicator -->
+                    <div class="absolute top-3 right-3">
+                        {% if berater.available %}
+                        <div class="w-3 h-3 rounded-full bg-success animate-pulse"></div>
+                        {% else %}
+                        <div class="w-3 h-3 rounded-full bg-warning"></div>
+                        {% endif %}
+                    </div>
 
-                <!-- Berater Selection -->
-                <div class="row mb-4" id="berater-selection">
-                    <!-- Mock berater data since we don't have the actual data structure -->
-                    {% set mock_berater = [
-                        {"name": "Sara", "specialty": "Allgemeine Beratung", "rating": 4.8, "available": true},
-                        {"name": "Marcus", "specialty": "Technische Beratung", "rating": 4.6, "available": true},
-                        {"name": "Lisa", "specialty": "Sales-Coaching", "rating": 4.9, "available": false},
-                        {"name": "Thomas", "specialty": "Prozessoptimierung", "rating": 4.7, "available": true}
-                    ] %}
+                    <div class="flex items-center gap-3 mb-3">
+                        <!-- Avatar -->
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-white">
+                            {{ berater.name[0] }}{% if berater.name|length > 1 %}{{ berater.name[1] }}{% endif %}
+                        </div>
 
-                    {% for berater in mock_berater %}
-                    <div class="col-md-6 mb-3">
-                        <div class="berater-card" data-berater="{{ berater.name }}" onclick="selectBerater(this, '{{ berater.name }}')">
-                            <div class="availability-indicator {% if berater.available %}available{% else %}busy{% endif %}"></div>
+                        <div class="flex-1">
+                            <h5 class="font-bold text-white">{{ berater.name }}</h5>
+                            <div class="text-sm text-white/60">{{ berater.specialty }}</div>
 
-                            <div class="d-flex align-items-center">
-                                <div class="berater-avatar">
-                                    {{ berater.name[0] }}{% if berater.name|length > 1 %}{{ berater.name[1] }}{% endif %}
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h5 class="mb-1">{{ berater.name }}</h5>
-                                    <div class="berater-specialty">{{ berater.specialty }}</div>
-                                    <div class="berater-rating">
-                                        {% for i in range((berater.rating)|int) %}
-                                        <i class="fas fa-star"></i>
-                                        {% endfor %}
-                                        {% if berater.rating % 1 >= 0.5 %}
-                                        <i class="fas fa-star-half-alt"></i>
-                                        {% endif %}
-                                        {% for i in range(5 - (berater.rating|round)|int) %}
-                                        <i class="far fa-star"></i>
-                                        {% endfor %}
-                                        ({{ berater.rating }}/5)
-                                    </div>
-                                    <div class="mt-2">
-                                        <span class="duration-badge">60 Min Standard</span>
-                                        {% if berater.available %}
-                                        <span class="badge bg-success ms-2">
-                                            <i class="fas fa-check me-1"></i>Verfügbar
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-warning ms-2">
-                                            <i class="fas fa-clock me-1"></i>Beschäftigt
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
+                            <!-- Star Rating -->
+                            <div class="flex items-center gap-1 mt-1">
+                                {% for i in range((berater.rating)|int) %}
+                                <i data-lucide="star" class="w-3 h-3 text-warning fill-warning"></i>
+                                {% endfor %}
+                                {% if berater.rating % 1 >= 0.5 %}
+                                <i data-lucide="star-half" class="w-3 h-3 text-warning fill-warning"></i>
+                                {% endif %}
+                                {% for i in range(5 - (berater.rating|round)|int) %}
+                                <i data-lucide="star" class="w-3 h-3 text-white/30"></i>
+                                {% endfor %}
+                                <span class="text-xs text-white/60 ml-1">({{ berater.rating }}/5)</span>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
 
-                <!-- Calendar Selection -->
-                <div id="calendar-section" style="display: none;">
-                    <h3 class="mb-4">
-                        <i class="fas fa-calendar-alt me-2"></i>
-                        Schritt 2: Datum wählen
-                    </h3>
-
-                    <div class="calendar-widget mb-4">
-                        <div class="calendar-header">
-                            <button class="btn btn-link text-white" onclick="navigateBookingCalendar('prev')">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <span id="booking-calendar-month-year">{{ moment().format('MMMM YYYY') }}</span>
-                            <button class="btn btn-link text-white" onclick="navigateBookingCalendar('next')">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
+                    <div class="flex items-center gap-2 mt-3">
+                        <div class="badge badge-primary badge-sm">60 Min Standard</div>
+                        {% if berater.available %}
+                        <div class="badge badge-success badge-sm gap-1">
+                            <i data-lucide="check" class="w-3 h-3"></i>
+                            Verfügbar
                         </div>
-                        <div class="calendar-grid" id="booking-calendar-grid">
-                            <!-- Calendar days will be generated by JavaScript -->
+                        {% else %}
+                        <div class="badge badge-warning badge-sm gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            Beschäftigt
                         </div>
+                        {% endif %}
                     </div>
                 </div>
+                {% endfor %}
+            </div>
+        </div>
 
-                <!-- Time Selection -->
-                <div id="time-section" style="display: none;">
-                    <h3 class="mb-4">
-                        <i class="fas fa-clock me-2"></i>
-                        Schritt 3: Zeit wählen
-                    </h3>
+        <!-- Step 2: Calendar Selection -->
+        <div id="calendar-section" class="glass rounded-3xl p-8 mb-6 hidden" data-aos="fade-up" data-aos-delay="100">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center">
+                    <i data-lucide="calendar" class="w-6 h-6 text-success"></i>
+                </div>
+                Schritt 2: Datum wählen
+            </h3>
 
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Verfügbare Zeiten für <span id="selected-date-display"></span>:
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="available-times" class="mb-4">
-                        <!-- Available time slots will be loaded via JavaScript -->
-                    </div>
+            <div class="bg-white/5 rounded-xl p-6">
+                <!-- Calendar Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <button class="btn btn-ghost btn-sm" onclick="navigateBookingCalendar('prev')">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <span id="booking-calendar-month-year" class="text-xl font-bold text-white"></span>
+                    <button class="btn btn-ghost btn-sm" onclick="navigateBookingCalendar('next')">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
                 </div>
 
-                <!-- Booking Details -->
-                <div id="details-section" style="display: none;">
-                    <h3 class="mb-4">
-                        <i class="fas fa-edit me-2"></i>
-                        Schritt 4: Details angeben
-                    </h3>
-
-                    <form id="booking-form" onsubmit="submitSlotBooking(event)">
-                        <input type="hidden" id="selected-berater" name="berater">
-                        <input type="hidden" id="selected-date" name="date">
-                        <input type="hidden" id="selected-time" name="time">
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Dauer</label>
-                                <select class="form-control" name="duration">
-                                    <option value="60">60 Minuten (Standard)</option>
-                                    <option value="90">90 Minuten (Erweitert)</option>
-                                    <option value="120">120 Minuten (Intensiv)</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Dringlichkeit</label>
-                                <select class="form-control" name="urgency">
-                                    <option value="normal">Normal</option>
-                                    <option value="high">Hoch</option>
-                                    <option value="urgent">Dringend</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Thema/Grund des Termins</label>
-                            <input type="text" class="form-control" name="topic"
-                                placeholder="z.B. Beratung zu Verkaufsstrategie, Problemlösung, etc.">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Zusätzliche Notizen</label>
-                            <textarea class="form-control" name="notes" rows="3"
-                                placeholder="Spezifische Fragen oder Vorbereitungen für den Termin..."></textarea>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="confirm-booking" required>
-                                <label class="form-check-label" for="confirm-booking">
-                                    Ich bestätige die Buchungsdetails und bin zum gewählten Zeitpunkt verfügbar
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" id="slot-book-button" class="btn btn-primary btn-lg" disabled>
-                                <i class="fas fa-calendar-check me-2"></i>
-                                Termin buchen
-                            </button>
-                        </div>
-                    </form>
+                <!-- Calendar Grid -->
+                <div class="grid grid-cols-7 gap-2" id="booking-calendar-grid">
+                    <!-- Calendar will be generated by JavaScript -->
                 </div>
             </div>
         </div>
 
-        <!-- Summary Sidebar -->
-        <div class="col-lg-4">
-            <!-- Booking Summary -->
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-clipboard-list me-2"></i>
-                        Buchungsübersicht
-                    </h5>
+        <!-- Step 3: Time Selection -->
+        <div id="time-section" class="glass rounded-3xl p-8 mb-6 hidden" data-aos="fade-up" data-aos-delay="200">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-info/20 flex items-center justify-center">
+                    <i data-lucide="clock" class="w-6 h-6 text-info"></i>
                 </div>
-                <div class="card-body">
-                    <div id="booking-summary">
-                        <div class="text-muted text-center py-4">
-                            <i class="fas fa-arrow-left me-2"></i>
-                            Wähle einen Berater um zu beginnen
-                        </div>
+                Schritt 3: Zeit wählen
+            </h3>
+
+            <div class="alert alert-info mb-6">
+                <i data-lucide="info" class="w-5 h-5"></i>
+                <span>Verfügbare Zeiten für <strong id="selected-date-display"></strong></span>
+            </div>
+
+            <div id="available-times" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <!-- Time slots will be loaded via JavaScript -->
+            </div>
+        </div>
+
+        <!-- Step 4: Booking Details -->
+        <div id="details-section" class="glass rounded-3xl p-8 mb-6 hidden" data-aos="fade-up" data-aos-delay="300">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
+                    <i data-lucide="edit" class="w-6 h-6 text-warning"></i>
+                </div>
+                Schritt 4: Details angeben
+            </h3>
+
+            <form id="booking-form" onsubmit="submitSlotBooking(event)">
+                <input type="hidden" id="selected-berater" name="berater">
+                <input type="hidden" id="selected-date" name="date">
+                <input type="hidden" id="selected-time" name="time">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Duration -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text text-white">Dauer</span>
+                        </label>
+                        <select class="select select-bordered bg-white/10 border-white/20 text-white" name="duration">
+                            <option value="60">60 Minuten (Standard)</option>
+                            <option value="90">90 Minuten (Erweitert)</option>
+                            <option value="120">120 Minuten (Intensiv)</option>
+                        </select>
                     </div>
 
-                    <div id="booking-summary-content" style="display: none;">
-                        <div class="summary-item">
-                            <strong>Berater:</strong>
-                            <span id="summary-berater">-</span>
-                        </div>
-                        <div class="summary-item">
-                            <strong>Datum:</strong>
-                            <span id="summary-date">-</span>
-                        </div>
-                        <div class="summary-item">
-                            <strong>Zeit:</strong>
-                            <span id="summary-time">-</span>
-                        </div>
-                        <div class="summary-item">
-                            <strong>Dauer:</strong>
-                            <span id="summary-duration">60 Minuten</span>
-                        </div>
-                        <div class="summary-item">
-                            <strong>Thema:</strong>
-                            <span id="summary-topic">-</span>
-                        </div>
+                    <!-- Urgency -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text text-white">Dringlichkeit</span>
+                        </label>
+                        <select class="select select-bordered bg-white/10 border-white/20 text-white" name="urgency">
+                            <option value="normal">Normal</option>
+                            <option value="high">Hoch</option>
+                            <option value="urgent">Dringend</option>
+                        </select>
                     </div>
+                </div>
+
+                <!-- Topic -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text text-white">Thema/Grund des Termins</span>
+                    </label>
+                    <input type="text" class="input input-bordered bg-white/10 border-white/20 text-white placeholder:text-white/40"
+                           name="topic" placeholder="z.B. Beratung zu Verkaufsstrategie, Problemlösung, etc.">
+                </div>
+
+                <!-- Notes -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text text-white">Zusätzliche Notizen</span>
+                    </label>
+                    <textarea class="textarea textarea-bordered bg-white/10 border-white/20 text-white placeholder:text-white/40"
+                              name="notes" rows="3"
+                              placeholder="Spezifische Fragen oder Vorbereitungen für den Termin..."></textarea>
+                </div>
+
+                <!-- Confirmation Checkbox -->
+                <div class="form-control mb-6">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        <input type="checkbox" class="checkbox checkbox-primary" id="confirm-booking" required>
+                        <span class="label-text text-white">
+                            Ich bestätige die Buchungsdetails und bin zum gewählten Zeitpunkt verfügbar
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="slot-book-button" class="btn btn-primary btn-lg w-full gap-2" disabled>
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                    Termin buchen
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar (1/3) -->
+    <div class="lg:col-span-1">
+        <!-- Booking Summary -->
+        <div class="glass rounded-2xl p-6 mb-6" data-aos="fade-up" data-aos-delay="400">
+            <h5 class="font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="clipboard-list" class="w-5 h-5 text-primary"></i>
+                Buchungsübersicht
+            </h5>
+
+            <div id="booking-summary">
+                <div class="text-white/60 text-center py-6">
+                    <i data-lucide="arrow-left" class="w-8 h-8 mx-auto mb-2"></i>
+                    <p class="text-sm">Wähle einen Berater um zu beginnen</p>
                 </div>
             </div>
 
-            <!-- Booking Tips -->
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-lightbulb me-2"></i>
-                        Tipps für deinen Termin
-                    </h5>
+            <div id="booking-summary-content" class="hidden space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-white/10">
+                    <span class="text-white/70">Berater:</span>
+                    <span class="font-semibold text-white" id="summary-berater">-</span>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Bereite spezifische Fragen vor
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Halte relevante Unterlagen bereit
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Sorge für eine ruhige Umgebung
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Notiere dir wichtige Punkte
-                        </li>
-                        <li class="mb-0">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Sei pünktlich zum Termin
-                        </li>
-                    </ul>
+                <div class="flex justify-between items-center py-2 border-b border-white/10">
+                    <span class="text-white/70">Datum:</span>
+                    <span class="font-semibold text-white" id="summary-date">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-white/10">
+                    <span class="text-white/70">Zeit:</span>
+                    <span class="font-semibold text-white" id="summary-time">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-white/10">
+                    <span class="text-white/70">Dauer:</span>
+                    <span class="font-semibold text-white" id="summary-duration">60 Minuten</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-white/70">Thema:</span>
+                    <span class="font-semibold text-white" id="summary-topic">-</span>
                 </div>
             </div>
+        </div>
 
-            <!-- Popular Times -->
-            <div class="hub-card mb-4">
-                <div class="hub-card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>
-                        Beliebte Zeiten
-                    </h5>
+        <!-- Booking Tips -->
+        <div class="glass rounded-2xl p-6 mb-6" data-aos="fade-up" data-aos-delay="500">
+            <h5 class="font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-5 h-5 text-warning"></i>
+                Tipps für deinen Termin
+            </h5>
+            <ul class="space-y-2">
+                <li class="flex items-start gap-2 text-white/80">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success mt-1 flex-shrink-0"></i>
+                    <span class="text-sm">Bereite spezifische Fragen vor</span>
+                </li>
+                <li class="flex items-start gap-2 text-white/80">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success mt-1 flex-shrink-0"></i>
+                    <span class="text-sm">Halte relevante Unterlagen bereit</span>
+                </li>
+                <li class="flex items-start gap-2 text-white/80">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success mt-1 flex-shrink-0"></i>
+                    <span class="text-sm">Sorge für eine ruhige Umgebung</span>
+                </li>
+                <li class="flex items-start gap-2 text-white/80">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success mt-1 flex-shrink-0"></i>
+                    <span class="text-sm">Notiere dir wichtige Punkte</span>
+                </li>
+                <li class="flex items-start gap-2 text-white/80">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success mt-1 flex-shrink-0"></i>
+                    <span class="text-sm">Sei pünktlich zum Termin</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Popular Times -->
+        <div class="glass rounded-2xl p-6 mb-6" data-aos="fade-up" data-aos-delay="600">
+            <h5 class="font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="trending-up" class="w-5 h-5 text-info"></i>
+                Beliebte Zeiten
+            </h5>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-white">09:00 - 11:00</span>
+                        <span class="text-xs text-white/60">Sehr beliebt</span>
+                    </div>
+                    <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: 80%"></div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="popular-times">
-                        <div class="popular-time-item">
-                            <div class="time-range">09:00 - 11:00</div>
-                            <div class="popularity-bar">
-                                <div class="popularity-fill" style="width: 80%"></div>
-                            </div>
-                            <small class="text-muted">Sehr beliebt</small>
-                        </div>
-                        <div class="popular-time-item">
-                            <div class="time-range">14:00 - 16:00</div>
-                            <div class="popularity-bar">
-                                <div class="popularity-fill" style="width: 95%"></div>
-                            </div>
-                            <small class="text-muted">Am beliebtesten</small>
-                        </div>
-                        <div class="popular-time-item">
-                            <div class="time-range">16:00 - 18:00</div>
-                            <div class="popularity-bar">
-                                <div class="popularity-fill" style="width: 60%"></div>
-                            </div>
-                            <small class="text-muted">Verfügbar</small>
-                        </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-white">14:00 - 16:00</span>
+                        <span class="text-xs text-white/60">Am beliebtesten</span>
+                    </div>
+                    <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: 95%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-white">16:00 - 18:00</span>
+                        <span class="text-xs text-white/60">Verfügbar</span>
+                    </div>
+                    <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: 60%"></div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Support -->
-            <div class="hub-card">
-                <div class="hub-card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-phone me-2"></i>
-                        Brauchen Sie Hilfe?
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="small text-muted">
-                        Bei Fragen zur Buchung oder terminlichen Problemen:
-                    </p>
-                    <div class="d-grid">
-                        <a href="mailto:support@business-hub.de" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-envelope me-2"></i>
-                            Support kontaktieren
-                        </a>
-                    </div>
-                </div>
-            </div>
+        <!-- Support -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="700">
+            <h5 class="font-bold text-white mb-3 flex items-center gap-2">
+                <i data-lucide="headphones" class="w-5 h-5 text-success"></i>
+                Brauchen Sie Hilfe?
+            </h5>
+            <p class="text-sm text-white/70 mb-4">
+                Bei Fragen zur Buchung oder terminlichen Problemen:
+            </p>
+            <a href="mailto:support@business-hub.de" class="btn btn-outline btn-primary btn-sm w-full gap-2">
+                <i data-lucide="mail" class="w-4 h-4"></i>
+                Support kontaktieren
+            </a>
         </div>
     </div>
 </div>
 
 <!-- Success Modal -->
-<div class="modal fade" id="slotSuccessModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Buchung erfolgreich!
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<dialog id="slotSuccessModal" class="modal">
+    <div class="modal-box max-w-md glass">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-8 h-8 text-success"></i>
             </div>
-            <div class="modal-body">
-                <div class="text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-calendar-check text-success" style="font-size: 3rem;"></i>
-                    </div>
-                    <h4>Dein Termin ist gebucht!</h4>
-                    <p class="text-muted">Du erhältst eine Bestätigung per E-Mail mit allen Details.</p>
-                    <div class="booking-details mt-3">
-                        <div class="alert alert-info">
-                            <strong>Buchungs-ID:</strong> <span id="modal-booking-id">-</span><br>
-                            <strong>Berater:</strong> <span id="modal-berater">-</span><br>
-                            <strong>Termin:</strong> <span id="modal-datetime">-</span>
-                        </div>
-                    </div>
-                </div>
+            <h3 class="text-2xl font-bold text-white">Buchung erfolgreich!</h3>
+        </div>
+
+        <div class="text-center mb-6">
+            <div class="mb-4">
+                <i data-lucide="calendar-check" class="w-16 h-16 text-success mx-auto"></i>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('slots.index') }}'">
-                    Zum Slot-Dashboard
-                </button>
-                <button type="button" class="btn btn-primary" onclick="window.location.href='{{ url_for('hub.dashboard') }}'">
-                    Zum Hub
-                </button>
+            <h4 class="text-xl font-bold text-white mb-2">Dein Termin ist gebucht!</h4>
+            <p class="text-white/70">Du erhältst eine Bestätigung per E-Mail mit allen Details.</p>
+        </div>
+
+        <div class="alert alert-info mb-6">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <div class="text-left">
+                <div class="font-semibold">Buchungs-ID: <span id="modal-booking-id">-</span></div>
+                <div>Berater: <span id="modal-berater">-</span></div>
+                <div>Termin: <span id="modal-datetime">-</span></div>
             </div>
         </div>
+
+        <div class="flex gap-3">
+            <button class="btn btn-ghost flex-1" onclick="window.location.href='{{ url_for('slots.index') }}'">
+                Zum Slot-Dashboard
+            </button>
+            <button class="btn btn-primary flex-1" onclick="window.location.href='{{ url_for('hub.dashboard') }}'">
+                Zum Hub
+            </button>
+        </div>
     </div>
-</div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 {% endblock %}
 
 {% block extra_js %}
-{{ super() }}
 <script>
 // Booking process state
 let slotBookingState = {
@@ -389,25 +393,29 @@ let bookingCurrentDate = new Date();
 function selectBerater(element, beraterName) {
     // Remove previous selection
     document.querySelectorAll('.berater-card').forEach(card => {
-        card.classList.remove('selected');
+        card.classList.remove('ring-2', 'ring-primary', 'bg-primary/20');
     });
 
     // Select current card
-    element.classList.add('selected');
+    element.classList.add('ring-2', 'ring-primary', 'bg-primary/20');
 
     // Update state
     slotBookingState.berater = beraterName;
     slotBookingState.step = 2;
 
     // Show calendar section
-    document.getElementById('calendar-section').style.display = 'block';
-    document.getElementById('calendar-section').scrollIntoView({ behavior: 'smooth' });
+    const calendarSection = document.getElementById('calendar-section');
+    calendarSection.classList.remove('hidden');
+    calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Update summary
     updateSlotBookingSummary();
 
     // Generate calendar
     generateBookingCalendar();
+
+    // Re-initialize icons
+    lucide.createIcons();
 }
 
 function generateBookingCalendar() {
@@ -426,9 +434,8 @@ function generateBookingCalendar() {
     const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     weekdays.forEach(day => {
         const dayHeader = document.createElement('div');
-        dayHeader.className = 'calendar-day-header';
+        dayHeader.className = 'text-center text-xs font-bold text-white/60 py-2';
         dayHeader.textContent = day;
-        dayHeader.style.cssText = 'background: #f8f9fa; font-weight: bold; color: #666;';
         calendarGrid.appendChild(dayHeader);
     });
 
@@ -444,33 +451,36 @@ function generateBookingCalendar() {
     // Add empty cells for days before month starts
     for (let i = 0; i < startDay; i++) {
         const emptyDay = document.createElement('div');
-        emptyDay.className = 'calendar-day empty';
-        emptyDay.style.opacity = '0.3';
+        emptyDay.className = 'aspect-square';
         calendarGrid.appendChild(emptyDay);
     }
 
     // Add days of the month
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = document.createElement('div');
         const currentDay = new Date(year, month, day);
+        currentDay.setHours(0, 0, 0, 0);
 
-        dayElement.className = 'calendar-day';
+        dayElement.className = 'aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all';
         dayElement.textContent = day;
         dayElement.dataset.date = currentDay.toISOString().split('T')[0];
 
         // Disable past dates
         if (currentDay < today) {
-            dayElement.classList.add('disabled');
-            dayElement.style.color = '#ccc';
-            dayElement.style.cursor = 'not-allowed';
+            dayElement.className += ' text-white/30 cursor-not-allowed';
         } else {
-            dayElement.classList.add('has-slots');
+            dayElement.className += ' text-white bg-white/5 hover:bg-primary/20 cursor-pointer';
             dayElement.onclick = () => selectBookingDate(dayElement, dayElement.dataset.date);
         }
 
         calendarGrid.appendChild(dayElement);
     }
+
+    // Re-initialize icons
+    lucide.createIcons();
 }
 
 function navigateBookingCalendar(direction) {
@@ -483,22 +493,23 @@ function navigateBookingCalendar(direction) {
 }
 
 function selectBookingDate(element, dateStr) {
-    if (element.classList.contains('disabled')) return;
+    if (element.classList.contains('cursor-not-allowed')) return;
 
     // Remove previous selection
-    document.querySelectorAll('.calendar-day').forEach(day => {
-        day.classList.remove('selected');
+    document.querySelectorAll('#booking-calendar-grid > div').forEach(day => {
+        day.classList.remove('bg-primary', 'ring-2', 'ring-primary');
     });
 
     // Select current day
-    element.classList.add('selected');
+    element.classList.add('bg-primary', 'ring-2', 'ring-primary');
 
     // Update state
     slotBookingState.date = dateStr;
     slotBookingState.step = 3;
 
     // Show time section
-    document.getElementById('time-section').style.display = 'block';
+    const timeSection = document.getElementById('time-section');
+    timeSection.classList.remove('hidden');
     document.getElementById('selected-date-display').textContent = new Date(dateStr).toLocaleDateString('de-DE');
 
     // Load available times
@@ -508,12 +519,18 @@ function selectBookingDate(element, dateStr) {
     updateSlotBookingSummary();
 
     // Scroll to time section
-    document.getElementById('time-section').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+        timeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    // Re-initialize icons
+    lucide.createIcons();
 }
 
 function loadAvailableTimesForBooking(dateStr) {
     const timesContainer = document.getElementById('available-times');
-    timesContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Verfügbare Zeiten werden geladen...</div>';
+    timesContainer.innerHTML = '<div class="col-span-full text-center text-white/60"><i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto"></i></div>';
+    lucide.createIcons();
 
     // Simulate API call to get available times
     setTimeout(() => {
@@ -527,37 +544,40 @@ function loadAvailableTimesForBooking(dateStr) {
 
         let timesHtml = '';
         availableTimes.forEach(slot => {
-            const className = slot.available ? 'time-slot available' : 'time-slot booked';
-            const onclick = slot.available ? `selectBookingTime(this, '${slot.time}')` : '';
+            const isAvailable = slot.available;
+            const bgClass = isAvailable ? 'bg-white/5 hover:bg-success/20 cursor-pointer' : 'bg-white/5 opacity-50 cursor-not-allowed';
+            const onclick = isAvailable ? `selectBookingTime(this, '${slot.time}')` : '';
 
             timesHtml += `
-                <div class="${className}" ${onclick ? `onclick="${onclick}"` : ''}>
-                    <div class="slot-time">${slot.time}</div>
-                    <div class="slot-duration">${slot.duration} Min</div>
-                    ${slot.available ? '' : '<div class="slot-status">Belegt</div>'}
+                <div class="time-slot p-4 rounded-xl ${bgClass} transition-all text-center" ${onclick ? `onclick="${onclick}"` : ''}>
+                    <div class="text-lg font-bold text-white">${slot.time}</div>
+                    <div class="text-xs text-white/60">${slot.duration} Min</div>
+                    ${!isAvailable ? '<div class="badge badge-error badge-xs mt-2">Belegt</div>' : ''}
                 </div>
             `;
         });
 
         timesContainer.innerHTML = timesHtml;
-    }, 1000);
+        lucide.createIcons();
+    }, 800);
 }
 
 function selectBookingTime(element, timeStr) {
     // Remove previous selection
     document.querySelectorAll('.time-slot').forEach(slot => {
-        slot.classList.remove('selected');
+        slot.classList.remove('ring-2', 'ring-success', 'bg-success/20');
     });
 
     // Select current time
-    element.classList.add('selected');
+    element.classList.add('ring-2', 'ring-success', 'bg-success/20');
 
     // Update state
     slotBookingState.time = timeStr;
     slotBookingState.step = 4;
 
     // Show details section
-    document.getElementById('details-section').style.display = 'block';
+    const detailsSection = document.getElementById('details-section');
+    detailsSection.classList.remove('hidden');
 
     // Update form hidden fields
     document.getElementById('selected-berater').value = slotBookingState.berater;
@@ -568,7 +588,12 @@ function selectBookingTime(element, timeStr) {
     updateSlotBookingSummary();
 
     // Scroll to details section
-    document.getElementById('details-section').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+        detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    // Re-initialize icons
+    lucide.createIcons();
 }
 
 function updateSlotBookingSummary() {
@@ -576,8 +601,8 @@ function updateSlotBookingSummary() {
     const summaryContent = document.getElementById('booking-summary-content');
 
     if (slotBookingState.berater) {
-        summaryContainer.style.display = 'none';
-        summaryContent.style.display = 'block';
+        summaryContainer.classList.add('hidden');
+        summaryContent.classList.remove('hidden');
 
         document.getElementById('summary-berater').textContent = slotBookingState.berater;
 
@@ -589,6 +614,9 @@ function updateSlotBookingSummary() {
             document.getElementById('summary-time').textContent = slotBookingState.time;
         }
     }
+
+    // Re-initialize icons
+    lucide.createIcons();
 }
 
 function submitSlotBooking(event) {
@@ -600,7 +628,8 @@ function submitSlotBooking(event) {
 
     // Disable button
     bookButton.disabled = true;
-    bookButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Buche...';
+    bookButton.innerHTML = '<i data-lucide="loader" class="w-5 h-5 animate-spin"></i><span>Buche...</span>';
+    lucide.createIcons();
 
     // Get form data
     const bookingData = {
@@ -622,6 +651,7 @@ function submitSlotBooking(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(bookingData)
     })
@@ -634,20 +664,21 @@ function submitSlotBooking(event) {
             document.getElementById('modal-datetime').textContent = `${new Date(bookingData.date).toLocaleDateString('de-DE')} um ${bookingData.time}`;
 
             // Show success modal
-            const successModal = new bootstrap.Modal(document.getElementById('slotSuccessModal'));
-            successModal.show();
+            document.getElementById('slotSuccessModal').showModal();
+            lucide.createIcons();
         } else {
-            showErrorMessage(data.error || 'Fehler beim Buchen');
+            alert('Fehler: ' + (data.error || 'Unbekannter Fehler beim Buchen'));
         }
     })
     .catch(error => {
         console.error('Booking error:', error);
-        showErrorMessage('Unerwarteter Fehler beim Buchen');
+        alert('Unerwarteter Fehler beim Buchen');
     })
     .finally(() => {
         // Reset button
         bookButton.disabled = false;
-        bookButton.innerHTML = '<i class="fas fa-calendar-check me-2"></i>Termin buchen';
+        bookButton.innerHTML = '<i data-lucide="calendar-check" class="w-5 h-5"></i><span>Termin buchen</span>';
+        lucide.createIcons();
     });
 }
 
@@ -674,52 +705,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('summary-topic').textContent = this.value || 'Allgemeine Beratung';
         });
     }
+
+    // Re-initialize icons after Alpine loads
+    setTimeout(() => lucide.createIcons(), 200);
 });
 </script>
-
-<style>
-.summary-item {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-item:last-child {
-    border-bottom: none;
-}
-
-.popular-times {
-    padding: 0;
-}
-
-.popular-time-item {
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.popular-time-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.time-range {
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.popularity-bar {
-    height: 6px;
-    background: #e9ecef;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 0.25rem;
-}
-
-.popularity-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-</style>
 {% endblock %}

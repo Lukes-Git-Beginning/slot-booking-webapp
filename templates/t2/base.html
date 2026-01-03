@@ -426,8 +426,41 @@
       setTimeout(() => lucide.createIcons(), 100);
     });
 
-    // CSRF Protection: Routes use @csrf.exempt decorator - no client-side token injection needed
-    // See docs/CSRF_STRATEGY.md for details
+    // CSRF Protection for AJAX Requests
+    function getCSRFToken() {
+      const metaTag = document.querySelector('meta[name="csrf-token"]');
+      return metaTag ? metaTag.getAttribute('content') : '';
+    }
+
+    window.csrfFetch = function(url, options = {}) {
+      options.method = options.method || 'POST';
+      options.headers = options.headers || {};
+
+      if (options.method !== 'GET') {
+        options.headers['X-CSRFToken'] = getCSRFToken();
+      }
+
+      if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+      }
+
+      return fetch(url, options);
+    };
+
+    // Patch global fetch to auto-include CSRF
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      if (options.method && options.method !== 'GET' && !url.startsWith('http')) {
+        options.headers = options.headers || {};
+        if (!options.headers['X-CSRFToken']) {
+          options.headers['X-CSRFToken'] = getCSRFToken();
+        }
+      }
+      return originalFetch(url, options);
+    };
+
+    console.log('✅ CSRF Protection initialized - All AJAX requests protected');
   </script>
 
   {% block extra_js %}{% endblock %}
