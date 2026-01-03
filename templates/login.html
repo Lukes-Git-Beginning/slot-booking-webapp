@@ -126,7 +126,36 @@
     <!-- Login Card -->
     <div class="glass-card rounded-3xl p-8 md:p-10">
 
-      <!-- Error Message -->
+      <!-- Flask Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            {% if category == 'danger' or category == 'error' %}
+            <div class="mb-6 p-4 rounded-xl bg-error/20 border border-error/50 flex items-center gap-3">
+              <i data-lucide="alert-circle" class="w-5 h-5 text-error"></i>
+              <p class="text-error text-sm">{{ message }}</p>
+            </div>
+            {% elif category == 'success' %}
+            <div class="mb-6 p-4 rounded-xl bg-success/20 border border-success/50 flex items-center gap-3">
+              <i data-lucide="check-circle" class="w-5 h-5 text-success"></i>
+              <p class="text-success text-sm">{{ message }}</p>
+            </div>
+            {% elif category == 'warning' %}
+            <div class="mb-6 p-4 rounded-xl bg-warning/20 border border-warning/50 flex items-center gap-3">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-warning"></i>
+              <p class="text-warning text-sm">{{ message }}</p>
+            </div>
+            {% else %}
+            <div class="mb-6 p-4 rounded-xl bg-info/20 border border-info/50 flex items-center gap-3">
+              <i data-lucide="info" class="w-5 h-5 text-info"></i>
+              <p class="text-info text-sm">{{ message }}</p>
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Error Message (Legacy, falls direkt übergeben) -->
       {% if error %}
       <div class="mb-6 p-4 rounded-xl bg-error/20 border border-error/50 flex items-center gap-3">
         <i data-lucide="alert-circle" class="w-5 h-5 text-error"></i>
