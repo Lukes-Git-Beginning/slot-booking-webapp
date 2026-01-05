@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Meine Buchungen - {{ user }} | Slot Booking</title>
 
     <!-- Tailwind CSS + DaisyUI -->
@@ -1147,6 +1148,22 @@
 
         // Stop on page unload
         window.addEventListener('beforeunload', stopAutoRefresh);
+
+        // CSRF Protection - Patch global fetch to auto-include CSRF token
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
+
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            if (options.method && options.method !== 'GET' && !url.startsWith('http')) {
+                options.headers = options.headers || {};
+                if (!options.headers['X-CSRFToken']) {
+                    options.headers['X-CSRFToken'] = getCSRFToken();
+                }
+            }
+            return originalFetch(url, options);
+        };
     </script>
 </body>
 </html>
