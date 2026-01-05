@@ -413,6 +413,7 @@
 
               {% if not slot.overbooked and slot.free_count > 0 %}
               <form method="POST" action="{{ url_for('booking.book') }}" class="space-y-4" onsubmit="return handleBookingSubmit(this)">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="hour" value="{{ hour }}">
 
