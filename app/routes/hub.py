@@ -196,7 +196,7 @@ def get_dashboard_data(username):
         'current_time': datetime.now(),
         'greeting': get_time_based_greeting(),
         'is_admin': is_admin_user(username),
-        'app_version': '3.3.6',
+        'app_version': '3.3.15',
         'current_year': datetime.now().year
     }
 
@@ -665,7 +665,7 @@ def profile():
         'stats': get_user_profile_stats(user),
         'tools_access': get_user_tools(user),
         'recent_activities': get_recent_activities(user),
-        'app_version': '3.3.6',
+        'app_version': '3.3.15',
         'current_year': datetime.now().year
     }
 
@@ -686,7 +686,7 @@ def settings():
         'user': user,
         'is_admin': is_admin_user(user),
         'current_settings': get_user_settings(user),
-        'app_version': '3.3.6',
+        'app_version': '3.3.15',
         'current_year': datetime.now().year
     }
 

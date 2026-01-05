@@ -1,6 +1,9 @@
-# Deployment-Anleitung: Phase 1 & 2 Features
+# Deployment Guide - Central Business Tool Hub
 
-Diese Anleitung beschreibt das Deployment der neu implementierten Features auf den Hetzner Production-Server.
+**Version:** 3.3.15
+**Last Updated:** 2026-01-05
+
+This guide describes deployment procedures for the Central Business Tool Hub on the Hetzner production server.
 
 ## Übersicht der neuen Features
 
@@ -32,6 +35,284 @@ Diese Anleitung beschreibt das Deployment der neu implementierten Features auf d
 - Team-Performance-Tracking
 - Funnel-Analysen & Trend-Visualisierung
 - Chart.js Integration für interaktive Diagramme
+
+---
+
+## 🛡️ Systemd Service Configuration
+
+The Business Tool Hub runs as a systemd service with comprehensive security hardening.
+
+### Service File Location
+
+**Path:** `/etc/systemd/system/business-hub.service`
+
+### Current Configuration (v3.3.15)
+
+```ini
+[Unit]
+Description=Central Business Tool Hub - Multi-Tool Platform
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/business-hub
+Environment="PATH=/opt/business-hub/venv/bin"
+ExecStart=/opt/business-hub/venv/bin/gunicorn \
+    --bind unix:/opt/business-hub/business-hub.sock \
+    --workers 4 \
+    --worker-class gthread \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile /var/log/business-hub/access.log \
+    --error-logfile /var/log/business-hub/error.log \
+    --log-level info \
+    'app:create_app()'
+
+# Security Hardening
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/business-hub/data /opt/business-hub/logs /opt/business-hub/cache /var/log/business-hub /opt/business-hub/static
+ReadOnlyPaths=/opt/business-hub/templates
+NoNewPrivileges=true
+PrivateDevices=true
+
+# Resource Limits
+LimitNOFILE=4096
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Security Hardening Explained
+
+#### ProtectSystem=strict
+
+- Makes entire filesystem read-only except specified paths
+- Prevents accidental or malicious writes to system files
+- Limits blast radius of potential code execution vulnerabilities
+
+#### ProtectHome=true
+
+- Blocks access to /home directories
+- Prevents access to user data
+
+#### ReadWritePaths
+
+- `/opt/business-hub/data` - Application data (JSON databases, persistent storage)
+- `/opt/business-hub/logs` - Application logs
+- `/opt/business-hub/cache` - Cache files (availability, session data)
+- `/var/log/business-hub` - Systemd service logs
+- `/opt/business-hub/static` - **Added 2026-01-05** - Gamification dual-write architecture
+
+#### ReadOnlyPaths
+
+- `/opt/business-hub/templates` - Prevents template injection attacks
+
+#### NoNewPrivileges=true
+
+- Prevents privilege escalation
+- Service cannot gain more privileges than it starts with
+
+#### PrivateDevices=true
+
+- Blocks access to physical devices
+- Prevents device-based attacks
+
+### File Ownership & Permissions
+
+All application files must be owned by `www-data` user:
+
+```bash
+# Set ownership
+chown -R www-data:www-data /opt/business-hub/
+
+# Set permissions
+chmod 755 /opt/business-hub/  # Directories
+chmod 644 /opt/business-hub/app/*.py  # Python files
+chmod 600 /opt/business-hub/.env  # Secrets (owner read only)
+
+# Writable directories
+chmod 755 /opt/business-hub/data/persistent/
+chmod 755 /opt/business-hub/static/
+chmod 755 /opt/business-hub/logs/
+chmod 755 /var/log/business-hub/
+```
+
+### Managing the Service
+
+**Basic Commands:**
+
+```bash
+# Start service
+systemctl start business-hub
+
+# Stop service
+systemctl stop business-hub
+
+# Restart service
+systemctl restart business-hub
+
+# Reload systemd after config changes
+systemctl daemon-reload
+
+# View service status
+systemctl status business-hub
+
+# Enable auto-start on boot
+systemctl enable business-hub
+
+# Disable auto-start
+systemctl disable business-hub
+```
+
+**Viewing Logs:**
+
+```bash
+# Real-time logs
+journalctl -u business-hub -f
+
+# Last 100 lines
+journalctl -u business-hub -n 100
+
+# Today's logs only
+journalctl -u business-hub --since today
+
+# Logs from specific date
+journalctl -u business-hub --since "2026-01-05"
+
+# Application error log
+tail -f /var/log/business-hub/error.log
+
+# Application access log
+tail -f /var/log/business-hub/access.log
+```
+
+### Troubleshooting Systemd Issues
+
+**Service Won't Start:**
+
+```bash
+# 1. Check syntax errors
+journalctl -u business-hub -n 50
+
+# 2. Check Python syntax
+cd /opt/business-hub
+source venv/bin/activate
+python -m py_compile app/__init__.py
+
+# 3. Test manual start
+cd /opt/business-hub
+source venv/bin/activate
+gunicorn 'app:create_app()' --bind 127.0.0.1:8000 --workers 1
+# If this works, issue is in systemd config
+```
+
+**Permission Errors:**
+
+```bash
+# Error: "Permission denied" when writing to files
+# Solution: Check file ownership
+ls -la /opt/business-hub/data/persistent/
+ls -la /opt/business-hub/static/
+
+# Fix ownership if needed
+chown -R www-data:www-data /opt/business-hub/data/
+chown -R www-data:www-data /opt/business-hub/static/
+systemctl restart business-hub
+```
+
+**Read-only Filesystem Errors:**
+
+```bash
+# Error: "[Errno 30] Read-only file system"
+# Cause: ProtectSystem=strict blocks writes to non-specified paths
+
+# Solution 1: Add path to ReadWritePaths
+nano /etc/systemd/system/business-hub.service
+# Add path to ReadWritePaths line
+systemctl daemon-reload
+systemctl restart business-hub
+
+# Solution 2: Verify path is in allowed list
+grep ReadWritePaths /etc/systemd/system/business-hub.service
+```
+
+**Service Crashes Repeatedly:**
+
+```bash
+# 1. Check crash logs
+journalctl -u business-hub --since "5 minutes ago"
+
+# 2. Check application errors
+tail -100 /var/log/business-hub/error.log
+
+# 3. Disable auto-restart temporarily for debugging
+systemctl stop business-hub
+# Run manually to see full error output
+cd /opt/business-hub && source venv/bin/activate
+gunicorn 'app:create_app()' --bind unix:/opt/business-hub/business-hub.sock --workers 1 --log-level debug
+```
+
+### Performance Tuning
+
+**Worker Configuration:**
+
+- **Workers:** 4 (matches CPU cores on VPS)
+- **Worker Class:** gthread (hybrid process/thread model)
+- **Threads per Worker:** 2
+- **Total Capacity:** 4 workers × 2 threads = 8 concurrent requests
+
+**Recommended Settings by Traffic:**
+
+**Low Traffic (<50 req/min):**
+```bash
+--workers 2 --threads 2  # 4 concurrent requests
+```
+
+**Medium Traffic (50-200 req/min):**
+```bash
+--workers 4 --threads 2  # 8 concurrent requests (current)
+```
+
+**High Traffic (>200 req/min):**
+```bash
+--workers 8 --threads 4  # 32 concurrent requests
+# Note: Requires more RAM (estimate 150MB per worker)
+```
+
+**To Change Worker Settings:**
+```bash
+# 1. Edit service file
+nano /etc/systemd/system/business-hub.service
+
+# 2. Update ExecStart line
+ExecStart=/opt/business-hub/venv/bin/gunicorn \
+    --bind unix:/opt/business-hub/business-hub.sock \
+    --workers 8 \
+    --worker-class gthread \
+    --threads 4 \
+    ...
+
+# 3. Reload and restart
+systemctl daemon-reload
+systemctl restart business-hub
+
+# 4. Monitor resource usage
+htop  # Watch memory usage
+```
+
+### Security Hardening Changelog
+
+| Date       | Change                                                 | Reason                                               |
+|------------|--------------------------------------------------------|------------------------------------------------------|
+| 2026-01-03 | Initial hardening deployment                           | Security best practices                              |
+| 2026-01-05 | Added `/opt/business-hub/static` to ReadWritePaths     | Gamification data writes failing (6-day outage)      |
+| 2026-01-05 | Removed `/opt/business-hub/static` from ReadOnlyPaths  | Conflicting permissions                              |
 
 ---
 

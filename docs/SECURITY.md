@@ -1,7 +1,7 @@
 # Security Policy - Business Tool Hub
 
 ## Version
-**v3.3.7** - Last Updated: 2025-11-14
+**v3.3.15** - Last Updated: 2026-01-05
 
 ## 🔒 Security Enhancements Implemented
 
@@ -11,16 +11,30 @@ This document summarizes all security measures implemented in the Business Tool 
 
 ## ✅ IMPLEMENTED SECURITY CONTROLS
 
-### 1. CSRF Protection (CRITICAL) ✅
+### 1. CSRF Protection (CRITICAL) ✅ 100% COVERAGE
 - **Implementation:** Flask-WTF mit automatischer CSRF-Token-Injection
-- **Coverage:** Alle POST/PUT/PATCH/DELETE-Requests
-- **Files:**
-  - `app/core/extensions.py` - CSRFProtect initialization
-  - `templates/hub/base.html` - Meta-Tag + JavaScript Auto-Injection
-  - `templates/slots/base.html` - Meta-Tag + JavaScript Auto-Injection
-  - `templates/t2/base.html` - Meta-Tag + JavaScript Auto-Injection
-  - `templates/login.html` - CSRF-Token in Login-Form
-- **Impact:** Prevents Cross-Site Request Forgery attacks
+- **Coverage:** 100% - Alle 30 POST endpoints geschützt (v3.3.15 - 2026-01-05)
+- **Architecture:** Dreischichtige Protection-Strategie
+  1. **Global Fetch Patching** (3 Base Templates):
+     - `templates/hub/base.html` (lines 686-696) - Protects ~30 hub templates
+     - `templates/slots/base.html` (lines 367-376) - Protects 3 slots templates
+     - `templates/t2/base.html` (lines 451-461) - Protects 8 T2 templates
+     - **Mechanism:** Patches `window.fetch()` to auto-inject `X-CSRFToken` header
+  2. **Standalone Template Protection** (2 Templates):
+     - `templates/my_calendar.html` (line 6) - CSRF meta tag + fetch patching (lines 1152-1166)
+     - `templates/customization_shop.html` (line 7) - CSRF meta tag + fetch patching (lines 995-1009)
+     - **Mechanism:** Manual CSRF token injection for templates not extending base
+  3. **Traditional Form Protection** (1 Template):
+     - `templates/index.html` (line 416) - Hidden CSRF field in booking form
+     - **Mechanism:** `<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">`
+- **Protected Endpoints:** 30/30 (100%)
+  - Slot-Booking: `/book`, `/api/reschedule-booking`, `/api/update-event-status`
+  - T2-System: `/t2/api/draw-closer`, `/t2/api/book`, `/t2/api/cancel-booking`, etc.
+  - Gamification: `/gamification.api_update_customization`, `/gamification.api_create_personal_goal`, etc.
+  - Admin: `/admin/add_blocked_date`, `/admin/users/delete/<username>`, etc.
+  - Security: `/security/change-password`, `/security/2fa/setup`, `/security/2fa/enable`, etc.
+- **Testing:** See [Testing CSRF Protection](#testing-csrf-protection) section below
+- **Impact:** Prevents Cross-Site Request Forgery attacks on all state-changing operations
 
 ### 2. Bcrypt Password Hashing (CRITICAL) ✅
 - **Implementation:** Hybrid System (bcrypt + legacy plaintext fallback)
@@ -76,7 +90,35 @@ This document summarizes all security measures implemented in the Business Tool 
   ```
 - **Impact:** Prevents directory traversal attacks on JSON file operations
 
-### 7. HSTS Header (MEDIUM) ✅ PREPARED
+### 7. Systemd Security Hardening (HIGH) ✅
+
+- **Implementation:** Defense-in-depth Linux process isolation
+- **Files:** `/etc/systemd/system/business-hub.service`
+- **Configuration:**
+
+  ```ini
+  [Service]
+  User=www-data
+  Group=www-data
+  ProtectSystem=strict          # Full filesystem read-only
+  ProtectHome=true              # No access to /home
+  ReadWritePaths=/opt/business-hub/data /opt/business-hub/logs /opt/business-hub/cache /var/log/business-hub /opt/business-hub/static
+  ReadOnlyPaths=/opt/business-hub/templates
+  NoNewPrivileges=true          # No privilege escalation
+  PrivateDevices=true           # No device access
+  ```
+
+- **Key Security Boundaries:**
+  - Templates directory: Read-only (prevents template injection attacks)
+  - Data/logs/cache: Read-write (application functionality)
+  - Static directory: Read-write (gamification dual-write architecture)
+  - System directories: Protected (ProtectSystem=strict)
+  - User home directories: Blocked (ProtectHome=true)
+- **File Ownership:** All application files owned by `www-data:www-data` (chmod 755 dirs, 644 files)
+- **Fixed 2026-01-05:** Added `/opt/business-hub/static` to ReadWritePaths after 6-day gamification outage
+- **Impact:** Limits blast radius of potential code execution vulnerabilities
+
+### 8. HSTS Header (MEDIUM) ✅ PREPARED
 - **Implementation:** Nginx header (commented, ready for HTTPS)
 - **Files:** `deployment/nginx-business-hub-enhanced.conf:36-38`
 - **Configuration:**
@@ -91,7 +133,7 @@ This document summarizes all security measures implemented in the Business Tool 
 
 ## 🛡️ EXISTING SECURITY CONTROLS
 
-### 8. Two-Factor Authentication (2FA) ✅
+### 9. Two-Factor Authentication (2FA) ✅
 - **Implementation:** TOTP-based 2FA with QR codes
 - **Files:** `app/services/security_service.py:124-200`
 - **Features:**
@@ -100,7 +142,8 @@ This document summarizes all security measures implemented in the Business Tool 
   - Encrypted storage in `data/persistent/user_2fa.json`
 - **Coverage:** Optional per-user, recommended for admins
 
-### 9. Rate Limiting (Nginx + Flask) ✅
+### 10. Rate Limiting (Nginx + Flask) ✅
+
 - **Implementation:** Zweischichtiges Rate Limiting
 - **Nginx Layer:** `deployment/nginx-business-hub-enhanced.conf`
   - Login: 5/minute (Brute Force Protection)
@@ -112,7 +155,7 @@ This document summarizes all security measures implemented in the Business Tool 
   - Granular limits per endpoint
 - **TODO:** Consider Redis-backend for multi-worker deployments
 
-### 10. Audit Logging ✅
+### 11. Audit Logging ✅
 - **Implementation:** Comprehensive security event logging
 - **Files:** `app/services/audit_service.py`
 - **Logged Events:**
@@ -124,7 +167,7 @@ This document summarizes all security measures implemented in the Business Tool 
 - **Storage:** `data/persistent/audit_log.json`
 - **Privacy:** Consider IP anonymization for GDPR compliance
 
-### 11. Security Headers ✅
+### 12. Security Headers ✅
 - **Implementation:** Nginx + Flask after_request
 - **Headers:**
   - `X-Frame-Options: DENY` - Clickjacking protection
@@ -134,7 +177,7 @@ This document summarizes all security measures implemented in the Business Tool 
   - `Content-Security-Policy: ...` - See #4
 - **Files:** `deployment/nginx-business-hub-enhanced.conf:29-38`, `app/__init__.py:365-389`
 
-### 12. Input Validation ✅
+### 13. Input Validation ✅
 - **Implementation:** Strikte Validierung auf mehreren Ebenen
 - **Examples:**
   - `app/routes/booking.py:123-150` - Name/description length limits
@@ -310,6 +353,6 @@ This document summarizes all security measures implemented in the Business Tool 
 
 ---
 
-**Last Review:** 2025-11-14
-**Next Review Due:** 2026-02-14
+**Last Review:** 2026-01-05
+**Next Review Due:** 2026-04-05
 **Document Owner:** Luke Hoppe

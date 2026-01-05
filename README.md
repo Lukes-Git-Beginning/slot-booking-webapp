@@ -1,1152 +1,335 @@
-# 🎯 Central Business Tool Hub
+# Central Business Tool Hub
 
-Eine professionelle Multi-Tool-Plattform mit Slot-Booking, T2-Closer-System, Gamification und Analytics auf Enterprise-Niveau.
+**Version:** 3.3.15 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
 
-## 📋 Inhaltsverzeichnis
-
-- [Features](#-features)
-- [Technologie-Stack](#-technologie-stack)
-- [Voraussetzungen](#-voraussetzungen)
-- [Installation](#-installation)
-- [Konfiguration](#-konfiguration)
-- [Deployment](#-deployment)
-- [Automatisierung](#-automatisierung)
-- [Sicherheit](#-sicherheit)
-- [Fehlerbehebung](#-fehlerbehebung)
-- [Changelog](#-changelog)
-- [Dokumentation](#-dokumentation)
-
-> 📚 **Vollständige Dokumentation**: Alle Dokumentations-Dateien befinden sich jetzt im [`docs/`](docs/) Verzeichnis. Siehe [Documentation Index](docs/INDEX.md) für eine Übersicht.
-
-## ✨ Features
-
-### 🚀 Kernfunktionalität
-- **Central Hub**: Zentrale Navigation für alle Business-Tools
-- **Terminbuchungssystem**: Vollständige Slot-Buchung mit Google Calendar-Integration
-- **T2-Closer-System**: Spezialisiertes T2-Termin-Management
-- **Echtzeit-Verfügbarkeit**: Automatische Slot-Generierung basierend auf Beraterkalendern
-- **Multi-Berater-Support**: Verwaltung von Terminen für 9 Berater
-- **Intelligente Terminplanung**: Verhindert Doppelbuchungen und Konflikte
-- **German NRW Holiday Blocking**: Automatische Sperrung von deutschen Feiertagen (NRW)
-
-### 🎮 Fortschrittliche Gamification-Engine
-- **Achievement-System**: 50+ Badges in 6 Seltenheitsstufen (häufig → mythisch)
-- **Prestige & Meisterschafts-System**: 6 Prestige-Level mit 5 spezialisierten Meisterschaftskategorien
-- **Tägliche Quests**: Wechselnde Herausforderungen mit integrierten Mini-Games
-- **XP & Level-System**: Progressive Weiterentwicklung mit freischaltbaren Belohnungen
-- **Competitive Leaderboards**: Mehrere Ranking-Kategorien mit saisonalen Wettbewerben
-- **Cosmetics Shop**: Vollständige Anpassung mit Titeln, Themes, Avataren und Spezialeffekten
-
-### 📊 Business Intelligence & Analytics
-- **Umfassendes Tracking**: Echtzeit-Überwachung aller Buchungsaktivitäten
-- **Activity-Tracking-System**: Vollständiges Login- und Online-Status-Tracking
-  - Login-History mit IP, Browser, Device-Typ
-  - Echtzeit Online-User-Monitoring (15-Min Timeout)
-  - Admin-Dashboards für Login-Analytics
-  - Statistiken: Peak-Hours, Unique-IPs, Failed-Logins
-- **Erweiterte Kundenprofilierung**: Risikobewertung und Zuverlässigkeits-Scoring
-- **Consultant Analytics (My Calendar)**: Show/No-Show-Tracking für Telefonisten mit Drag & Drop Kanban
-- **7-Spalten Kanban-Board**: HubSpot-Style Status-Management (Pending, Erschienen, Rückholung, Sonderkunden, Verschoben, Nicht Erschienen, Ghost)
-- **Drag & Drop Status-Updates**: Visuelle Termin-Status-Verwaltung mit Undo-Funktion (3s)
-- **Reschedule-Modal**: Vollständige Umbuchungs-Funktionalität mit dynamischen Zeitslots
-- **Performance-Dashboards**: Echtzeit-KPI-Überwachung
-- **Team-Analytics**: Vergleichende Leistungsanalyse zwischen Beratern
-- **Professional PDF Reports**: Executive Reports mit vollständigem Team-Overview, deutscher Übersetzung und ZFA-Branding
-
-### 🎨 Anpassung & Personalisierung
-- **Cosmetics Shop**: Vollständiger Marktplatz mit Titeln, Themes, Avataren und Effekten
-- **Avatar-System**: 22 hochwertige PNG-Avatare (Business, Developer, Fantasy, etc.)
-- **Theme-System**: 6+ visuelle Themes mit CSS Custom Properties
-- **Canvas-Based Effects**: Vollständiges Particle-System (Sparkle, Confetti, Shake)
-- **Audio Effects**: Web Audio API-Integration für immersive Sounds
-- **ZFA Color Scheme**: Konsistentes Branding (Gold #d4af6a, Blau #207487, Dunkelblau #294c5d)
-
-### 🔧 Erweiterte Technische Features
-- **Moderne Flask-Architektur**: Application Factory Pattern mit Blueprints
-- **Glassmorphism-Design**: Modernes UI mit Backdrop-Filter und CSS-Variablen
-- **Lokale Asset-Hosting**: Bootstrap 5, Font Awesome, Lucide Icons lokal gehostet
-- **Dual-Write-Persistenz**: Redundante Datenspeicherung mit automatischem Backup
-- **Intelligentes Caching**: Mehrstufige Performance-Optimierung
-- **Sicherheits-Framework**: 2FA, RBAC, Session-Management, Rate Limiting
-
-## 🛠 Technologie-Stack
-
-### Backend
-- **Flask 3.1.1** - Web-Framework
-- **Python 3.11+** - Programmiersprache
-- **Google Calendar API** - Kalender-Integration
-- **Gunicorn** - WSGI HTTP Server
-- **holidays** - Deutsche Feiertage (NRW)
-
-### Frontend
-- **Jinja2 Templates** - Server-seitiges Rendering
-- **Bootstrap 5.3.2** - Responsive CSS-Framework (lokal gehostet)
-- **Tailwind CSS + DaisyUI** - Moderne Utility-First CSS (Hub & T2)
-- **Font Awesome 6.4.2** - Icon-Library (lokal gehostet)
-- **Lucide Icons** - Moderne Icon-Library (lokal gehostet)
-- **JavaScript (ES6+)** - Interaktive Features inkl. Canvas API & Web Audio API
-
-### Daten & Analytics
-- **Pandas** - Datenmanipulation
-- **NumPy** - Numerische Berechnungen
-- **JSON/JSONL** - Datenpersistenz
-
-### Infrastruktur
-- **Hetzner VPS** - Production Server (91.98.192.233)
-- **Nginx** - Reverse Proxy mit Rate Limiting
-- **Gunicorn** - WSGI Server (4 Workers)
-- **Systemd** - Service & Timer Management
-- **Ubuntu 22.04 LTS** - Server Betriebssystem
-
-## 📋 Voraussetzungen
-
-- Python 3.11 oder höher
-- Google Cloud Platform-Konto mit aktivierter Calendar API
-- Service Account-Zugangsdaten für Google Calendar
-- Git für Versionskontrolle
-- (Production) Linux Server mit systemd
-
-## ⚙️ Lokale Installation (Entwicklung)
-
-### 1. Repository klonen
-
-```bash
-git clone https://github.com/Lukes-Git-Beginning/slot-booking-webapp.git
-cd slot-booking-webapp
-```
-
-### 2. Virtuelle Umgebung erstellen
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Unter Windows: venv\Scripts\activate
-```
-
-### 3. Abhängigkeiten installieren
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Umgebungsvariablen konfigurieren
-
-Erstelle eine `.env`-Datei im Hauptverzeichnis (siehe [Konfiguration](#-konfiguration))
-
-### 5. Anwendung starten
-
-```bash
-# Development-Modus
-python run.py
-```
-
-Die Anwendung ist verfügbar unter `http://localhost:5000`
-
-## 🧪 Testen
-
-### Test-Suite ausführen
-
-```bash
-# Alle Tests ausführen
-python -m pytest tests/ -v
-
-# Nur Unit-Tests (schnell)
-python -m pytest tests/ -m unit
-
-# Mit Coverage-Report
-python -m pytest tests/ --cov=app/services --cov-report=term-missing
-
-# Coverage als HTML-Report
-python -m pytest tests/ --cov=app/services --cov-report=html
-```
-
-### Test-Struktur
-
-**187 Tests, 98% Coverage für kritische Services ✅**
-
-| Kategorie | Datei | Tests | Beschreibung |
-|-----------|-------|-------|--------------|
-| **Services** | `test_data_persistence.py` | 33 | Backup, Validation, Unicode, Path-Traversal |
-| | `test_t2_bucket_system.py` | 36 | Probability, Draws, Timeout, Persistence |
-| | `test_booking_service.py` | 27 | Slot-Status, Booking, Points, Availability |
-| | `test_security_service.py` | 31 | Password Hashing, 2FA, Backup-Codes (98% Coverage) |
-| **Auth Routes** | `test_routes_auth_login.py` | 18 | Login-Flow, Rate Limiting, Session Creation |
-| | `test_routes_auth_login_simple.py` | 14 | Login Basic-Tests (keine Mocks) |
-| | `test_routes_auth_2fa.py` | 20 | 2FA Setup, Verification, Backup Codes |
-| | `test_routes_auth_session.py` | 24 | Session Management, Security, Fixation Protection |
-| **T2 Routes** | `test_routes_t2_core.py` | 18 | T2 Dashboard, Draw System, Bucket Management |
-| | `test_routes_t2_core_simple.py` | 12 | T2 Basic-Tests (keine Mocks) |
-| | `test_routes_t2_booking.py` | 24 | T2 Calendly Booking Flow (4-Step) |
-| | `test_routes_t2_analytics.py` | 18 | T2 Analytics APIs, Dashboard |
-| **Utilities** | `test_utils.py` | - | 30+ Helper Functions in 10 Kategorien |
-
-### Test-Markers
-
-- `@pytest.mark.unit` - Schnelle Unit-Tests ohne externe Dependencies
-- `@pytest.mark.integration` - Integration-Tests mit Mocking
-- `@pytest.mark.slow` - Langsame Tests (skip mit `-m "not slow"`)
-
-### Fixtures & Test-Utilities
-
-**Test-Infrastruktur in `conftest.py` (457 Zeilen)**:
-
-**Core Fixtures**:
-- `app` - Flask-Application für Tests
-- `client` / `logged_in_client` / `admin_client` - Test-Clients
-
-**Mock Service Fixtures (8)**:
-- `mock_security_service` - Authentication & 2FA
-- `mock_account_lockout` - Rate Limiting
-- `mock_audit_service` - Logging
-- `mock_activity_tracking` - Activity Tracking
-- `mock_t2_bucket_system` - Closer Draws
-- `mock_t2_analytics_service` - T2 Analytics
-- `mock_notification_service` - Notifications
-- `mock_tracking_system` - Booking Tracking
-
-**Sample Data Fixtures (10)**:
-- `sample_user_data`, `sample_scores_data`, `sample_badges_data`
-- `sample_calendar_events`, `sample_availability`
-- `sample_t2_bucket_state`, `sample_t2_bookings`
-- `sample_notifications`
-
-**Test-Utilities in `test_utils.py` (582 Zeilen, 30+ Functions)**:
-- **Assertion Helpers**: `assert_valid_response_json`, `assert_success_response`, `assert_error_response`, `assert_redirect`, `assert_requires_auth`
-- **Data Generation**: `generate_booking_data`, `generate_t2_booking_data`, `generate_user_data`
-- **Session Helpers**: `create_test_session`, `clear_test_session`, `get_session_data`
-- **Validation**: `is_valid_booking_id`, `is_valid_email`, `is_valid_time_slot`
-- **Debugging**: `print_response_debug`, `print_session_debug`
-
-## 🔧 Konfiguration
-
-### Umgebungsvariablen
-
-Auf dem Produktionsserver: `/opt/business-hub/.env`
-
-Für lokale Entwicklung: `.env` im Projektverzeichnis erstellen
-
-```bash
-# ========================================
-# CORE CONFIGURATION
-# ========================================
-SECRET_KEY=<generierter-sicherer-schlüssel>
-FLASK_ENV=production
-DEBUG=False
-
-# ========================================
-# USER AUTHENTICATION
-# ========================================
-USERLIST=user1:pass1,user2:pass2,admin:adminpass
-ADMIN_USERS=admin,username
-
-# ========================================
-# DOMAIN & SESSION CONFIGURATION
-# ========================================
-SESSION_COOKIE_DOMAIN=.berater.zfa.gmbh
-SESSION_COOKIE_SECURE=True
-SESSION_COOKIE_HTTPONLY=True
-SESSION_COOKIE_SAMESITE=Lax
-SESSION_COOKIE_NAME=zfa_session
-
-SERVER_NAME=berater.zfa.gmbh
-PREFERRED_URL_SCHEME=https
-
-# ========================================
-# GOOGLE CALENDAR INTEGRATION
-# ========================================
-GOOGLE_CREDS_BASE64=<base64-kodierte-service-account-json>
-CENTRAL_CALENDAR_ID=central-calendar@example.com
-CONSULTANTS=Name1:consultant1@example.com,Name2:consultant2@example.com
-
-# ========================================
-# SECURITY SETTINGS
-# ========================================
-RATELIMIT_ENABLED=True
-RATELIMIT_STORAGE_URL=memory://
-PERMANENT_SESSION_LIFETIME=480
-
-# ========================================
-# LOGGING
-# ========================================
-LOG_LEVEL=INFO
-LOG_FILE=/var/log/business-hub/app.log
-
-# ========================================
-# DATA PERSISTENCE
-# ========================================
-# WICHTIG: PERSIST_BASE darf NICHT /persistent enthalten!
-# Der Code fügt automatisch /persistent hinzu.
-PERSIST_BASE=/opt/business-hub/data
-```
-
-### Google Service Account-Setup
-
-1. Erstelle ein Google Cloud Platform-Projekt
-2. Aktiviere die Calendar API
-3. Erstelle ein Service Account
-4. Lade die JSON-Zugangsdatei herunter
-5. Base64-kodiere die JSON-Datei:
-   ```bash
-   base64 -w 0 service_account.json
-   ```
-6. Setze den kodierten String als `GOOGLE_CREDS_BASE64`
-
-### Verfügbare Routen
-
-#### Hub & Navigation
-- `/` - Central Hub Dashboard
-- `/login` - Benutzerauthentifizierung
-- `/logout` - Benutzer-Abmeldung
-
-#### Slot-Booking
-- `/slots` - Terminbuchungsinterface
-- `/calendar-view` - Kalenderübersicht
-- `/my-calendar` - Consultant Analytics mit Kanban-Board & Drag & Drop
-- `/api/update-event-status` - Status-Update via Drag & Drop
-- `/api/reschedule-booking` - Termin-Umbuchung
-- `/api/get-available-slots` - Verfügbare Zeitslots abfragen
-
-#### Gamification
-- `/scoreboard` - Leaderboards und Rankings
-- `/gamification` - Achievement-System
-- `/daily-quests` - Tägliche Herausforderungen
-- `/prestige-dashboard` - Prestige-System
-- `/cosmetics-shop` - Cosmetics Marktplatz
-
-#### T2-Closer
-- `/t2` - T2-Closer Dashboard
-- `/t2/bookings` - T2-Terminverwaltung
-
-#### Administrative Oberfläche
-- `/admin/dashboard` - Admin-Dashboard
-- `/admin/blocked-dates` - Feiertage und Sperren verwalten
-- `/admin/users` - Benutzerverwaltung
-- `/admin/reports` - Erweiterte Berichte
-
-## 🏗 Architektur
-
-### Anwendungsstruktur
-
-```
-slot_booking_webapp/
-├── run.py                      # Flask Application Entry Point
-├── wsgi.py                     # Production WSGI
-│
-├── app/
-│   ├── __init__.py             # Application Factory
-│   ├── config/                 # Konfigurationsmanagement
-│   ├── core/                   # Kern-Komponenten (Extensions, Google Calendar)
-│   ├── routes/                 # HTTP Route Handler (Blueprints)
-│   │   ├── hub.py              # Central Hub
-│   │   ├── auth.py             # Authentifizierung
-│   │   ├── security.py         # 2FA & Security
-│   │   ├── admin/              # Admin-Features
-│   │   ├── gamification/       # Gamification-Features
-│   │   ├── main.py             # Slot-Booking Routes
-│   │   └── t2.py               # T2-Closer
-│   ├── services/               # Business Logic Layer
-│   │   ├── achievement_system.py
-│   │   ├── booking_service.py
-│   │   ├── data_persistence.py
-│   │   └── holiday_service.py
-│   └── utils/                  # Hilfsfunktionen
-│
-├── templates/                  # Jinja2 HTML-Templates
-│   ├── hub/                    # Central Hub Templates (ZFA)
-│   ├── slots/                  # Slot-Booking (Bootstrap 5)
-│   ├── t2/                     # T2-Closer (ZFA)
-│   └── ...
-│
-├── static/                     # CSS, JS, Assets
-│   ├── bootstrap.min.css       # Bootstrap 5.3.2 (lokal)
-│   ├── fontawesome.min.css     # Font Awesome 6.4.2 (lokal)
-│   └── avatars/                # 22 Avatar PNGs
-│
-├── data/persistent/            # Primäre Datenspeicherung
-│   ├── user_badges.json
-│   ├── scores.json
-│   ├── user_cosmetics.json
-│   └── ...
-│
-├── scripts/                    # Automatisierungs-Scripts
-│   ├── generate_availability.py
-│   ├── process_achievements.py
-│   └── process_daily_outcomes.py
-│
-└── deployment/                 # Deployment-Konfigurationen
-    ├── systemd/                # Systemd Service & Timer
-    ├── scripts/                # Deployment-Scripts
-    └── nginx-business-hub.conf # Nginx-Konfiguration
-```
-
-### Wichtige Design-Patterns
-
-#### Dual-Write-Persistenz
-- **Primär**: `/data/persistent/` Verzeichnis
-- **Automatische Backups**: Tägliche Rotation
-- **UTF-8 JSON-Kodierung**: `ensure_ascii=False`
-
-#### Service-Layer-Architektur
-- **Controller**: Flask-Routes handhaben HTTP-Requests
-- **Services**: Business-Logic in dedizierten Modulen
-- **Data Access**: Zentralisiert durch `data_persistence.py`
-
-## 🌐 Deployment
-
-### Hetzner VPS (Production)
-
-**Server-Details:**
-- IP: `91.98.192.233`
-- SSH-Key: `~/.ssh/server_key`
-- App-Pfad: `/opt/business-hub/`
-- URL: http://91.98.192.233
-
-#### Deployment-Prozess
-
-```bash
-# 1. Datei übertragen
-scp -i ~/.ssh/server_key <datei> root@91.98.192.233:/opt/business-hub/<pfad>
-
-# 2. Service neu starten
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl restart business-hub"
-
-# 3. Logs prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "tail -50 /var/log/business-hub/error.log"
-
-# 4. Status prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl status business-hub --no-pager"
-```
-
-#### Wichtige Server-Pfade
-
-```
-/opt/business-hub/                    # Hauptverzeichnis
-/opt/business-hub/app/                # Flask-App
-/opt/business-hub/templates/          # Templates
-/opt/business-hub/data/persistent/    # Production-Daten
-/var/log/business-hub/error.log       # Error-Logs
-/etc/systemd/system/business-hub.service      # Main Service
-/etc/systemd/system/availability-generator.*  # Timer
-```
-
-#### Production Services
-
-```bash
-# Main Application
-sudo systemctl status business-hub
-
-# Availability Generator (5x täglich)
-sudo systemctl status availability-generator.timer
-
-# Achievement Processor (täglich 22:00)
-sudo systemctl status achievement-processor.timer
-
-# Daily Outcome Check (täglich 21:00)
-sudo systemctl status daily-outcome-check.timer
-
-# Cache Cleanup (täglich 03:00)
-sudo systemctl status cache-cleanup.timer
-```
-
-### Systemd Services verwalten
-
-```bash
-# Service Status
-systemctl status business-hub
-
-# Service neu starten
-systemctl restart business-hub
-
-# Logs anzeigen
-journalctl -u business-hub -f
-
-# Service automatisch starten
-systemctl enable business-hub
-```
-
-### Nginx-Konfiguration
-
-Die Nginx-Konfiguration befindet sich unter `/etc/nginx/sites-available/business-hub`
-
-```bash
-# Nginx neu laden
-systemctl reload nginx
-
-# Nginx-Logs
-tail -f /var/log/nginx/error.log
-tail -f /var/log/nginx/access.log
-```
-
-## ⚙️ Automatisierung
-
-### Systemd Timer
-
-Die Anwendung nutzt systemd Timer für automatisierte Aufgaben:
-
-#### Verfügbarkeitsgenerierung
-- **Zeitplan**: 5x täglich (06:00, 09:00, 12:00, 15:00, 18:00 UTC)
-- **Berlin-Zeit**: 08:00, 11:00, 14:00, 17:00, 20:00
-- **Service**: `availability-generator.timer`
-- **Funktion**: Aktualisiert verfügbare Terminslots basierend auf Google Calendar
-
-#### Tägliche Ergebnisverarbeitung
-- **Zeitplan**: Täglich um 19:00 UTC (21:00 Berlin)
-- **Service**: `daily-outcome-check.timer`
-- **Funktion**: Verarbeitet Terminergebnisse und No-Shows
-
-#### Achievement-Verarbeitung
-- **Zeitplan**: Täglich um 20:00 UTC (22:00 Berlin)
-- **Service**: `achievement-processor.timer`
-- **Funktion**: Vergibt Badges und aktualisiert Statistiken
-
-#### Wöchentlicher Reset
-- **Zeitplan**: Montag 04:00 UTC
-- **Service**: `weekly-reset.timer`
-- **Funktion**: Wöchentliche Punkte-Zurücksetzung
-
-#### Cache-Cleanup
-- **Zeitplan**: Täglich um 03:00 UTC
-- **Service**: `cache-cleanup.timer`
-- **Funktion**: Automatische Bereinigung von Cache-Dateien >7 Tage
-
-### Timer verwalten
-
-```bash
-# Status aller Timer anzeigen
-systemctl list-timers
-
-# Timer neu starten
-sudo systemctl restart availability-generator.timer
-
-# Logs anzeigen
-journalctl -u availability-generator.service -n 50
-```
-
-## 🔒 Sicherheit
-
-### Authentifizierung & Autorisierung
-- **2FA-Support**: Two-Factor Authentication über Security Center
-- **Session-basierte Authentifizierung**: Sichere Session-Verwaltung
-- **Rollenbasierte Zugriffskontrolle**: Admin/User-Rollen
-- **Passwort-Hashing**: Sichere Passwort-Speicherung
-
-### Rate Limiting (Zweischichtig)
-
-**Nginx-Layer:**
-- Login: 5 Requests/Minute
-- API: 60 Requests/Minute
-- Booking: 10 Requests/Minute
-- Global: 100 Requests/Minute
-
-**Flask-Layer:**
-- Zentralisierte Decorators für kritische Endpoints
-- Custom 429 Error Handler
-
-### Datenschutz
-- Input-Sanitization und Validierung
-- SQL-Injection-Prävention
-- XSS-Schutz durch Template-Escaping
-- CSRF-Schutz für zustandsändernde Operationen
-
-### Logging & Monitoring
-- Strukturiertes Logging mit Performance-Metriken
-- Security-Event-Protokollierung
-- Audit-Trails für sensitive Operationen
-
-## 📈 Performance-Optimierung
-
-### Mehrstufige Caching-Strategie
-- Google Calendar API: 30-Minuten-Cache
-- User-Daten: Intelligente Invalidierung
-- Cache-Warming für kritische Daten
-
-### Datenbank-Optimierung
-- JSON-Optimierung mit Kompression
-- Batch-Operationen für reduzierte I/O
-- Datenpartitionierung (historische Daten getrennt)
-
-### Frontend-Performance
-- Asset-Optimierung: Minifizierte CSS/JS
-- Progressive Loading: Lazy Loading für nicht-kritische Komponenten
-- Responsive Design: Mobile-First-Ansatz
-
-## 🔧 Fehlerbehebung
-
-### Häufige Probleme
-
-#### 1. Service startet nicht
-
-```bash
-# Logs prüfen
-journalctl -u business-hub -n 100 --no-pager
-
-# Umgebungsvariablen prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "cat /opt/business-hub/.env | grep USERLIST"
-
-# Berechtigungen prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "ls -la /opt/business-hub/"
-```
-
-#### 2. Google Calendar API-Fehler
-
-```bash
-# Service Account Credentials prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "cd /opt/business-hub && python3 -c 'from app.core.google_calendar import GoogleCalendarService; print(\"OK\" if GoogleCalendarService().is_configured() else \"FAIL\")'"
-```
-
-#### 3. Verfügbarkeit wird nicht aktualisiert
-
-```bash
-# Timer-Status prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl status availability-generator.timer"
-
-# Letzte Ausführung prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "journalctl -u availability-generator.service -n 50"
-
-# Manuell ausführen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl start availability-generator.service"
-```
-
-#### 4. Nginx-Fehler (502 Bad Gateway)
-
-```bash
-# Gunicorn läuft?
-ssh -i ~/.ssh/server_key root@91.98.192.233 "ps aux | grep gunicorn"
-
-# Socket prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "ls -la /opt/business-hub/business-hub.sock"
-
-# Service neu starten
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl restart business-hub"
-```
-
-### Diagnose-Kommandos
-
-```bash
-# Alle Timer anzeigen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl list-timers --all"
-
-# Disk Space prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "df -h /opt/business-hub"
-
-# Memory Usage
-ssh -i ~/.ssh/server_key root@91.98.192.233 "free -h && ps aux | grep gunicorn"
-
-# Nginx-Status
-ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl status nginx"
-
-# Datenintegrität prüfen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "ls -lh /opt/business-hub/data/persistent/"
-```
-
-### Backup & Recovery
-
-```bash
-# Manuelles Backup erstellen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "cd /opt/business-hub && python3 scripts/backup_data.py"
-
-# Backups anzeigen
-ssh -i ~/.ssh/server_key root@91.98.192.233 "ls -lh /opt/business-hub/data/backups/"
-
-# Backup wiederherstellen (Vorsicht!)
-ssh -i ~/.ssh/server_key root@91.98.192.233 "cp /opt/business-hub/data/backups/backup_YYYYMMDD.json /opt/business-hub/data/persistent/file.json"
-```
-
-## 🚨 Error Handling & Monitoring
-
-### Error-ID System
-
-**Format:** `<CATEGORY>-<YYYYMMDD>-<HHMMSS>-<4-CHAR-UUID>`
-
-**Kategorien:**
-- `BOOK-*` - Booking-Fehler (validation, slot full, date parsing)
-- `CAL-*` - Google Calendar API Fehler (quota, rate limit, network)
-- `TRK-*` - Tracking-Fehler (PostgreSQL/JSON dual-write)
-- `ERR-*` - Generische Fehler
-
-**Beispiel:** `CAL-20251203-143022-A8F2`
-
-### Sentry Integration
-
-**Status:** ✅ Konfiguriert (Deutsche Region)
-
-**DSN:** `<configured-in-production-env>` (Get from https://sentry.io/settings/projects/)
-
-**Was wird getrackt:**
-- ✅ Alle 500+ HTTP Errors automatisch
-- ✅ Uncaught Exceptions mit vollständigem Stacktrace
-- ✅ Request Context (URL, User, IP, Browser)
-- ✅ Custom Error-IDs als Tags
-- ✅ Performance-Daten (optional)
-
-**Zugriff:**
-- Dashboard: https://sentry.io
-- Projekt: `business-hub`
-
-### Lokales Error-Logging
-
-**Critical Errors (500+):**
-- Location: `data/persistent/logs/critical_errors.jsonl`
-- Format: JSON Lines (ein Error pro Zeile)
-
-**Admin-Notifications:**
-- Automatisch für: Tracking-Fehler, Calendar-Service-Down, 500+ Errors
-- Erscheinen als Notification im Hub
-- `show_popup=True` für kritische Fehler
-
-## 👥 Rollen & Kalender-System
-
-### System-Rollen (17 User)
-
-| Rolle | Anzahl | Mitglieder |
-|-------|--------|------------|
-| **admin** | 4 | alexander.nehm, david.nehm, simon.mast, luke.hoppe |
-| **closer** | 6 | jose.torspecken, alexander.nehm, david.nehm, tim.kreisel, christian.mast, daniel.herbort |
-| **opener** | 8 | christian.mast, tim.kreisel, daniel.herbort, sonja.mast, simon.mast, dominik.mikic, ann-kathrin.welge, sara.mast |
-| **coach** | 3 | alexander.nehm, david.nehm, jose.torspecken |
-| **telefonist** | 9 | tim.kreisel, christian.mast, ladislav.heka, sonja.mast, simon.mast, alexandra.börner, yasmine.schumacher, ann-kathrin.welge, sara.mast |
-| **service** | 3 | alexandra.börner, vanessa.wagner, simon.mast |
-
-**Total:** 17 Unique User (manche haben mehrere Rollen)
-
-### T1 Slot-Booking Kalender (30min Slots)
-
-**Standard-Berater (Vollzeit - immer verfügbar):**
-
-| Name | Calendar-ID | Typ |
-|------|-------------|-----|
-| Ann-Kathrin | `consultant-ann-kathrin@example.com` | Vollzeit |
-| Sara | `consultant-sara@example.com` | Vollzeit |
-| Dominik | `consultant-dominik@example.com` | Vollzeit |
-
-**Extended-Berater (Teilzeit/T2-Priorität - bei Bedarf):**
-
-| Name | Calendar-ID | Begründung |
-|------|-------------|------------|
-| Simon | `consultant-simon@example.com` | Hauptaufgabe anderswo, verfügbar 20:00 Uhr |
-| Sonja | `consultant-sonja@example.com` | Variable Verfügbarkeit (Neugeborenes) |
-| Tim | `consultant-tim@example.com` | T2/T3 Priorität |
-| Christian | `consultant-christian@example.com` | T2/T3 Priorität |
-| Daniel | `consultant-daniel@example.com` | T2/T3 Priorität |
-
-**Konfiguration:**
-- Slot-Zeiten: 09:00, 11:00, 14:00, 16:00, 18:00, 20:00 Uhr
-- Slot-Dauer: 30 Minuten
-- Slots pro Berater: 3 (außer 9:00 Uhr = 2)
-- Cache: 10 Minuten
-
-### T2-System Kalender (2h Slots)
-
-**Coaches (würfelbar - MIT Schreibrechten):**
-
-| Name | Calendar-ID | Schreibrecht | Status |
-|------|-------------|--------------|--------|
-| David Nehm | `coach-david@example.com` | ✅ Ja | Coach + Admin |
-| Alexander Nehm | `coach-alexander-group@example.com` | ✅ Ja | Coach + Admin (Group Calendar) |
-| Jose Torspecken | `coach-jose@example.com` | ✅ Ja | Coach + Closer |
-
-**Berater (ausführend - MIT Schreibrechten):**
-
-| Name | Calendar-ID | Rolle |
-|------|-------------|-------|
-| Christian | `consultant-christian@example.com` | Berater + Closer + Opener |
-| Daniel | `consultant-daniel@example.com` | Berater + Closer + Opener |
-| Tim | `consultant-tim@example.com` | Berater + Closer + Opener |
-
-**Workflow:**
-1. User würfelt Coach (David/Alexander/Jose)
-2. System prüft Verfügbarkeit:
-   - Coach-Kalender (falls Coach selbst ausführen will)
-   - Berater-Kalender (Christian/Daniel/Tim als Alternative)
-3. 2h-Slots in 30-Minuten-Schritten (8:00-20:00 Uhr)
-4. Event-Erstellung in entsprechendem Kalender (Coach oder Berater)
-
-**Konfiguration:**
-- Slot-Dauer: 2 Stunden
-- Arbeitszeiten: 08:00-20:00 Uhr
-- Scanning: On-Demand (bei Buchung)
-- Cache: 10 Minuten pro Verfügbarkeitsscan
-
-### T2 Bucket-System (Würfelsystem)
-
-**Standard-Wahrscheinlichkeiten:**
-- Alex: 9.0 (9 Tickets pro Bucket-Reset)
-- David: 9.0 (9 Tickets pro Bucket-Reset)
-- Jose: 2.0 (2 Tickets pro Bucket-Reset)
-
-**Bucket-Konfiguration:**
-- Max Draws before Reset: 20
-- Degressive Wahrscheinlichkeit: Mit jedem Draw sinkt die Probability um 1
-- Min Probability: 0.0 (Closer kann auf 0 fallen und ist dann nicht mehr ziehbar)
-
-**Wie es funktioniert:**
-1. Jeder Closer startet mit seiner Standard-Wahrscheinlichkeit
-2. Mit jedem Draw wird 1 Ticket aus dem Bucket entfernt UND die Probability sinkt um 1
-3. Wenn Probability auf 0.0 fällt → Closer hat keine Tickets mehr → nicht ziehbar
-4. Nach 20 Draws: Automatischer Reset, alle Probabilities auf Standard-Werte zurückgesetzt
-
-**Admin-Interface:**
-- `/t2/admin/bucket-config` - Bucket-Verwaltung
-- Änderungen an Probabilities: Setzen den Bucket sofort zurück
-- Änderungen an Max Draws: Wirken beim nächsten Reset
-
-**WICHTIG - Datenpfad:**
-- Datei: `/opt/business-hub/data/persistent/t2_bucket_system.json`
-- `PERSIST_BASE` muss `/opt/business-hub/data` sein (OHNE `/persistent`)
-- Der Code fügt automatisch `/persistent` hinzu
-
-## 📝 Changelog
-
-### v3.3.11 - T2 Calendly Booking System + Projekt-Cleanup (LIVE - 2025-11-23)
-
-- ✅ **T2 Calendly 4-Step Booking Flow**:
-  - **Neue Templates**: `booking_calendly.html` (714 Zeilen) + `my_bookings.html` (689 Zeilen) - Vollständiger Calendly-Integration-Flow
-  - **4-Step Wizard**: Berater wählen → Datum wählen → Zeitslot wählen → Bestätigung
-  - **Ersetzt**: Alte `calendar_new.html` (404 Zeilen) entfernt
-  - **Mock vs. Real Calendar**: Coaches (David/Alexander/Jose) nutzen Mock-Daten, Berater (Christian/Daniel/Tim) nutzen Google Calendar API
-
-- ✅ **On-Demand Availability Scanning**:
-  - **Neue Service-Datei**: `t2_dynamic_availability.py` (398 Zeilen)
-  - **Echtzeit-Verfügbarkeit**: Scannt Google Calendar on-demand für freie Slots (kein Precaching)
-  - **Multi-Berater-Support**: 3 Coaches + 3 Berater mit individuellen Kalendern
-  - **Arbeitszeiten**: 08:00-17:00 Uhr, 30-Minuten-Slots
-  - **11 neue API-Endpoints** in `t2.py` (+1025 Zeilen, total: 1947 Zeilen)
-
-- ✅ **T2 Analytics Service**:
-  - **Neue Service-Datei**: `t2_analytics_service.py` (114 Zeilen)
-  - **2h-Analytics API**: Admin-Dashboard-Integration für T2-Metriken
-  - **Team-Statistiken**: Performance-Tracking für alle Closer
-
-- ✅ **API-Endpoints (11 neu)**:
-  - `/t2/booking/calendly` - 4-Step Booking Flow (GET)
-  - `/t2/my-bookings` - Termin-Übersicht (GET)
-  - `/t2/api/available-dates` - Verfügbare Tage für Monat (GET)
-  - `/t2/api/available-times` - Freie Zeitslots für Tag (GET)
-  - `/t2/api/book-appointment` - Termin buchen (POST)
-  - `/t2/api/cancel-booking/<id>` - Termin stornieren (POST)
-  - `/t2/api/reschedule-booking/<id>` - Termin umbuchen (POST)
-  - 4 weitere Status/Update-Endpoints
-
-- ✅ **Bugfixes**:
-  - `tracking_system.py`: Singleton-Instanz hinzugefügt (Import-Fehler behoben)
-  - `draw_closer.html`: Redirect zu Calendly-Booking aktualisiert
-  - `legacy_routes.py`: Legacy Analytics-Import entfernt (analytics_system gelöscht)
-
-- ✅ **Massives Projekt-Cleanup (51 Dateien, 245KB freigegeben)**:
-  - **22 alte Backups** aus `data/backups/` entfernt
-  - **13 Legacy Files gelöscht**:
-    - 9 static JSON-Dateien (availability.json, level_history.json, mvp_badges.json, user_levels.json, weekly_points.json, etc.)
-    - 4 Deployment Scripts (health_check.py, process_achievements.py, process_daily_outcomes.py, process_weekly_reset.py - 491 Zeilen)
-  - **8 Legacy Templates & Scripts entfernt**:
-    - `templates/analytics_dashboard.html` (628 Zeilen)
-    - `templates/executive_monthly_report.html` (200 Zeilen)
-    - `templates/executive_weekly_report.html` (133 Zeilen)
-    - `templates/t2/calendar_new.html` (404 Zeilen)
-    - `scripts/generate_feature_presentation.py` (1228 Zeilen)
-    - `scripts/migrate_passwords_to_bcrypt.py` (203 Zeilen)
-    - `scripts/run_backfill.py` (48 Zeilen)
-    - `scripts/check_event_tags.py` (62 Zeilen)
-  - **persist/ Verzeichnis** entfernt (Pfad-Verschachtelungs-Bugfix aus v3.3.5)
-
-- 📦 **Neue Dateien**:
-  - `templates/t2/booking_calendly.html` (T2 4-Step Booking Flow)
-  - `templates/t2/my_bookings.html` (Termin-Management mit Cancel/Reschedule)
-  - `app/services/t2_dynamic_availability.py` (On-Demand Calendar Scanning)
-  - `app/services/t2_analytics_service.py` (2h-Analytics für Admin-Dashboard)
-
-- 📦 **Geänderte Dateien**:
-  - `app/routes/t2.py` (+1025 Zeilen, total: 1947 Zeilen - 11 neue API-Endpoints)
-  - `app/services/tracking_system.py` (Singleton-Fix für Import-Fehler)
-  - `app/routes/gamification/legacy_routes.py` (Analytics-Import entfernt)
-  - `templates/t2/draw_closer.html` (Redirect zu Calendly-Booking)
-
-- 📦 **Gelöschte Dateien (51 total)**:
-  - 4 Legacy Templates (1365 Zeilen)
-  - 4 Deployment Scripts (491 Zeilen)
-  - 4 Migration Scripts (1541 Zeilen)
-  - 9 Static JSON-Dateien
-  - 22 Backup-Dateien
-  - 8 weitere Legacy-Dateien
-
-- 🚀 **Deployment-Status**:
-  - LIVE auf http://91.98.192.233 seit 11:31 UTC
-  - Service läuft fehlerfrei: 4 Gunicorn Workers, 298MB RAM (vorher: 294MB)
-  - Mock-Modus aktiv für Coaches (David/Alexander/Jose)
-  - Echte Calendar-Integration für Berater (Christian/Daniel/Tim)
-
-- 🔄 **Performance & Cleanup**:
-  - **Codebase-Reduktion**: -1733 Zeilen (4655 gelöscht, 2922 hinzugefügt)
-  - **Disk Space**: 245KB freigegeben durch Cleanup
-  - **Bessere Wartbarkeit**: 51 obsolete Dateien entfernt
-
-### v3.3.10 - PostgreSQL Booking-System Migration KOMPLETT (LIVE - 2025-11-21)
-
-- ✅ **Vollständige PostgreSQL-Migration des Booking-Systems**:
-  - **2 neue SQLAlchemy Models**: `Booking` (16 Felder) + `BookingOutcome` (10 Felder)
-  - **24 Database Tables gesamt** mit 121 Performance-Indizes (vorher: 22 Tables, 101 Indizes)
-  - **Dual-Write Pattern implementiert**: Neue Buchungen werden gleichzeitig in PostgreSQL + JSON geschrieben
-  - **Smart Wrapper mit Fallback**: My Calendar nutzt PostgreSQL, fällt bei Fehler automatisch auf JSON zurück
-  - **20 Performance-Indizes**: Optimiert für username+date, customer, week_number, booking_id Queries
-  - **Alembic Migration**: `57a8e7357e0c` erfolgreich deployed auf Production-Server
-  - **Tracking-System erweitert**: `track_booking()` schreibt nun beide Systeme parallel
-
-- ✅ **364 Historische Buchungen migriert** (2025-11-21):
-  - **Phase 1 - JSONL Migration**: 26 Buchungen aus `bookings.jsonl` → PostgreSQL
-  - **Phase 2 - Calendar Backfill**: 338 Buchungen aus Google Calendar extrahiert
-  - **Migration Scripts**:
-    - `scripts/migrate_bookings_only.py` - JSONL → PostgreSQL (1-Step-Wrapper)
-    - `scripts/backfill_from_calendar.py` - Google Calendar → PostgreSQL (Pattern: `[Booked by: username]`)
-    - `scripts/run_calendar_sync.sh` - Cronjob-Wrapper für tägliche Synchronisation
-  - **9 User getrackt**: Christian, Yasmine, Dominik, Ladislav, Tim, Sonja, Simon, Alexandra, Patrick
-
-- ✅ **Automatische Synchronisation** (2025-11-21):
-  - **Täglicher Cronjob**: 23:00 Uhr (01:00 Berlin-Zeit)
-  - **Funktion**: Neue Google Calendar Events → PostgreSQL
-  - **Location**: `/opt/business-hub/scripts/run_calendar_sync.sh`
-  - **Logs**: `/var/log/business-hub/calendar-sync.log`
-  - **Crontab**: `0 23 * * * /opt/business-hub/scripts/run_calendar_sync.sh >> /var/log/business-hub/calendar-sync.log 2>&1`
-
-- ✅ **Index-Konflikte in bestehenden Models behoben**:
-  - **gamification.py**: Umbenennung von idx_active → idx_daily_quests_active, idx_completed → idx_quest_progress_completed, idx_active_goals → idx_personal_goals_active
-  - **weekly.py**: Umbenennung von idx_pending → idx_weekly_activities_pending
-  - Verhindert Naming-Konflikte zwischen verschiedenen Tabellen
-
-- ✅ **My Calendar umgebaut auf PostgreSQL**:
-  - Neue Funktion `get_user_bookings_from_db()` liest direkt aus PostgreSQL
-  - Neue Funktion `get_user_bookings()` als Smart Wrapper mit Auto-Detection
-  - Fallback-Mechanismus: Bei PostgreSQL-Fehler wird automatisch auf JSONL zurückgegriffen
-  - Alle Benutzer-Statistiken funktionieren wieder mit vollständigen historischen Daten ✅
-
-- ✅ **Deployment auf Hetzner VPS**:
-  - 12 Dateien deployed (Models, Services, Routes, Scripts, Migrations)
-  - PostgreSQL User-Passwort aktualisiert für Stabilität
-  - Service läuft stabil: 4 Gunicorn Workers, 294MB RAM (vorher: 225MB)
-  - Alle Buchungen (neu + historisch) werden erfolgreich in PostgreSQL gespeichert
-
-- 📦 **Neue Dateien**:
-  - `app/models/booking.py` (Booking + BookingOutcome Models mit 26 Feldern total)
-  - `scripts/migrate_bookings_only.py` (JSONL → PostgreSQL Migration)
-  - `scripts/backfill_from_calendar.py` (Google Calendar → PostgreSQL Backfill)
-  - `scripts/run_calendar_sync.sh` (Cronjob-Wrapper für tägliche Synchronisation)
-  - `alembic/versions/20251120_1740_57a8e7357e0c_*.py` (Database Migration)
-
-- 📦 **Geänderte Dateien**:
-  - `app/models/__init__.py` (Booking Model Exports)
-  - `app/models/gamification.py`, `app/models/weekly.py` (Index-Namen gefixt)
-  - `app/services/tracking_system.py` (PostgreSQL Dual-Write Pattern)
-  - `app/routes/calendar.py` (PostgreSQL Read mit JSON-Fallback)
-  - `scripts/migrate_json_to_postgres.py` (Booking-Migration-Methoden hinzugefügt)
-
-- 🔄 **Performance-Verbesserungen**:
-  - PostgreSQL-Read: 10x schneller als JSONL für historische Daten
-  - My Calendar Ladezeit: 800ms → <200ms (364 Buchungen)
-  - Cronjob-Laufzeit: <2s für kompletten Calendar-Sync
-
-### v3.3.8 - Activity Tracking & Code Quality Improvements (DEV - 2025-11-18)
-- ✅ **Login Activity Tracking System**:
-  - **Login-History-Tracking**: Vollständiges Tracking aller Login-Versuche (Success/Fail)
-  - **Tracking-Details**: IP-Adresse, Browser, Device-Typ (Desktop/Mobile/Tablet), Timestamp
-  - **Online-Status-Monitoring**: Echtzeit-Tracking aktiver User (15-Min Timeout)
-  - **Admin-Dashboards**: Neue Seiten für Login-History und Online-Users
-  - **API-Endpoints**: 5 REST-APIs für AJAX-Updates und Statistiken
-  - **Login-Statistiken**: Peak-Hours, Unique-IPs, Failed-Logins, Logins pro Stunde/Tag
-  - **Service-Datei**: `app/services/activity_tracking.py`
-  - **Datenformat**: JSON-basiert (`login_history.json`, `online_sessions.json`)
-- ✅ **Code-Cleanup & Quality Improvements**:
-  - **.gitignore erweitert**: Pytest-Cache, Coverage-Reports, Node-Modules, .env-Varianten
-  - **Health-Check aktualisiert**: Version 3.3.7 → 3.3.8 in `/health` Endpoint
-  - **Sentry-Warning**: Dokumentation in requirements.txt (Free: 5K Events/Monat, Paid: €26+)
-  - **Logger-Bug gefixt**: Fehlender Logger-Import in `auth.py` behoben (verhinderte Lockout-Logging)
-  - **requirements.txt**: Bereits gut strukturiert mit Kommentaren (keine Änderungen nötig)
-- ✅ **Deployment-Ready**:
-  - Alle Änderungen lokal getestet
-  - Keine Breaking Changes
-  - Bereit für Hetzner-Production-Deployment
-- 📦 **Dateien**:
-  - Neu: `app/services/activity_tracking.py`
-  - Geändert: `app/routes/auth.py`, `app/routes/admin/dashboard.py`, `.gitignore`, `app/routes/health.py`, `requirements.txt`
-
-### v3.3.7 - Professional PDF Reports & T2 Analytics (LIVE - 2025-11-12)
-- ✅ **PDF Telefonie-System komplett überarbeitet**:
-  - **Vollständige Team-Übersicht**: ALLE Telefonisten werden angezeigt (High/Medium/Low Performer)
-  - **Deutsche Übersetzung**: ~50 englische Textstellen auf Deutsch übersetzt
-  - **ZFA-Branding**: Modernes Design mit Gold (#d4af6a) und ZFA-Blau (#207487)
-  - **Design-Verbesserungen**: Größere Schriften (Title: 28pt), besseres Padding (12px), dickere Grid-Linien
-  - **Professioneller Footer**: Goldene Trennlinie + ZFA-Branding
-  - **Farbcodierung**: Grün (Top-Leister), Blau (Solide Leister), Rot (Entwicklungspotenzial)
-  - **Maßnahmen-Bereich entfernt**: Fokus auf Performance-Daten
-- ✅ **T2 Analytics Dashboard**: ApexCharts-Integration für Team-Visualisierungen
-- ✅ **Dateien**: `app/routes/admin/reports.py`, `app/services/executive_reports.py`
-
-### v3.3.6 - Pagination System & Critical Bugfixes (LIVE - 2025-11-05)
-- ✅ **Pagination-System für 4,800+ Events**:
-  - `get_all_events_paginated()` Methode in google_calendar.py implementiert
-  - Lädt ALLE Events in 2,500-Event-Pages (max 10 Pages = 25,000 Events)
-  - 5-Minuten Cache für Performance-Optimierung
-  - Vollständiges Rate Limiting & Quota Management
-  - My Calendar & My Customers nutzen jetzt Pagination statt fixer Limits
-- ✅ **API Quota Future-Proofing**:
-  - Unterstützt problemlos 80 Events/Tag × 60 Tage = 4,800 Events
-  - ~2 API Calls pro Load statt 1 (mit Cache: <100 Requests/Tag)
-  - Usage: 0.01% vom Google Calendar Limit (1M/Tag)
-- ✅ **Critical Bugfix: booking.py 500er Fehler**:
-  - Lokaler `booking_logger` Import entfernt (verursachte `UnboundLocalError`)
-  - 17 gescheiterte Buchungen von Yasmine behoben
-  - Booking-System wieder voll funktionsfähig
-- ✅ **Debug-Logs vollständig entfernt**:
-  - Alle 🔍-Debug-Statements aus calendar.py entfernt
-  - Alle BOOKING DEBUG-Logs aus booking.py entfernt
-  - Production-ready Code-Qualität
-
-### v3.3.6-beta - Advanced Blocked Dates System (DEV - 2025-11-04)
-- ✅ **3 Block-Typen für Sperrzeiten**:
-  - `full_day`: Ganztägige Sperrung (bestehende Funktionalität)
-  - `time_range`: Zeitbereich-Sperrung (z.B. 14:00-16:00 Mittagspause)
-  - `date_range`: Datumsbereich-Sperrung (z.B. 2025-12-24 bis 2025-12-31 Weihnachtsurlaub)
-- ✅ **Tab-basierte Admin-UI**:
-  - Intuitive Formulare für jeden Block-Typ
-  - Automatische Tage-Berechnung für Date Ranges
-  - Visuelle Indicators für Block-Typen (Icons & Badges)
-- ✅ **Block-Key-System**:
-  - Eindeutige Identifikation für alle Block-Typen
-  - Format: `YYYY-MM-DD` (full_day), `YYYY-MM-DD_HH:MM-HH:MM` (time_range), `range_YYYY-MM-DD_YYYY-MM-DD` (date_range)
-  - Backward compatible mit alten full_day Blocks
-- ✅ **Booking Service Integration**:
-  - `is_blocked_date()` prüft jetzt optional Zeitbereiche
-  - `get_default_availability()` respektiert time_range Blocks
-  - Verhindert Buchungen in gesperrten Zeitfenstern
-- ✅ **Admin Interface Updates**:
-  - 3 separate Formulare mit Tab-Navigation
-  - Delete-Funktionalität mit Block-Key-Support
-  - Detaillierte Anzeige mit Zeit- und Datumsbereichen
-
-### v3.3.5 - KRITISCHER BUGFIX: PERSIST_BASE Pfad-Verschachtelung (LIVE - 2025-10-27)
-- ✅ **KRITISCHER BUGFIX**: Systematische Doppelverschachtelung aller Datenbanken behoben
-  - `.env` korrigiert: `PERSIST_BASE=/opt/business-hub/data` (war: `/opt/business-hub/data/persistent`)
-  - Problem: Code fügt automatisch `/persistent` hinzu → führte zu `/persistent/persistent/`
-  - Alle 10 kritischen JSON-Dateien konsolidiert (user_badges, scores, t2_bucket_system, etc.)
-  - Vollständiges Backup erstellt vor Änderungen
-- ✅ **T2-Bucket-System Konfiguration**:
-  - Standard-Wahrscheinlichkeiten auf 9-9-2 gesetzt (Alex: 9.0, David: 9.0, Jose: 2.0)
-  - Max Draws auf 20 erhöht (war: 10)
-  - Degressive Wahrscheinlichkeit: Mit jedem Draw sinkt Probability um 1
-  - Min Probability: 0.0 (Closer kann nicht mehr gezogen werden wenn auf 0)
-- ⚠️ **WICHTIG für zukünftige Deployments**:
-  - `PERSIST_BASE` darf NIEMALS `/persistent` am Ende enthalten
-  - Korrekt: `PERSIST_BASE=/opt/business-hub/data`
-  - Falsch: `PERSIST_BASE=/opt/business-hub/data/persistent`
-
-### v3.3.4 - My Calendar Phase 2: Drag & Drop Kanban (LIVE - 2025-10-25)
-- ✅ **7-Spalten Kanban-Board**: HubSpot-Style Status-Management
-  - Pending, Erschienen, Rückholung, Sonderkunden, Verschoben, Nicht Erschienen, Ghost
-- ✅ **Drag & Drop Funktionalität**:
-  - SortableJS-Integration für alle Kanban-Spalten
-  - Visuelle Status-Updates mit Ghost-Effekt
-  - Automatische Google Calendar colorId-Synchronisation
-- ✅ **Reschedule-Modal** (Termin umbuchen):
-  - Date-Picker mit Min-Date-Validation
-  - Dynamische Zeitslot-Anzeige per AJAX (`/api/get-available-slots`)
-  - Berater-Dropdown mit Auto-Auswahl
-  - Optionale Notiz-Textarea
-  - Vollständige Fehlerbehandlung
-- ✅ **3-Sekunden Undo-Funktion**:
-  - Countdown-Timer nach Status-Updates
-  - Revert-API-Call bei Klick
-  - Automatisches Ausblenden nach Timeout
-- ✅ **Auto-Refresh (5 Minuten)**:
-  - Intelligenter Refresh nur bei sichtbarem Tab (Visibility API)
-  - Automatischer Start/Stop
-- ✅ **Backend API Endpoints**:
-  - `/api/update-event-status`: Status-Update via Drag & Drop
-  - `/api/reschedule-booking`: Alte Termin → Verschoben, neuer Termin anlegen
-  - `/api/get-available-slots`: Verfügbarkeits-Abfrage für gewähltes Datum
-- ✅ **Toast-Benachrichtigungen**: Success/Error/Info für alle User-Aktionen
-- ✅ **Backfill-Script**: `backfill_booked_by_tags.py` für retroaktives Tagging alter Events
-
-### v3.3.3 - Dark Mode Logo & Username Migration (LIVE - 2025-10-23)
-- ✅ **Dark Mode Logo optimiert**:
-  - Transparentes goldenes Logo für Header (kein weißer Kasten mehr)
-  - Separates Favicon (Stern-Logo) für Browser-Tabs
-  - `zfa-dark.png` (67KB) + `favicon.png` (285KB)
-- ✅ **Username Migration**: Alle 17 Benutzer auf volle Namen migriert
-  - `d.mikic` → `dominik.mikic`, `l.hoppe` → `luke.hoppe`, etc.
-  - .env-Datei und JSON-Datenbanken vollständig migriert
-- ✅ **404-Template gefixt**:
-  - Purple-Farben ersetzt durch ZFA Secondary Blue
-  - Endpoint-Referenzen korrigiert
-- ✅ **Git-History aktualisiert**: Server erfolgreich auf neue bereinigte History umgestellt
-
-### v3.3.2 - Production Hardening & Documentation (2025-10-23)
-- ✅ **Git-History komplett bereinigt**: Alle sensiblen Credentials aus gesamter History entfernt (595 Commits)
-- ✅ **Availability Generator optimiert**: 5x täglich (08:00, 11:00, 14:00, 17:00, 20:00 Berlin-Zeit)
-- ✅ **README vollständig überarbeitet**:
-  - Hetzner VPS als Primary Deployment dokumentiert
-  - Alle Render.com-Referenzen entfernt
-  - Deployment-Prozesse aktualisiert
-  - Fehlerbehebung mit SSH-Kommandos
-- ✅ **ZFA Color Scheme 100% konsistent**: Purple/Violet komplett ersetzt durch ZFA-Blau (#207487)
-- ✅ **Lucide Icons Integration**: Multi-Timeout-Initialisierung
-- ✅ **Production Deployment**: Alle Features live und stabil auf Hetzner VPS
-
-### v3.3.1 - Production Hardening & Automation (2025-10-17)
-- ✅ **Google Calendar API Fix**: ISO 8601 Format - 100% Erfolgsrate
-- ✅ **Security Hardening**: Zweischichtiges Rate Limiting (Nginx + Flask)
-- ✅ **Automation**: Cache-Cleanup, Backup-Rotation, Log-Rotation
-- ✅ **Cosmetics System v2**: Theme & Effects mit 22 PNG-Avataren
-
-### v3.3.0 - ZFA Rebranding & Consultant Analytics (2025-10-16)
-- ✅ **ZFA Color Scheme**: Vollständige Migration zu ZFA-Branding
-- ✅ **Hub/Base Template System**: Automatische ZFA-Farb-Integration
-- ✅ **Consultant Analytics**: Show/No-Show-Tracking für Telefonisten
-- ✅ **Production Ready**: Alle Änderungen deployed und getestet
-
-## 📊 Projekt-Statistiken
-
-- **Codezeilen**: ~13.000+ (Python, HTML, CSS, JS) - Cleanup v3.3.11: -1733 Zeilen
-- **Anwendungsmodule**: 40+ Python-Module
-- **Unterstützte Sprachen**: Deutsch (primär)
-- **API-Endpoints**: 50+ RESTful-Endpoints
-- **Gamification-Elemente**: 50+ Badges, 6 Prestige-Level, Daily Quests
-- **Maximale gleichzeitige Nutzer**: 100+ (getestet und optimiert)
-- **Berater**: 9 konfigurierte Consultants
-- **Deployment**: Hetzner VPS (91.98.192.233)
-- **Uptime**: 99.9% (Systemd + Gunicorn)
-
-## 📚 Dokumentation
-
-Alle Dokumentations-Dateien befinden sich im **[`docs/`](docs/)** Verzeichnis:
-
-**Einstieg:**
-- 📖 [Documentation Index](docs/INDEX.md) - Vollständige Übersicht über alle Dokumentationen
-- 👨‍💻 [Developer Guide](docs/DEVELOPER_GUIDE.md) - Setup & Architektur für Entwickler
-- 🤖 [Claude Code Instructions](docs/CLAUDE.md) - AI-assisted development guide
-
-**Deployment & Betrieb:**
-- 🚀 [Deployment Guide](docs/DEPLOYMENT.md) - Hauptanleitung mit Links zu allen Configs
-- 🔐 [Security Guidelines](docs/SECURITY.md) - Sicherheitsrichtlinien & Best Practices
-- 🗺️ [Roadmap](docs/ROADMAP.md) - Feature-Roadmap & zukünftige Pläne
-
-**Technical Deep-Dives:**
-- Siehe [`deployment/`](deployment/) Verzeichnis für:
-  - Systemd Services, DNS Setup, SSH Keys, Backup-Konfiguration
-  - T2-System Deployment-Guides
-  - VPS Migration Guides
-
-**Project Configuration Files** (Root-Level):
-- `alembic.ini` - Database migration configuration (Alembic)
-- `pytest.ini` - Test runner configuration (pytest, cache in build/)
-- `.coveragerc` - Coverage output configuration (build/.coverage)
-- `requirements.txt` - Python dependencies (90 packages)
-- `wsgi.py` - WSGI entry point for production (Gunicorn)
-- `run.py` - Development server entry point
-
-## 📄 Lizenz
-
-**Proprietäre Lizenz** - Alle Rechte vorbehalten
-
-Diese Software ist proprietär und vertraulich. Unbefugtes Kopieren, Verteilen, Modifizieren ist strengstens untersagt.
+Professional multi-tool platform combining slot booking, T2 appointment management, gamification, and business analytics.
 
 ---
 
-**Entwickelt mit ❤️ unter Verwendung von Flask, Python und modernen Web-Technologien**
+## Quick Start
 
-**Production:** http://91.98.192.233 ✅ LIVE (Go-Live: 2025-10-18)
+### Local Development
+
+```bash
+# 1. Clone repository
+git clone https://github.com/Lukes-Git-Beginning/slot-booking-webapp.git
+cd slot-booking-webapp
+
+# 2. Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Configure environment (copy and edit)
+cp .env.example .env
+
+# 5. Run application
+python run.py
+```
+
+Application available at `http://localhost:5000`
+
+### Environment Variables
+
+Create a `.env` file with the following required variables:
+
+```bash
+# Core
+SECRET_KEY=your-secret-key-here
+USERLIST=user:pass,user2:pass2
+ADMIN_USERS=admin1,admin2
+
+# Google Calendar (Base64-encoded Service Account JSON)
+GOOGLE_CREDS_BASE64=<base64-encoded-credentials>
+CENTRAL_CALENDAR_ID=central-calendar@example.com
+CONSULTANTS=Name1:email1@example.com,Name2:email2@example.com
+
+# Optional
+SENTRY_DSN=<your-sentry-dsn>  # Error tracking
+```
+
+**Google Calendar Setup:**
+1. Create Service Account in Google Cloud Console
+2. Enable Google Calendar API
+3. Download JSON credentials
+4. Base64 encode: `cat credentials.json | base64 -w 0`
+5. Add to `.env` as `GOOGLE_CREDS_BASE64`
+
+---
+
+## Key Features
+
+### 🎯 Slot Booking System
+- 30-minute appointment slots for 8 consultants
+- Google Calendar integration (real-time sync)
+- Drag & drop Kanban board (7 status columns)
+- Customer tracking & analytics
+- German NRW holiday blocking
+
+### 📞 T2 Appointment System
+- 2-hour coaching sessions
+- Weighted dice draw system (3 coaches)
+- Calendly-style 4-step booking flow
+- PostgreSQL-backed booking history
+
+### 🎮 Gamification Engine
+- 50+ achievements (6 rarity tiers)
+- XP & level system with prestige
+- Daily quests & mini-games
+- Cosmetics shop (themes, avatars, effects)
+- Competitive leaderboards
+
+### 📊 Business Analytics
+- Real-time booking analytics
+- Consultant performance tracking
+- PDF report generation (ZFA branded)
+- Login activity & online status tracking
+- Audit logging (10,000 event retention)
+
+### 🔒 Security
+- **CSRF Protection:** 100% coverage (30/30 endpoints)
+- **Password Security:** bcrypt hashing (12 rounds)
+- **2FA:** TOTP-based (Google Authenticator)
+- **Rate Limiting:** Nginx + Flask dual-layer
+- **Systemd Hardening:** ProtectSystem=strict, ReadWritePaths isolation
+- **Account Lockout:** 3-tier progressive (5/10/15 attempts)
+
+---
+
+## Tech Stack
+
+**Backend:** Flask 3.1.1, Python 3.11+, PostgreSQL, Gunicorn (4 workers)
+**Frontend:** Tailwind CSS + DaisyUI (Hub/T2), Bootstrap 5.3.2 (Slots), Jinja2
+**Infrastructure:** Hetzner VPS, Nginx, Systemd, Ubuntu 22.04 LTS
+**APIs:** Google Calendar API v3
+**Monitoring:** Sentry error tracking
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+pytest
+
+# With coverage
+pytest --cov=app --cov-report=html
+
+# Specific test file
+pytest tests/test_booking_service.py -v
+```
+
+**Test Coverage:** ~75% (200+ test cases, 26 test files)
+
+See [docs/TESTING.md](docs/TESTING.md) for comprehensive testing guide.
+
+---
+
+## Deployment
+
+### Production Server (Hetzner VPS)
+
+**Server:** 91.98.192.233
+**URL:** https://berater.zfa.gmbh/
+**SSH:** `ssh -i ~/.ssh/server_key root@91.98.192.233`
+
+### Quick Deployment Workflow
+
+```bash
+# 1. Backup (ALWAYS!)
+ssh -i ~/.ssh/server_key root@91.98.192.233 "cd /opt/business-hub && tar -czf /tmp/backup_$(date +%Y%m%d_%H%M).tar.gz data/persistent/"
+
+# 2. Transfer files
+scp -i ~/.ssh/server_key <file> root@91.98.192.233:/opt/business-hub/<path>
+
+# 3. Restart service
+ssh -i ~/.ssh/server_key root@91.98.192.233 "systemctl restart business-hub"
+
+# 4. Verify
+curl -I https://berater.zfa.gmbh/health  # Should return 200 OK
+```
+
+**Systemd Service:**
+- Location: `/etc/systemd/system/business-hub.service`
+- User: `www-data`
+- Workers: 4 (gthread)
+- Security: ProtectSystem=strict, ReadWritePaths isolation
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for comprehensive deployment guide including systemd hardening details.
+
+---
+
+## Architecture
+
+### Project Structure
+
+```
+slot_booking_webapp/
+├── app/
+│   ├── __init__.py           # Application factory
+│   ├── routes/               # Blueprints (auth, booking, hub, slots, t2, etc.)
+│   ├── services/             # Business logic (booking, gamification, analytics)
+│   ├── core/                 # Core infrastructure (calendar, database, extensions)
+│   └── utils/                # Helpers (decorators, validators, rate limiting)
+├── templates/                # Jinja2 templates (hub/, slots/, t2/)
+├── static/                   # CSS, JS, images (dual-write for gamification)
+├── data/persistent/          # JSON databases & persistent storage
+├── tests/                    # Pytest test suite (26 files, 200+ tests)
+├── docs/                     # Comprehensive documentation
+├── deployment/               # Server configs (nginx, systemd, backup scripts)
+└── scripts/                  # Automation (availability, sync, migration)
+```
+
+### Data Flow
+
+```
+User Request → Nginx (Rate Limiting)
+    → Gunicorn (4 Workers, gthread)
+        → Flask App (Blueprint routing)
+            → Service Layer (Business logic)
+                → Data Persistence (PostgreSQL + JSON dual-write)
+                    → Google Calendar API (if applicable)
+```
+
+---
+
+## Roles & Permissions
+
+**17 Users across 6 Roles:**
+
+| Role       | Count | Access                                      |
+|------------|-------|---------------------------------------------|
+| Admin      | 4     | Full system access, user management         |
+| Closer     | 6     | T2 system (draw & book 2h appointments)     |
+| Opener     | 8     | T1 system (book 30min customer appointments)|
+| Coach      | 3     | T2 coaches (drawable, provide consultations)|
+| Telefonist | 9     | Call tracking & performance analytics       |
+| Service    | 3     | Service-related features                    |
+
+See [docs/ROLES_AND_CALENDARS.md](docs/ROLES_AND_CALENDARS.md) for detailed role definitions and calendar configurations.
+
+---
+
+## Documentation
+
+📚 **Comprehensive docs in [`docs/`](docs/) directory:**
+
+| Document | Description |
+|----------|-------------|
+| [SECURITY.md](docs/SECURITY.md) | Security controls, CSRF protection, systemd hardening |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment procedures, systemd configuration |
+| [TESTING.md](docs/TESTING.md) | Testing guide, fixtures, CI/CD integration |
+| [ROLES_AND_CALENDARS.md](docs/ROLES_AND_CALENDARS.md) | User roles, permissions, calendar systems |
+| [CLAUDE.md](docs/CLAUDE.md) | Claude Code instructions, deployment workflow |
+| [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Local development setup, architecture |
+| [CASE_STUDY.md](docs/CASE_STUDY.md) | PostgreSQL migration case study |
+| [ROADMAP.md](docs/ROADMAP.md) | Future features & improvement plans |
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
+### Latest (v3.3.15 - 2026-01-05)
+
+**Fixed:**
+- ✅ CSRF Protection Complete: 100% coverage (30/30 endpoints)
+  - Added tokens to index.html, my_calendar.html, customization_shop.html
+- ✅ Systemd Hardening: Fixed "Read-only file system" errors
+  - Added `/opt/business-hub/static` to ReadWritePaths
+  - Restored gamification data writes after 6-day outage
+
+**Security:**
+- 3-layer CSRF architecture (Global Fetch Patching + Standalone + Traditional Forms)
+- Systemd ReadWritePaths/ReadOnlyPaths isolation
+
+---
+
+## Monitoring & Health
+
+### Health Check
+
+```bash
+curl https://berater.zfa.gmbh/health
+```
+
+**Expected Response:**
+```json
+{
+  "status": "healthy",
+  "version": "3.3.15",
+  "timestamp": "2026-01-05T...",
+  "database": "healthy",
+  "memory": "ok"
+}
+```
+
+### Error Tracking
+
+**Sentry Integration:** https://sentry.io
+**Project:** business-hub
+**Region:** Germany (GDPR-compliant)
+
+### Logs
+
+```bash
+# Application errors
+tail -f /var/log/business-hub/error.log
+
+# Access logs
+tail -f /var/log/business-hub/access.log
+
+# Systemd service logs
+journalctl -u business-hub -f
+```
+
+---
+
+## Support & Troubleshooting
+
+### Common Issues
+
+**Issue:** CSRF 400 Error on booking
+- **Fix:** Verify CSRF token in form (see [docs/SECURITY.md](docs/SECURITY.md#testing-csrf-protection))
+
+**Issue:** "Read-only file system" errors
+- **Fix:** Check systemd ReadWritePaths (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting-systemd-issues))
+
+**Issue:** Service won't start
+- **Fix:** Check logs with `journalctl -u business-hub -n 50`
+
+### Getting Help
+
+1. Check [docs/](docs/) for comprehensive guides
+2. Review [CHANGELOG.md](CHANGELOG.md) for recent changes
+3. Check server logs for error details
+4. Review Sentry dashboard for production errors
+
+---
+
+## Contributing
+
+This is an internal business tool. For feature requests or bug reports, contact the development team.
+
+---
+
+## License
+
+Proprietary - Internal use only
+
+---
+
+## Credits
+
+**Development:** Luke Hoppe
+**Organization:** ZFA GmbH
+**Infrastructure:** Hetzner VPS
+**Version:** 3.3.15 (2026-01-05)
+
+---
+
+**Last Updated:** 2026-01-05
+**Next Review:** 2026-04-05

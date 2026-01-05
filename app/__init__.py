@@ -134,7 +134,7 @@ def init_sentry(app: Flask) -> None:
                 integrations=[FlaskIntegration()],
                 traces_sample_rate=0.1,  # 10% Performance Monitoring
                 environment='production' if not app.debug else 'development',
-                release=f"business-hub@{app.config.get('VERSION', '3.3.6')}",
+                release=f"business-hub@{app.config.get('VERSION', '3.3.15')}",
                 # User context für besseres Debugging
                 send_default_pii=True,
                 # Logs zu Sentry senden

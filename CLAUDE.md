@@ -258,19 +258,21 @@ with app.app_context():
 
 ---
 
-## 📊 Aktuelle Version: v3.3.14 (LIVE)
+## 📊 Aktuelle Version: v3.3.15 (LIVE)
 
-**Letzte Änderungen (2025-12-11):**
+**Letzte Änderungen (2026-01-05):**
 
-- ✅ **T2 Feature Flag Rollback**: `T2_MODULAR_BLUEPRINTS: false` (zurück zu Legacy-System)
-- ✅ **Bugfix: Bucket Config Import-Error**: 7 Import-Statements korrigiert
-- ✅ **Bugfix: Draw History PostgreSQL Migration**: Analytics-Service migriert zu PostgreSQL-First
-- ✅ **114 historische Draws** sichtbar (sara.mast: 30, ann-kathrin.welge: 26, dominik.mikic: 25)
+- ✅ **CSRF Protection Complete**: 100% coverage (30/30 endpoints)
+  - Added tokens to index.html, my_calendar.html, customization_shop.html
+- ✅ **Systemd Hardening**: Fixed "Read-only file system" errors
+  - Added `/opt/business-hub/static` to ReadWritePaths
+  - Restored gamification data writes after 6-day outage
+- ✅ **Dokumentation**: Comprehensive restructure (CHANGELOG, SECURITY, TESTING, ROLES, DEPLOYMENT)
 
 **Deployment-Status:**
-- 🟢 Production: LIVE auf http://91.98.192.233
-- 🔄 Service: 4 Workers, 309MB RAM, stabil
-- ⚡ PostgreSQL Query-Zeit: ~50ms
+- 🟢 Production: LIVE auf https://berater.zfa.gmbh/
+- 🔄 Service: 4 Workers, systemd hardening active
+- 🔒 Security: 100% CSRF protection, ProtectSystem=strict
 
 ---
 
