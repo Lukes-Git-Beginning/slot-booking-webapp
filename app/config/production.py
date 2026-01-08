@@ -44,7 +44,8 @@ class ProductionConfig(Config):
     # Logging Configuration
     # ========================================
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
-    LOG_FILE = os.getenv('LOG_FILE', '/var/log/business-hub/app.log')
+    LOG_DIR = os.getenv('LOG_DIR', '/var/log/business-hub')
+    LOG_FILE = os.getenv('LOG_FILE', os.path.join(LOG_DIR, 'app.log'))
 
     # ========================================
     # Security Headers

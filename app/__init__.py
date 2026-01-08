@@ -103,7 +103,7 @@ def setup_logging(app: Flask) -> None:
     if not app.debug:
         import logging.handlers
 
-        log_dir = app.config.get('LOG_DIR', 'logs')
+        log_dir = app.config.get('LOG_DIR', '/var/log/business-hub' if not app.debug else 'logs')
         os.makedirs(log_dir, exist_ok=True)
 
         # Main application log
