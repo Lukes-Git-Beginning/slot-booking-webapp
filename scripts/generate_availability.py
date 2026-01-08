@@ -29,6 +29,10 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from app.utils.credentials import load_google_credentials
 
+# Discord Integration
+from availability_change_detector import detect_availability_changes
+from app.services.discord_webhook_service import discord_webhook_service
+
 # Konfiguration
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -145,6 +149,17 @@ def main():
     # Sicherstellen dass Verzeichnis existiert
     os.makedirs("data/persistent", exist_ok=True)
 
+    # Lade alte availability VOR dem Scan (für Change Detection)
+    old_availability = {}
+    if os.path.exists(availability_file):
+        try:
+            with open(availability_file, "r", encoding="utf-8") as f:
+                old_availability = json.load(f)
+            print(f"📂 Alte Daten für Vergleich geladen: {len(old_availability)} Slots\n")
+        except Exception as e:
+            print(f"⚠️ Fehler beim Laden alter Daten: {e}\n")
+            old_availability = {}
+
     # Google Calendar Service DIREKT initialisieren
     service = init_google_calendar_service()
     if not service:
@@ -214,7 +229,29 @@ def main():
     with open(availability_file, "w", encoding="utf-8") as f:
         json.dump(availability, f, ensure_ascii=False, indent=2)
 
-    print(f"✅ Fertig!")
+    # Change Detection & Discord Notification
+    try:
+        changes = detect_availability_changes(old_availability, availability)
+
+        if changes['total_deletions'] > 0:
+            print(f"\n🔔 {changes['total_deletions']} gelöschte T1-bereit Slots erkannt")
+
+            success = discord_webhook_service.send_deletion_notification(
+                deletions=changes['deletions'],
+                scan_timestamp=now.strftime('%Y-%m-%d %H:%M:%S %Z')
+            )
+
+            if success:
+                print(f"✅ Discord: Benachrichtigung gesendet")
+            else:
+                print(f"⚠️ Discord: Fehler beim Senden (siehe Logs)")
+        else:
+            print(f"\n✅ Keine Deletions erkannt")
+    except Exception as e:
+        print(f"\n⚠️ Change Detection Fehler: {e}")
+        # Nicht re-raisen - Availability-Generation war erfolgreich
+
+    print(f"\n✅ Fertig!")
     print(f"📊 Statistik:")
     print(f"   - Analysiert: {slot_count}")
     print(f"   - Übersprungen: {skipped_past}")
