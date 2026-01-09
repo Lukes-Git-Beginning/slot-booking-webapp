@@ -231,7 +231,7 @@ def main():
 
     # Change Detection & Discord Notification
     try:
-        changes = detect_availability_changes(old_availability, availability)
+        changes = detect_availability_changes(old_availability, availability, now=now)
 
         if changes['total_deletions'] > 0:
             print(f"\n🔔 {changes['total_deletions']} gelöschte T1-bereit Slots erkannt")
