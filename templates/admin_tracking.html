@@ -13,8 +13,8 @@
   <!-- Lucide Icons (Local) -->
   <script src="{{ url_for('static', filename='lucide.js') }}"></script>
 
-  <!-- ApexCharts (CDN - specialized charting library) -->
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <!-- ApexCharts (Local) -->
+  <script src="{{ url_for('static', filename='js/apexcharts.min.js') }}"></script>
 
   <!-- AOS Animations (Local) -->
   <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
@@ -77,10 +77,41 @@
         </div>
       </div>
 
-      <!-- Refresh Button -->
-      <button onclick="location.reload()" class="btn btn-circle btn-ghost hover:bg-white/10">
-        <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
-      </button>
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <!-- Export Dropdown -->
+        <div class="dropdown dropdown-end">
+          <label tabindex="0" class="btn btn-ghost hover:bg-white/10 gap-2">
+            <i data-lucide="download" class="w-5 h-5 text-primary"></i>
+            <span class="hidden md:inline text-white">Export</span>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
+            <li>
+              <a href="{{ url_for('admin.export_tracking_excel') }}" class="flex items-center gap-2">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success"></i>
+                Excel (.xlsx)
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('admin.export_tracking_csv') }}" class="flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-info"></i>
+                CSV (Tagesstatistik)
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('admin.export_tracking_csv') }}?type=summary" class="flex items-center gap-2">
+                <i data-lucide="file-bar-chart" class="w-4 h-4 text-warning"></i>
+                CSV (Zusammenfassung)
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Refresh Button -->
+        <button onclick="location.reload()" class="btn btn-circle btn-ghost hover:bg-white/10">
+          <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -253,6 +284,58 @@
       </div>
     </div>
 
+    <!-- Berater-Ranking -->
+    <div class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="200">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+            <i data-lucide="trophy" class="w-6 h-6 text-primary"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Berater-Ranking</h2>
+            <p class="text-white/60 text-sm">Kombinierte Leistungsbewertung</p>
+          </div>
+        </div>
+
+        <!-- Ranking Tabs -->
+        <div class="tabs tabs-boxed bg-white/5">
+          <a class="tab tab-active" data-tab="combined" onclick="switchRankingTab('combined')">Kombiniert</a>
+          <a class="tab" data-tab="showrates" onclick="switchRankingTab('showrates')">Erschienen-Quoten</a>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="rankingLoading" class="text-center py-8">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <p class="text-white/60 mt-2">Lade Ranking-Daten...</p>
+      </div>
+
+      <!-- Ranking Grid -->
+      <div id="rankingGrid" class="hidden">
+        <!-- Will be populated by JavaScript -->
+      </div>
+
+      <!-- Summary Stats -->
+      <div id="rankingSummary" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
+        <div class="text-center">
+          <p class="text-white/60 text-sm">Durchschn. Erschienen-Quote</p>
+          <p id="avgShowRate" class="text-xl font-bold text-white">--</p>
+        </div>
+        <div class="text-center">
+          <p class="text-white/60 text-sm">Durchschn. Tel. Zielerreichung</p>
+          <p id="avgAchievement" class="text-xl font-bold text-white">--</p>
+        </div>
+        <div class="text-center">
+          <p class="text-white/60 text-sm">Top-Performer</p>
+          <p id="highPerformers" class="text-xl font-bold text-success">--</p>
+        </div>
+        <div class="text-center">
+          <p class="text-white/60 text-sm">Verbesserungsbedarf</p>
+          <p id="lowPerformers" class="text-xl font-bold text-warning">--</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Initialize Scripts -->
@@ -267,10 +350,12 @@
     });
 
     // Trend Chart Data
-    const trendData = {{ since_golive.daily_data | tojson }};
+    const trendData = {{ since_golive.daily_data | tojson | default('[]') }};
+    console.log('Trend data loaded:', trendData.length, 'entries');
 
     // Trend Chart
-    if (trendData && trendData.length > 0) {
+    if (trendData && Array.isArray(trendData) && trendData.length > 0) {
+      try {
       const trendOptions = {
         series: [{
           name: 'Auftauchquote',
@@ -338,13 +423,21 @@
 
       const trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
       trendChart.render();
+      } catch (e) {
+        console.error('Trend chart error:', e);
+        document.querySelector("#trendChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
+      }
     } else {
-      document.querySelector("#trendChart").innerHTML = '<p class="text-center text-white/60 py-20">Keine Daten verfügbar</p>';
+      console.warn('No trend data available, length:', trendData ? trendData.length : 'null');
+      document.querySelector("#trendChart").innerHTML = '<p class="text-center text-white/60 py-20">Keine Daten verfügbar (' + (trendData ? trendData.length : 0) + ' Einträge)</p>';
     }
 
     // Donut Chart
+    try {
+    const donutData = [{{ since_golive.completed | default(0) }}, {{ since_golive.no_shows | default(0) }}, {{ since_golive.cancelled | default(0) }}, {{ since_golive.rescheduled | default(0) }}];
+    console.log('Donut data:', donutData);
     const donutOptions = {
-      series: [{{ since_golive.completed }}, {{ since_golive.no_shows }}, {{ since_golive.cancelled }}, {{ since_golive.rescheduled | default(0) }}],
+      series: donutData,
       chart: {
         type: 'donut',
         height: 300,
@@ -398,6 +491,159 @@
 
     const donutChart = new ApexCharts(document.querySelector("#donutChart"), donutOptions);
     donutChart.render();
+    } catch (e) {
+      console.error('Donut chart error:', e);
+      document.querySelector("#donutChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
+    }
+
+    // ========== BERATER-RANKING ==========
+
+    let currentRankingData = null;
+    let currentTab = 'combined';
+
+    // Load ranking data on page load
+    loadRankingData();
+
+    async function loadRankingData() {
+      try {
+        const response = await fetch('/admin/tracking/api/combined-ranking', {
+          credentials: 'same-origin'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          currentRankingData = result.data;
+          renderRanking(currentRankingData, currentTab);
+
+          // Update summary
+          const summary = currentRankingData.summary;
+          document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
+          document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
+          document.getElementById('highPerformers').textContent = summary.high_performers;
+          document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
+
+          document.getElementById('rankingLoading').classList.add('hidden');
+          document.getElementById('rankingGrid').classList.remove('hidden');
+          document.getElementById('rankingSummary').classList.remove('hidden');
+        } else {
+          showRankingError(result.error);
+        }
+      } catch (error) {
+        showRankingError(error.message);
+      }
+    }
+
+    function showRankingError(message) {
+      document.getElementById('rankingLoading').innerHTML = `
+        <div class="text-center py-8">
+          <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-error mb-2"></i>
+          <p class="text-white/60">Fehler beim Laden: ${message}</p>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function switchRankingTab(tab) {
+      currentTab = tab;
+
+      // Update tab styles
+      document.querySelectorAll('[data-tab]').forEach(t => {
+        t.classList.remove('tab-active');
+        if (t.dataset.tab === tab) t.classList.add('tab-active');
+      });
+
+      if (currentRankingData) {
+        renderRanking(currentRankingData, tab);
+      }
+    }
+
+    function renderRanking(data, tab) {
+      const rankings = data.rankings || [];
+      const grid = document.getElementById('rankingGrid');
+
+      if (rankings.length === 0) {
+        grid.innerHTML = '<p class="text-center text-white/60 py-8">Keine Ranking-Daten verfügbar</p>';
+        return;
+      }
+
+      // German category labels
+      const categoryLabels = { 'high': 'TOP', 'medium': 'MITTEL', 'low': 'NIEDRIG' };
+
+      let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">';
+
+      rankings.forEach((r, idx) => {
+        const medal = getMedal(idx);
+        const categoryClass = getCategoryClass(r.category);
+        const score = tab === 'combined' ? r.combined_score : r.show_rate;
+        const label = tab === 'combined' ? 'Gesamt-Score' : 'Erschienen-Quote';
+        const categoryLabel = categoryLabels[r.category] || r.category.toUpperCase();
+
+        html += `
+          <div class="glass rounded-xl p-4 ${categoryClass} transition-all hover:scale-105">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                ${medal}
+                <span class="text-white font-bold text-lg">#${r.rank}</span>
+              </div>
+              <span class="badge ${getBadgeClass(r.category)}">${categoryLabel}</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">${r.name}</h3>
+            <div class="space-y-1 text-sm">
+              <div class="flex justify-between">
+                <span class="text-white/60">${label}</span>
+                <span class="text-white font-semibold">${score}%</span>
+              </div>
+              ${tab === 'combined' ? `
+                <div class="flex justify-between">
+                  <span class="text-white/60">Erschienen-Quote</span>
+                  <span class="text-white">${r.show_rate}%</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/60">Tel. Zielerreichung</span>
+                  <span class="text-white">${r.telefonie_achievement}%</span>
+                </div>
+              ` : `
+                <div class="flex justify-between">
+                  <span class="text-white/60">Termine</span>
+                  <span class="text-white">${r.total_slots}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/60">Erschienen</span>
+                  <span class="text-success">${r.completed}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/60">Nicht erschienen</span>
+                  <span class="text-error">${r.no_shows}</span>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+      grid.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function getMedal(idx) {
+      if (idx === 0) return '<i data-lucide="trophy" class="w-6 h-6 text-yellow-400"></i>';
+      if (idx === 1) return '<i data-lucide="medal" class="w-6 h-6 text-gray-300"></i>';
+      if (idx === 2) return '<i data-lucide="award" class="w-6 h-6 text-amber-600"></i>';
+      return '';
+    }
+
+    function getCategoryClass(category) {
+      if (category === 'high') return 'border-l-4 border-success';
+      if (category === 'medium') return 'border-l-4 border-warning';
+      return 'border-l-4 border-error';
+    }
+
+    function getBadgeClass(category) {
+      if (category === 'high') return 'badge-success';
+      if (category === 'medium') return 'badge-warning';
+      return 'badge-error';
+    }
   </script>
 
 </body>

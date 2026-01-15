@@ -36,6 +36,9 @@ CENTRAL_CALENDAR_ID = os.getenv("CENTRAL_CALENDAR_ID", "zentralkalenderzfa@gmail
 # ----------------- ZENTRALE COLOR-DEFINITION -----------------
 from app.utils.color_mapping import get_outcome_from_color, get_potential_type
 
+# Berater-Konfiguration für Consultant-Extraction
+from app.config.base import consultant_config
+
 # Potential-Typ Mapping (für Analyse-Zwecke) - jetzt über color_mapping.py
 POTENTIAL_TYPES = {
     "2": "normal",          # Grün = Normales Potential
@@ -219,9 +222,25 @@ class BookingTracker:
                 
                 event_time = datetime.fromisoformat(event_start).strftime("%H:%M")
 
+                # Extrahiere Berater aus Event-Attendees
+                consultant_name = "Unknown"
+                consultant_email = None
+                attendees = event.get("attendees", [])
+                consultants_map = consultant_config.get_consultants()
+
+                for attendee in attendees:
+                    attendee_email = attendee.get("email", "").lower()
+                    for name, email in consultants_map.items():
+                        if attendee_email == email.lower():
+                            consultant_name = name
+                            consultant_email = attendee_email
+                            break
+                    if consultant_name != "Unknown":
+                        break
+
                 # WICHTIG: Nutze titel-basierte Outcome-Bestimmung
                 outcome = self._get_outcome_from_title_and_color(customer_name, color_id)
-                
+
                 # Track outcome
                 outcome_data = {
                     "id": f"{check_date}_{event_time}_{customer_name}".replace(" ", "_"),
@@ -233,7 +252,9 @@ class BookingTracker:
                     "color_id": color_id,
                     "potential_type": self._get_potential_type(color_id),
                     "checked_at": datetime.now(TZ).strftime("%H:%M"),
-                    "description": event.get("description", "")
+                    "description": event.get("description", ""),
+                    "consultant": consultant_name,
+                    "consultant_email": consultant_email
                 }
                 
                 # Spezielle Behandlung für No-Shows
@@ -1241,6 +1262,267 @@ class BookingTracker:
         """Helper: Englischer Wochentag-Index zu deutschem Namen"""
         weekdays_de = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
         return weekdays_de[weekday_index]
+
+    # ----------------- CONSULTANT PERFORMANCE METHODS -----------------
+
+    def get_consultant_performance(self, start_date_str, end_date_str):
+        """
+        Berechne Berater-Performance basierend auf Show-Rates
+
+        Args:
+            start_date_str: Start-Datum (YYYY-MM-DD)
+            end_date_str: End-Datum (YYYY-MM-DD)
+
+        Returns:
+            dict: {
+                "consultant_name": {
+                    "total_slots": int,
+                    "completed": int,
+                    "no_shows": int,
+                    "cancelled": int,
+                    "rescheduled": int,
+                    "appearance_rate": float
+                }, ...
+            }
+        """
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+            consultant_stats = defaultdict(lambda: {
+                "total_slots": 0,
+                "completed": 0,
+                "no_shows": 0,
+                "cancelled": 0,
+                "rescheduled": 0
+            })
+
+            if not os.path.exists(self.outcomes_file):
+                return {}
+
+            with open(self.outcomes_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        outcome = json.loads(line)
+                        outcome_date = datetime.strptime(outcome.get("date", ""), "%Y-%m-%d").date()
+
+                        if start_date <= outcome_date <= end_date:
+                            consultant = outcome.get("consultant", "Unknown")
+                            consultant_stats[consultant]["total_slots"] += 1
+
+                            outcome_type = outcome.get("outcome", "")
+                            if outcome_type == "completed":
+                                consultant_stats[consultant]["completed"] += 1
+                            elif outcome_type == "no_show":
+                                consultant_stats[consultant]["no_shows"] += 1
+                            elif outcome_type == "cancelled":
+                                consultant_stats[consultant]["cancelled"] += 1
+                            elif outcome_type == "rescheduled":
+                                consultant_stats[consultant]["rescheduled"] += 1
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+
+            # Berechne Appearance-Rate pro Berater
+            result = {}
+            for consultant, stats in consultant_stats.items():
+                if stats["total_slots"] > 0:
+                    stats["appearance_rate"] = round(
+                        (stats["completed"] / stats["total_slots"]) * 100, 1
+                    )
+                else:
+                    stats["appearance_rate"] = 0.0
+                result[consultant] = dict(stats)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Fehler bei get_consultant_performance: {e}")
+            return {}
+
+    def get_stats_for_period(self, start_date_str, end_date_str):
+        """
+        Flexible Statistiken für beliebigen Zeitraum
+
+        Args:
+            start_date_str: Start-Datum (YYYY-MM-DD)
+            end_date_str: End-Datum (YYYY-MM-DD)
+
+        Returns:
+            dict mit Aggregatstatistiken und daily_data für Charts
+        """
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+            totals = {
+                "total_slots": 0,
+                "completed": 0,
+                "no_shows": 0,
+                "cancelled": 0,
+                "rescheduled": 0
+            }
+            daily_data = []
+            days_with_data = 0
+
+            # Lade daily_metrics.json
+            if os.path.exists(self.metrics_file):
+                with open(self.metrics_file, "r", encoding="utf-8") as f:
+                    all_metrics = json.load(f)
+
+                current_date = start_date
+                while current_date <= end_date:
+                    date_str = str(current_date)
+                    if date_str in all_metrics:
+                        day_metrics = all_metrics[date_str]
+                        days_with_data += 1
+
+                        slots = day_metrics.get("total_slots", 0)
+                        completed = day_metrics.get("completed", 0)
+                        no_shows = day_metrics.get("no_shows", 0)
+                        cancelled = day_metrics.get("cancelled", 0)
+                        rescheduled = day_metrics.get("rescheduled", 0)
+
+                        totals["total_slots"] += slots
+                        totals["completed"] += completed
+                        totals["no_shows"] += no_shows
+                        totals["cancelled"] += cancelled
+                        totals["rescheduled"] += rescheduled
+
+                        # Nur Werktage zu Charts hinzufügen
+                        if current_date.weekday() < 5 and slots > 0:
+                            appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
+                            daily_data.append({
+                                "date": date_str,
+                                "weekday": self._get_german_weekday(current_date.weekday()),
+                                "total_slots": slots,
+                                "completed": completed,
+                                "no_shows": no_shows,
+                                "cancelled": cancelled,
+                                "rescheduled": rescheduled,
+                                "appearance_rate": appearance_rate
+                            })
+
+                    current_date += timedelta(days=1)
+
+            # Berechne Raten
+            if totals["total_slots"] > 0:
+                appearance_rate = round((totals["completed"] / totals["total_slots"]) * 100, 1)
+                no_show_rate = round((totals["no_shows"] / totals["total_slots"]) * 100, 1)
+            else:
+                appearance_rate = 0.0
+                no_show_rate = 0.0
+
+            return {
+                "start_date": start_date_str,
+                "end_date": end_date_str,
+                "days_tracked": days_with_data,
+                "total_days": (end_date - start_date).days + 1,
+                **totals,
+                "appearance_rate": appearance_rate,
+                "no_show_rate": no_show_rate,
+                "daily_data": daily_data
+            }
+
+        except Exception as e:
+            logger.error(f"Fehler bei get_stats_for_period: {e}")
+            return {
+                "start_date": start_date_str,
+                "end_date": end_date_str,
+                "days_tracked": 0,
+                "total_slots": 0,
+                "completed": 0,
+                "no_shows": 0,
+                "cancelled": 0,
+                "rescheduled": 0,
+                "appearance_rate": 0.0,
+                "no_show_rate": 0.0,
+                "daily_data": []
+            }
+
+    def get_weekly_stats(self, year, week_number):
+        """
+        Statistiken für eine spezifische ISO-Woche
+
+        Args:
+            year: Jahr (z.B. 2026)
+            week_number: ISO-Wochennummer (1-53)
+
+        Returns:
+            dict mit Wochenstatistiken
+        """
+        try:
+            # Berechne Start (Montag) und Ende (Sonntag) der ISO-Woche
+            first_day_of_year = datetime(year, 1, 1).date()
+            # ISO-Woche 1 enthält den 4. Januar
+            first_thursday = first_day_of_year + timedelta(days=(3 - first_day_of_year.weekday() + 7) % 7)
+            first_monday_week1 = first_thursday - timedelta(days=3)
+            start_date = first_monday_week1 + timedelta(weeks=week_number - 1)
+            end_date = start_date + timedelta(days=6)
+
+            stats = self.get_stats_for_period(str(start_date), str(end_date))
+            stats["year"] = year
+            stats["week"] = week_number
+            stats["week_label"] = f"KW {week_number}/{year}"
+
+            return stats
+
+        except Exception as e:
+            logger.error(f"Fehler bei get_weekly_stats: {e}")
+            return {
+                "year": year,
+                "week": week_number,
+                "week_label": f"KW {week_number}/{year}",
+                "days_tracked": 0,
+                "total_slots": 0,
+                "completed": 0,
+                "no_shows": 0,
+                "appearance_rate": 0.0,
+                "daily_data": []
+            }
+
+    def get_monthly_stats(self, year, month):
+        """
+        Statistiken für einen spezifischen Monat
+
+        Args:
+            year: Jahr (z.B. 2026)
+            month: Monat (1-12)
+
+        Returns:
+            dict mit Monatsstatistiken
+        """
+        try:
+            from calendar import monthrange
+
+            start_date = datetime(year, month, 1).date()
+            _, last_day = monthrange(year, month)
+            end_date = datetime(year, month, last_day).date()
+
+            month_names = ["", "Januar", "Februar", "März", "April", "Mai", "Juni",
+                          "Juli", "August", "September", "Oktober", "November", "Dezember"]
+
+            stats = self.get_stats_for_period(str(start_date), str(end_date))
+            stats["year"] = year
+            stats["month"] = month
+            stats["month_label"] = f"{month_names[month]} {year}"
+
+            return stats
+
+        except Exception as e:
+            logger.error(f"Fehler bei get_monthly_stats: {e}")
+            return {
+                "year": year,
+                "month": month,
+                "month_label": f"Monat {month}/{year}",
+                "days_tracked": 0,
+                "total_slots": 0,
+                "completed": 0,
+                "no_shows": 0,
+                "appearance_rate": 0.0,
+                "daily_data": []
+            }
 
 # ----------------- Utility Funktionen -----------------
 def recalculate_all_outcomes():

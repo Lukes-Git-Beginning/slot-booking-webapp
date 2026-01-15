@@ -42,6 +42,7 @@ seaborn==0.13.2
 
 # Export & Reporting
 reportlab==4.1.0
+openpyxl==3.1.5
 
 # Utilities
 pytz==2025.2

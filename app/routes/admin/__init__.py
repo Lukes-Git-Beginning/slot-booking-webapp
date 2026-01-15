@@ -10,7 +10,7 @@ admin_bp = Blueprint('admin', __name__)
 logger = logging.getLogger(__name__)
 
 # Import all admin route modules to register them
-from . import dashboard, reports, users, telefonie, blocked_dates, export, tracking
+from . import dashboard, reports, users, telefonie, blocked_dates, export, tracking, tracking_export
 
 # Make sure all routes are registered
 logger.debug("Admin routes imported successfully")
