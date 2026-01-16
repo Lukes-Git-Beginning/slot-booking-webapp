@@ -87,19 +87,19 @@
           </label>
           <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
             <li>
-              <a href="{{ url_for('admin.export_tracking_excel') }}" class="flex items-center gap-2">
+              <a href="#" onclick="exportExcel(event)" class="flex items-center gap-2">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success"></i>
                 Excel (.xlsx)
               </a>
             </li>
             <li>
-              <a href="{{ url_for('admin.export_tracking_csv') }}" class="flex items-center gap-2">
+              <a href="#" onclick="exportCSV(event, 'daily')" class="flex items-center gap-2">
                 <i data-lucide="file-text" class="w-4 h-4 text-info"></i>
                 CSV (Tagesstatistik)
               </a>
             </li>
             <li>
-              <a href="{{ url_for('admin.export_tracking_csv') }}?type=summary" class="flex items-center gap-2">
+              <a href="#" onclick="exportCSV(event, 'summary')" class="flex items-center gap-2">
                 <i data-lucide="file-bar-chart" class="w-4 h-4 text-warning"></i>
                 CSV (Zusammenfassung)
               </a>
@@ -115,6 +115,59 @@
     </div>
   </div>
 
+  <!-- Zeitraum-Auswahl (Kompakt) -->
+  <div class="max-w-7xl mx-auto mb-6" data-aos="fade-down" data-aos-delay="100">
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Preset Buttons -->
+      <button onclick="loadPeriod('last7days')" id="btn-last7days" class="btn btn-sm btn-outline hover:btn-primary text-white">
+        Letzte 7 Tage
+      </button>
+      <button onclick="loadPeriod('last30days')" id="btn-last30days" class="btn btn-sm btn-primary text-white">
+        Letzte 30 Tage
+      </button>
+      <button onclick="loadPeriod('thisMonth')" id="btn-thisMonth" class="btn btn-sm btn-outline hover:btn-primary text-white">
+        Dieser Monat
+      </button>
+      <button onclick="loadPeriod('thisYear')" id="btn-thisYear" class="btn btn-sm btn-outline hover:btn-primary text-white">
+        Dieses Jahr
+      </button>
+
+      <!-- Custom Dropdown -->
+      <div class="dropdown dropdown-end">
+        <label tabindex="0" class="btn btn-sm btn-outline hover:btn-primary text-white gap-2">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+          Custom
+        </label>
+        <div tabindex="0" class="dropdown-content z-[1] card card-compact w-80 p-4 shadow-lg bg-base-200 mt-2">
+          <div class="space-y-3">
+            <div>
+              <label class="label">
+                <span class="label-text">Von</span>
+              </label>
+              <input type="date" id="custom-start-date" class="input input-bordered input-sm w-full">
+            </div>
+            <div>
+              <label class="label">
+                <span class="label-text">Bis</span>
+              </label>
+              <input type="date" id="custom-end-date" class="input input-bordered input-sm w-full">
+            </div>
+            <button onclick="loadCustomPeriod()" class="btn btn-primary btn-sm w-full gap-2">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              Anwenden
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Period Display -->
+      <div class="ml-auto flex items-center gap-2 text-sm text-white/60">
+        <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+        <span id="current-period-label">Letzte 30 Tage</span>
+      </div>
+    </div>
+  </div>
+
   <div class="max-w-7xl mx-auto space-y-8">
 
     <!-- Letzte 5 Werktage -->
@@ -124,7 +177,7 @@
           <i data-lucide="calendar-days" class="w-6 h-6 text-primary"></i>
         </div>
         <div>
-          <h2 class="text-2xl font-bold text-white">Letzte 5 Werktage</h2>
+          <h2 id="daily-section-title" class="text-2xl font-bold text-white">Tagesübersicht · Letzte 30 Tage</h2>
           <p class="text-white/60 text-sm">Tägliche Termin-Übersicht</p>
         </div>
       </div>
@@ -144,7 +197,7 @@
               <th class="text-white font-bold text-center">Auftauchquote</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="daily-table-body">
             {% if last_5_workdays %}
               {% for day in last_5_workdays %}
               <tr class="hover:bg-white/5 transition-colors">
@@ -196,8 +249,8 @@
           <i data-lucide="trending-up" class="w-6 h-6 text-primary"></i>
         </div>
         <div>
-          <h2 class="text-2xl font-bold text-white">Seit Go-Live (01.09.2025)</h2>
-          <p class="text-white/60 text-sm">Gesamtstatistik · {{ since_golive.days_tracked }} Tage mit Daten</p>
+          <h2 id="stats-section-title" class="text-2xl font-bold text-white">Gesamtstatistik</h2>
+          <p class="text-white/60 text-sm">Aggregierte Kennzahlen für gewählten Zeitraum</p>
         </div>
       </div>
 
@@ -209,7 +262,7 @@
             <span class="text-white/60 text-sm font-medium">Gelegte Termine</span>
             <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
           </div>
-          <p class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
+          <p id="total-slots" class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
         </div>
 
         <!-- Erschienen -->
@@ -218,7 +271,7 @@
             <span class="text-white/60 text-sm font-medium">Erschienen</span>
             <i data-lucide="check-circle-2" class="w-5 h-5 text-success"></i>
           </div>
-          <p class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
+          <p id="completed-slots" class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
         </div>
 
         <!-- No-Shows -->
@@ -227,7 +280,7 @@
             <span class="text-white/60 text-sm font-medium">Nicht erschienen</span>
             <i data-lucide="x-circle" class="w-5 h-5 text-error"></i>
           </div>
-          <p class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
+          <p id="no-shows" class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
         </div>
 
         <!-- Auftauchquote -->
@@ -236,13 +289,7 @@
             <span class="text-white/60 text-sm font-medium">Auftauchquote</span>
             <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
           </div>
-          {% if since_golive.appearance_rate >= 80 %}
-            <p class="text-4xl font-bold text-success">{{ since_golive.appearance_rate }}%</p>
-          {% elif since_golive.appearance_rate >= 60 %}
-            <p class="text-4xl font-bold text-warning">{{ since_golive.appearance_rate }}%</p>
-          {% else %}
-            <p class="text-4xl font-bold text-error">{{ since_golive.appearance_rate }}%</p>
-          {% endif %}
+          <p id="appearance-rate" class="text-4xl font-bold text-success">{{ since_golive.appearance_rate }}%</p>
         </div>
       </div>
 
@@ -501,8 +548,8 @@
     let currentRankingData = null;
     let currentTab = 'combined';
 
-    // Load ranking data on page load
-    loadRankingData();
+    // NOTE: Ranking data now loaded by unified date range system (loadAllData)
+    // loadRankingData(); // DISABLED - replaced by unified loading
 
     async function loadRankingData() {
       try {
@@ -644,6 +691,299 @@
       if (category === 'medium') return 'badge-warning';
       return 'badge-error';
     }
+
+    // ========== UNIFIED DATE RANGE & DATA LOADING ==========
+
+    // Global state for current period
+    let currentStartDate = null;
+    let currentEndDate = null;
+
+    // Load all data for a preset period
+    async function loadPeriod(preset) {
+      const { startDate, endDate } = calculateDateRange(preset);
+      await loadAllData(startDate, endDate, getPresetLabel(preset));
+      highlightActiveButton(preset);
+    }
+
+    // Calculate date range based on preset
+    function calculateDateRange(preset) {
+      const today = new Date();
+      let startDate, endDate = today;
+
+      switch(preset) {
+        case 'last7days':
+          startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'last30days':
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'thisMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          break;
+        case 'thisYear':
+          startDate = new Date(today.getFullYear(), 0, 1);
+          break;
+      }
+
+      return {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      };
+    }
+
+    // Load custom date range from dropdown
+    async function loadCustomPeriod() {
+      const startDate = document.getElementById('custom-start-date').value;
+      const endDate = document.getElementById('custom-end-date').value;
+
+      if (!startDate || !endDate) {
+        alert('Bitte beide Datumswerte auswählen');
+        return;
+      }
+
+      if (new Date(startDate) > new Date(endDate)) {
+        alert('Startdatum muss vor Enddatum liegen');
+        return;
+      }
+
+      await loadAllData(startDate, endDate, `${startDate} bis ${endDate}`);
+      highlightActiveButton('custom');
+
+      // Close dropdown
+      document.activeElement.blur();
+    }
+
+    // Main function: Load all sections with unified date range
+    async function loadAllData(startDate, endDate, periodLabel) {
+      // Update global state
+      currentStartDate = startDate;
+      currentEndDate = endDate;
+
+      // Update URL
+      const url = new URL(window.location);
+      url.searchParams.set('start_date', startDate);
+      url.searchParams.set('end_date', endDate);
+      window.history.pushState({}, '', url);
+
+      // Update period label
+      document.getElementById('current-period-label').textContent = periodLabel;
+
+      // Show loading
+      showLoadingStates();
+
+      try {
+        // Fetch all data in parallel
+        const [statsData, rankingData] = await Promise.all([
+          fetch(`/admin/tracking/api/period-stats?type=custom&start_date=${startDate}&end_date=${endDate}`)
+            .then(r => r.json()),
+          fetch(`/admin/tracking/api/combined-ranking?start_date=${startDate}&end_date=${endDate}`)
+            .then(r => r.json())
+        ]);
+
+        // Update all sections
+        updateDailySection(statsData);
+        updateStatsSection(statsData);
+        updateRankingSection(rankingData);
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Fehler beim Laden der Daten');
+      } finally {
+        hideLoadingStates();
+      }
+    }
+
+    // Highlight active button
+    function highlightActiveButton(preset) {
+      // Remove active class from all buttons
+      document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline');
+      });
+
+      // Highlight active button
+      const activeBtn = document.getElementById(`btn-${preset}`);
+      if (activeBtn) {
+        activeBtn.classList.add('btn-primary');
+        activeBtn.classList.remove('btn-outline');
+      }
+    }
+
+    // Get preset label for display
+    function getPresetLabel(preset) {
+      const labels = {
+        'last7days': 'Letzte 7 Tage',
+        'last30days': 'Letzte 30 Tage',
+        'thisMonth': 'Dieser Monat',
+        'thisYear': 'Dieses Jahr'
+      };
+      return labels[preset] || 'Custom';
+    }
+
+    // Update daily section (Tagesübersicht)
+    function updateDailySection(data) {
+      if (!data || !data.daily_data) return;
+
+      // Update section title
+      const title = document.querySelector('#daily-section-title');
+      if (title && data.start_date && data.end_date) {
+        title.textContent = `Tagesübersicht · ${data.start_date} bis ${data.end_date}`;
+      }
+
+      // Update table
+      updateDailyTable(data.daily_data);
+    }
+
+    // Update daily table
+    function updateDailyTable(dailyData) {
+      const tbody = document.querySelector('#daily-table-body');
+      if (!tbody) return;
+
+      if (!dailyData || dailyData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = dailyData.map(day => `
+        <tr class="hover:bg-white/5 transition-colors">
+          <td class="text-white font-medium">${day.date}</td>
+          <td class="text-white/80">${day.weekday_de || ''}</td>
+          <td class="text-center"><span class="badge badge-outline badge-info">${day.total_slots || 0}</span></td>
+          <td class="text-center"><span class="badge badge-outline badge-success">${day.completed || 0}</span></td>
+          <td class="text-center"><span class="badge badge-outline badge-error">${day.no_shows || 0}</span></td>
+          <td class="text-center"><span class="badge badge-outline badge-warning">${day.cancelled || 0}</span></td>
+          <td class="text-center"><span class="badge badge-outline badge-secondary">${day.rescheduled || 0}</span></td>
+          <td class="text-center font-bold ${(day.appearance_rate || 0) >= 70 ? 'text-success' : 'text-warning'}">
+            ${(day.appearance_rate || 0).toFixed(1)}%
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Update stats section (Gesamtstatistik)
+    function updateStatsSection(data) {
+      if (!data) return;
+
+      // Update aggregate stats
+      const totalSlots = document.getElementById('total-slots');
+      const completedSlots = document.getElementById('completed-slots');
+      const noShows = document.getElementById('no-shows');
+      const appearanceRate = document.getElementById('appearance-rate');
+
+      if (totalSlots) totalSlots.textContent = data.total_slots || 0;
+      if (completedSlots) completedSlots.textContent = data.completed || 0;
+      if (noShows) noShows.textContent = data.no_shows || 0;
+
+      if (appearanceRate) {
+        const rate = (data.appearance_rate || 0).toFixed(1);
+        appearanceRate.textContent = rate + '%';
+
+        // Update color based on rate
+        appearanceRate.classList.remove('text-success', 'text-warning', 'text-error');
+        if (parseFloat(rate) >= 80) {
+          appearanceRate.classList.add('text-success');
+        } else if (parseFloat(rate) >= 60) {
+          appearanceRate.classList.add('text-warning');
+        } else {
+          appearanceRate.classList.add('text-error');
+        }
+      }
+    }
+
+    // Update ranking section
+    function updateRankingSection(result) {
+      if (!result || !result.success) return;
+
+      const data = result.data;
+      currentRankingData = data;
+
+      // Render rankings with current tab
+      renderRanking(data, currentTab);
+
+      // Update summary stats
+      const summary = data.summary;
+      if (summary) {
+        document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
+        document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
+        document.getElementById('highPerformers').textContent = summary.high_performers;
+        document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
+      }
+
+      // Show ranking grid
+      document.getElementById('rankingLoading').classList.add('hidden');
+      document.getElementById('rankingGrid').classList.remove('hidden');
+      document.getElementById('rankingSummary').classList.remove('hidden');
+    }
+
+    // Show loading spinners
+    function showLoadingStates() {
+      // Fade all main sections
+      document.querySelectorAll('.stat-card').forEach(card => {
+        card.style.opacity = '0.5';
+      });
+
+      const rankingGrid = document.getElementById('rankingGrid');
+      if (rankingGrid) rankingGrid.style.opacity = '0.5';
+
+      const dailyTable = document.getElementById('daily-table-body');
+      if (dailyTable) dailyTable.style.opacity = '0.5';
+    }
+
+    // Hide loading spinners
+    function hideLoadingStates() {
+      document.querySelectorAll('.stat-card').forEach(card => {
+        card.style.opacity = '1';
+      });
+
+      const rankingGrid = document.getElementById('rankingGrid');
+      if (rankingGrid) rankingGrid.style.opacity = '1';
+
+      const dailyTable = document.getElementById('daily-table-body');
+      if (dailyTable) dailyTable.style.opacity = '1';
+
+      // Reinit Lucide icons
+      lucide.createIcons();
+    }
+
+    // ========== EXPORT FUNCTIONS ==========
+
+    // Export to Excel with current date range
+    function exportExcel(e) {
+      e.preventDefault();
+      if (currentStartDate && currentEndDate) {
+        window.location.href = `/admin/tracking/export/excel?start_date=${currentStartDate}&end_date=${currentEndDate}`;
+      } else {
+        window.location.href = '/admin/tracking/export/excel';
+      }
+    }
+
+    // Export to CSV with current date range
+    function exportCSV(e, type) {
+      e.preventDefault();
+      let url = `/admin/tracking/export/csv?type=${type}`;
+      if (currentStartDate && currentEndDate) {
+        url += `&start_date=${currentStartDate}&end_date=${currentEndDate}`;
+      }
+      window.location.href = url;
+    }
+
+    // On page load: Check URL params or load default
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlStartDate = urlParams.get('start_date');
+      const urlEndDate = urlParams.get('end_date');
+
+      if (urlStartDate && urlEndDate) {
+        // Load from URL
+        document.getElementById('custom-start-date').value = urlStartDate;
+        document.getElementById('custom-end-date').value = urlEndDate;
+        loadAllData(urlStartDate, urlEndDate, `${urlStartDate} bis ${urlEndDate}`);
+        highlightActiveButton('custom');
+      } else {
+        // Load default: Last 30 days
+        loadPeriod('last30days');
+      }
+    });
   </script>
 
 </body>
