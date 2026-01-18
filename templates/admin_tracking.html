@@ -255,7 +255,7 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <!-- Total Slots -->
         <div class="stat-card glass rounded-xl p-6">
           <div class="flex items-center justify-between mb-2">
@@ -263,6 +263,16 @@
             <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
           </div>
           <p id="total-slots" class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
+        </div>
+
+        <!-- T1 Gebucht (nach Buchungsdatum) -->
+        <div class="stat-card glass rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white/60 text-sm font-medium">T1 Gebucht</span>
+            <i data-lucide="calendar-plus" class="w-5 h-5 text-secondary"></i>
+          </div>
+          <p id="bookings-created" class="text-4xl font-bold text-secondary">0</p>
+          <p class="text-xs text-white/40 mt-1">Nach Buchungsdatum</p>
         </div>
 
         <!-- Erschienen -->
@@ -363,7 +373,7 @@
       </div>
 
       <!-- Summary Stats -->
-      <div id="rankingSummary" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
+      <div id="rankingSummary" class="hidden grid grid-cols-1 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-white/10">
         <div class="text-center">
           <p class="text-white/60 text-sm">Durchschn. Erschienen-Quote</p>
           <p id="avgShowRate" class="text-xl font-bold text-white">--</p>
@@ -371,6 +381,10 @@
         <div class="text-center">
           <p class="text-white/60 text-sm">Durchschn. Tel. Zielerreichung</p>
           <p id="avgAchievement" class="text-xl font-bold text-white">--</p>
+        </div>
+        <div class="text-center">
+          <p class="text-white/60 text-sm">Gesamt T1 gelegt</p>
+          <p id="totalT1Booked" class="text-xl font-bold text-secondary">--</p>
         </div>
         <div class="text-center">
           <p class="text-white/60 text-sm">Top-Performer</p>
@@ -395,6 +409,10 @@
       duration: 800,
       once: true
     });
+
+    // Global chart references for updates
+    let trendChart = null;
+    let donutChart = null;
 
     // Trend Chart Data
     const trendData = {{ since_golive.daily_data | tojson | default('[]') }};
@@ -468,7 +486,7 @@
         }
       };
 
-      const trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
+      trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
       trendChart.render();
       } catch (e) {
         console.error('Trend chart error:', e);
@@ -536,7 +554,7 @@
       }
     };
 
-    const donutChart = new ApexCharts(document.querySelector("#donutChart"), donutOptions);
+    donutChart = new ApexCharts(document.querySelector("#donutChart"), donutOptions);
     donutChart.render();
     } catch (e) {
       console.error('Donut chart error:', e);
@@ -646,6 +664,10 @@
                   <span class="text-white">${r.show_rate}%</span>
                 </div>
                 <div class="flex justify-between">
+                  <span class="text-white/60">T1 gelegt</span>
+                  <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
+                </div>
+                <div class="flex justify-between">
                   <span class="text-white/60">Tel. Zielerreichung</span>
                   <span class="text-white">${r.telefonie_achievement}%</span>
                 </div>
@@ -661,6 +683,10 @@
                 <div class="flex justify-between">
                   <span class="text-white/60">Nicht erschienen</span>
                   <span class="text-error">${r.no_shows}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/60">T1 gelegt</span>
+                  <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
                 </div>
               `}
             </div>
@@ -869,10 +895,12 @@
       const completedSlots = document.getElementById('completed-slots');
       const noShows = document.getElementById('no-shows');
       const appearanceRate = document.getElementById('appearance-rate');
+      const bookingsCreated = document.getElementById('bookings-created');
 
       if (totalSlots) totalSlots.textContent = data.total_slots || 0;
       if (completedSlots) completedSlots.textContent = data.completed || 0;
       if (noShows) noShows.textContent = data.no_shows || 0;
+      if (bookingsCreated) bookingsCreated.textContent = data.bookings_created || 0;
 
       if (appearanceRate) {
         const rate = (data.appearance_rate || 0).toFixed(1);
@@ -887,6 +915,29 @@
         } else {
           appearanceRate.classList.add('text-error');
         }
+      }
+
+      // Update Donut Chart
+      if (donutChart) {
+        donutChart.updateSeries([
+          data.completed || 0,
+          data.no_shows || 0,
+          data.cancelled || 0,
+          data.rescheduled || 0
+        ]);
+      }
+
+      // Update Trend Chart
+      if (trendChart && data.daily_data && data.daily_data.length > 0) {
+        trendChart.updateOptions({
+          xaxis: {
+            categories: data.daily_data.map(d => d.date)
+          }
+        });
+        trendChart.updateSeries([{
+          name: 'Auftauchquote',
+          data: data.daily_data.map(d => d.appearance_rate)
+        }]);
       }
     }
 
@@ -905,6 +956,7 @@
       if (summary) {
         document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
         document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
+        document.getElementById('totalT1Booked').textContent = summary.total_t1_booked || 0;
         document.getElementById('highPerformers').textContent = summary.high_performers;
         document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
       }

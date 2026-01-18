@@ -33,7 +33,10 @@ class ConsultantRankingService:
     WEIGHT_CONSISTENCY = 0.1      # Konsistenz (niedrige Varianz)
 
     def __init__(self):
-        self.consultants = list(consultant_config.get_consultants().keys())
+        # Nur aktive Telefonisten im Ranking anzeigen (nicht alle Consultants)
+        all_consultants = consultant_config.get_consultants()
+        active_telefonists = consultant_config.get_active_telefonists()
+        self.consultants = [name for name in active_telefonists if name in all_consultants]
 
     def get_combined_performance(self, start_date_str: str, end_date_str: str) -> List[Dict]:
         """
@@ -53,8 +56,12 @@ class ConsultantRankingService:
 
             # 1. Hole Show-Rates aus Tracking-System
             show_rates = {}
+            bookings_created = {}
             if tracking_system:
                 show_rates = tracking_system.get_consultant_performance(start_date_str, end_date_str)
+                # Hole auch T1-Buchungen nach Erstellungsdatum
+                bookings_data = tracking_system.get_bookings_by_creation_date(start_date_str, end_date_str)
+                bookings_created = bookings_data.get("by_user", {})
 
             # 2. Hole Telefonie-Daten
             telefonie_data = self._get_telefonie_performance(start_date_str, end_date_str)
@@ -74,6 +81,8 @@ class ConsultantRankingService:
                     "no_shows": show_data.get("no_shows", 0),
                     "cancelled": show_data.get("cancelled", 0),
                     "rescheduled": show_data.get("rescheduled", 0),
+                    # T1 Buchungen (nach Erstellungsdatum)
+                    "t1_booked": bookings_created.get(consultant, 0),
                     # Telefonie Daten
                     "telefonie_achievement": tel_data.get("achievement_rate", 0.0),
                     "telefonie_points": tel_data.get("total_points", 0),
@@ -290,6 +299,7 @@ class ConsultantRankingService:
 
             avg_show_rate = sum(r["show_rate"] for r in rankings) / len(rankings)
             avg_achievement = sum(r["telefonie_achievement"] for r in rankings) / len(rankings)
+            total_t1_booked = sum(r["t1_booked"] for r in rankings)
 
             return {
                 "rankings": rankings,
@@ -303,7 +313,8 @@ class ConsultantRankingService:
                     "medium_performers": medium_count,
                     "low_performers": low_count,
                     "avg_show_rate": round(avg_show_rate, 1),
-                    "avg_achievement": round(avg_achievement, 1)
+                    "avg_achievement": round(avg_achievement, 1),
+                    "total_t1_booked": total_t1_booked
                 }
             }
 

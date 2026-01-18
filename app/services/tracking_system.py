@@ -222,21 +222,22 @@ class BookingTracker:
                 
                 event_time = datetime.fromisoformat(event_start).strftime("%H:%M")
 
-                # Extrahiere Berater aus Event-Attendees
+                # Extrahiere Telefonist aus Event-Organizer
                 consultant_name = "Unknown"
                 consultant_email = None
-                attendees = event.get("attendees", [])
                 consultants_map = consultant_config.get_consultants()
 
-                for attendee in attendees:
-                    attendee_email = attendee.get("email", "").lower()
+                # Hole Organizer Email (Telefonist der den Termin erstellt hat)
+                organizer = event.get("organizer", {})
+                organizer_email = organizer.get("email", "").lower()
+
+                # Matche Organizer Email gegen Consultants Map
+                if organizer_email:
                     for name, email in consultants_map.items():
-                        if attendee_email == email.lower():
+                        if organizer_email == email.lower():
                             consultant_name = name
-                            consultant_email = attendee_email
+                            consultant_email = organizer_email
                             break
-                    if consultant_name != "Unknown":
-                        break
 
                 # WICHTIG: Nutze titel-basierte Outcome-Bestimmung
                 outcome = self._get_outcome_from_title_and_color(customer_name, color_id)
@@ -1263,6 +1264,71 @@ class BookingTracker:
         weekdays_de = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
         return weekdays_de[weekday_index]
 
+    # ----------------- BOOKINGS BY CREATION DATE -----------------
+
+    def get_bookings_by_creation_date(self, start_date_str, end_date_str):
+        """
+        Zähle T1-Buchungen nach BUCHUNGSERSTELLUNG (nicht Termin-Datum).
+        Verwendet das 'timestamp' Feld aus bookings.jsonl.
+
+        Args:
+            start_date_str: Start-Datum (YYYY-MM-DD)
+            end_date_str: End-Datum (YYYY-MM-DD)
+
+        Returns:
+            dict: {
+                "total_bookings": int,
+                "by_user": { "username": count, ... }
+            }
+        """
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+            total_bookings = 0
+            by_user = defaultdict(int)
+
+            if not os.path.exists(self.bookings_file):
+                return {"total_bookings": 0, "by_user": {}}
+
+            with open(self.bookings_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        booking = json.loads(line)
+                        # Parse timestamp (ISO format with timezone)
+                        timestamp_str = booking.get("timestamp", "")
+                        if not timestamp_str:
+                            continue
+
+                        # Parse ISO timestamp
+                        try:
+                            # Handle ISO format: 2025-09-15T10:30:00+02:00
+                            booking_timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                            booking_date = booking_timestamp.date()
+                        except (ValueError, TypeError):
+                            # Fallback: try simple date format
+                            continue
+
+                        # Check if within date range
+                        if start_date <= booking_date <= end_date:
+                            total_bookings += 1
+                            user = booking.get("user", "Unknown")
+                            by_user[user] += 1
+
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+
+            return {
+                "total_bookings": total_bookings,
+                "by_user": dict(by_user)
+            }
+
+        except Exception as e:
+            logger.error(f"Fehler bei get_bookings_by_creation_date: {e}")
+            return {"total_bookings": 0, "by_user": {}}
+
     # ----------------- CONSULTANT PERFORMANCE METHODS -----------------
 
     def get_consultant_performance(self, start_date_str, end_date_str):
@@ -1396,6 +1462,7 @@ class BookingTracker:
                             daily_data.append({
                                 "date": date_str,
                                 "weekday": self._get_german_weekday(current_date.weekday()),
+                                "weekday_de": self._get_german_weekday(current_date.weekday()),
                                 "total_slots": slots,
                                 "completed": completed,
                                 "no_shows": no_shows,
@@ -1414,6 +1481,9 @@ class BookingTracker:
                 appearance_rate = 0.0
                 no_show_rate = 0.0
 
+            # Hole auch Buchungen nach Erstellungsdatum
+            bookings_created_data = self.get_bookings_by_creation_date(start_date_str, end_date_str)
+
             return {
                 "start_date": start_date_str,
                 "end_date": end_date_str,
@@ -1422,7 +1492,9 @@ class BookingTracker:
                 **totals,
                 "appearance_rate": appearance_rate,
                 "no_show_rate": no_show_rate,
-                "daily_data": daily_data
+                "daily_data": daily_data,
+                "bookings_created": bookings_created_data.get("total_bookings", 0),
+                "bookings_created_by_user": bookings_created_data.get("by_user", {})
             }
 
         except Exception as e:
@@ -1438,7 +1510,9 @@ class BookingTracker:
                 "rescheduled": 0,
                 "appearance_rate": 0.0,
                 "no_show_rate": 0.0,
-                "daily_data": []
+                "daily_data": [],
+                "bookings_created": 0,
+                "bookings_created_by_user": {}
             }
 
     def get_weekly_stats(self, year, week_number):
