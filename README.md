@@ -193,6 +193,58 @@ User Request → Nginx (Rate Limiting)
                     → Google Calendar API (if applicable)
 ```
 
+### Service Dependencies
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           SERVICE DEPENDENCY MAP                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐          │
+│  │   ROUTES    │────▶│     SERVICES     │────▶│   DATA LAYER    │          │
+│  └─────────────┘     └──────────────────┘     └─────────────────┘          │
+│                                                                             │
+│  T1 Booking Flow:                                                           │
+│  booking_routes ──▶ booking_service ──▶ tracking_system                    │
+│                                              │                              │
+│                                              ▼                              │
+│                                     achievement_system                      │
+│                                              │                              │
+│                                              ▼                              │
+│                                      data_persistence ──▶ PostgreSQL/JSON  │
+│                                              │                              │
+│                                              ▼                              │
+│                                        audit_service                        │
+│                                                                             │
+│  T2 Booking Flow:                                                           │
+│  t2_routes ──▶ t2_bucket_system ──▶ PostgreSQL (t2_bookings)               │
+│                       │                                                     │
+│                       ▼                                                     │
+│               notification_service                                          │
+│                                                                             │
+│  Gamification Flow:                                                         │
+│  hub_routes ──▶ data_persistence (scores) ──▶ level_system                 │
+│                                                    │                        │
+│                                                    ▼                        │
+│                                            achievement_system               │
+│                                                    │                        │
+│                                                    ▼                        │
+│                                             cosmetics_shop (coins)          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Key Services:
+├── data_persistence    → Scores, Badges, Coins (PostgreSQL + JSON dual-write)
+├── tracking_system     → Booking outcomes, Customer tracking
+├── achievement_system  → 50+ badges, XP awards
+├── level_system        → XP → Level calculation
+├── t2_bucket_system    → T2 dice draw, Coach assignments
+├── notification_service → In-app notifications, Popups
+├── audit_service       → Security logging, User actions
+├── daily_quests        → Daily challenges, Progress tracking
+└── cosmetics_shop      → Theme purchases, Avatar unlocks
+```
+
 ---
 
 ## Roles & Permissions

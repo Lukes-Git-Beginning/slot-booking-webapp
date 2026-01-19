@@ -5,7 +5,7 @@ Show/No-Show Analytics and Appointment Tracking
 """
 
 from flask import render_template, jsonify, request
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 from app.config.base import slot_config
@@ -24,8 +24,22 @@ def admin_tracking():
     Zeigt Show/No-Show Statistiken für:
     - Letzte 5 Werktage
     - Seit 01.09.2025 (Go-Live)
+    - Custom Date Range (via query params)
     """
     try:
+        # Get date range from query params or use defaults
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        if not start_date_str:
+            # Default: Last 30 days
+            start_date = datetime.now(TZ) - timedelta(days=30)
+            start_date_str = start_date.strftime('%Y-%m-%d')
+
+        if not end_date_str:
+            # Default: Today
+            end_date_str = datetime.now(TZ).strftime('%Y-%m-%d')
+
         if not tracking_system:
             # Fallback wenn tracking_system nicht verfügbar
             return render_template("admin_tracking.html",
@@ -40,6 +54,8 @@ def admin_tracking():
                                      "appearance_rate": 0.0,
                                      "daily_data": []
                                  },
+                                 default_start_date=start_date_str,
+                                 default_end_date=end_date_str,
                                  error="Tracking-System nicht verfügbar")
 
         # Hole letzte 5 Werktage
@@ -51,9 +67,16 @@ def admin_tracking():
         return render_template("admin_tracking.html",
                              last_5_workdays=last_5_workdays,
                              since_golive=since_golive,
-                             current_date=datetime.now(TZ).strftime("%d.%m.%Y"))
+                             current_date=datetime.now(TZ).strftime("%d.%m.%Y"),
+                             default_start_date=start_date_str,
+                             default_end_date=end_date_str)
 
     except Exception as e:
+        # Calculate defaults in case of error
+        start_date = datetime.now(TZ) - timedelta(days=30)
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = datetime.now(TZ).strftime('%Y-%m-%d')
+
         return render_template("admin_tracking.html",
                              last_5_workdays=[],
                              since_golive={
@@ -66,6 +89,8 @@ def admin_tracking():
                                  "appearance_rate": 0.0,
                                  "daily_data": []
                              },
+                             default_start_date=start_date_str,
+                             default_end_date=end_date_str,
                              error=str(e))
 
 

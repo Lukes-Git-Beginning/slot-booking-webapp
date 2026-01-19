@@ -58,10 +58,14 @@ class ConsultantRankingService:
             show_rates = {}
             bookings_created = {}
             if tracking_system:
-                show_rates = tracking_system.get_consultant_performance(start_date_str, end_date_str)
+                raw_show_rates = tracking_system.get_consultant_performance(start_date_str, end_date_str)
+                # Case-insensitive mapping: Login-Namen können andere Gross-/Kleinschreibung haben
+                show_rates = {k.lower(): v for k, v in raw_show_rates.items()}
                 # Hole auch T1-Buchungen nach Erstellungsdatum
                 bookings_data = tracking_system.get_bookings_by_creation_date(start_date_str, end_date_str)
-                bookings_created = bookings_data.get("by_user", {})
+                raw_bookings = bookings_data.get("by_user", {})
+                # Case-insensitive mapping: Login-Namen können andere Gross-/Kleinschreibung haben
+                bookings_created = {k.lower(): v for k, v in raw_bookings.items()}
 
             # 2. Hole Telefonie-Daten
             telefonie_data = self._get_telefonie_performance(start_date_str, end_date_str)
@@ -69,7 +73,7 @@ class ConsultantRankingService:
             # 3. Kombiniere Daten für alle Berater
             combined = []
             for consultant in self.consultants:
-                show_data = show_rates.get(consultant, {})
+                show_data = show_rates.get(consultant.lower(), {})
                 tel_data = telefonie_data.get(consultant, {})
 
                 consultant_perf = {
@@ -81,8 +85,8 @@ class ConsultantRankingService:
                     "no_shows": show_data.get("no_shows", 0),
                     "cancelled": show_data.get("cancelled", 0),
                     "rescheduled": show_data.get("rescheduled", 0),
-                    # T1 Buchungen (nach Erstellungsdatum)
-                    "t1_booked": bookings_created.get(consultant, 0),
+                    # T1 Buchungen (nach Erstellungsdatum) - case-insensitive lookup
+                    "t1_booked": bookings_created.get(consultant.lower(), 0),
                     # Telefonie Daten
                     "telefonie_achievement": tel_data.get("achievement_rate", 0.0),
                     "telefonie_points": tel_data.get("total_points", 0),

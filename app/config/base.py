@@ -187,6 +187,21 @@ class ConsultantConfig:
             return consultants
         return cls.DEFAULT_CONSULTANTS
 
+    # Aktive Telefonisten für T1 Slot-Booking (für Analytics Ranking)
+    ACTIVE_TELEFONISTS: List[str] = [
+        "Ann-Kathrin",  # Vollzeit
+        "Sara",         # Vollzeit
+        "Dominik",      # Vollzeit
+        "Sonja",        # Teilzeit (variable Verfügbarkeit)
+        "Tim",          # Teilzeit (T2 Priorität)
+        "Christian"     # Teilzeit (T2 Priorität)
+    ]
+
+    @classmethod
+    def get_active_telefonists(cls) -> List[str]:
+        """Hole Liste der aktiven Telefonisten für Ranking und Analytics"""
+        return cls.ACTIVE_TELEFONISTS
+
     # Vollzeit-Berater (immer verfügbar für T1 Slot-Booking)
     DEFAULT_STANDARD_CONSULTANTS: List[str] = ["Ann-Kathrin", "Sara", "Dominik"]
 

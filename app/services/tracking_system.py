@@ -51,6 +51,21 @@ POTENTIAL_TYPES = {
     "6": "cancelled"       # Mandarine = Abgesagt
 }
 
+# Mapping: Login-Username → Display-Name (für Berater-Ranking)
+USERNAME_TO_DISPLAY = {
+    "ann-kathrin.welge": "Ann-Kathrin",
+    "christian.mast": "Christian",
+    "dominik.mikic": "Dominik",
+    "sara.mast": "Sara",
+    "sonja.mast": "Sonja",
+    "tim.kreisel": "Tim",
+    "simon.mast": "Simon",
+    "alexandra.börner": "Alexandra",
+    "ladislav.heka": "Ladislav",
+    "yasmine.schumacher": "Yasmine",
+    "admin": "Admin",
+}
+
 class BookingTracker:
     def __init__(self):
         self.data_dir = "data/tracking"
@@ -859,6 +874,39 @@ class BookingTracker:
         # 2. Fallback: Color-basierte Erkennung
         return get_outcome_from_color(color_id)
 
+    def _extract_status_from_title(self, title):
+        """
+        Extrahiere Status-Marker aus Event-Titel.
+        Pattern: "( status )" oder "(status)"
+
+        Args:
+            title: Event-Titel (Kundenname mit optionalem Status-Marker)
+
+        Returns:
+            str: Status ('erschienen', 'nicht erschienen', 'ghost', 'verschoben', 'abgesagt', 'pending')
+        """
+        import re
+        pattern = r'\(\s*(erschienen|nicht erschienen|ghost|verschoben|abgesagt|exit|vorbehalt)\s*\)'
+        match = re.search(pattern, title, re.IGNORECASE)
+
+        if match:
+            return match.group(1).lower().strip()
+        return 'pending'
+
+    def _clean_customer_name(self, summary):
+        """
+        Entferne Status-Marker aus Kundennamen.
+
+        Args:
+            summary: Event-Titel mit optionalem Status-Marker
+
+        Returns:
+            str: Kundenname ohne Status-Marker
+        """
+        import re
+        pattern = r'\s*\(\s*(erschienen|nicht erschienen|ghost|verschoben|abgesagt|exit|vorbehalt)\s*\)'
+        return re.sub(pattern, '', summary, flags=re.IGNORECASE).strip()
+
     def get_user_bookings(self, user, start_date, end_date):
         """
         Hole alle Buchungen eines Users für einen bestimmten Zeitraum
@@ -1320,9 +1368,15 @@ class BookingTracker:
                     except (json.JSONDecodeError, ValueError):
                         continue
 
+            # Map usernames to display names for consistent ranking
+            mapped_by_user = {}
+            for user, count in by_user.items():
+                display_name = USERNAME_TO_DISPLAY.get(user.lower(), user)
+                mapped_by_user[display_name] = mapped_by_user.get(display_name, 0) + count
+
             return {
                 "total_bookings": total_bookings,
-                "by_user": dict(by_user)
+                "by_user": mapped_by_user
             }
 
         except Exception as e:
@@ -1333,7 +1387,8 @@ class BookingTracker:
 
     def get_consultant_performance(self, start_date_str, end_date_str):
         """
-        Berechne Berater-Performance basierend auf Show-Rates
+        Berechne Berater-Performance basierend auf Google Calendar Titel-Markern.
+        Verwendet gleiche Logik wie my-calendar für konsistente Daten.
 
         Args:
             start_date_str: Start-Datum (YYYY-MM-DD)
@@ -1347,6 +1402,7 @@ class BookingTracker:
                     "no_shows": int,
                     "cancelled": int,
                     "rescheduled": int,
+                    "pending": int,
                     "appearance_rate": float
                 }, ...
             }
@@ -1360,46 +1416,107 @@ class BookingTracker:
                 "completed": 0,
                 "no_shows": 0,
                 "cancelled": 0,
-                "rescheduled": 0
+                "rescheduled": 0,
+                "pending": 0
             })
 
-            if not os.path.exists(self.outcomes_file):
-                return {}
+            # 1. Lade alle Buchungen aus bookings.jsonl für User-Mapping
+            booking_lookup = {}  # date_customer -> user
+            if os.path.exists(self.bookings_file):
+                with open(self.bookings_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        try:
+                            booking = json.loads(line)
+                            # Key: date + customer name (normalized)
+                            customer = booking.get("customer", "").lower().strip()
+                            date = booking.get("date", "")
+                            key = f"{date}_{customer}"
+                            booking_lookup[key] = booking.get("user", "Unknown")
+                        except:
+                            continue
 
-            with open(self.outcomes_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    try:
-                        outcome = json.loads(line)
-                        outcome_date = datetime.strptime(outcome.get("date", ""), "%Y-%m-%d").date()
+            # 2. Lade Google Calendar Events (wie my-calendar)
+            start_time = TZ.localize(datetime.combine(start_date, time.min))
+            end_time = TZ.localize(datetime.combine(end_date, time.max))
 
-                        if start_date <= outcome_date <= end_date:
-                            consultant = outcome.get("consultant", "Unknown")
-                            consultant_stats[consultant]["total_slots"] += 1
+            events_result = self.service.events().list(
+                calendarId=CENTRAL_CALENDAR_ID,
+                timeMin=start_time.isoformat(),
+                timeMax=end_time.isoformat(),
+                singleEvents=True,
+                orderBy='startTime',
+                maxResults=2500
+            ).execute()
 
-                            outcome_type = outcome.get("outcome", "")
-                            if outcome_type == "completed":
-                                consultant_stats[consultant]["completed"] += 1
-                            elif outcome_type == "no_show":
-                                consultant_stats[consultant]["no_shows"] += 1
-                            elif outcome_type == "cancelled":
-                                consultant_stats[consultant]["cancelled"] += 1
-                            elif outcome_type == "rescheduled":
-                                consultant_stats[consultant]["rescheduled"] += 1
-                    except (json.JSONDecodeError, ValueError):
-                        continue
+            events = events_result.get('items', [])
 
-            # Berechne Appearance-Rate pro Berater
+            # 3. Verarbeite Events und extrahiere Status aus Titel
+            for event in events:
+                summary = event.get('summary', '')
+
+                # Skip Platzhalter (nur Zahlen) und Exit
+                if not summary or summary.isdigit() or 'exit' in summary.lower():
+                    continue
+
+                # Parse Event-Datum
+                start_dt = event.get('start', {}).get('dateTime', '')
+                if not start_dt:
+                    continue
+
+                try:
+                    event_datetime = datetime.fromisoformat(start_dt.replace('Z', '+00:00'))
+                    event_date = event_datetime.date()
+                except:
+                    continue
+
+                # Extrahiere Status aus Titel (wie my-calendar)
+                status = self._extract_status_from_title(summary)
+
+                # Finde den zugehörigen User aus bookings.jsonl
+                # Extrahiere Kundennamen aus Summary (ohne Status-Marker)
+                customer_name = self._clean_customer_name(summary)
+                lookup_key = f"{event_date.strftime('%Y-%m-%d')}_{customer_name.lower().strip()}"
+                consultant = booking_lookup.get(lookup_key, "Unknown")
+                # Map username to display name for ranking
+                consultant = USERNAME_TO_DISPLAY.get(consultant.lower(), consultant)
+
+                # Zähle nach Status
+                consultant_stats[consultant]["total_slots"] += 1
+
+                if status == 'erschienen':
+                    consultant_stats[consultant]["completed"] += 1
+                elif status in ['nicht erschienen', 'ghost']:
+                    consultant_stats[consultant]["no_shows"] += 1
+                elif status == 'abgesagt':
+                    consultant_stats[consultant]["cancelled"] += 1
+                elif status == 'verschoben':
+                    consultant_stats[consultant]["rescheduled"] += 1
+                else:
+                    consultant_stats[consultant]["pending"] += 1
+
+            # 4. Berechne Erschienen-Quote pro Consultant
             result = {}
             for consultant, stats in consultant_stats.items():
-                if stats["total_slots"] > 0:
-                    stats["appearance_rate"] = round(
-                        (stats["completed"] / stats["total_slots"]) * 100, 1
-                    )
-                else:
-                    stats["appearance_rate"] = 0.0
-                result[consultant] = dict(stats)
+                total = stats["total_slots"]
+                completed = stats["completed"]
+
+                appearance_rate = 0.0
+                if total > 0:
+                    # Erschienen-Quote = Erschienen / (Erschienen + No-Shows)
+                    denominator = completed + stats["no_shows"]
+                    if denominator > 0:
+                        appearance_rate = round((completed / denominator) * 100, 1)
+
+                result[consultant] = {
+                    "total_slots": total,
+                    "completed": completed,
+                    "no_shows": stats["no_shows"],
+                    "cancelled": stats["cancelled"],
+                    "rescheduled": stats["rescheduled"],
+                    "appearance_rate": appearance_rate
+                }
 
             return result
 
