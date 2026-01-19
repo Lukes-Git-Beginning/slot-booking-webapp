@@ -467,8 +467,27 @@ function submitQuickBooking() {
         },
         body: JSON.stringify(bookingData)
     })
-    .then(response => response.json())
+    .then(response => {
+        // Handle 400 errors (CSRF token issues)
+        if (response.status === 400) {
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-warning fixed top-4 right-4 w-96 z-50 shadow-lg';
+            toast.innerHTML = `
+                <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+                <span>Sitzung abgelaufen - Seite wird neu geladen...</span>
+            `;
+            document.body.appendChild(toast);
+            lucide.createIcons();
+
+            // Reload page to get fresh CSRF token
+            setTimeout(() => window.location.reload(), 1500);
+            return null;
+        }
+        return response.json();
+    })
     .then(data => {
+        if (!data) return; // Skip if we already handled 400 error
+
         if (data.success) {
             // Success toast
             const toast = document.createElement('div');
