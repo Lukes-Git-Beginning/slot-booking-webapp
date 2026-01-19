@@ -85,7 +85,7 @@
             <i data-lucide="download" class="w-5 h-5 text-primary"></i>
             <span class="hidden md:inline text-white">Export</span>
           </label>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
+          <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
             <li>
               <a href="#" onclick="exportExcel(event)" class="flex items-center gap-2">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success"></i>
@@ -171,7 +171,7 @@
   <div class="max-w-7xl mx-auto space-y-8">
 
     <!-- Letzte 5 Werktage -->
-    <div class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up">
+    <div id="daily-section" class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
           <i data-lucide="calendar-days" class="w-6 h-6 text-primary"></i>
@@ -727,7 +727,7 @@
     // Load all data for a preset period
     async function loadPeriod(preset) {
       const { startDate, endDate } = calculateDateRange(preset);
-      await loadAllData(startDate, endDate, getPresetLabel(preset));
+      await loadAllData(startDate, endDate, getPresetLabel(preset), preset);
       highlightActiveButton(preset);
     }
 
@@ -772,7 +772,7 @@
         return;
       }
 
-      await loadAllData(startDate, endDate, `${startDate} bis ${endDate}`);
+      await loadAllData(startDate, endDate, `${startDate} bis ${endDate}`, 'custom');
       highlightActiveButton('custom');
 
       // Close dropdown
@@ -780,7 +780,7 @@
     }
 
     // Main function: Load all sections with unified date range
-    async function loadAllData(startDate, endDate, periodLabel) {
+    async function loadAllData(startDate, endDate, periodLabel, preset = null) {
       // Update global state
       currentStartDate = startDate;
       currentEndDate = endDate;
@@ -794,6 +794,12 @@
       // Update period label
       document.getElementById('current-period-label').textContent = periodLabel;
 
+      // Show/hide daily section based on preset (only show for last7days)
+      const dailySection = document.getElementById('daily-section');
+      if (dailySection) {
+        dailySection.style.display = preset === 'last7days' ? 'block' : 'none';
+      }
+
       // Show loading
       showLoadingStates();
 
@@ -806,9 +812,10 @@
             .then(r => r.json())
         ]);
 
-        // Update all sections
-        updateDailySection(statsData);
-        updateStatsSection(statsData);
+        // Update all sections - extract data from API response
+        const stats = statsData.success ? statsData.data : {};
+        updateDailySection(stats);
+        updateStatsSection(stats);
         updateRankingSection(rankingData);
 
       } catch (error) {
@@ -1029,7 +1036,7 @@
         // Load from URL
         document.getElementById('custom-start-date').value = urlStartDate;
         document.getElementById('custom-end-date').value = urlEndDate;
-        loadAllData(urlStartDate, urlEndDate, `${urlStartDate} bis ${urlEndDate}`);
+        loadAllData(urlStartDate, urlEndDate, `${urlStartDate} bis ${urlEndDate}`, 'custom');
         highlightActiveButton('custom');
       } else {
         // Load default: Last 30 days
