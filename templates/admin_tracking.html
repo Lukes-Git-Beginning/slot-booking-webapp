@@ -79,33 +79,17 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-2">
-        <!-- Export Dropdown -->
-        <div class="dropdown dropdown-end relative z-[50]">
-          <label tabindex="0" class="btn btn-ghost hover:bg-white/10 gap-2">
-            <i data-lucide="download" class="w-5 h-5 text-primary"></i>
-            <span class="hidden md:inline text-white">Export</span>
-          </label>
-          <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
-            <li>
-              <a href="#" onclick="exportExcel(event)" class="flex items-center gap-2">
-                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success"></i>
-                Excel (.xlsx)
-              </a>
-            </li>
-            <li>
-              <a href="#" onclick="exportCSV(event, 'daily')" class="flex items-center gap-2">
-                <i data-lucide="file-text" class="w-4 h-4 text-info"></i>
-                CSV (Tagesstatistik)
-              </a>
-            </li>
-            <li>
-              <a href="#" onclick="exportCSV(event, 'summary')" class="flex items-center gap-2">
-                <i data-lucide="file-bar-chart" class="w-4 h-4 text-warning"></i>
-                CSV (Zusammenfassung)
-              </a>
-            </li>
-          </ul>
+        <!-- Current Period Display -->
+        <div class="flex items-center gap-2 text-sm text-white/60 mr-2">
+          <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+          <span id="current-period-label">Letzte 30 Tage</span>
         </div>
+
+        <!-- Settings Button (opens Drawer) -->
+        <label for="settings-drawer" class="btn btn-ghost hover:bg-white/10 gap-2 cursor-pointer">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary"></i>
+          <span class="hidden md:inline text-white">Einstellungen</span>
+        </label>
 
         <!-- Refresh Button -->
         <button onclick="location.reload()" class="btn btn-circle btn-ghost hover:bg-white/10">
@@ -115,63 +99,10 @@
     </div>
   </div>
 
-  <!-- Zeitraum-Auswahl (Kompakt) -->
-  <div class="max-w-7xl mx-auto mb-6" data-aos="fade-down" data-aos-delay="100">
-    <div class="flex flex-wrap items-center gap-2">
-      <!-- Preset Buttons -->
-      <button onclick="loadPeriod('last7days')" id="btn-last7days" class="btn btn-sm btn-outline hover:btn-primary text-white">
-        Letzte 7 Tage
-      </button>
-      <button onclick="loadPeriod('last30days')" id="btn-last30days" class="btn btn-sm btn-primary text-white">
-        Letzte 30 Tage
-      </button>
-      <button onclick="loadPeriod('thisMonth')" id="btn-thisMonth" class="btn btn-sm btn-outline hover:btn-primary text-white">
-        Dieser Monat
-      </button>
-      <button onclick="loadPeriod('thisYear')" id="btn-thisYear" class="btn btn-sm btn-outline hover:btn-primary text-white">
-        Dieses Jahr
-      </button>
-
-      <!-- Custom Dropdown -->
-      <div class="dropdown dropdown-end relative z-[50]">
-        <label tabindex="0" class="btn btn-sm btn-outline hover:btn-primary text-white gap-2">
-          <i data-lucide="calendar" class="w-4 h-4"></i>
-          Custom
-        </label>
-        <div tabindex="0" class="dropdown-content z-[100] card card-compact w-80 p-4 shadow-lg bg-base-200 mt-2">
-          <div class="space-y-3">
-            <div>
-              <label class="label">
-                <span class="label-text">Von</span>
-              </label>
-              <input type="date" id="custom-start-date" class="input input-bordered input-sm w-full">
-            </div>
-            <div>
-              <label class="label">
-                <span class="label-text">Bis</span>
-              </label>
-              <input type="date" id="custom-end-date" class="input input-bordered input-sm w-full">
-            </div>
-            <button onclick="loadCustomPeriod()" class="btn btn-primary btn-sm w-full gap-2">
-              <i data-lucide="check" class="w-4 h-4"></i>
-              Anwenden
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Current Period Display -->
-      <div class="ml-auto flex items-center gap-2 text-sm text-white/60">
-        <i data-lucide="calendar-clock" class="w-4 h-4"></i>
-        <span id="current-period-label">Letzte 30 Tage</span>
-      </div>
-    </div>
-  </div>
-
   <div class="max-w-7xl mx-auto space-y-8">
 
     <!-- Letzte 5 Werktage -->
-    <div id="daily-section" class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up">
+    <div id="daily-section" class="glass rounded-2xl p-6 md:p-8">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
           <i data-lucide="calendar-days" class="w-6 h-6 text-primary"></i>
@@ -243,7 +174,7 @@
     </div>
 
     <!-- Seit Go-Live (01.09.2025) -->
-    <div class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="100">
+    <div class="glass rounded-2xl p-6 md:p-8">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
           <i data-lucide="trending-up" class="w-6 h-6 text-primary"></i>
@@ -342,7 +273,7 @@
     </div>
 
     <!-- Berater-Ranking -->
-    <div class="glass rounded-2xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="200">
+    <div class="glass rounded-2xl p-6 md:p-8">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -1004,6 +935,12 @@
       lucide.createIcons();
     }
 
+    // ========== DRAWER FUNCTIONS ==========
+
+    function closeDrawer() {
+      document.getElementById('settings-drawer').checked = false;
+    }
+
     // ========== EXPORT FUNCTIONS ==========
 
     // Export to Excel with current date range
@@ -1044,6 +981,107 @@
       }
     });
   </script>
+
+  <!-- Settings Drawer (Sidebar) -->
+  <div class="drawer drawer-end">
+    <input id="settings-drawer" type="checkbox" class="drawer-toggle" />
+    <div class="drawer-side z-[9999]">
+      <label for="settings-drawer" class="drawer-overlay"></label>
+      <div class="menu p-6 w-80 min-h-full bg-base-200 text-base-content">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary"></i>
+            Einstellungen
+          </h2>
+          <label for="settings-drawer" class="btn btn-ghost btn-sm btn-circle">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </label>
+        </div>
+
+        <!-- Zeitraum Section -->
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Zeitraum</h3>
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+              <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
+                     onclick="loadPeriod('last7days'); closeDrawer()">
+              <span class="text-white">Letzte 7 Tage</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+              <input type="radio" name="period-radio" class="radio radio-primary radio-sm" checked
+                     onclick="loadPeriod('last30days'); closeDrawer()">
+              <span class="text-white">Letzte 30 Tage</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+              <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
+                     onclick="loadPeriod('thisMonth'); closeDrawer()">
+              <span class="text-white">Dieser Monat</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+              <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
+                     onclick="loadPeriod('thisYear'); closeDrawer()">
+              <span class="text-white">Dieses Jahr</span>
+            </label>
+          </div>
+
+          <!-- Custom Date Range -->
+          <div class="mt-4 p-3 rounded-lg bg-white/5">
+            <label class="flex items-center gap-3 mb-3 cursor-pointer">
+              <input type="radio" name="period-radio" id="custom-radio" class="radio radio-primary radio-sm">
+              <span class="text-white font-medium">Eigener Zeitraum</span>
+            </label>
+            <div class="space-y-3 pl-7">
+              <div class="form-control">
+                <label class="label py-1">
+                  <span class="label-text text-white/60 text-xs">Von</span>
+                </label>
+                <input type="date" id="custom-start-date" class="input input-bordered input-sm w-full bg-base-300">
+              </div>
+              <div class="form-control">
+                <label class="label py-1">
+                  <span class="label-text text-white/60 text-xs">Bis</span>
+                </label>
+                <input type="date" id="custom-end-date" class="input input-bordered input-sm w-full bg-base-300">
+              </div>
+              <button onclick="loadCustomPeriod(); closeDrawer()" class="btn btn-primary btn-sm w-full gap-2">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                Anwenden
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider my-2"></div>
+
+        <!-- Export Section -->
+        <div>
+          <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Export</h3>
+          <div class="space-y-2">
+            <button onclick="exportExcel(event); closeDrawer()" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5 text-success"></i>
+              Excel (.xlsx)
+            </button>
+            <button onclick="exportCSV(event, 'daily'); closeDrawer()" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+              <i data-lucide="file-text" class="w-5 h-5 text-info"></i>
+              CSV (Tagesstatistik)
+            </button>
+            <button onclick="exportCSV(event, 'summary'); closeDrawer()" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+              <i data-lucide="file-bar-chart" class="w-5 h-5 text-warning"></i>
+              CSV (Zusammenfassung)
+            </button>
+          </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-auto pt-6">
+          <p class="text-xs text-white/40 text-center">
+            Daten werden nach Auswahl automatisch aktualisiert
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
