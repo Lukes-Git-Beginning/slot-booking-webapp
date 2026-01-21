@@ -308,11 +308,12 @@ class BookingTracker:
             "date": str(date),
             "total_slots": 0,
             "no_shows": 0,
+            "ghosts": 0,
             "completed": 0,
             "cancelled": 0,
             "rescheduled": 0,
-            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0, "cancelled": 0, "rescheduled": 0}),
-            "by_user": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0}),
+            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "ghosts": 0, "completed": 0, "cancelled": 0, "rescheduled": 0}),
+            "by_user": defaultdict(lambda: {"total": 0, "no_shows": 0, "ghosts": 0, "completed": 0}),
             "by_potential": defaultdict(lambda: {"total": 0, "completed": 0}),
             "calculated_at": datetime.now(TZ).isoformat()
         }
@@ -330,7 +331,9 @@ class BookingTracker:
             potential_type = self._get_potential_type(color_id)
 
             # Zähle Outcomes
-            if outcome == "no_show":
+            if outcome == "ghost":
+                metrics["ghosts"] += 1
+            elif outcome == "no_show":
                 metrics["no_shows"] += 1
             elif outcome == "completed":
                 metrics["completed"] += 1
@@ -344,7 +347,9 @@ class BookingTracker:
             if event_start:
                 hour = datetime.fromisoformat(event_start).strftime("%H:00")
                 metrics["by_hour"][hour]["total"] += 1
-                if outcome == "no_show":
+                if outcome == "ghost":
+                    metrics["by_hour"][hour]["ghosts"] += 1
+                elif outcome == "no_show":
                     metrics["by_hour"][hour]["no_shows"] += 1
                 elif outcome == "completed":
                     metrics["by_hour"][hour]["completed"] += 1
@@ -362,10 +367,12 @@ class BookingTracker:
         # Berechne Raten
         if metrics["total_slots"] > 0:
             metrics["no_show_rate"] = round(metrics["no_shows"] / metrics["total_slots"] * 100, 2)
+            metrics["ghost_rate"] = round(metrics["ghosts"] / metrics["total_slots"] * 100, 2)
             metrics["completion_rate"] = round(metrics["completed"] / metrics["total_slots"] * 100, 2)
             metrics["cancellation_rate"] = round(metrics["cancelled"] / metrics["total_slots"] * 100, 2)
         else:
             metrics["no_show_rate"] = 0
+            metrics["ghost_rate"] = 0
             metrics["completion_rate"] = 0
             metrics["cancellation_rate"] = 0
         
@@ -859,12 +866,14 @@ class BookingTracker:
             color_id: Google Calendar Color ID
 
         Returns:
-            str: 'completed', 'no_show', 'cancelled', 'rescheduled'
+            str: 'completed', 'no_show', 'ghost', 'cancelled', 'rescheduled'
         """
         title_lower = title.lower() if title else ""
 
         # 1. Priorität: Titel-basierte Erkennung
-        if "nicht erschienen" in title_lower or "ghost" in title_lower:
+        if "ghost" in title_lower:
+            return "ghost"
+        elif "nicht erschienen" in title_lower:
             return "no_show"
         elif "abgesagt" in title_lower:
             return "cancelled"
@@ -1135,6 +1144,7 @@ class BookingTracker:
                     total_slots = metrics.get("total_slots", 0)
                     completed = metrics.get("completed", 0)
                     no_shows = metrics.get("no_shows", 0)
+                    ghosts = metrics.get("ghosts", 0)
                     cancelled = metrics.get("cancelled", 0)
                     rescheduled = metrics.get("rescheduled", 0)
 
@@ -1152,6 +1162,7 @@ class BookingTracker:
                         "total_slots": total_slots,
                         "completed": completed,
                         "no_shows": no_shows,
+                        "ghosts": ghosts,
                         "cancelled": cancelled,
                         "rescheduled": rescheduled,
                         "appearance_rate": appearance_rate
@@ -1165,6 +1176,7 @@ class BookingTracker:
                         "total_slots": 0,
                         "completed": 0,
                         "no_shows": 0,
+                        "ghosts": 0,
                         "cancelled": 0,
                         "rescheduled": 0,
                         "appearance_rate": 0.0
@@ -1195,11 +1207,13 @@ class BookingTracker:
                     "total_slots": 0,
                     "completed": 0,
                     "no_shows": 0,
+                    "ghosts": 0,
                     "cancelled": 0,
                     "rescheduled": 0,
                     "appearance_rate": 0.0,
                     "completion_rate": 0.0,
                     "no_show_rate": 0.0,
+                    "ghost_rate": 0.0,
                     "daily_data": []
                 }
 
@@ -1213,6 +1227,7 @@ class BookingTracker:
             total_slots = 0
             total_completed = 0
             total_no_shows = 0
+            total_ghosts = 0
             total_cancelled = 0
             total_rescheduled = 0
             days_with_data = 0
@@ -1230,12 +1245,14 @@ class BookingTracker:
                     if slots > 0:  # Nur Tage mit Daten zählen
                         completed = metrics.get("completed", 0)
                         no_shows = metrics.get("no_shows", 0)
+                        ghosts = metrics.get("ghosts", 0)
                         cancelled = metrics.get("cancelled", 0)
                         rescheduled = metrics.get("rescheduled", 0)
 
                         total_slots += slots
                         total_completed += completed
                         total_no_shows += no_shows
+                        total_ghosts += ghosts
                         total_cancelled += cancelled
                         total_rescheduled += rescheduled
                         days_with_data += 1
@@ -1255,6 +1272,7 @@ class BookingTracker:
                                 "total_slots": slots,
                                 "completed": completed,
                                 "no_shows": no_shows,
+                                "ghosts": ghosts,
                                 "appearance_rate": appearance_rate
                             })
 
@@ -1271,9 +1289,11 @@ class BookingTracker:
             if total_slots > 0:
                 completion_rate = round((total_completed / total_slots) * 100, 1)
                 no_show_rate = round((total_no_shows / total_slots) * 100, 1)
+                ghost_rate = round((total_ghosts / total_slots) * 100, 1)
             else:
                 completion_rate = 0.0
                 no_show_rate = 0.0
+                ghost_rate = 0.0
 
             return {
                 "start_date": start_date_str,
@@ -1283,11 +1303,13 @@ class BookingTracker:
                 "total_slots": total_slots,
                 "completed": total_completed,
                 "no_shows": total_no_shows,
+                "ghosts": total_ghosts,
                 "cancelled": total_cancelled,
                 "rescheduled": total_rescheduled,
                 "appearance_rate": appearance_rate,
                 "completion_rate": completion_rate,
                 "no_show_rate": no_show_rate,
+                "ghost_rate": ghost_rate,
                 "daily_data": daily_data  # Für Charts
             }
 
@@ -1299,11 +1321,13 @@ class BookingTracker:
                 "total_slots": 0,
                 "completed": 0,
                 "no_shows": 0,
+                "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0,
                 "appearance_rate": 0.0,
                 "completion_rate": 0.0,
                 "no_show_rate": 0.0,
+                "ghost_rate": 0.0,
                 "daily_data": []
             }
 
@@ -1415,6 +1439,7 @@ class BookingTracker:
                 "total_slots": 0,
                 "completed": 0,
                 "no_shows": 0,
+                "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0,
                 "pending": 0
@@ -1487,7 +1512,9 @@ class BookingTracker:
 
                 if status == 'erschienen':
                     consultant_stats[consultant]["completed"] += 1
-                elif status in ['nicht erschienen', 'ghost']:
+                elif status == 'ghost':
+                    consultant_stats[consultant]["ghosts"] += 1
+                elif status == 'nicht erschienen':
                     consultant_stats[consultant]["no_shows"] += 1
                 elif status == 'abgesagt':
                     consultant_stats[consultant]["cancelled"] += 1
@@ -1504,8 +1531,8 @@ class BookingTracker:
 
                 appearance_rate = 0.0
                 if total > 0:
-                    # Erschienen-Quote = Erschienen / (Erschienen + No-Shows)
-                    denominator = completed + stats["no_shows"]
+                    # Erschienen-Quote = Erschienen / (Erschienen + No-Shows + Ghosts)
+                    denominator = completed + stats["no_shows"] + stats["ghosts"]
                     if denominator > 0:
                         appearance_rate = round((completed / denominator) * 100, 1)
 
@@ -1513,6 +1540,7 @@ class BookingTracker:
                     "total_slots": total,
                     "completed": completed,
                     "no_shows": stats["no_shows"],
+                    "ghosts": stats["ghosts"],
                     "cancelled": stats["cancelled"],
                     "rescheduled": stats["rescheduled"],
                     "appearance_rate": appearance_rate
@@ -1543,6 +1571,7 @@ class BookingTracker:
                 "total_slots": 0,
                 "completed": 0,
                 "no_shows": 0,
+                "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0
             }
@@ -1564,12 +1593,14 @@ class BookingTracker:
                         slots = day_metrics.get("total_slots", 0)
                         completed = day_metrics.get("completed", 0)
                         no_shows = day_metrics.get("no_shows", 0)
+                        ghosts = day_metrics.get("ghosts", 0)
                         cancelled = day_metrics.get("cancelled", 0)
                         rescheduled = day_metrics.get("rescheduled", 0)
 
                         totals["total_slots"] += slots
                         totals["completed"] += completed
                         totals["no_shows"] += no_shows
+                        totals["ghosts"] += ghosts
                         totals["cancelled"] += cancelled
                         totals["rescheduled"] += rescheduled
 
@@ -1583,6 +1614,7 @@ class BookingTracker:
                                 "total_slots": slots,
                                 "completed": completed,
                                 "no_shows": no_shows,
+                                "ghosts": ghosts,
                                 "cancelled": cancelled,
                                 "rescheduled": rescheduled,
                                 "appearance_rate": appearance_rate
@@ -1594,9 +1626,11 @@ class BookingTracker:
             if totals["total_slots"] > 0:
                 appearance_rate = round((totals["completed"] / totals["total_slots"]) * 100, 1)
                 no_show_rate = round((totals["no_shows"] / totals["total_slots"]) * 100, 1)
+                ghost_rate = round((totals["ghosts"] / totals["total_slots"]) * 100, 1)
             else:
                 appearance_rate = 0.0
                 no_show_rate = 0.0
+                ghost_rate = 0.0
 
             # Hole auch Buchungen nach Erstellungsdatum
             bookings_created_data = self.get_bookings_by_creation_date(start_date_str, end_date_str)
@@ -1609,6 +1643,7 @@ class BookingTracker:
                 **totals,
                 "appearance_rate": appearance_rate,
                 "no_show_rate": no_show_rate,
+                "ghost_rate": ghost_rate,
                 "daily_data": daily_data,
                 "bookings_created": bookings_created_data.get("total_bookings", 0),
                 "bookings_created_by_user": bookings_created_data.get("by_user", {})
@@ -1623,10 +1658,12 @@ class BookingTracker:
                 "total_slots": 0,
                 "completed": 0,
                 "no_shows": 0,
+                "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0,
                 "appearance_rate": 0.0,
                 "no_show_rate": 0.0,
+                "ghost_rate": 0.0,
                 "daily_data": [],
                 "bookings_created": 0,
                 "bookings_created_by_user": {}

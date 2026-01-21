@@ -123,6 +123,7 @@
               <th class="text-white font-bold text-center">Gelegte Termine</th>
               <th class="text-white font-bold text-center">Erschienen</th>
               <th class="text-white font-bold text-center">Nicht erschienen</th>
+              <th class="text-white font-bold text-center">Ghosts</th>
               <th class="text-white font-bold text-center">Abgesagt</th>
               <th class="text-white font-bold text-center">Verschoben</th>
               <th class="text-white font-bold text-center">Auftauchquote</th>
@@ -142,6 +143,9 @@
                 </td>
                 <td class="text-center">
                   <span class="badge badge-error badge-lg">{{ day.no_shows }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-lg" style="background: #a855f7; color: white;">{{ day.ghosts | default(0) }}</span>
                 </td>
                 <td class="text-center">
                   <span class="badge badge-warning badge-lg">{{ day.cancelled }}</span>
@@ -215,13 +219,24 @@
           <p id="completed-slots" class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
         </div>
 
-        <!-- No-Shows -->
+        <!-- No-Shows (bestätigt, nicht erschienen) -->
         <div class="stat-card glass rounded-xl p-6">
           <div class="flex items-center justify-between mb-2">
             <span class="text-white/60 text-sm font-medium">Nicht erschienen</span>
             <i data-lucide="x-circle" class="w-5 h-5 text-error"></i>
           </div>
           <p id="no-shows" class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
+          <p class="text-xs text-white/40 mt-1">Bestätigt, nicht erschienen</p>
+        </div>
+
+        <!-- Ghosts (nicht bestätigt, nicht erschienen) -->
+        <div class="stat-card glass rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white/60 text-sm font-medium">Ghosts</span>
+            <i data-lucide="ghost" class="w-5 h-5 text-purple-400"></i>
+          </div>
+          <p id="ghosts" class="text-4xl font-bold text-purple-400">{{ since_golive.ghosts | default(0) }}</p>
+          <p class="text-xs text-white/40 mt-1">Nicht bestätigt & nicht erschienen</p>
         </div>
 
         <!-- Auftauchquote -->
@@ -256,14 +271,18 @@
       </div>
 
       <!-- Zusätzliche Metriken -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <div class="glass rounded-xl p-4 text-center">
           <p class="text-white/60 text-sm mb-1">Completion Rate</p>
           <p class="text-2xl font-bold text-white">{{ since_golive.completion_rate }}%</p>
         </div>
         <div class="glass rounded-xl p-4 text-center">
           <p class="text-white/60 text-sm mb-1">No-Show Rate</p>
-          <p class="text-2xl font-bold text-white">{{ since_golive.no_show_rate }}%</p>
+          <p class="text-2xl font-bold text-error">{{ since_golive.no_show_rate }}%</p>
+        </div>
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-white/60 text-sm mb-1">Ghost Rate</p>
+          <p class="text-2xl font-bold text-purple-400">{{ since_golive.ghost_rate | default(0) }}%</p>
         </div>
         <div class="glass rounded-xl p-4 text-center">
           <p class="text-white/60 text-sm mb-1">Abgesagt</p>
@@ -430,7 +449,7 @@
 
     // Donut Chart
     try {
-    const donutData = [{{ since_golive.completed | default(0) }}, {{ since_golive.no_shows | default(0) }}, {{ since_golive.cancelled | default(0) }}, {{ since_golive.rescheduled | default(0) }}];
+    const donutData = [{{ since_golive.completed | default(0) }}, {{ since_golive.no_shows | default(0) }}, {{ since_golive.ghosts | default(0) }}, {{ since_golive.cancelled | default(0) }}, {{ since_golive.rescheduled | default(0) }}];
     console.log('Donut data:', donutData);
     const donutOptions = {
       series: donutData,
@@ -439,8 +458,8 @@
         height: 300,
         background: 'transparent'
       },
-      labels: ['Erschienen', 'Nicht erschienen', 'Abgesagt', 'Verschoben'],
-      colors: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6'],
+      labels: ['Erschienen', 'Nicht erschienen', 'Ghosts', 'Abgesagt', 'Verschoben'],
+      colors: ['#10b981', '#ef4444', '#a855f7', '#f59e0b', '#8b5cf6'],
       legend: {
         position: 'bottom',
         labels: {
@@ -614,6 +633,10 @@
                 <div class="flex justify-between">
                   <span class="text-white/60">Nicht erschienen</span>
                   <span class="text-error">${r.no_shows}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/60">Ghosts</span>
+                  <span class="text-purple-400">${r.ghosts || 0}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-white/60">T1 gelegt</span>
@@ -804,7 +827,7 @@
       if (!tbody) return;
 
       if (!dailyData || dailyData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
         return;
       }
 
@@ -815,6 +838,7 @@
           <td class="text-center"><span class="badge badge-outline badge-info">${day.total_slots || 0}</span></td>
           <td class="text-center"><span class="badge badge-outline badge-success">${day.completed || 0}</span></td>
           <td class="text-center"><span class="badge badge-outline badge-error">${day.no_shows || 0}</span></td>
+          <td class="text-center"><span class="badge badge-outline" style="border-color: #a855f7; color: #a855f7;">${day.ghosts || 0}</span></td>
           <td class="text-center"><span class="badge badge-outline badge-warning">${day.cancelled || 0}</span></td>
           <td class="text-center"><span class="badge badge-outline badge-secondary">${day.rescheduled || 0}</span></td>
           <td class="text-center font-bold ${(day.appearance_rate || 0) >= 70 ? 'text-success' : 'text-warning'}">
@@ -832,12 +856,14 @@
       const totalSlots = document.getElementById('total-slots');
       const completedSlots = document.getElementById('completed-slots');
       const noShows = document.getElementById('no-shows');
+      const ghosts = document.getElementById('ghosts');
       const appearanceRate = document.getElementById('appearance-rate');
       const bookingsCreated = document.getElementById('bookings-created');
 
       if (totalSlots) totalSlots.textContent = data.total_slots || 0;
       if (completedSlots) completedSlots.textContent = data.completed || 0;
       if (noShows) noShows.textContent = data.no_shows || 0;
+      if (ghosts) ghosts.textContent = data.ghosts || 0;
       if (bookingsCreated) bookingsCreated.textContent = data.bookings_created || 0;
 
       if (appearanceRate) {
@@ -855,11 +881,12 @@
         }
       }
 
-      // Update Donut Chart
+      // Update Donut Chart (mit Ghosts)
       if (donutChart) {
         donutChart.updateSeries([
           data.completed || 0,
           data.no_shows || 0,
+          data.ghosts || 0,
           data.cancelled || 0,
           data.rescheduled || 0
         ]);
