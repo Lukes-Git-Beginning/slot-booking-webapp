@@ -13,6 +13,7 @@ from app.core.extensions import data_persistence
 from app.utils.decorators import require_admin
 from app.utils.helpers import get_userlist
 from app.routes.admin import admin_bp
+from app.services.activity_tracking import activity_tracking
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
@@ -26,16 +27,35 @@ def admin_users():
     userlist = get_userlist()
     admin_users_list = Config.get_admin_users()
 
+    # Load login history for last_login timestamps
+    login_history = data_persistence.load_data('login_history', default={})
+
     # Build user objects for template
     users = []
     for username, password in userlist.items():
+        # Get last successful login for this user
+        last_login = None
+        last_login_formatted = None
+        user_logins = login_history.get(username, [])
+        for entry in user_logins:
+            if entry.get('success', True):
+                last_login = entry.get('timestamp')
+                # Format timestamp for display
+                if last_login:
+                    try:
+                        dt = datetime.fromisoformat(last_login)
+                        last_login_formatted = dt.strftime('%d.%m.%Y %H:%M')
+                    except:
+                        last_login_formatted = last_login
+                break
+
         users.append({
             'username': username,
             'password': password,  # Wird im Template nicht angezeigt, nur "***"
-            'email': None,  # TODO: Email-System implementieren
+            'email': None,  # TODO: Email-System implementieren (braucht SMTP)
             'active': True,  # Alle User aus USERLIST sind aktiv
             'is_admin': username in admin_users_list,
-            'last_login': None  # TODO: Login-Tracking implementieren
+            'last_login': last_login_formatted
         })
 
     # Sort by username
@@ -45,14 +65,18 @@ def admin_users():
     total_users = len(users)
     active_users = len([u for u in users if u['active']])
     admin_count = len([u for u in users if u['is_admin']])
-    online_users = 0  # TODO: Online-Tracking implementieren
+
+    # Get online users count from activity tracking
+    online_users_list = activity_tracking.get_online_users(timeout_minutes=15)
+    online_users = len(online_users_list)
 
     return render_template("admin_users.html",
                          users=users,
                          total_users=total_users,
                          active_users=active_users,
                          admin_count=admin_count,
-                         online_users=online_users)
+                         online_users=online_users,
+                         online_users_list=online_users_list)
 
 
 # admin_fix_points and admin_debug_points endpoints removed - not needed for production
