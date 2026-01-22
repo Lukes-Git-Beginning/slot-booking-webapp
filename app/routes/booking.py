@@ -31,6 +31,13 @@ def apply_rate_limit(route_func):
     return route_func
 
 
+def apply_csrf_exempt(route_func):
+    """Apply CSRF exemption for JSON-API routes (uses session-based auth)"""
+    if csrf:
+        return csrf.exempt(route_func)
+    return route_func
+
+
 def add_points_to_user(user, points):
     """
     Add points to user with Achievement System Integration
@@ -95,6 +102,7 @@ def add_points_to_user(user, points):
 
 
 @booking_bp.route("/book", methods=["POST"])
+@apply_csrf_exempt  # JSON-API uses session-based auth, CSRF exempt per CSRF_STRATEGY.md
 @require_login
 @apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)
