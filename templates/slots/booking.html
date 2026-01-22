@@ -378,7 +378,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Booking process state
 let slotBookingState = {
     berater: null,

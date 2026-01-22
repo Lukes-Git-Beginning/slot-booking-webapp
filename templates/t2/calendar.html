@@ -71,7 +71,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 let currentDate = new Date();
 let userBookings = [];
 

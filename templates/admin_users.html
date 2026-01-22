@@ -166,7 +166,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     function editUser(username) {
         // Implementation for editing user
         alert('Edit user: ' + username);

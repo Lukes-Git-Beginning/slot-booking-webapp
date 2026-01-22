@@ -110,7 +110,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
+<style nonce="{{ csp_nonce }}">
 .time-slot {
     @apply glass rounded-xl p-4 text-center font-semibold text-lg cursor-pointer transition-all;
 }
@@ -130,7 +130,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Re-init Lucide icons
 lucide.createIcons();
 

@@ -237,7 +237,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
     function settingsManager() {
         return {
             settings: {{ current_settings|tojson|safe }},

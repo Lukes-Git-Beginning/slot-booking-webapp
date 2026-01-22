@@ -290,7 +290,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     let currentTab = 'full_day';
 
     // Tab switching

@@ -27,7 +27,7 @@
     <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
     <!-- Custom Tailwind Config -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -67,7 +67,7 @@
     </script>
 
     <!-- Custom Styles -->
-    <style>
+    <style nonce="{{ csp_nonce }}">
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         * {
@@ -274,7 +274,7 @@
     </div>
 
     <!-- JavaScript Initialization -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
         // Initialize theme on page load
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('theme') || 'dark';

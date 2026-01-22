@@ -23,7 +23,7 @@
   <!-- Particles.js (Local) -->
   <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -58,7 +58,7 @@
     }
   </script>
 
-  <style>
+  <style nonce="{{ csp_nonce }}">
     /* Glassmorphism utilities */
     .glass {
       background: rgba(18, 24, 32, 0.65);
@@ -728,7 +728,7 @@
   <!-- AOS -->
   <script src="{{ url_for('static', filename='aos.js') }}"></script>
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
     // Initialize Lucide Icons
     lucide.createIcons();
 

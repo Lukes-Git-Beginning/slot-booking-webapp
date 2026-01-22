@@ -383,7 +383,7 @@
 
 {% block extra_js %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Quick booking form handling
 document.addEventListener('DOMContentLoaded', function() {
     const beraterSelect = document.querySelector('[name="berater"]');

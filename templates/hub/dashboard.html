@@ -309,7 +309,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     // Toast Manager Component
     function toastManager() {
         return {

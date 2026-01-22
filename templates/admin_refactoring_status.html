@@ -13,7 +13,7 @@
   <script src="{{ url_for('static', filename='lucide.js') }}"></script>
 
   <!-- Tailwind Config -->
-  <script>
+  <script nonce="{{ csp_nonce }}">
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -29,7 +29,7 @@
     }
   </script>
 
-  <style>
+  <style nonce="{{ csp_nonce }}">
     body {
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       min-height: 100vh;
@@ -398,7 +398,7 @@
 
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
     // Initialize Lucide icons
     lucide.createIcons();
   </script>

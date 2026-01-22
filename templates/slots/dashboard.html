@@ -323,7 +323,7 @@
 
 {% block extra_js %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Mini-Kalender
 let currentDate = new Date('{{ current_date.strftime('%Y-%m-%d') }}');
 

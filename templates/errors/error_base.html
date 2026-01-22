@@ -86,7 +86,7 @@
 
 {% block extra_js %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce }}">
     lucide.createIcons();
 </script>
 {% endblock %}

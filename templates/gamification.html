@@ -220,7 +220,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     // Refresh Lucide icons
     setTimeout(() => {
         lucide.createIcons();

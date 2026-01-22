@@ -159,7 +159,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
+<style nonce="{{ csp_nonce }}">
 @keyframes animate-float {
     0%, 100% {
         transform: translateY(0px);
@@ -217,7 +217,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Re-init Lucide icons
 lucide.createIcons();
 

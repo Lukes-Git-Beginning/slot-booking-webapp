@@ -245,7 +245,7 @@
 <!-- T2 Analytics JavaScript -->
 <script src="{{ url_for('static', filename='js/t2_analytics.js') }}"></script>
 
-<script>
+<script nonce="{{ csp_nonce }}">
   // Initialize with server-side data
   const initialDrawStats = {{ draw_stats | tojson | safe }};
   const initialCombinedStats = {{ combined_stats | tojson | safe }};

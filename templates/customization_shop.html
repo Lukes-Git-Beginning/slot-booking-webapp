@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
     
-    <style>
+    <style nonce="{{ csp_nonce }}">
         .shop-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
-        
+
         .customization-preview {
             background: var(--box-bg);
             border: 1px solid var(--box-border);
@@ -708,9 +708,9 @@
         </div>
     </div>
     
-    <script>
+    <script nonce="{{ csp_nonce }}">
         let pageIsActive = true;
-        
+
         // Cleanup when leaving the page
         window.addEventListener('beforeunload', function() {
             pageIsActive = false;

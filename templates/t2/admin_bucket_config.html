@@ -466,7 +466,7 @@
     </div>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce }}">
 .modal {
     position: fixed;
     top: 0;
@@ -567,7 +567,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 function updateProbability(closerName) {
     const inputField = document.getElementById(`prob-${closerName}`);
     const newValue = parseFloat(inputField.value);

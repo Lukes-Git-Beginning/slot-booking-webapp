@@ -19,7 +19,7 @@
   <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
   <!-- Tailwind Config -->
-  <script>
+  <script nonce="{{ csp_nonce }}">
     tailwind.config = {
       theme: {
         extend: {
@@ -33,8 +33,8 @@
     }
   </script>
 
-  <style>
-    @import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  <style nonce="{{ csp_nonce }}">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
     * {
       margin: 0;
@@ -276,7 +276,7 @@
   </div>
 
   <!-- JavaScript -->
-  <script>
+  <script nonce="{{ csp_nonce }}">
     // Initialize Lucide Icons
     lucide.createIcons();
 

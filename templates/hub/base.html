@@ -30,7 +30,7 @@
     <script src="{{ url_for('static', filename='cosmetics-effects.js') }}"></script>
 
     <!-- Custom Tailwind Config -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -71,7 +71,7 @@
 
     <!-- User Theme Colors (from Cosmetics Shop) -->
     {% if user_theme %}
-    <style id="user-theme-colors">
+    <style id="user-theme-colors" nonce="{{ csp_nonce }}">
         :root {
             --theme-primary: {{ user_theme.colors.primary }};
             --theme-secondary: {{ user_theme.colors.secondary }};
@@ -118,7 +118,7 @@
     {% endif %}
 
     <!-- Custom Styles -->
-    <style>
+    <style nonce="{{ csp_nonce }}">
         @import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         * {
@@ -488,7 +488,7 @@
     </div>
 
     <!-- JavaScript Initialization -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
         // Alpine.js Theme Store
         document.addEventListener('alpine:init', () => {
             Alpine.store('theme', {
@@ -698,7 +698,7 @@
         console.log('✅ CSRF Protection initialized - All AJAX requests protected');
     </script>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
     // ========================================
     // Session Timeout Warning System
     // ========================================

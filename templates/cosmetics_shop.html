@@ -358,7 +358,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     function purchaseItem(type, itemId) {
         if (confirm('Möchtest du dieses Item wirklich kaufen?')) {
             fetch('/slots/cosmetics/purchase', {

@@ -2,7 +2,7 @@
 
 {% block extra_css %}
 {{ super() }}
-<style>
+<style nonce="{{ csp_nonce }}">
     .error-container {
         min-height: 60vh;
         display: flex;
@@ -195,7 +195,7 @@
 
 {% block extra_js %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Auto-refresh für Error-Pages
 function startErrorPageRefresh() {
     // Nur bei bestimmten Fehlern auto-refresh

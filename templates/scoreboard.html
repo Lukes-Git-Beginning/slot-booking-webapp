@@ -3,7 +3,7 @@
 {% block title %}Scoreboard & Achievements{% endblock %}
 
 {% block extra_head %}
-<style>
+<style nonce="{{ csp_nonce }}">
 /* Avatar Customizations */
 .player-avatar.customized {
   background: var(--avatar-bg, linear-gradient(135deg, #d4af6a, #c2ae7f));
@@ -299,7 +299,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // ============================================================================
 // BADGE & AVATAR LOADING
 // ============================================================================

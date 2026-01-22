@@ -464,7 +464,7 @@
 <script src="{{ url_for('static', filename='js/slots.js') }}"></script>
 
 <!-- Template-specific initialization -->
-<script>
+<script nonce="{{ csp_nonce }}">
 // Initialize Achievement System (template-specific)
 let achievementSystem;
 {% if user_level %}

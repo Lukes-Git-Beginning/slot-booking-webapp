@@ -78,7 +78,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='chart.min.js') }}"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 // Prevent chart rendering loops
 let chartsInitialized = false;
 

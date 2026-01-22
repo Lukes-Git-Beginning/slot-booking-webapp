@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='admin_style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
     
-    <style>
+    <style nonce="{{ csp_nonce }}">
         .calendar-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -461,7 +461,7 @@
         
     </div>
     
-    <script>
+    <script nonce="{{ csp_nonce }}">
         // Add click handler for availability slots
         document.querySelectorAll('.calendar-event').forEach(slot => {
             slot.addEventListener('click', function() {
