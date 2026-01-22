@@ -225,10 +225,10 @@ class PrestigeSystem:
         
         prestige_data[user] = user_prestige
         self.save_prestige_data(prestige_data)
-        
-        # Reset User Level (das machen wir in level_system.py)
-        # TODO: Level-Reset implementieren
-        
+
+        # Reset User Level by storing XP offset
+        self._reset_user_level(user)
+
         return {
             "success": True,
             "message": f"Prestige {next_prestige} erreicht!",
@@ -237,6 +237,54 @@ class PrestigeSystem:
             "prestige_title": PRESTIGE_LEVELS[next_prestige]["name"]
         }
     
+    def _reset_user_level(self, user):
+        """Reset user level by storing current XP as offset (keeps actual data intact)"""
+        try:
+            from app.services.level_system import LevelSystem
+            level_system = LevelSystem()
+
+            # Get current total XP
+            user_level_data = level_system.calculate_user_level(user)
+            current_xp = user_level_data.get("xp", 0)
+
+            # Store XP offset in prestige data
+            prestige_data = self.load_prestige_data()
+            if user not in prestige_data:
+                prestige_data[user] = {}
+
+            # Add current XP to existing offset (for multiple prestiges)
+            existing_offset = prestige_data[user].get("xp_offset", 0)
+            prestige_data[user]["xp_offset"] = existing_offset + current_xp
+            prestige_data[user]["last_reset_xp"] = current_xp
+            prestige_data[user]["last_reset_date"] = datetime.now(TZ).isoformat()
+
+            self.save_prestige_data(prestige_data)
+
+            # Reset level history to start fresh
+            try:
+                level_history_file = "static/level_history.json"
+                with open(level_history_file, "r", encoding="utf-8") as f:
+                    level_history = json.load(f)
+
+                if user in level_history:
+                    level_history[user]["current_level"] = 1
+                    level_history[user]["current_xp"] = 0
+                    level_history[user]["prestige_reset"] = datetime.now(TZ).isoformat()
+
+                with open(level_history_file, "w", encoding="utf-8") as f:
+                    json.dump(level_history, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Error resetting level for {user}: {e}")
+
+    def get_xp_offset(self, user):
+        """Get XP offset for user (used by level_system to calculate effective XP)"""
+        prestige_data = self.load_prestige_data()
+        return prestige_data.get(user, {}).get("xp_offset", 0)
+
     def calculate_mastery_progress(self, user):
         """Berechne Fortschritt in allen Mastery-Kategorien"""
         # Lade User-Statistiken

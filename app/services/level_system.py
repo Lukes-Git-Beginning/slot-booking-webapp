@@ -42,18 +42,22 @@ class LevelSystem:
                     scores = json.load(f)
             except:
                 scores = {}
-        
+
         # Lade Badge-System
         try:
             from achievement_system import achievement_system
             user_badges = achievement_system.get_user_badges(user)
         except:
             user_badges = {"badges": [], "total_badges": 0}
-        
+
         user_scores = scores.get(user, {})
-        
+
         # Berechne XP basierend auf verschiedenen Faktoren
-        xp = self.calculate_total_xp(user_scores, user_badges)
+        raw_xp = self.calculate_total_xp(user_scores, user_badges)
+
+        # Apply prestige XP offset (level resets on prestige but data stays)
+        xp_offset = self._get_prestige_xp_offset(user)
+        xp = max(0, raw_xp - xp_offset)
         
         # Level-Berechnung (exponentiell steigend)
         level, level_xp, next_level_xp = self.calculate_level_from_xp(xp)
@@ -286,6 +290,14 @@ class LevelSystem:
         }
         return colors.get(rarity, "#10b981")
     
+    def _get_prestige_xp_offset(self, user):
+        """Get XP offset from prestige system (level resets on prestige)"""
+        try:
+            from app.services.prestige_system import prestige_system
+            return prestige_system.get_xp_offset(user)
+        except Exception:
+            return 0
+
     def get_level_statistics(self, user):
         """Bekomme Level-Statistiken für User"""
         try:
