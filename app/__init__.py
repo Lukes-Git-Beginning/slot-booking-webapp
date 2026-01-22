@@ -392,7 +392,7 @@ def register_request_hooks(app: Flask) -> None:
         csp_directives = [
             "default-src 'self'",
             f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval'",  # Nonce for inline scripts, unsafe-eval for some libs
-            f"style-src 'self' 'nonce-{nonce}' 'unsafe-inline'",  # Nonce + unsafe-inline fallback for dynamic styles
+            "style-src 'self' 'unsafe-inline'",  # No nonce for styles - Tailwind JIT generates dynamic styles at runtime
             "img-src 'self' data: https:",  # Allows base64 images and external HTTPS images
             "font-src 'self' data: https:",  # Allows web fonts from CDN
             "connect-src 'self'",  # AJAX requests to same origin only
