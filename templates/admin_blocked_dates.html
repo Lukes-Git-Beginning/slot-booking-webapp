@@ -56,15 +56,15 @@
 
     <!-- Tab Navigation -->
     <div class="tabs tabs-boxed bg-white/5 mb-6">
-        <a class="tab tab-active" onclick="switchTab('full_day')">
+        <a class="tab tab-active" data-action="switchBlockTab" data-args='["full_day"]'>
             <i data-lucide="calendar-x" class="w-4 h-4 mr-2"></i>
             Ganzer Tag
         </a>
-        <a class="tab" onclick="switchTab('time_range')">
+        <a class="tab" data-action="switchBlockTab" data-args='["time_range"]'>
             <i data-lucide="clock" class="w-4 h-4 mr-2"></i>
             Zeitbereich
         </a>
-        <a class="tab" onclick="switchTab('date_range')">
+        <a class="tab" data-action="switchBlockTab" data-args='["date_range"]'>
             <i data-lucide="calendar-range" class="w-4 h-4 mr-2"></i>
             Datumsbereich
         </a>
@@ -254,7 +254,7 @@
                         <span class="text-xs">{{ block.added_at[:16] if block.added_at else '' }}</span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-error btn-outline" onclick="deleteBlock('{{ block.key }}')">
+                        <button class="btn btn-sm btn-error btn-outline" data-action="deleteBlock" data-args='["{{ block.key }}"]'>
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </td>
@@ -293,15 +293,22 @@
 <script nonce="{{ csp_nonce }}">
     let currentTab = 'full_day';
 
+    // CSP-compliant wrapper for switchTab
+    window.switchBlockTab = function(e, tabName) {
+        _switchTab(tabName, e.target);
+    };
+
     // Tab switching
-    function switchTab(tabName) {
+    function _switchTab(tabName, targetEl) {
         currentTab = tabName;
 
         // Update tab styles
         document.querySelectorAll('.tabs .tab').forEach(tab => {
             tab.classList.remove('tab-active');
         });
-        event.target.closest('.tab').classList.add('tab-active');
+        if (targetEl) {
+            targetEl.closest('.tab').classList.add('tab-active');
+        }
 
         // Show/hide forms
         document.querySelectorAll('.block-form').forEach(form => {
@@ -351,8 +358,13 @@
     setupFormHandler('timeRangeForm');
     setupFormHandler('dateRangeForm');
 
+    // CSP-compliant wrapper for deleteBlock
+    window.deleteBlock = function(e, blockKey) {
+        _deleteBlock(blockKey);
+    };
+
     // Delete block handler
-    function deleteBlock(blockKey) {
+    function _deleteBlock(blockKey) {
         if (confirm('Möchten Sie diese Sperrung wirklich löschen?')) {
             const formData = new FormData();
             formData.append('block_key', blockKey);

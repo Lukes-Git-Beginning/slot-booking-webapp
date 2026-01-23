@@ -282,11 +282,11 @@
 
             <div class="calendar-widget">
                 <div class="flex items-center justify-between mb-3">
-                    <button class="btn btn-sm btn-ghost" onclick="navigateCalendar('prev')">
+                    <button class="btn btn-sm btn-ghost" data-action="navigateCalendarPrev">
                         <i data-lucide="chevron-left" class="w-4 h-4"></i>
                     </button>
                     <span id="mini-calendar-month-year" class="font-semibold text-white">{{ current_date.strftime('%B %Y') }}</span>
-                    <button class="btn btn-sm btn-ghost" onclick="navigateCalendar('next')">
+                    <button class="btn btn-sm btn-ghost" data-action="navigateCalendarNext">
                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -401,6 +401,10 @@ function navigateCalendar(direction) {
     }
     generateMiniCalendar();
 }
+
+// CSP-compliant wrappers for data-action
+window.navigateCalendarPrev = function(e) { navigateCalendar('prev'); };
+window.navigateCalendarNext = function(e) { navigateCalendar('next'); };
 
 // Initialize calendar on page load
 document.addEventListener('DOMContentLoaded', function() {

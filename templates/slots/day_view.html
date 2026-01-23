@@ -29,7 +29,7 @@
 
 <!-- Week Navigation -->
 <div class="glass rounded-2xl p-4 mb-8 flex items-center justify-between" data-aos="fade-up" data-aos-delay="100">
-    <button class="btn btn-ghost gap-2" onclick="navigateWeek('prev')">
+    <button class="btn btn-ghost gap-2" data-action="navigateWeek" data-args='["prev"]'>
         <i data-lucide="chevron-left" class="w-4 h-4"></i>
         <span class="hidden md:inline">Vorherige Woche</span>
     </button>
@@ -39,7 +39,7 @@
         <div class="text-sm text-white/60">{{ current_week_start.strftime('%d.%m') }} - {{ (current_week_start + timedelta(days=6)).strftime('%d.%m.%Y') }}</div>
     </div>
 
-    <button class="btn btn-ghost gap-2" onclick="navigateWeek('next')">
+    <button class="btn btn-ghost gap-2" data-action="navigateWeek" data-args='["next"]'>
         <span class="hidden md:inline">Nächste Woche</span>
         <i data-lucide="chevron-right" class="w-4 h-4"></i>
     </button>
@@ -117,7 +117,7 @@
                         {% for slot in berater_data.slots %}
                         <div class="slot-card glass rounded-xl p-3 text-center {% if slot.status == 'available' %}cursor-pointer hover:bg-success/20 border-success/40{% else %}opacity-50 cursor-not-allowed{% endif %}"
                              {% if slot.status == 'available' %}
-                             onclick="quickBookSlot('{{ berater_name }}', '{{ date_str }}', '{{ slot.time }}')"
+                             data-action="quickBookSlot" data-args='["{{ berater_name }}", "{{ date_str }}", "{{ slot.time }}"]'
                              {% endif %}>
                             <div class="font-bold text-white text-sm">{{ slot.time }}</div>
                             <div class="text-xs text-white/60">{{ slot.duration }}min</div>
@@ -177,7 +177,7 @@
                     </div>
                     <p class="text-xs text-white/70 mb-3">{{ suggestion.description }}</p>
                     <button class="btn btn-sm btn-primary w-full gap-2"
-                            onclick="quickBookSlot('{{ suggestion.berater }}', '{{ suggestion.date }}', '{{ suggestion.time }}')">
+                            data-action="quickBookSlot" data-args='["{{ suggestion.berater }}", "{{ suggestion.date }}", "{{ suggestion.time }}"]'>
                         <i data-lucide="calendar-plus" class="w-4 h-4"></i>
                         <span>Schnell buchen</span>
                     </button>
@@ -199,7 +199,7 @@
                 <h5 class="font-bold text-white">Schnellbuchung</h5>
             </div>
 
-            <form id="quick-booking-form" onsubmit="event.preventDefault(); submitQuickBooking();" class="space-y-4">
+            <form id="quick-booking-form" data-submit="submitQuickBookingForm" class="space-y-4">
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text text-white">Berater wählen</span>
@@ -384,6 +384,43 @@
 {% block extra_js %}
 {{ super() }}
 <script nonce="{{ csp_nonce }}">
+// CSP-compliant wrapper functions for data-action
+window.navigateWeek = function(e, direction) {
+    const currentDate = new Date('{{ date_str }}');
+
+    if (direction === 'prev') {
+        currentDate.setDate(currentDate.getDate() - 7);
+    } else {
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    const newDateStr = currentDate.toISOString().split('T')[0];
+    window.location.href = `/slots/day/${newDateStr}`;
+};
+
+window.quickBookSlot = function(e, berater, date, time) {
+    // Pre-fill quick booking form
+    const beraterSelect = document.querySelector('[name="berater"]');
+    const timeSelect = document.querySelector('[name="time"]');
+
+    beraterSelect.value = berater;
+    beraterSelect.dispatchEvent(new Event('change'));
+
+    // Wait for time options to populate
+    setTimeout(() => {
+        timeSelect.value = time;
+        timeSelect.dispatchEvent(new Event('change'));
+
+        // Scroll to form
+        document.getElementById('quick-booking-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+};
+
+window.submitQuickBookingForm = function(e) {
+    e.preventDefault();
+    submitQuickBooking();
+};
+
 // Quick booking form handling
 document.addEventListener('DOMContentLoaded', function() {
     const beraterSelect = document.querySelector('[name="berater"]');
@@ -425,23 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function quickBookSlot(berater, date, time) {
-    // Pre-fill quick booking form
-    const beraterSelect = document.querySelector('[name="berater"]');
-    const timeSelect = document.querySelector('[name="time"]');
-
-    beraterSelect.value = berater;
-    beraterSelect.dispatchEvent(new Event('change'));
-
-    // Wait for time options to populate
-    setTimeout(() => {
-        timeSelect.value = time;
-        timeSelect.dispatchEvent(new Event('change'));
-
-        // Scroll to form
-        document.getElementById('quick-booking-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-}
+// quickBookSlot moved to window.quickBookSlot above for CSP compliance
 
 function submitQuickBooking() {
     const form = document.getElementById('quick-booking-form');
@@ -534,18 +555,7 @@ function submitQuickBooking() {
     });
 }
 
-function navigateWeek(direction) {
-    const currentDate = new Date('{{ date_str }}');
-
-    if (direction === 'prev') {
-        currentDate.setDate(currentDate.getDate() - 7);
-    } else {
-        currentDate.setDate(currentDate.getDate() + 7);
-    }
-
-    const newDateStr = currentDate.toISOString().split('T')[0];
-    window.location.href = `/slots/day/${newDateStr}`;
-}
+// navigateWeek moved to window.navigateWeek above for CSP compliance
 
 // Auto-refresh availability every minute
 setInterval(() => {

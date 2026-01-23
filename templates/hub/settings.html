@@ -121,7 +121,7 @@
                         <p class="font-semibold">Passwort ändern</p>
                         <p class="text-sm text-gray-400">Sicherheit erhöhen</p>
                     </div>
-                    <button class="btn btn-outline btn-primary" onclick="passwordModal.showModal()">
+                    <button class="btn btn-outline btn-primary" data-action="showModal" data-args='["passwordModal"]'>
                         Ändern
                     </button>
                 </div>
@@ -159,7 +159,7 @@
                         </div>
                     </div>
                     <div class="modal-action">
-                        <button type="button" class="btn" onclick="passwordModal.close()">Abbrechen</button>
+                        <button type="button" class="btn" data-action="closeModal" data-args='["passwordModal"]'>Abbrechen</button>
                         <button type="submit" class="btn btn-primary">Passwort ändern</button>
                     </div>
                 </form>

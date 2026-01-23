@@ -57,7 +57,7 @@
 
                 <!-- Timeout Check -->
                 {% if timeout_info.can_draw %}
-                <button onclick="startDraw()" id="draw-button" class="btn btn-success btn-lg gap-3 text-lg shadow-2xl hover:scale-105 transition-transform">
+                <button data-action="startDraw" id="draw-button" class="btn btn-success btn-lg gap-3 text-lg shadow-2xl hover:scale-105 transition-transform">
                     <i data-lucide="sparkles" class="w-6 h-6"></i>
                     Closer ziehen
                 </button>
@@ -109,7 +109,7 @@
                         <i data-lucide="calendar-plus" class="w-6 h-6"></i>
                         <span class="text-lg">Termin buchen</span>
                     </a>
-                    <button onclick="location.reload()" class="btn btn-primary btn-lg gap-3">
+                    <button data-action="reloadPage" class="btn btn-primary btn-lg gap-3">
                         <i data-lucide="refresh-cw" class="w-6 h-6"></i>
                         <span class="text-lg">Erneut ziehen</span>
                     </button>
@@ -224,6 +224,11 @@ lucide.createIcons();
 const closers = {{ closers|tojson }};
 const closerNames = Object.keys(closers);
 
+// CSP-compliant wrapper for startDraw
+window.startDraw = function(e) {
+    _startDraw();
+};
+
 {% if not timeout_info.can_draw %}
 // Countdown timer for timeout
 let timeoutRemaining = {{ timeout_info.timeout_remaining_seconds }};
@@ -240,7 +245,7 @@ const countdownInterval = setInterval(() => {
 }, 1000);
 {% endif %}
 
-function startDraw() {
+function _startDraw() {
     // Hide ready state
     document.getElementById('state-ready').style.display = 'none';
     document.getElementById('state-drawing').style.display = 'block';

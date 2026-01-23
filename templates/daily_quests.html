@@ -229,7 +229,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for game in mini_games %}
-        <div class="glass rounded-xl p-6 hover:scale-105 transition-transform cursor-pointer" onclick="window.location='{{ game.url }}'">
+        <div class="glass rounded-xl p-6 hover:scale-105 transition-transform cursor-pointer" data-action="navigateTo" data-args='["{{ game.url }}"]'>
             <div class="text-4xl mb-3 text-center">{{ game.icon }}</div>
             <h3 class="font-bold text-white text-center mb-2">{{ game.name }}</h3>
             <p class="text-sm text-white/60 text-center mb-3">{{ game.description }}</p>

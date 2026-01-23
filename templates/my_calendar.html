@@ -672,13 +672,31 @@
     </div>
 
     <!-- Undo Button (Hidden by default) -->
-    <button id="undo-btn" class="btn btn-warning fixed bottom-4 left-4 z-50 hidden gap-2 undo-enter" onclick="undo()">
+    <button id="undo-btn" class="btn btn-warning fixed bottom-4 left-4 z-50 hidden gap-2 undo-enter" data-action="undoAction">
         <i data-lucide="undo" class="w-4 h-4"></i>
         <span id="undo-text">Rückgängig (3s)</span>
     </button>
 
     <!-- JavaScript -->
     <script nonce="{{ csp_nonce }}">
+        // Event Dispatcher for CSP compliance (standalone template)
+        (function() {
+            document.addEventListener('click', function(e) {
+                var target = e.target.closest('[data-action]');
+                if (!target) return;
+                var action = target.dataset.action;
+                var args = [];
+                if (target.dataset.args) {
+                    try { args = JSON.parse(target.dataset.args); }
+                    catch (err) { console.error('Invalid data-args JSON:', target.dataset.args); }
+                }
+                if (typeof window[action] === 'function') {
+                    e.preventDefault();
+                    window[action].apply(null, [e].concat(args));
+                }
+            });
+        })();
+
         // Initialize Lucide Icons
         lucide.createIcons();
 
@@ -737,6 +755,11 @@
             },
             retina_detect: true
         });
+
+        // CSP-compliant wrappers for data-action
+        window.undoAction = function(e) { undo(); };
+        window.closeRescheduleModal = function(e) { _closeRescheduleModal(); };
+        window.selectTimeSlot = function(e) { _selectTimeSlot(e.currentTarget); };
 
         // ===================================================================
         // DRAG & DROP FUNCTIONALITY (Kanban Mode Only)
@@ -948,7 +971,7 @@
 
                         <!-- Actions -->
                         <div class="modal-action">
-                            <button class="btn btn-ghost" onclick="closeRescheduleModal()">Abbrechen</button>
+                            <button class="btn btn-ghost" data-action="closeRescheduleModal">Abbrechen</button>
                             <button class="btn btn-primary" id="confirm-reschedule-btn" disabled>
                                 <i data-lucide="check" class="w-4 h-4"></i>
                                 Umbuchen
@@ -956,7 +979,7 @@
                         </div>
                     </div>
                     <form method="dialog" class="modal-backdrop">
-                        <button onclick="closeRescheduleModal()">close</button>
+                        <button data-action="closeRescheduleModal">close</button>
                     </form>
                 </dialog>
             `;
@@ -970,7 +993,7 @@
             document.getElementById('confirm-reschedule-btn').addEventListener('click', confirmReschedule);
         }
 
-        function closeRescheduleModal() {
+        function _closeRescheduleModal() {
             const modal = document.getElementById('reschedule-modal');
             if (modal) {
                 modal.remove();
@@ -1012,7 +1035,7 @@
                                     class="btn btn-sm btn-outline ${disabled ? 'btn-disabled' : ''}"
                                     data-time="${slot.time}"
                                     data-consultants='${JSON.stringify(slot.consultants)}'
-                                    onclick="selectTimeSlot(this)"
+                                    data-action="selectTimeSlot"
                                     ${disabled}>
                                 ${slot.time}
                                 ${slot.consultants.length > 0 ? `<span class="badge badge-xs">${slot.consultants.length}</span>` : ''}
@@ -1028,7 +1051,7 @@
                 });
         }
 
-        function selectTimeSlot(button) {
+        function _selectTimeSlot(button) {
             // Deselect all
             document.querySelectorAll('#time-slots-container .btn').forEach(btn => {
                 btn.classList.remove('btn-primary');
@@ -1090,7 +1113,7 @@
             .then(data => {
                 if (data.success) {
                     showToast(`✅ Termin erfolgreich umgebucht auf ${date} ${time}!`, 'success');
-                    closeRescheduleModal();
+                    _closeRescheduleModal();
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     showToast('❌ Fehler: ' + data.error, 'error');

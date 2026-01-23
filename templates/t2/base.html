@@ -59,7 +59,7 @@
   </script>
 
   <style nonce="{{ csp_nonce }}">
-    @import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
     * {
       margin: 0;
@@ -461,6 +461,91 @@
     };
 
     console.log('✅ CSRF Protection initialized - All AJAX requests protected');
+  </script>
+
+  <!-- CSP-Compliant Event Dispatcher -->
+  <script nonce="{{ csp_nonce }}">
+  // ========================================
+  // Global Event Dispatcher for CSP Compliance
+  // ========================================
+
+  (function() {
+      // Common helper functions
+      window.reloadPage = window.reloadPage || function() { location.reload(); };
+      window.goBack = window.goBack || function() { history.back(); };
+      window.navigateTo = window.navigateTo || function(e, url) { window.location.href = url; };
+      window.showModal = window.showModal || function(e, modalId) {
+          const modal = document.getElementById(modalId);
+          if (modal && modal.showModal) modal.showModal();
+      };
+      window.closeModal = window.closeModal || function(e, modalId) {
+          const modal = document.getElementById(modalId);
+          if (modal && modal.close) modal.close();
+      };
+      window.toggleElement = window.toggleElement || function(e, elementId) {
+          const el = document.getElementById(elementId);
+          if (el) el.classList.toggle('hidden');
+      };
+
+      // Handle data-action clicks (delegated)
+      document.addEventListener('click', function(e) {
+          const target = e.target.closest('[data-action]');
+          if (!target) return;
+
+          const action = target.dataset.action;
+          let args = [];
+
+          if (target.dataset.args) {
+              try {
+                  args = JSON.parse(target.dataset.args);
+              } catch (err) {
+                  console.error('Invalid data-args JSON:', target.dataset.args);
+              }
+          }
+
+          if (typeof window[action] === 'function') {
+              e.preventDefault();
+              window[action].apply(null, [e, ...args]);
+          } else {
+              console.warn('Action function not found:', action);
+          }
+      });
+
+      // Handle data-submit for forms
+      document.addEventListener('submit', function(e) {
+          const form = e.target.closest('[data-submit]');
+          if (!form) return;
+
+          const action = form.dataset.submit;
+          if (typeof window[action] === 'function') {
+              e.preventDefault();
+              window[action](e);
+          }
+      });
+
+      // Handle data-change for inputs/selects
+      document.addEventListener('change', function(e) {
+          const target = e.target.closest('[data-change]');
+          if (!target) return;
+
+          const action = target.dataset.change;
+          let args = [];
+
+          if (target.dataset.args) {
+              try {
+                  args = JSON.parse(target.dataset.args);
+              } catch (err) {
+                  console.error('Invalid data-args JSON:', target.dataset.args);
+              }
+          }
+
+          if (typeof window[action] === 'function') {
+              window[action].apply(null, [e, ...args]);
+          }
+      });
+
+      console.log('✅ CSP Event Dispatcher initialized');
+  })();
   </script>
 
   {% block extra_js %}{% endblock %}

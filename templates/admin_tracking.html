@@ -92,7 +92,7 @@
         </label>
 
         <!-- Refresh Button -->
-        <button onclick="location.reload()" class="btn btn-circle btn-ghost hover:bg-white/10">
+        <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
           <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
         </button>
       </div>
@@ -306,8 +306,8 @@
 
         <!-- Ranking Tabs -->
         <div class="tabs tabs-boxed bg-white/5">
-          <a class="tab tab-active" data-tab="combined" onclick="switchRankingTab('combined')">Kombiniert</a>
-          <a class="tab" data-tab="showrates" onclick="switchRankingTab('showrates')">Erschienen-Quoten</a>
+          <a class="tab tab-active" data-tab="combined" data-action="switchRankingTab" data-args='["combined"]'>Kombiniert</a>
+          <a class="tab" data-tab="showrates" data-action="switchRankingTab" data-args='["showrates"]'>Erschienen-Quoten</a>
         </div>
       </div>
 
@@ -351,6 +351,30 @@
 
   <!-- Initialize Scripts -->
   <script nonce="{{ csp_nonce }}">
+    // CSP-Compliant Event Dispatcher (standalone template)
+    (function() {
+        // Common helper functions
+        window.reloadPage = function() { location.reload(); };
+
+        // Handle data-action clicks
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            let args = [];
+            if (target.dataset.args) {
+                try { args = JSON.parse(target.dataset.args); }
+                catch (err) { console.error('Invalid data-args JSON:', target.dataset.args); }
+            }
+
+            if (typeof window[action] === 'function') {
+                e.preventDefault();
+                window[action].apply(null, [e, ...args]);
+            }
+        });
+    })();
+
     // Initialize Lucide Icons
     lucide.createIcons();
 
@@ -558,7 +582,12 @@
       lucide.createIcons();
     }
 
-    function switchRankingTab(tab) {
+    // CSP-compliant wrapper
+    window.switchRankingTab = function(e, tab) {
+      _switchRankingTab(tab);
+    };
+
+    function _switchRankingTab(tab) {
       currentTab = tab;
 
       // Update tab styles
@@ -677,6 +706,27 @@
     // Global state for current period
     let currentStartDate = null;
     let currentEndDate = null;
+
+    // CSP-compliant wrappers
+    window.loadPeriodAndClose = function(e, preset) {
+      loadPeriod(preset);
+      closeDrawer();
+    };
+
+    window.loadCustomPeriodAndClose = function(e) {
+      loadCustomPeriod();
+      closeDrawer();
+    };
+
+    window.exportExcelAndClose = function(e) {
+      exportExcel(e);
+      closeDrawer();
+    };
+
+    window.exportCSVAndClose = function(e, type) {
+      exportCSV(e, type);
+      closeDrawer();
+    };
 
     // Load all data for a preset period
     async function loadPeriod(preset) {
@@ -1032,22 +1082,22 @@
           <div class="space-y-2">
             <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
               <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
-                     onclick="loadPeriod('last7days'); closeDrawer()">
+                     data-action="loadPeriodAndClose" data-args='["last7days"]'>
               <span class="text-white">Letzte 7 Tage</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
               <input type="radio" name="period-radio" class="radio radio-primary radio-sm" checked
-                     onclick="loadPeriod('last30days'); closeDrawer()">
+                     data-action="loadPeriodAndClose" data-args='["last30days"]'>
               <span class="text-white">Letzte 30 Tage</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
               <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
-                     onclick="loadPeriod('thisMonth'); closeDrawer()">
+                     data-action="loadPeriodAndClose" data-args='["thisMonth"]'>
               <span class="text-white">Dieser Monat</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
               <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
-                     onclick="loadPeriod('thisYear'); closeDrawer()">
+                     data-action="loadPeriodAndClose" data-args='["thisYear"]'>
               <span class="text-white">Dieses Jahr</span>
             </label>
           </div>
@@ -1071,7 +1121,7 @@
                 </label>
                 <input type="date" id="custom-end-date" class="input input-bordered input-sm w-full bg-base-300">
               </div>
-              <button onclick="loadCustomPeriod(); closeDrawer()" class="btn btn-primary btn-sm w-full gap-2">
+              <button data-action="loadCustomPeriodAndClose" class="btn btn-primary btn-sm w-full gap-2">
                 <i data-lucide="check" class="w-4 h-4"></i>
                 Anwenden
               </button>
@@ -1085,15 +1135,15 @@
         <div>
           <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Export</h3>
           <div class="space-y-2">
-            <button onclick="exportExcel(event); closeDrawer()" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+            <button data-action="exportExcelAndClose" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
               <i data-lucide="file-spreadsheet" class="w-5 h-5 text-success"></i>
               Excel (.xlsx)
             </button>
-            <button onclick="exportCSV(event, 'daily'); closeDrawer()" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+            <button data-action="exportCSVAndClose" data-args='["daily"]' class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
               <i data-lucide="file-text" class="w-5 h-5 text-info"></i>
               CSV (Tagesstatistik)
             </button>
-            <button onclick="exportCSV(event, 'summary'); closeDrawer()" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+            <button data-action="exportCSVAndClose" data-args='["summary"]' class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
               <i data-lucide="file-bar-chart" class="w-5 h-5 text-warning"></i>
               CSV (Zusammenfassung)
             </button>

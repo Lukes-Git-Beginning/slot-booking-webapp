@@ -164,7 +164,7 @@
         <tbody>
           {% for player in ranking %}
           <tr class="hover:bg-white/5 cursor-pointer transition-all {% if current_user and player[0] == current_user %}bg-primary/10{% endif %}"
-              onclick="window.location.href='/profile/{{ player[0] }}'">
+              data-action="navigateTo" data-args='["/profile/{{ player[0] }}"]'
             <!-- Rang -->
             <td class="font-bold text-center">
               {% if loop.index == 1 %}
@@ -241,7 +241,7 @@
     <div class="space-y-4">
       {% for player in badge_leaderboard %}
       <div class="glass rounded-2xl p-6 hover:scale-[1.02] transition-transform cursor-pointer"
-           onclick="window.location.href='/profile/{{ player.user }}'">
+           data-action="navigateTo" data-args='["/profile/{{ player.user }}"]'
         <div class="flex items-center justify-between gap-4">
           <!-- Player Info -->
           <div class="flex items-center gap-4">

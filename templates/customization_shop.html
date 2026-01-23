@@ -472,7 +472,7 @@
             </div>
             <div class="avatar-title" id="avatarTitle">{{ profile.display_name or current_user }}</div>
             
-            <button class="save-customization" id="saveBtn" onclick="saveCustomization()">
+            <button class="save-customization" id="saveBtn" data-action="saveCustomization">
                 <i class="ti ti-device-floppy"></i>
                 Änderungen speichern
             </button>
@@ -495,8 +495,8 @@
                 
                 <div class="items-grid">
                     {% for item in shop.avatar_components.backgrounds or [] %}
-                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
-                         onclick="selectItem('background', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}"
+                         data-action="selectItem" data-args='["background", "{{ item.id }}", {{ item.unlocked|tojson }}]'>
                         <div class="item-preview" style="background: {{ item.preview.color }};"></div>
                         <div class="item-name">{{ item.name }}</div>
                         <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
@@ -518,8 +518,8 @@
                 
                 <div class="items-grid">
                     {% for item in shop.avatar_components.borders or [] %}
-                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
-                         onclick="selectItem('border', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}"
+                         data-action="selectItem" data-args='["border", "{{ item.id }}", {{ item.unlocked|tojson }}]'>
                         <div class="item-preview" style="border: {{ item.preview.style }}; {{ 'box-shadow: ' + item.preview.glow if item.preview.glow else '' }};"></div>
                         <div class="item-name">{{ item.name }}</div>
                         <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
@@ -541,8 +541,8 @@
                 
                 <div class="items-grid">
                     {% for item in shop.avatar_components.effects or [] %}
-                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
-                         onclick="selectItem('effect', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}"
+                         data-action="selectItem" data-args='["effect", "{{ item.id }}", {{ item.unlocked|tojson }}]'>
                         <div class="item-preview" style="background: var(--accent);"></div>
                         <div class="item-name">{{ item.name }}</div>
                         <div class="unlock-condition {{ 'unlocked' if item.unlocked else '' }}">
@@ -564,8 +564,8 @@
                 
                 <div class="items-grid">
                     {% for item in shop.avatar_components.titles or [] %}
-                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}" 
-                         onclick="selectItem('title', '{{ item.id }}', {{ item.unlocked|tojson }})">
+                    <div class="item-card {{ 'locked' if not item.unlocked else '' }}"
+                         data-action="selectItem" data-args='["title", "{{ item.id }}", {{ item.unlocked|tojson }}]'>
                         <div class="item-preview" style="background: {{ item.preview.color or 'var(--muted)' }};">
                             {{ item.preview.text[:2] if item.preview.text else '🏷️' }}
                         </div>
@@ -590,8 +590,8 @@
             
             <div class="theme-items-grid">
                 {% for theme_id, theme in shop.themes.items() %}
-                <div class="item-card {{ 'locked' if not theme.unlocked else '' }}" 
-                     onclick="selectTheme('{{ theme_id }}', {{ theme.unlocked|tojson }})">
+                <div class="item-card {{ 'locked' if not theme.unlocked else '' }}"
+                     data-action="selectTheme" data-args='["{{ theme_id }}", {{ theme.unlocked|tojson }}]'>
                     <div class="theme-preview" style="background: {{ theme.preview.background if 'linear-gradient' in (theme.preview.background or '') else theme.preview.primary }};">
                         <div class="theme-preview-text">{{ theme.name }}</div>
                     </div>
@@ -633,7 +633,7 @@
                     </div>
                     
                     {% if goal.completed and not goal.claimed %}
-                    <button class="create-goal-btn" onclick="claimGoalReward('{{ goal.id }}')">
+                    <button class="create-goal-btn" data-action="claimGoalReward" data-args='["{{ goal.id }}"]'>
                         <i class="ti ti-gift"></i>
                         Belohnung einlösen
                     </button>
@@ -645,7 +645,7 @@
                 <div class="goal-card" style="display: flex; align-items: center; justify-content: center; min-height: 200px; border: 2px dashed rgba(255,255,255,0.3);">
                     <div style="text-align: center;">
                         <i class="ti ti-plus" style="font-size: 48px; margin-bottom: 15px; opacity: 0.6;"></i>
-                        <button class="create-goal-btn" onclick="openGoalModal()">
+                        <button class="create-goal-btn" data-action="openGoalModal">
                             <i class="ti ti-target"></i>
                             Neues Ziel erstellen
                         </button>
@@ -673,13 +673,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Neues persönliches Ziel</h3>
-                <button class="modal-close" onclick="closeGoalModal()">&times;</button>
+                <button class="modal-close" data-action="closeGoalModal">&times;</button>
             </div>
-            
+
             <form id="goalForm">
                 <div class="form-group">
                     <label class="form-label">Ziel-Typ</label>
-                    <select class="form-select" id="goalTemplate" onchange="updateGoalPreview()">
+                    <select class="form-select" id="goalTemplate" data-change="updateGoalPreview">
                         <option value="">Wähle einen Ziel-Typ...</option>
                         <option value="daily_points">Tägliche Punkte</option>
                         <option value="weekly_bookings">Wöchentliche Buchungen</option>
@@ -702,27 +702,59 @@
             </form>
             
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeGoalModal()">Abbrechen</button>
-                <button class="btn btn-primary" onclick="createGoal()">Ziel erstellen</button>
+                <button class="btn btn-secondary" data-action="closeGoalModal">Abbrechen</button>
+                <button class="btn btn-primary" data-action="createGoal">Ziel erstellen</button>
             </div>
         </div>
     </div>
     
     <script nonce="{{ csp_nonce }}">
+        // CSP-Compliant Event Dispatcher (standalone template)
+        (function() {
+            // Handle data-action clicks
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+
+                const action = target.dataset.action;
+                let args = [];
+                if (target.dataset.args) {
+                    try { args = JSON.parse(target.dataset.args); }
+                    catch (err) { console.error('Invalid data-args JSON:', target.dataset.args); }
+                }
+
+                if (typeof window[action] === 'function') {
+                    e.preventDefault();
+                    window[action].apply(null, [e, ...args]);
+                }
+            });
+
+            // Handle data-change for selects
+            document.addEventListener('change', function(e) {
+                const target = e.target.closest('[data-change]');
+                if (!target) return;
+
+                const action = target.dataset.change;
+                if (typeof window[action] === 'function') {
+                    window[action](e);
+                }
+            });
+        })();
+
         let pageIsActive = true;
 
         // Cleanup when leaving the page
         window.addEventListener('beforeunload', function() {
             pageIsActive = false;
         });
-        
+
         // Cleanup when navigating away
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 pageIsActive = false;
             }
         });
-        
+
         let currentCustomization = {
             background: '{{ customization.avatar.background }}',
             border: '{{ customization.avatar.border }}',
@@ -733,39 +765,76 @@
         
         // Initialize preview
         updateAvatarPreview();
-        
-        function selectItem(category, itemId, unlocked) {
+
+        // CSP-compliant wrappers
+        window.selectItem = function(e, category, itemId, unlocked) {
+            _selectItem(e, category, itemId, unlocked);
+        };
+
+        window.selectTheme = function(e, themeId, unlocked) {
+            _selectTheme(e, themeId, unlocked);
+        };
+
+        window.saveCustomization = function(e) {
+            _saveCustomization();
+        };
+
+        window.openGoalModal = function(e) {
+            _openGoalModal();
+        };
+
+        window.closeGoalModal = function(e) {
+            _closeGoalModal();
+        };
+
+        window.updateGoalPreview = function(e) {
+            _updateGoalPreview();
+        };
+
+        window.createGoal = function(e) {
+            _createGoal();
+        };
+
+        window.claimGoalReward = function(e, goalId) {
+            _claimGoalReward(goalId);
+        };
+
+        function _selectItem(e, category, itemId, unlocked) {
             if (!unlocked) {
                 showNotification('Dieses Item ist noch nicht freigeschaltet!', 'error');
                 return;
             }
-            
+
             // Remove previous selection
             document.querySelectorAll('.item-card.selected').forEach(card => {
                 card.classList.remove('selected');
             });
-            
+
             // Add selection to clicked item
-            event.currentTarget.classList.add('selected');
-            
+            if (e && e.currentTarget) {
+                e.currentTarget.classList.add('selected');
+            }
+
             currentCustomization[category] = itemId;
             updateAvatarPreview();
         }
-        
-        function selectTheme(themeId, unlocked) {
+
+        function _selectTheme(e, themeId, unlocked) {
             if (!unlocked) {
                 showNotification('Dieses Theme ist noch nicht freigeschaltet!', 'error');
                 return;
             }
-            
+
             // Remove previous selection
             document.querySelectorAll('.theme-items-grid .item-card.selected').forEach(card => {
                 card.classList.remove('selected');
             });
-            
+
             // Add selection to clicked theme
-            event.currentTarget.classList.add('selected');
-            
+            if (e && e.currentTarget) {
+                e.currentTarget.classList.add('selected');
+            }
+
             currentTheme = themeId;
         }
         
@@ -795,7 +864,7 @@
             }
         }
         
-        async function saveCustomization() {
+        async function _saveCustomization() {
             if (!pageIsActive) return;
             try {
                 const response = await fetch('{{ url_for('gamification.api_update_customization') }}', {
@@ -819,17 +888,17 @@
             }
         }
         
-        function openGoalModal() {
+        function _openGoalModal() {
             document.getElementById('goalModal').classList.add('show');
         }
-        
-        function closeGoalModal() {
+
+        function _closeGoalModal() {
             document.getElementById('goalModal').classList.remove('show');
             document.getElementById('goalForm').reset();
             document.getElementById('goalPreview').style.display = 'none';
         }
-        
-        function updateGoalPreview() {
+
+        function _updateGoalPreview() {
             const template = document.getElementById('goalTemplate').value;
             const target = document.getElementById('goalTarget').value;
             const preview = document.getElementById('goalPreview');
@@ -862,16 +931,16 @@
             }
         }
         
-        async function createGoal() {
+        async function _createGoal() {
             if (!pageIsActive) return;
             const template = document.getElementById('goalTemplate').value;
             const target = parseInt(document.getElementById('goalTarget').value);
-            
+
             if (!template || !target) {
                 showNotification('Bitte fülle alle Felder aus', 'error');
                 return;
             }
-            
+
             try {
                 const response = await fetch('{{ url_for('gamification.api_create_personal_goal') }}', {
                     method: 'POST',
@@ -881,12 +950,12 @@
                         target: target
                     })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showNotification('Persönliches Ziel erstellt!', 'success');
-                    closeGoalModal();
+                    _closeGoalModal();
                     setTimeout(() => location.reload(), 1000);
                 } else {
                     showNotification(result.message, 'error');
@@ -895,8 +964,8 @@
                 showNotification('Fehler beim Erstellen des Ziels', 'error');
             }
         }
-        
-        async function claimGoalReward(goalId) {
+
+        async function _claimGoalReward(goalId) {
             if (!pageIsActive) return;
             try {
                 const response = await fetch('{{ url_for('gamification.api_claim_goal_reward') }}', {

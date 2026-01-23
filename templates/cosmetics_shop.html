@@ -87,12 +87,12 @@
                             Ausgerüstet
                         </button>
                         {% else %}
-                        <button class="btn btn-sm btn-primary" onclick="equipItem('title', '{{ title.id }}')">
+                        <button class="btn btn-sm btn-primary" data-action="equipCosmeticItem" data-args='["title", "{{ title.id }}"]'>
                             Ausrüsten
                         </button>
                         {% endif %}
                     {% else %}
-                        <button class="btn btn-sm btn-accent" onclick="purchaseItem('title', '{{ title.id }}')">
+                        <button class="btn btn-sm btn-accent" data-action="purchaseCosmeticItem" data-args='["title", "{{ title.id }}"]'>
                             <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
                             {{ title.price }} Punkte
                         </button>
@@ -130,12 +130,12 @@
                             Aktiv
                         </button>
                         {% else %}
-                        <button class="btn btn-sm btn-primary" onclick="activateTheme('{{ theme.id }}')">
+                        <button class="btn btn-sm btn-primary" data-action="activateCosmeticTheme" data-args='["{{ theme.id }}"]'>
                             Aktivieren
                         </button>
                         {% endif %}
                     {% else %}
-                        <button class="btn btn-sm btn-accent" onclick="purchaseItem('theme', '{{ theme.id }}')">
+                        <button class="btn btn-sm btn-accent" data-action="purchaseCosmeticItem" data-args='["theme", "{{ theme.id }}"]'>
                             <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
                             {{ theme.price }} Punkte
                         </button>
@@ -218,13 +218,13 @@
                             Ausgerüstet
                         </button>
                         {% else %}
-                        <button class="btn btn-sm btn-primary gap-2" onclick="equipItem('avatar', '{{ avatar.id }}')">
+                        <button class="btn btn-sm btn-primary gap-2" data-action="equipCosmeticItem" data-args='["avatar", "{{ avatar.id }}"]'>
                             <i data-lucide="sparkles" class="w-4 h-4"></i>
                             Ausrüsten
                         </button>
                         {% endif %}
                     {% else %}
-                        <button class="btn btn-sm btn-accent gap-2" onclick="purchaseItem('avatar', '{{ avatar.id }}')">
+                        <button class="btn btn-sm btn-accent gap-2" data-action="purchaseCosmeticItem" data-args='["avatar", "{{ avatar.id }}"]'>
                             <i data-lucide="shopping-cart" class="w-4 h-4"></i>
                             Kaufen
                         </button>
@@ -291,12 +291,12 @@
                             Aktiv
                         </button>
                         {% else %}
-                        <button class="btn btn-sm btn-primary" onclick="activateEffect('{{ effect.id }}')">
+                        <button class="btn btn-sm btn-primary" data-action="activateCosmeticEffect" data-args='["{{ effect.id }}"]'>
                             Aktivieren
                         </button>
                         {% endif %}
                     {% else %}
-                        <button class="btn btn-sm btn-accent" onclick="purchaseItem('effect', '{{ effect.id }}')">
+                        <button class="btn btn-sm btn-accent" data-action="purchaseCosmeticItem" data-args='["effect", "{{ effect.id }}"]'>
                             <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
                             {{ effect.price }} Punkte
                         </button>
@@ -359,6 +359,20 @@
 
 {% block extra_js %}
 <script nonce="{{ csp_nonce }}">
+    // CSP-compliant wrappers for data-action
+    window.purchaseCosmeticItem = function(e, type, itemId) {
+        purchaseItem(type, itemId);
+    };
+    window.equipCosmeticItem = function(e, type, itemId) {
+        equipItem(type, itemId);
+    };
+    window.activateCosmeticTheme = function(e, themeId) {
+        activateTheme(themeId);
+    };
+    window.activateCosmeticEffect = function(e, effectId) {
+        activateEffect(effectId);
+    };
+
     function purchaseItem(type, itemId) {
         if (confirm('Möchtest du dieses Item wirklich kaufen?')) {
             fetch('/slots/cosmetics/purchase', {

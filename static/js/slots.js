@@ -234,6 +234,57 @@ class AchievementSystem {
 }
 
 // ============================================================================
+// CSP-COMPLIANT WRAPPER FUNCTIONS FOR DATA-ACTION ATTRIBUTES
+// ============================================================================
+
+// Modal helpers
+window.closeModal = function(e, modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal && modal.close) modal.close();
+};
+
+// Quick action wrappers for index.html
+window.quickActionToggleSidebar = function(e) {
+  toggleSidebar();
+  document.getElementById('quickActionsModal').close();
+};
+
+window.quickActionNavigate = function(e, url) {
+  document.getElementById('quickActionsModal').close();
+  window.location.href = url;
+};
+
+window.quickActionDay = function(e, direction) {
+  document.getElementById('quickActionsModal').close();
+  if (window.currentDateStr) {
+    window.navigateDay(direction, window.currentDateStr);
+  }
+};
+
+// Expose slot functions to global scope for data-action
+window.toggleSidebar = function(e) { toggleSidebar(); };
+window.expandAll = function(e) { expandAll(); };
+window.collapseAll = function(e) { collapseAll(); };
+window.jumpToEvening = function(e) { jumpToEvening(); };
+window.toggleSlot = function(e) {
+  // Find the slot-section ancestor (avoids SVG namespace traversal issues with .closest)
+  const section = e.target.closest('.slot-section');
+  if (section) {
+    const header = section.querySelector('.slot-header');
+    if (header) toggleSlotInternal(header);
+  }
+};
+
+// Form submission wrapper
+window.handleBookingSubmitForm = function(e) {
+  e.preventDefault();
+  const form = e.target.closest('form');
+  if (handleBookingSubmit(form)) {
+    form.submit();
+  }
+};
+
+// ============================================================================
 // SIDEBAR TOGGLE
 // ============================================================================
 let sidebarOpen = false;
@@ -268,7 +319,7 @@ if (localStorage.getItem('sidebar-open') === 'true' && window.innerWidth >= 768)
 // ============================================================================
 // SLOT COLLAPSE/EXPAND
 // ============================================================================
-function toggleSlot(header) {
+function toggleSlotInternal(header) {
   const section = header.parentElement;
   const content = section.querySelector('.slot-content');
   const isExpanded = section.classList.contains('expanded');
@@ -308,7 +359,7 @@ function jumpToEvening() {
     eveningSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const header = eveningSlot.querySelector('.slot-header');
     if (!eveningSlot.classList.contains('expanded')) {
-      toggleSlot(header);
+      toggleSlotInternal(header);
     }
   }
 }

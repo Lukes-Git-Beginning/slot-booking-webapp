@@ -88,7 +88,7 @@
                                     class="input input-bordered w-24 text-center text-lg font-bold bg-white/5 border-white/20 text-white focus:border-t2-purple"
                                 >
                                 <button
-                                    onclick="updateProbability('{{ closer_name }}')"
+                                    data-action="updateBucketProbability" data-args='["{{ closer_name }}"]'
                                     class="btn btn-primary gap-2">
                                     <i data-lucide="check" class="w-5 h-5"></i>
                                     <span class="text-base">Update</span>
@@ -131,7 +131,7 @@
                     class="input input-bordered flex-1 text-center text-xl font-bold bg-white/5 border-white/20 text-white focus:border-t2-purple"
                 >
                 <button
-                    onclick="updateBucketSize()"
+                    data-action="updateBucketSizeAction"
                     class="btn btn-primary gap-2">
                     <i data-lucide="check" class="w-5 h-5"></i>
                     <span class="text-base">Aktualisieren</span>
@@ -150,7 +150,7 @@
                 <i data-lucide="archive" class="w-8 h-8 text-t2-purple"></i>
                 Aktueller Bucket
             </h2>
-            <button onclick="resetBucket()" class="btn btn-error gap-2">
+            <button data-action="resetBucketAction" class="btn btn-error gap-2">
                 <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                 <span class="text-base">Bucket Reset</span>
             </button>
@@ -208,7 +208,7 @@
                 <i data-lucide="users" class="w-8 h-8 text-t2-purple"></i>
                 Closer-Verwaltung
             </h2>
-            <button onclick="openAddCloserModal()" class="btn btn-success gap-2">
+            <button data-action="openAddCloserModal" class="btn btn-success gap-2">
                 <i data-lucide="user-plus" class="w-5 h-5"></i>
                 <span class="text-base">Neuer Closer</span>
             </button>
@@ -248,13 +248,13 @@
                         <td class="p-4">
                             <div class="flex gap-2 justify-center">
                                 <button
-                                    onclick="openEditCloserModal('{{ closer_name }}', '{{ closer_info.full_name }}', '{{ closer_info.color }}')"
+                                    data-action="openEditCloserModal" data-args='["{{ closer_name }}", "{{ closer_info.full_name }}", "{{ closer_info.color }}"]'
                                     class="btn btn-sm btn-primary gap-1">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                     <span class="text-sm">Bearbeiten</span>
                                 </button>
                                 <button
-                                    onclick="confirmRemoveCloser('{{ closer_name }}')"
+                                    data-action="confirmRemoveCloser" data-args='["{{ closer_name }}"]'
                                     class="btn btn-sm btn-error gap-1">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     <span class="text-sm">Löschen</span>
@@ -361,14 +361,14 @@
 
 <!-- Add Closer Modal -->
 <div id="add-closer-modal" class="modal" style="display: none;">
-    <div class="modal-overlay" onclick="closeAddCloserModal()"></div>
+    <div class="modal-overlay" data-action="closeAddCloserModal"></div>
     <div class="glass rounded-3xl p-8 max-w-lg w-full mx-4 relative z-10">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-2xl font-bold text-white flex items-center gap-2">
                 <i data-lucide="user-plus" class="w-6 h-6 text-t2-purple"></i>
                 Neuen Closer hinzufügen
             </h3>
-            <button onclick="closeAddCloserModal()" class="text-gray-400 hover:text-white">
+            <button data-action="closeAddCloserModal" class="text-gray-400 hover:text-white">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
         </div>
@@ -407,7 +407,7 @@
                     <i data-lucide="check" class="w-5 h-5"></i>
                     <span>Hinzufügen</span>
                 </button>
-                <button type="button" onclick="closeAddCloserModal()" class="btn btn-ghost flex-1">
+                <button type="button" data-action="closeAddCloserModal" class="btn btn-ghost flex-1">
                     Abbrechen
                 </button>
             </div>
@@ -417,14 +417,14 @@
 
 <!-- Edit Closer Modal -->
 <div id="edit-closer-modal" class="modal" style="display: none;">
-    <div class="modal-overlay" onclick="closeEditCloserModal()"></div>
+    <div class="modal-overlay" data-action="closeEditCloserModal"></div>
     <div class="glass rounded-3xl p-8 max-w-lg w-full mx-4 relative z-10">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-2xl font-bold text-white flex items-center gap-2">
                 <i data-lucide="edit-2" class="w-6 h-6 text-t2-purple"></i>
                 Closer bearbeiten
             </h3>
-            <button onclick="closeEditCloserModal()" class="text-gray-400 hover:text-white">
+            <button data-action="closeEditCloserModal" class="text-gray-400 hover:text-white">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
         </div>
@@ -458,7 +458,7 @@
                     <i data-lucide="check" class="w-5 h-5"></i>
                     <span>Speichern</span>
                 </button>
-                <button type="button" onclick="closeEditCloserModal()" class="btn btn-ghost flex-1">
+                <button type="button" data-action="closeEditCloserModal" class="btn btn-ghost flex-1">
                     Abbrechen
                 </button>
             </div>
@@ -568,6 +568,32 @@
 
 {% block extra_js %}
 <script nonce="{{ csp_nonce }}">
+// CSP-compliant wrappers for data-action
+window.updateBucketProbability = function(e, closerName) {
+    updateProbability(closerName);
+};
+window.updateBucketSizeAction = function(e) {
+    updateBucketSize();
+};
+window.resetBucketAction = function(e) {
+    resetBucket();
+};
+window.openAddCloserModal = function(e) {
+    _openAddCloserModal();
+};
+window.closeAddCloserModal = function(e) {
+    _closeAddCloserModal();
+};
+window.openEditCloserModal = function(e, name, fullName, color) {
+    _openEditCloserModal(name, fullName, color);
+};
+window.closeEditCloserModal = function(e) {
+    _closeEditCloserModal();
+};
+window.confirmRemoveCloser = function(e, name) {
+    _confirmRemoveCloser(name);
+};
+
 function updateProbability(closerName) {
     const inputField = document.getElementById(`prob-${closerName}`);
     const newValue = parseFloat(inputField.value);
@@ -713,7 +739,7 @@ function updateBucketSize() {
 // ========== CLOSER MANAGEMENT ==========
 
 // Add Closer Modal
-function openAddCloserModal() {
+function _openAddCloserModal() {
     document.getElementById('add-closer-modal').style.display = 'flex';
     lucide.createIcons();
 
@@ -732,7 +758,7 @@ function openAddCloserModal() {
     });
 }
 
-function closeAddCloserModal() {
+function _closeAddCloserModal() {
     document.getElementById('add-closer-modal').style.display = 'none';
 }
 
@@ -769,7 +795,7 @@ document.getElementById('add-closer-form').addEventListener('submit', function(e
 });
 
 // Edit Closer Modal
-function openEditCloserModal(name, fullName, color) {
+function _openEditCloserModal(name, fullName, color) {
     document.getElementById('edit-closer-modal').style.display = 'flex';
     document.getElementById('edit-name-original').value = name;
     document.getElementById('edit-name').value = name;
@@ -793,7 +819,7 @@ function openEditCloserModal(name, fullName, color) {
     });
 }
 
-function closeEditCloserModal() {
+function _closeEditCloserModal() {
     document.getElementById('edit-closer-modal').style.display = 'none';
 }
 
@@ -828,7 +854,7 @@ document.getElementById('edit-closer-form').addEventListener('submit', function(
 });
 
 // Remove Closer
-function confirmRemoveCloser(name) {
+function _confirmRemoveCloser(name) {
     if (!confirm(`Bist du sicher, dass du Closer "${name}" entfernen möchtest? Dies setzt den Bucket zurück.`)) {
         return;
     }

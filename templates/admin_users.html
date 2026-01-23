@@ -62,7 +62,7 @@
 <div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="500">
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">Alle Benutzer</h2>
-        <button class="btn btn-primary gap-2" onclick="document.getElementById('add_user_modal').showModal()">
+        <button class="btn btn-primary gap-2" data-action="showModal" data-args='["add_user_modal"]'>
             <i data-lucide="user-plus" class="w-5 h-5"></i>
             <span>Neuer Benutzer</span>
         </button>
@@ -110,11 +110,11 @@
                     <td class="text-white/70">{{ user.last_login or 'Nie' }}</td>
                     <td>
                         <div class="flex gap-2">
-                            <button class="btn btn-sm btn-ghost" onclick="editUser('{{ user.username }}')">
+                            <button class="btn btn-sm btn-ghost" data-action="editUser" data-args='["{{ user.username }}"]'>
                                 <i data-lucide="edit" class="w-4 h-4"></i>
                             </button>
                             {% if not user.is_admin %}
-                            <button class="btn btn-sm btn-error btn-outline" onclick="deleteUser('{{ user.username }}')">
+                            <button class="btn btn-sm btn-error btn-outline" data-action="deleteUser" data-args='["{{ user.username }}"]'>
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                             {% endif %}
@@ -153,7 +153,7 @@
                 </div>
             </div>
             <div class="modal-action">
-                <button type="button" class="btn btn-ghost" onclick="document.getElementById('add_user_modal').close()">Abbrechen</button>
+                <button type="button" class="btn btn-ghost" data-action="closeModal" data-args='["add_user_modal"]'>Abbrechen</button>
                 <button type="submit" class="btn btn-primary">Hinzufügen</button>
             </div>
         </form>
@@ -167,18 +167,18 @@
 
 {% block extra_js %}
 <script nonce="{{ csp_nonce }}">
-    function editUser(username) {
-        // Implementation for editing user
+    // CSP-compliant wrappers for data-action
+    window.editUser = function(e, username) {
         alert('Edit user: ' + username);
-    }
+    };
 
-    function deleteUser(username) {
+    window.deleteUser = function(e, username) {
         if (confirm('Möchten Sie den Benutzer ' + username + ' wirklich löschen?')) {
             fetch('/admin/users/delete/' + username, {
                 method: 'POST'
             }).then(() => location.reload());
         }
-    }
+    };
 
     // Refresh Lucide icons
     setTimeout(() => {

@@ -199,7 +199,7 @@
               autocomplete="current-password">
             <button
               type="button"
-              onclick="togglePassword()"
+              data-action="togglePassword"
               class="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors">
               <i data-lucide="eye" id="eye-icon" class="w-5 h-5"></i>
             </button>
@@ -277,6 +277,19 @@
 
   <!-- JavaScript -->
   <script nonce="{{ csp_nonce }}">
+    // Event Dispatcher for CSP compliance (standalone template)
+    (function() {
+        document.addEventListener('click', function(e) {
+            var target = e.target.closest('[data-action]');
+            if (!target) return;
+            var action = target.dataset.action;
+            if (typeof window[action] === 'function') {
+                e.preventDefault();
+                window[action](e);
+            }
+        });
+    })();
+
     // Initialize Lucide Icons
     lucide.createIcons();
 
@@ -329,7 +342,7 @@
     });
 
     // Toggle Password Visibility
-    function togglePassword() {
+    window.togglePassword = function(e) {
       const passwordInput = document.getElementById('password-input');
       const eyeIcon = document.getElementById('eye-icon');
 
@@ -342,7 +355,7 @@
       }
 
       lucide.createIcons();
-    }
+    };
 
     // Form Animation on Submit
     document.querySelector('form').addEventListener('submit', function(e) {

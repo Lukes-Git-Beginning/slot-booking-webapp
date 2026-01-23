@@ -108,7 +108,7 @@
 
       <!-- Quick Actions -->
       <div class="flex items-center gap-3">
-        <button onclick="location.reload()" class="btn btn-circle btn-ghost hover:bg-white/10">
+        <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
           <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
         </button>
       </div>
@@ -239,6 +239,20 @@
 
   <!-- Initialize Scripts -->
   <script nonce="{{ csp_nonce }}">
+    // Event Dispatcher for CSP compliance (standalone template)
+    (function() {
+        window.reloadPage = function() { location.reload(); };
+        document.addEventListener('click', function(e) {
+            var target = e.target.closest('[data-action]');
+            if (!target) return;
+            var action = target.dataset.action;
+            if (typeof window[action] === 'function') {
+                e.preventDefault();
+                window[action](e);
+            }
+        });
+    })();
+
     // Initialize Lucide Icons
     lucide.createIcons();
 

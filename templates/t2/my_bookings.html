@@ -21,15 +21,15 @@
 
   <!-- Filter Tabs -->
   <div class="tabs tabs-boxed glass mb-6" data-aos="fade-up">
-    <a class="tab tab-active" data-filter="upcoming" onclick="filterBookings('upcoming')">
+    <a class="tab tab-active" data-filter="upcoming" data-action="filterBookingsTab" data-args='["upcoming"]'>
       <i data-lucide="calendar-clock" class="w-4 h-4 mr-2"></i>
       Anstehend
     </a>
-    <a class="tab" data-filter="past" onclick="filterBookings('past')">
+    <a class="tab" data-filter="past" data-action="filterBookingsTab" data-args='["past"]'>
       <i data-lucide="history" class="w-4 h-4 mr-2"></i>
       Vergangene
     </a>
-    <a class="tab" data-filter="cancelled" onclick="filterBookings('cancelled')">
+    <a class="tab" data-filter="cancelled" data-action="filterBookingsTab" data-args='["cancelled"]'>
       <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i>
       Storniert
     </a>
@@ -72,11 +72,11 @@
     <div id="reschedule-calendar" class="mb-6">
       <!-- Month Navigation -->
       <div class="flex items-center justify-between mb-4">
-        <button onclick="reschedulePrevMonth()" class="btn btn-circle btn-outline btn-sm">
+        <button data-action="reschedulePrevMonth" class="btn btn-circle btn-outline btn-sm">
           <i data-lucide="chevron-left" class="w-4 h-4"></i>
         </button>
         <h4 class="text-xl font-bold" id="reschedule-month-title">November 2025</h4>
-        <button onclick="rescheduleNextMonth()" class="btn btn-circle btn-outline btn-sm">
+        <button data-action="rescheduleNextMonth" class="btn btn-circle btn-outline btn-sm">
           <i data-lucide="chevron-right" class="w-4 h-4"></i>
         </button>
       </div>
@@ -130,11 +130,11 @@
     </div>
 
     <div class="modal-action">
-      <button id="reschedule-confirm-btn" class="btn btn-primary hidden" onclick="confirmReschedule()">
+      <button id="reschedule-confirm-btn" class="btn btn-primary hidden" data-action="confirmReschedule">
         <i data-lucide="check" class="w-4 h-4 mr-2"></i>
         Umbuchen
       </button>
-      <button class="btn" onclick="closeRescheduleModal()">Abbrechen</button>
+      <button class="btn" data-action="closeRescheduleModal">Abbrechen</button>
     </div>
   </div>
   <form method="dialog" class="modal-backdrop">
@@ -158,11 +158,11 @@
     </div>
 
     <div class="modal-action">
-      <button id="cancel-confirm-btn" class="btn btn-error" onclick="confirmCancel()">
+      <button id="cancel-confirm-btn" class="btn btn-error" data-action="confirmCancel">
         <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
         Ja, stornieren
       </button>
-      <button class="btn" onclick="closeCancelModal()">Abbrechen</button>
+      <button class="btn" data-action="closeCancelModal">Abbrechen</button>
     </div>
   </div>
   <form method="dialog" class="modal-backdrop">
@@ -343,11 +343,11 @@
     if (booking.status === 'active') {
       actionButtons = `
         <div class="flex gap-2">
-          <button onclick="openRescheduleModal('${booking.id}')" class="btn btn-sm btn-outline gap-2">
+          <button data-action="openRescheduleModal" data-args='["${booking.id}"]' class="btn btn-sm btn-outline gap-2">
             <i data-lucide="calendar-clock" class="w-4 h-4"></i>
             Umbuchen
           </button>
-          <button onclick="openCancelModal('${booking.id}')" class="btn btn-sm btn-error btn-outline gap-2">
+          <button data-action="openCancelModal" data-args='["${booking.id}"]' class="btn btn-sm btn-error btn-outline gap-2">
             <i data-lucide="x-circle" class="w-4 h-4"></i>
             Stornieren
           </button>
@@ -383,6 +383,17 @@
     return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
+  // ========== CSP-COMPLIANT WRAPPERS ==========
+  window.filterBookingsTab = function(e, filter) { filterBookings(filter); };
+  window.reschedulePrevMonth = function(e) { _reschedulePrevMonth(); };
+  window.rescheduleNextMonth = function(e) { _rescheduleNextMonth(); };
+  window.confirmReschedule = function(e) { _confirmReschedule(); };
+  window.closeRescheduleModal = function(e) { _closeRescheduleModal(); };
+  window.confirmCancel = function(e) { _confirmCancel(); };
+  window.closeCancelModal = function(e) { _closeCancelModal(); };
+  window.openRescheduleModal = function(e, bookingId) { _openRescheduleModal(bookingId); };
+  window.openCancelModal = function(e, bookingId) { _openCancelModal(bookingId); };
+
   // ========== FILTER BOOKINGS ==========
 
   function filterBookings(filter) {
@@ -401,7 +412,7 @@
 
   // ========== RESCHEDULE MODAL ==========
 
-  function openRescheduleModal(bookingId) {
+  function _openRescheduleModal(bookingId) {
     const booking = bookingsState.allBookings.find(b => b.id === bookingId);
     if (!booking) return;
 
@@ -431,7 +442,7 @@
     lucide.createIcons();
   }
 
-  function closeRescheduleModal() {
+  function _closeRescheduleModal() {
     document.getElementById('reschedule-modal').close();
   }
 
@@ -557,7 +568,7 @@
     document.getElementById('reschedule-confirm-btn').classList.remove('hidden');
   }
 
-  function reschedulePrevMonth() {
+  function _reschedulePrevMonth() {
     bookingsState.rescheduleData.month--;
     if (bookingsState.rescheduleData.month < 1) {
       bookingsState.rescheduleData.month = 12;
@@ -566,7 +577,7 @@
     loadRescheduleMonth();
   }
 
-  function rescheduleNextMonth() {
+  function _rescheduleNextMonth() {
     bookingsState.rescheduleData.month++;
     if (bookingsState.rescheduleData.month > 12) {
       bookingsState.rescheduleData.month = 1;
@@ -575,7 +586,7 @@
     loadRescheduleMonth();
   }
 
-  async function confirmReschedule() {
+  async function _confirmReschedule() {
     const { bookingId, selectedDate, selectedTime } = bookingsState.rescheduleData;
 
     if (!selectedDate || !selectedTime) {
@@ -602,7 +613,7 @@
 
       if (data.success) {
         alert(data.message);
-        closeRescheduleModal();
+        _closeRescheduleModal();
         loadBookings();  // Reload bookings
       } else {
         throw new Error(data.error || 'Reschedule failed');
@@ -619,7 +630,7 @@
 
   // ========== CANCEL MODAL ==========
 
-  function openCancelModal(bookingId) {
+  function _openCancelModal(bookingId) {
     const booking = bookingsState.allBookings.find(b => b.id === bookingId);
     if (!booking) return;
 
@@ -639,11 +650,11 @@
     lucide.createIcons();
   }
 
-  function closeCancelModal() {
+  function _closeCancelModal() {
     document.getElementById('cancel-modal').close();
   }
 
-  async function confirmCancel() {
+  async function _confirmCancel() {
     const confirmBtn = document.getElementById('cancel-confirm-btn');
     const bookingId = confirmBtn.dataset.bookingId;
 
@@ -661,7 +672,7 @@
 
       if (data.success) {
         alert(data.message);
-        closeCancelModal();
+        _closeCancelModal();
         loadBookings();  // Reload bookings
       } else {
         throw new Error(data.error || 'Cancel failed');

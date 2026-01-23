@@ -72,7 +72,7 @@
     {% for tool in tools %}
     {% if tool.modal %}
     <!-- Tool with Modal Trigger -->
-    <div onclick="{{ tool.modal }}.showModal()"
+    <div data-action="showModal" data-args='["{{ tool.modal }}"]'
        class="glass rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl group relative overflow-hidden cursor-pointer"
        data-aos="zoom-in"
        data-aos-delay="{{ loop.index * 50 }}">
@@ -233,7 +233,7 @@
 
         <!-- Modal Actions -->
         <div class="modal-action">
-            <button type="button" class="btn btn-ghost" onclick="onboardingModal.close()">
+            <button type="button" class="btn btn-ghost" data-action="closeModal" data-args='["onboardingModal"]'>
                 <i data-lucide="x" class="w-4 h-4 mr-2"></i>
                 Schließen
             </button>

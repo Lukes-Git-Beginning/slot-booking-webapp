@@ -631,7 +631,7 @@
                 {% endif %}
                 <span class="text-white/50 text-xs">von {{ activity.by }}</span>
               </div>
-              <form method="post" class="inline" onsubmit="return confirm('Aktivität wirklich löschen?');">
+              <form method="post" class="inline" data-confirm="Aktivität wirklich löschen?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="delete_activity">
                 <input type="hidden" name="user" value="{{ u.user }}">
@@ -729,6 +729,20 @@
   <script src="{{ url_for('static', filename='aos.js') }}"></script>
 
   <script nonce="{{ csp_nonce }}">
+    // Event Dispatcher for CSP compliance (standalone template)
+    (function() {
+        // Handle form submit confirmations
+        document.addEventListener('submit', function(e) {
+            var form = e.target.closest('[data-confirm]');
+            if (form) {
+                var message = form.dataset.confirm;
+                if (!confirm(message)) {
+                    e.preventDefault();
+                }
+            }
+        });
+    })();
+
     // Initialize Lucide Icons
     lucide.createIcons();
 

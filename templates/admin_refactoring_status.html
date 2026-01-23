@@ -53,7 +53,7 @@
       </div>
       <div class="text-right text-sm text-gray-500">
         <div>Last Updated: {{ current_time }}</div>
-        <button onclick="location.reload()" class="btn btn-sm btn-ghost mt-2">
+        <button data-action="reloadPage" class="btn btn-sm btn-ghost mt-2">
           <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i> Refresh
         </button>
       </div>
@@ -399,6 +399,20 @@
   </div>
 
   <script nonce="{{ csp_nonce }}">
+    // Event Dispatcher for CSP compliance (standalone template)
+    (function() {
+        window.reloadPage = function() { location.reload(); };
+        document.addEventListener('click', function(e) {
+            var target = e.target.closest('[data-action]');
+            if (!target) return;
+            var action = target.dataset.action;
+            if (typeof window[action] === 'function') {
+                e.preventDefault();
+                window[action](e);
+            }
+        });
+    })();
+
     // Initialize Lucide icons
     lucide.createIcons();
   </script>

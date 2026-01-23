@@ -60,7 +60,7 @@
             <i data-lucide="users" class="w-6 h-6 text-success"></i>
             Aktive Benutzer
         </h2>
-        <button onclick="refreshOnlineUsers()" class="btn btn-sm btn-ghost gap-2">
+        <button data-action="refreshOnlineUsers" class="btn btn-sm btn-ghost gap-2">
             <i data-lucide="refresh-cw" class="w-4 h-4"></i>
             Aktualisieren
         </button>
@@ -129,8 +129,8 @@ function startCountdown() {
     }, 1000);
 }
 
-// Refresh online users from API
-async function refreshOnlineUsers() {
+// Refresh online users from API (CSP-compliant wrapper)
+window.refreshOnlineUsers = async function(e) {
     try {
         const response = await fetch('/admin/api/activity/online-users');
         const data = await response.json();
@@ -198,7 +198,7 @@ async function refreshOnlineUsers() {
     } catch (error) {
         console.error('Fehler beim Aktualisieren der Online-Users:', error);
     }
-}
+};
 
 // Start auto-refresh on page load
 document.addEventListener('DOMContentLoaded', () => {

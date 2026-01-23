@@ -30,7 +30,7 @@
         +<span id="xpGained">0</span> XP gewonnen!
       </div>
 
-      <button onclick="document.getElementById('levelUpModal').close()" class="btn btn-primary">
+      <button data-action="closeModal" data-args='["levelUpModal"]' class="btn btn-primary">
         <i data-lucide="check" class="w-5 h-5 mr-2"></i>
         Schließen
       </button>
@@ -50,7 +50,7 @@
     </h3>
 
     <div class="space-y-2">
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="toggleSidebar(); document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" data-action="quickActionToggleSidebar">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="sidebar" class="w-5 h-5 text-primary"></i>
@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='/my-calendar'; document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" data-action="quickActionNavigate" data-args='["/my-calendar"]'>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="user" class="w-5 h-5 text-secondary"></i>
@@ -70,7 +70,7 @@
         </div>
       </div>
 
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='{{ url_for('scoreboard.scoreboard') }}'; document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" data-action="quickActionNavigate" data-args='["{{ url_for('scoreboard.scoreboard') }}"]'>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="trophy" class="w-5 h-5 text-warning"></i>
@@ -80,7 +80,7 @@
         </div>
       </div>
 
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="navigateDay(1); document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" data-action="quickActionDay" data-args='[1]'>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="arrow-right" class="w-5 h-5 text-accent"></i>
@@ -90,7 +90,7 @@
         </div>
       </div>
 
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="navigateDay(-1); document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" data-action="quickActionDay" data-args='[-1]'>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="arrow-left" class="w-5 h-5 text-accent"></i>
@@ -101,7 +101,7 @@
       </div>
 
       {% if is_admin %}
-      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" onclick="window.location.href='{{ url_for('admin.admin_dashboard') }}'; document.getElementById('quickActionsModal').close()">
+      <div class="glass rounded-xl p-3 hover:bg-white/10 cursor-pointer transition-all" data-action="quickActionNavigate" data-args='["{{ url_for('admin.admin_dashboard') }}"]'>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <i data-lucide="shield" class="w-5 h-5 text-error"></i>
@@ -131,7 +131,7 @@
         <i data-lucide="bar-chart-3" class="w-6 h-6 text-primary"></i>
         Wochenauslastung
       </h3>
-      <button onclick="toggleSidebar()" class="btn btn-ghost btn-sm btn-circle">
+      <button data-action="toggleSidebar" class="btn btn-ghost btn-sm btn-circle">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
     </div>
@@ -169,7 +169,7 @@
 </div>
 
 <!-- Sidebar Toggle Button -->
-<button id="sidebarToggle" onclick="toggleSidebar()"
+<button id="sidebarToggle" data-action="toggleSidebar"
         class="fixed left-4 top-24 z-40 btn btn-circle glass hover:scale-110 transition-transform"
         title="Menü">
   <i data-lucide="menu" class="w-5 h-5"></i>
@@ -238,12 +238,13 @@
         {% set ratio = (w.booked / (w.possible + 0.001)) if w.possible > 0 else 0 %}
         {% set color_class = 'success' if ratio < 0.5 else 'warning' if ratio < 0.8 else 'orange-500' if ratio < 1 else 'error' %}
 
-        <div class="glass rounded-2xl p-6 text-center hover:scale-105 transition-transform">
+        <a href="{{ url_for('main.day_view', date_str=w.start_date) }}"
+           class="glass rounded-2xl p-6 text-center hover:scale-105 transition-transform block cursor-pointer">
           <div class="text-sm text-white/70 mb-2">{{ w.label }}</div>
           <div class="text-4xl font-bold text-{{ color_class }} mb-2">{{ w.usage_pct }}%</div>
           <div class="text-sm text-white/80 mb-1">{{ w.booked }} / {{ w.possible }} gebucht</div>
           <div class="text-xs text-white/60">{{ w.range }}</div>
-        </div>
+        </a>
       {% endfor %}
     </div>
 
@@ -286,15 +287,15 @@
 
     <!-- Quick Actions -->
     <div class="flex flex-wrap gap-2 mb-6">
-      <button onclick="expandAll()" class="btn btn-sm btn-ghost gap-2">
+      <button data-action="expandAll" class="btn btn-sm btn-ghost gap-2">
         <i data-lucide="chevrons-down" class="w-4 h-4"></i>
         Alle aufklappen
       </button>
-      <button onclick="collapseAll()" class="btn btn-sm btn-ghost gap-2">
+      <button data-action="collapseAll" class="btn btn-sm btn-ghost gap-2">
         <i data-lucide="chevrons-up" class="w-4 h-4"></i>
         Alle zuklappen
       </button>
-      <button onclick="jumpToEvening()" class="btn btn-sm btn-ghost gap-2">
+      <button data-action="jumpToEvening" class="btn btn-sm btn-ghost gap-2">
         <i data-lucide="moon" class="w-4 h-4"></i>
         Zu Abendterminen
       </button>
@@ -317,7 +318,7 @@
 
         <div class="slot-section glass rounded-2xl overflow-hidden" data-hour="{{ hour }}">
           <!-- Header -->
-          <div class="slot-header p-4 hover:bg-white/5 transition-colors" onclick="toggleSlot(this)">
+          <div class="slot-header p-4 hover:bg-white/5 transition-colors" data-action="toggleSlot">
             <div class="flex items-center justify-between gap-4">
               <div class="flex-1 flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2 font-bold text-white">
@@ -412,7 +413,7 @@
               {% endif %}
 
               {% if not slot.overbooked and slot.free_count > 0 %}
-              <form method="POST" action="{{ url_for('booking.book') }}" class="space-y-4" onsubmit="return handleBookingSubmit(this)">
+              <form method="POST" action="{{ url_for('booking.book') }}" class="space-y-4" data-submit="handleBookingSubmitForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="date" value="{{ date.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="hour" value="{{ hour }}">

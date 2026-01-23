@@ -119,7 +119,7 @@
 
     <!-- Custom Styles -->
     <style nonce="{{ csp_nonce }}">
-        @import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         * {
             margin: 0;
@@ -762,7 +762,7 @@
                         </div>
                     </div>
                     <div class="flex-none">
-                        <button class="btn btn-sm btn-primary" onclick="location.reload()">
+                        <button class="btn btn-sm btn-primary" data-action="reloadPage">
                             Seite neu laden
                         </button>
                     </div>
@@ -839,6 +839,98 @@
         updateActivity();
         console.log('✅ Session Timeout Monitor initialized (Timeout: 8h, Warning: 5min before)');
 
+    })();
+    </script>
+
+    <!-- CSP-Compliant Event Dispatcher -->
+    <script nonce="{{ csp_nonce }}">
+    // ========================================
+    // Global Event Dispatcher for CSP Compliance
+    // ========================================
+    // Replaces inline onclick/onsubmit handlers with data-action attributes
+
+    (function() {
+        // Common helper functions available globally
+        window.reloadPage = function() { location.reload(); };
+        window.goBack = function() { history.back(); };
+        window.navigateTo = function(e, url) { window.location.href = url; };
+        window.showModal = function(e, modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal && modal.showModal) modal.showModal();
+        };
+        window.closeModal = function(e, modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal && modal.close) modal.close();
+        };
+        window.toggleElement = function(e, elementId) {
+            const el = document.getElementById(elementId);
+            if (el) el.classList.toggle('hidden');
+        };
+        window.submitForm = function(e, formId) {
+            const form = document.getElementById(formId);
+            if (form) form.submit();
+        };
+
+        // Handle data-action clicks (delegated)
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            let args = [];
+
+            // Parse arguments if present
+            if (target.dataset.args) {
+                try {
+                    args = JSON.parse(target.dataset.args);
+                } catch (err) {
+                    console.error('Invalid data-args JSON:', target.dataset.args);
+                }
+            }
+
+            // Call the action function if it exists
+            if (typeof window[action] === 'function') {
+                e.preventDefault();
+                window[action].apply(null, [e, ...args]);
+            } else {
+                console.warn('Action function not found:', action);
+            }
+        });
+
+        // Handle data-submit for forms (delegated)
+        document.addEventListener('submit', function(e) {
+            const form = e.target.closest('[data-submit]');
+            if (!form) return;
+
+            const action = form.dataset.submit;
+            if (typeof window[action] === 'function') {
+                e.preventDefault();
+                window[action](e);
+            }
+        });
+
+        // Handle data-change for inputs/selects (delegated)
+        document.addEventListener('change', function(e) {
+            const target = e.target.closest('[data-change]');
+            if (!target) return;
+
+            const action = target.dataset.change;
+            let args = [];
+
+            if (target.dataset.args) {
+                try {
+                    args = JSON.parse(target.dataset.args);
+                } catch (err) {
+                    console.error('Invalid data-args JSON:', target.dataset.args);
+                }
+            }
+
+            if (typeof window[action] === 'function') {
+                window[action].apply(null, [e, ...args]);
+            }
+        });
+
+        console.log('✅ CSP Event Dispatcher initialized');
     })();
     </script>
 

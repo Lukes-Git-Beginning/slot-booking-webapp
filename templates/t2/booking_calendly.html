@@ -94,7 +94,7 @@
           <span id="coach-availability-message">Lädt Verfügbarkeit...</span>
         </div>
 
-        <button onclick="selectBerater()" class="btn btn-primary w-full text-lg">
+        <button data-action="selectBeraterT2" class="btn btn-primary w-full text-lg">
           Weiter zur Terminauswahl
           <i data-lucide="arrow-right" class="w-5 h-5 ml-2"></i>
         </button>
@@ -108,11 +108,11 @@
 
         <!-- Month Navigation -->
         <div class="flex items-center justify-between mb-6">
-          <button onclick="prevMonth()" class="btn btn-circle btn-outline">
+          <button data-action="prevMonthT2" class="btn btn-circle btn-outline">
             <i data-lucide="chevron-left" class="w-5 h-5"></i>
           </button>
           <h3 class="text-2xl font-bold" id="month-title">November 2025</h3>
-          <button onclick="nextMonth()" class="btn btn-circle btn-outline">
+          <button data-action="nextMonthT2" class="btn btn-circle btn-outline">
             <i data-lucide="chevron-right" class="w-5 h-5"></i>
           </button>
         </div>
@@ -148,7 +148,7 @@
           <span>Keine verfügbaren Termine in diesem Monat</span>
         </div>
 
-        <button onclick="backToStep(1)" class="btn btn-outline mt-6">
+        <button data-action="backToStepT2" data-args='[1]' class="btn btn-outline mt-6">
           <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
           Zurück
         </button>
@@ -208,7 +208,7 @@
 
         </div>
 
-        <button onclick="backToStep(2)" class="btn btn-outline mt-6">
+        <button data-action="backToStepT2" data-args='[2]' class="btn btn-outline mt-6">
           <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
           Zurück
         </button>
@@ -288,7 +288,7 @@
 
         </form>
 
-        <button onclick="backToStep(3)" class="btn btn-outline mt-6">
+        <button data-action="backToStepT2" data-args='[3]' class="btn btn-outline mt-6">
           <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
           Zurück
         </button>
@@ -379,6 +379,24 @@
 </style>
 
 <script nonce="{{ csp_nonce }}">
+  // ========== CSP-COMPLIANT WRAPPER FUNCTIONS ==========
+
+  window.selectBeraterT2 = function(e) {
+    selectBerater();
+  };
+
+  window.prevMonthT2 = function(e) {
+    prevMonth();
+  };
+
+  window.nextMonthT2 = function(e) {
+    nextMonth();
+  };
+
+  window.backToStepT2 = function(e, stepNumber) {
+    backToStep(stepNumber);
+  };
+
   // ========== STATE MANAGEMENT ==========
 
   let bookingState = {
