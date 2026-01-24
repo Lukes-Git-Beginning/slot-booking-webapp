@@ -4,11 +4,10 @@ Central Business Tool Hub - Flask Application Factory
 Zentraler Hub für alle Business-Tools mit Microservice-Architektur
 """
 
-from flask import Flask, render_template, redirect, url_for, request, session, g
+from flask import Flask, render_template, redirect, url_for, request, session
 from typing import Optional
 import os
 import logging
-import secrets
 from datetime import datetime
 
 def create_app(config_object: Optional[str] = None) -> Flask:
@@ -332,7 +331,6 @@ def register_template_context(app: Flask) -> None:
             'is_admin': session.get('user') in get_admin_users(),
             'available_tools': get_available_tools(),
             'notifications': get_user_notifications(),
-            'csp_nonce': getattr(g, 'csp_nonce', ''),  # CSP nonce for inline scripts/styles
         }
 
     @app.template_filter('datetime')
@@ -368,9 +366,6 @@ def register_request_hooks(app: Flask) -> None:
     @app.before_request
     def before_request():
         """Vor jedem Request ausführen"""
-        # Generate CSP nonce for this request
-        g.csp_nonce = secrets.token_urlsafe(16)
-
         # User-Activity-Tracking
         if 'user' in session:
             session['last_activity'] = datetime.now().isoformat()
@@ -387,16 +382,17 @@ def register_request_hooks(app: Flask) -> None:
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
 
-        # Content Security Policy (CSP) with nonce for inline scripts/styles
-        nonce = getattr(g, 'csp_nonce', '')
+        # Content Security Policy (CSP)
+        # NOTE: unsafe-inline/unsafe-eval required for current inline scripts
+        # TODO: Refactor to nonce-based CSP for better security
         csp_directives = [
             "default-src 'self'",
-            f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval'",  # Nonce for inline scripts, unsafe-eval for some libs
-            "style-src 'self' 'unsafe-inline'",  # No nonce for styles - Tailwind JIT generates dynamic styles at runtime
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Allows inline scripts (needed for Tailwind/Alpine)
+            "style-src 'self' 'unsafe-inline'",  # Allows inline styles
             "img-src 'self' data: https:",  # Allows base64 images and external HTTPS images
-            "font-src 'self' data: https:",  # Allows web fonts from CDN
+            "font-src 'self' data:",  # Allows web fonts
             "connect-src 'self'",  # AJAX requests to same origin only
-            "frame-ancestors 'none'",  # Prevents clickjacking
+            "frame-ancestors 'none'",  # Prevents clickjacking (stronger than X-Frame-Options)
             "base-uri 'self'",  # Restricts <base> tag
             "form-action 'self'",  # Forms can only submit to same origin
         ]
