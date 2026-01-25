@@ -1,267 +1,184 @@
-<!DOCTYPE html>
-<html lang="de" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <title>🛡️ Admin Dashboard - Central Business Hub</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "hub/base.html" %}
 
-  <!-- Tailwind CSS + DaisyUI (Local) -->
-  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+{% block hub_title %}Admin Dashboard - Central Business Hub{% endblock %}
+{% block title_suffix %}{% endblock %}
 
-  <!-- Lucide Icons (Local) -->
-  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
+{% block extra_css %}
+    <style nonce="{{ csp_nonce }}">
+        .admin-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
 
-  <!-- AOS Animations (Local) -->
-  <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
-  <script src="{{ url_for('static', filename='aos.js') }}"></script>
+        .admin-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(212, 175, 106, 0.3);
+        }
 
-  <!-- Tailwind Config -->
-  <script nonce="{{ csp_nonce }}">
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#d4af6a',
-            'primary-dark': '#c2ae7f',
-            'secondary': '#207487',
-            'accent': '#294c5d',
-          },
-        },
-      },
-    }
-  </script>
+        .admin-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(212, 175, 106, 0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
 
-  <style nonce="{{ csp_nonce }}">
-    body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      min-height: 100vh;
-      color: white;
-    }
+        .admin-card:hover::before {
+            opacity: 1;
+        }
+    </style>
+{% endblock %}
 
-    /* Fallback if JS doesn't load */
-    noscript {
-      display: block;
-      padding: 20px;
-      background: rgba(255, 0, 0, 0.2);
-      color: white;
-      text-align: center;
-      font-size: 18px;
-    }
+{% block navbar %}
+    <!-- Admin Header -->
+    <div class="container mx-auto px-4 pt-8 pb-4" data-aos="fade-down">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('hub.dashboard') }}" class="btn btn-ghost btn-circle hover:bg-white/10">
+                    <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl md:text-5xl font-bold text-white flex items-center gap-3">
+                        <i data-lucide="shield-check" class="w-12 h-12 text-primary"></i>
+                        Admin Dashboard
+                    </h1>
+                    <p class="text-white/60 mt-2">Zentrale Verwaltung · {{ current_time }} Uhr</p>
+                </div>
+            </div>
 
-    .glass {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .admin-card {
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .admin-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(212, 175, 106, 0.3);
-    }
-
-    .admin-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(212, 175, 106, 0.1) 0%, transparent 100%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .admin-card:hover::before {
-      opacity: 1;
-    }
-  </style>
-</head>
-<body class="p-4 md:p-8">
-
-  <noscript>
-    ⚠️ JavaScript ist deaktiviert. Bitte aktivieren Sie JavaScript um das Admin Dashboard zu nutzen.
-  </noscript>
-
-  <!-- Header -->
-  <div class="max-w-7xl mx-auto mb-8" data-aos="fade-down">
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
-        <a href="{{ url_for('hub.dashboard') }}" class="btn btn-ghost btn-circle hover:bg-white/10">
-          <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
-        </a>
-        <div>
-          <h1 class="text-3xl md:text-5xl font-bold text-white flex items-center gap-3">
-            <i data-lucide="shield-check" class="w-12 h-12 text-primary"></i>
-            Admin Dashboard
-          </h1>
-          <p class="text-white/60 mt-2">Zentrale Verwaltung · {{ current_time }} Uhr</p>
+            <!-- Quick Actions -->
+            <div class="flex items-center gap-3">
+                <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
+                </button>
+            </div>
         </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="flex items-center gap-3">
-        <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
-          <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
-        </button>
-      </div>
     </div>
+{% endblock %}
 
+{% block content %}
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- Today's Appointments -->
-      <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-white/60 text-sm font-medium">Termine Heute</span>
-          <i data-lucide="calendar" class="w-5 h-5 text-primary"></i>
-        </div>
-        <p class="text-3xl font-bold text-white">{{ today_stats.total_appointments }}</p>
-      </div>
-
-      <!-- No-Show Rate -->
-      <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-white/60 text-sm font-medium">No-Show Rate</span>
-          <i data-lucide="trending-down" class="w-5 h-5 {% if today_stats.no_show_rate < 20 %}text-success{% else %}text-warning{% endif %}"></i>
-        </div>
-        <p class="text-3xl font-bold {% if today_stats.no_show_rate < 20 %}text-success{% else %}text-warning{% endif %}">
-          {{ "%.1f"|format(today_stats.no_show_rate) }}%
-        </p>
-      </div>
-
-      <!-- Active Users -->
-      <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-white/60 text-sm font-medium">Aktive User</span>
-          <i data-lucide="users" class="w-5 h-5 text-info"></i>
-        </div>
-        <p class="text-3xl font-bold text-white">{{ today_stats.active_users }}</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Admin Tools Grid -->
-  <div class="max-w-7xl mx-auto">
-    <div class="glass rounded-3xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="250">
-      <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-        <i data-lucide="grid-3x3" class="w-6 h-6 text-primary"></i>
-        Admin-Bereiche
-      </h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {% for tool in admin_tools %}
-        <a href="{{ tool.url }}"
-           class="admin-card glass rounded-2xl p-8 block"
-           data-aos="zoom-in"
-           data-aos-delay="{{ loop.index * 50 }}">
-
-          <div class="relative z-10">
-            <!-- Icon -->
-            <div class="mb-6 inline-flex p-4 rounded-2xl bg-gradient-to-br {{ tool.color }}">
-              <i data-lucide="{{ tool.icon }}" class="w-12 h-12 text-primary"></i>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <!-- Today's Appointments -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-white/60 text-sm font-medium">Termine Heute</span>
+                <i data-lucide="calendar" class="w-5 h-5 text-primary"></i>
             </div>
+            <p class="text-3xl font-bold text-white">{{ today_stats.total_appointments }}</p>
+        </div>
 
-            <!-- Tool Name -->
-            <h3 class="text-2xl font-bold text-white mb-3">
-              {{ tool.name }}
-            </h3>
-
-            <!-- Description -->
-            <p class="text-white/70 text-sm mb-4">
-              {{ tool.description }}
+        <!-- No-Show Rate -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-white/60 text-sm font-medium">No-Show Rate</span>
+                <i data-lucide="trending-down" class="w-5 h-5 {% if today_stats.no_show_rate < 20 %}text-success{% else %}text-warning{% endif %}"></i>
+            </div>
+            <p class="text-3xl font-bold {% if today_stats.no_show_rate < 20 %}text-success{% else %}text-warning{% endif %}">
+                {{ "%.1f"|format(today_stats.no_show_rate) }}%
             </p>
+        </div>
 
-            <!-- Status Badge -->
-            {% if tool.status == 'active' %}
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/20 border border-success/40 text-success text-xs font-semibold">
-              <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-              Verfügbar
+        <!-- Active Users -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-white/60 text-sm font-medium">Aktive User</span>
+                <i data-lucide="users" class="w-5 h-5 text-info"></i>
             </div>
-            {% elif tool.status == 'beta' %}
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/20 border border-warning/40 text-warning text-xs font-semibold">
-              <i data-lucide="flask-conical" class="w-3 h-3"></i>
-              Beta
-            </div>
-            {% else %}
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/60 text-xs font-semibold">
-              <i data-lucide="wrench" class="w-3 h-3"></i>
-              Wartung
-            </div>
-            {% endif %}
+            <p class="text-3xl font-bold text-white">{{ today_stats.active_users }}</p>
+        </div>
+    </div>
 
-            <!-- Arrow Icon -->
-            <div class="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
-              <i data-lucide="arrow-right" class="w-6 h-6 text-primary"></i>
-            </div>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
+    <!-- Admin Tools Grid -->
+    <div class="glass rounded-3xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="250">
+        <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <i data-lucide="grid-3x3" class="w-6 h-6 text-primary"></i>
+            Admin-Bereiche
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for tool in admin_tools %}
+            <a href="{{ tool.url }}"
+               class="admin-card glass rounded-2xl p-8 block"
+               data-aos="zoom-in"
+               data-aos-delay="{{ loop.index * 50 }}">
+
+                <div class="relative z-10">
+                    <!-- Icon -->
+                    <div class="mb-6 inline-flex p-4 rounded-2xl bg-gradient-to-br {{ tool.color }}">
+                        <i data-lucide="{{ tool.icon }}" class="w-12 h-12 text-primary"></i>
+                    </div>
+
+                    <!-- Tool Name -->
+                    <h3 class="text-2xl font-bold text-white mb-3">
+                        {{ tool.name }}
+                    </h3>
+
+                    <!-- Description -->
+                    <p class="text-white/70 text-sm mb-4">
+                        {{ tool.description }}
+                    </p>
+
+                    <!-- Status Badge -->
+                    {% if tool.status == 'active' %}
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/20 border border-success/40 text-success text-xs font-semibold">
+                        <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
+                        Verfügbar
+                    </div>
+                    {% elif tool.status == 'beta' %}
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/20 border border-warning/40 text-warning text-xs font-semibold">
+                        <i data-lucide="flask-conical" class="w-3 h-3"></i>
+                        Beta
+                    </div>
+                    {% else %}
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/60 text-xs font-semibold">
+                        <i data-lucide="wrench" class="w-3 h-3"></i>
+                        Wartung
+                    </div>
+                    {% endif %}
+
+                    <!-- Arrow Icon -->
+                    <div class="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
+                        <i data-lucide="arrow-right" class="w-6 h-6 text-primary"></i>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
     </div>
 
     <!-- Additional Quick Links -->
     <div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up" data-aos-delay="300">
-      <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
-        Schnellzugriffe
-      </h3>
+        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
+            Schnellzugriffe
+        </h3>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <a href="/admin/reports/weekly" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
-          <i data-lucide="file-text" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
-          <span class="text-white/90 text-sm font-medium">Weekly Report</span>
-        </a>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <a href="/admin/reports/weekly" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+                <i data-lucide="file-text" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
+                <span class="text-white/90 text-sm font-medium">Weekly Report</span>
+            </a>
 
-        <a href="/admin/reports/monthly" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
-          <i data-lucide="calendar-range" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
-          <span class="text-white/90 text-sm font-medium">Monthly Report</span>
-        </a>
+            <a href="/admin/reports/monthly" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+                <i data-lucide="calendar-range" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
+                <span class="text-white/90 text-sm font-medium">Monthly Report</span>
+            </a>
 
-        <a href="/admin/export-all-data" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
-          <i data-lucide="download" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
-          <span class="text-white/90 text-sm font-medium">Daten Export</span>
-        </a>
+            <a href="/admin/export-all-data" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+                <i data-lucide="download" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
+                <span class="text-white/90 text-sm font-medium">Daten Export</span>
+            </a>
 
-        <a href="{{ url_for('hub.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
-          <i data-lucide="home" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
-          <span class="text-white/90 text-sm font-medium">Zurück zum Hub</span>
-        </a>
-      </div>
+            <a href="{{ url_for('hub.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group">
+                <i data-lucide="home" class="w-5 h-5 text-primary group-hover:scale-110 transition-transform"></i>
+                <span class="text-white/90 text-sm font-medium">Zurück zum Hub</span>
+            </a>
+        </div>
     </div>
-  </div>
-
-  <!-- Initialize Scripts -->
-  <script nonce="{{ csp_nonce }}">
-    // Event Dispatcher for CSP compliance (standalone template)
-    (function() {
-        window.reloadPage = function() { location.reload(); };
-        document.addEventListener('click', function(e) {
-            var target = e.target.closest('[data-action]');
-            if (!target) return;
-            var action = target.dataset.action;
-            if (typeof window[action] === 'function') {
-                e.preventDefault();
-                window[action](e);
-            }
-        });
-    })();
-
-    // Initialize Lucide Icons
-    lucide.createIcons();
-
-    // Initialize AOS
-    AOS.init({
-      duration: 800,
-      once: true
-    });
-  </script>
-
-</body>
-</html>
+{% endblock %}

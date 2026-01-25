@@ -1,70 +1,15 @@
-<!DOCTYPE html>
-<html lang="de" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Meine Buchungen - {{ user }} | Slot Booking</title>
+{% extends "slots/base.html" %}
 
-    <!-- Tailwind CSS + DaisyUI -->
-    <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-    <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+{% block slot_title %}Meine Buchungen - {{ user }} | Slot Booking{% endblock %}
+{% block title_suffix %}{% endblock %}
 
-    <!-- Lucide Icons -->
-    <script src="{{ url_for('static', filename='lucide.js') }}"></script>
-
-    <!-- AOS (Animate On Scroll) -->
-    <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
-    <script src="{{ url_for('static', filename='aos.js') }}"></script>
-
-    <!-- Particles.js -->
-    <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
-
+{% block extra_head_imports %}
     <!-- SortableJS for Drag & Drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% endblock %}
 
-    <!-- Custom Tailwind Config -->
-    <script nonce="{{ csp_nonce }}">
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#d4af6a',
-                        'primary-dark': '#c2ae7f',
-                        'secondary': '#207487',
-                        'accent': '#294c5d',
-                    },
-                },
-            },
-        }
-    </script>
-
-    <!-- Custom Styles -->
+{% block extra_css %}
     <style nonce="{{ csp_nonce }}">
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .glass {
-            background: rgba(18, 24, 32, 0.65);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        #particles-js {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: 0;
-            pointer-events: none;
-        }
-
         /* Kanban Card Hover Effects */
         .kanban-card {
             transition: all 0.3s ease;
@@ -116,7 +61,7 @@
             white-space: nowrap;
         }
 
-        /* Custom Scrollbar */
+        /* Custom Scrollbar (narrower for kanban) */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -156,9 +101,38 @@
             animation: slideInLeft 0.3s ease;
         }
     </style>
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 text-white min-h-screen">
+{% endblock %}
 
+{% block body_start %}{% endblock %}
+
+{% block navbar %}
+    <!-- Header -->
+    <nav class="glass backdrop-blur-xl sticky top-0 z-50" data-aos="fade-down">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <a href="{{ url_for('main.index') }}" class="btn btn-ghost gap-2 hover:bg-white/10">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    Zurück
+                </a>
+                <h1 class="text-xl font-bold">Meine Buchungen</h1>
+
+                <!-- View Toggle -->
+                <div class="btn-group">
+                    <a href="?view=table" class="btn btn-sm {% if view_mode == 'table' %}btn-primary{% else %}btn-ghost{% endif %}">
+                        <i data-lucide="table" class="w-4 h-4"></i>
+                        <span class="hidden md:inline ml-2">Tabelle</span>
+                    </a>
+                    <a href="?view=kanban" class="btn btn-sm {% if view_mode == 'kanban' %}btn-primary{% else %}btn-ghost{% endif %}">
+                        <i data-lucide="columns" class="w-4 h-4"></i>
+                        <span class="hidden md:inline ml-2">Kanban</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+{% endblock %}
+
+{% block main_wrapper %}
     <!-- Match Badge Macro -->
     {% macro match_badge(match_reason) %}
         {% if match_reason and match_reason != 'tag' %}
@@ -175,540 +149,483 @@
         {% endif %}
     {% endmacro %}
 
-    <!-- Particle Background -->
-    <div id="particles-js"></div>
-
-    <!-- Main Container -->
-    <div class="relative z-10">
-        <!-- Header -->
-        <nav class="glass backdrop-blur-xl sticky top-0 z-50" data-aos="fade-down">
-            <div class="container mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <a href="{{ url_for('main.index') }}" class="btn btn-ghost gap-2 hover:bg-white/10">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                        Zurück
-                    </a>
-                    <h1 class="text-xl font-bold">Meine Buchungen</h1>
-
-                    <!-- View Toggle -->
-                    <div class="btn-group">
-                        <a href="?view=table" class="btn btn-sm {% if view_mode == 'table' %}btn-primary{% else %}btn-ghost{% endif %}">
-                            <i data-lucide="table" class="w-4 h-4"></i>
-                            <span class="hidden md:inline ml-2">Tabelle</span>
-                        </a>
-                        <a href="?view=kanban" class="btn btn-sm {% if view_mode == 'kanban' %}btn-primary{% else %}btn-ghost{% endif %}">
-                            <i data-lucide="columns" class="w-4 h-4"></i>
-                            <span class="hidden md:inline ml-2">Kanban</span>
-                        </a>
-                    </div>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8" data-aos="fade-down" data-aos-delay="100">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                    <i data-lucide="calendar" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h2 class="text-4xl font-bold">Meine gebuchten Kunden</h2>
+                    <p class="text-gray-400">Übersicht deiner Termine als Telefonist {{ user }}</p>
                 </div>
             </div>
-        </nav>
+        </div>
 
-        <!-- Main Content -->
-        <main class="container mx-auto px-4 py-8">
-            <!-- Page Header -->
-            <div class="mb-8" data-aos="fade-down" data-aos-delay="100">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                        <i data-lucide="calendar" class="w-8 h-8"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-4xl font-bold">Meine gebuchten Kunden</h2>
-                        <p class="text-gray-400">Übersicht deiner Termine als Telefonist {{ user }}</p>
-                    </div>
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8" data-aos="fade-up">
+            <!-- Pending (Grau) -->
+            <div class="glass rounded-xl p-4 border-l-4 border-gray-400 hover:scale-105 transition-transform">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
+                    <span class="text-xs text-gray-400">Pending</span>
                 </div>
+                <span class="text-2xl font-bold">{{ stats.pending or 0 }}</span>
             </div>
 
-            <!-- Statistics Dashboard -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8" data-aos="fade-up">
-                <!-- Pending (Grau) -->
-                <div class="glass rounded-xl p-4 border-l-4 border-gray-400 hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
-                        <span class="text-xs text-gray-400">Pending</span>
-                    </div>
-                    <span class="text-2xl font-bold">{{ stats.pending or 0 }}</span>
+            <!-- Erschienen (Grün) -->
+            <div class="glass rounded-xl p-4 border-l-4 border-success hover:scale-105 transition-transform">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success"></i>
+                    <span class="text-xs text-gray-400">Erschienen</span>
                 </div>
-
-                <!-- Erschienen (Grün) -->
-                <div class="glass rounded-xl p-4 border-l-4 border-success hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-success"></i>
-                        <span class="text-xs text-gray-400">Erschienen</span>
-                    </div>
-                    <span class="text-2xl font-bold text-success">{{ stats.erschienen or 0 }}</span>
-                    <div class="text-xs text-gray-400 mt-1">{{ stats.show_rate or 0 }}%</div>
-                </div>
-
-                <!-- Abgesagt (Orange) -->
-                <div class="glass rounded-xl p-4 border-l-4 border-orange-500 hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i data-lucide="x-circle" class="w-4 h-4 text-orange-400"></i>
-                        <span class="text-xs text-gray-400">Abgesagt</span>
-                    </div>
-                    <span class="text-2xl font-bold text-orange-400">{{ stats.abgesagt or 0 }}</span>
-                </div>
-
-                <!-- Verschoben (Info/Blue) -->
-                <div class="glass rounded-xl p-4 border-l-4 border-info hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i data-lucide="calendar-x" class="w-4 h-4 text-info"></i>
-                        <span class="text-xs text-info/70">Verschoben</span>
-                    </div>
-                    <span class="text-2xl font-bold text-info">{{ stats.verschoben or 0 }}</span>
-                </div>
-
-                <!-- Nicht Erschienen (Rot) -->
-                <div class="glass rounded-xl p-4 border-l-4 border-error hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i data-lucide="x-circle" class="w-4 h-4 text-error"></i>
-                        <span class="text-xs text-error/70">Nicht ersch.</span>
-                    </div>
-                    <span class="text-2xl font-bold text-error">{{ stats.nicht_erschienen or 0 }}</span>
-                    <div class="text-xs text-error/50 mt-1">{{ stats.no_show_rate or 0 }}%</div>
-                </div>
-
-                <!-- Ghost (Dunkelrot) -->
-                <div class="glass rounded-xl p-4 border-l-4 border-red-900 hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i data-lucide="user-x" class="w-4 h-4 text-red-300"></i>
-                        <span class="text-xs text-gray-400">Ghost</span>
-                    </div>
-                    <span class="text-2xl font-bold text-red-300">{{ stats.ghost or 0 }}</span>
-                </div>
+                <span class="text-2xl font-bold text-success">{{ stats.erschienen or 0 }}</span>
+                <div class="text-xs text-gray-400 mt-1">{{ stats.show_rate or 0 }}%</div>
             </div>
 
-            {% if my_events %}
+            <!-- Abgesagt (Orange) -->
+            <div class="glass rounded-xl p-4 border-l-4 border-orange-500 hover:scale-105 transition-transform">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="x-circle" class="w-4 h-4 text-orange-400"></i>
+                    <span class="text-xs text-gray-400">Abgesagt</span>
+                </div>
+                <span class="text-2xl font-bold text-orange-400">{{ stats.abgesagt or 0 }}</span>
+            </div>
 
-            <!-- ============================================ -->
-            <!-- TABLE VIEW -->
-            <!-- ============================================ -->
-            {% if view_mode == 'table' %}
-            <div class="glass rounded-3xl overflow-hidden" data-aos="fade-up">
-                <div class="overflow-x-auto">
-                    <table class="table table-zebra">
-                        <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="calendar-days" class="w-4 h-4"></i>
-                                        Datum
+            <!-- Verschoben (Info/Blue) -->
+            <div class="glass rounded-xl p-4 border-l-4 border-info hover:scale-105 transition-transform">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="calendar-x" class="w-4 h-4 text-info"></i>
+                    <span class="text-xs text-info/70">Verschoben</span>
+                </div>
+                <span class="text-2xl font-bold text-info">{{ stats.verschoben or 0 }}</span>
+            </div>
+
+            <!-- Nicht Erschienen (Rot) -->
+            <div class="glass rounded-xl p-4 border-l-4 border-error hover:scale-105 transition-transform">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="x-circle" class="w-4 h-4 text-error"></i>
+                    <span class="text-xs text-error/70">Nicht ersch.</span>
+                </div>
+                <span class="text-2xl font-bold text-error">{{ stats.nicht_erschienen or 0 }}</span>
+                <div class="text-xs text-error/50 mt-1">{{ stats.no_show_rate or 0 }}%</div>
+            </div>
+
+            <!-- Ghost (Dunkelrot) -->
+            <div class="glass rounded-xl p-4 border-l-4 border-red-900 hover:scale-105 transition-transform">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="user-x" class="w-4 h-4 text-red-300"></i>
+                    <span class="text-xs text-gray-400">Ghost</span>
+                </div>
+                <span class="text-2xl font-bold text-red-300">{{ stats.ghost or 0 }}</span>
+            </div>
+        </div>
+
+        {% if my_events %}
+
+        <!-- ============================================ -->
+        <!-- TABLE VIEW -->
+        <!-- ============================================ -->
+        {% if view_mode == 'table' %}
+        <div class="glass rounded-3xl overflow-hidden" data-aos="fade-up">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr class="border-b border-white/10">
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="calendar-days" class="w-4 h-4"></i>
+                                    Datum
+                                </div>
+                            </th>
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                    Uhrzeit
+                                </div>
+                            </th>
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                    Kunde
+                                </div>
+                            </th>
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="activity" class="w-4 h-4"></i>
+                                    Status
+                                </div>
+                            </th>
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="target" class="w-4 h-4"></i>
+                                    Typ
+                                </div>
+                            </th>
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="user-circle" class="w-4 h-4"></i>
+                                    Telefonist
+                                </div>
+                            </th>
+                            <th class="bg-primary/20">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                    Notizen
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ev in my_events %}
+                        <tr class="{{ ev.row_bg_class }} transition-all">
+                            <td>
+                                <span class="font-semibold">{{ ev.date }}</span>
+                                {% if ev.is_future %}
+                                <span class="badge badge-ghost badge-xs ml-2">Zukünftig</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-ghost badge-lg">{{ ev.hour }}</span>
+                            </td>
+                            <td>
+                                <span class="font-medium">{{ ev.customer_name }}</span>
+                            </td>
+                            <td>
+                                <span class="badge {{ ev.badge_class }} gap-2">
+                                    <i data-lucide="{{ ev.status_icon }}" class="w-3 h-3"></i>
+                                    {{ ev.status_label }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-sm badge-outline">{{ ev.potential }}</span>
+                            </td>
+                            <td>
+                                <!-- Initialen-Badge -->
+                                <div class="avatar placeholder">
+                                    <div class="bg-primary text-primary-content rounded-full w-8 h-8">
+                                        <span class="text-xs font-bold">{{ ev.booked_by_initials }}</span>
                                     </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="clock" class="w-4 h-4"></i>
-                                        Uhrzeit
-                                    </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="user" class="w-4 h-4"></i>
-                                        Kunde
-                                    </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="activity" class="w-4 h-4"></i>
-                                        Status
-                                    </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="target" class="w-4 h-4"></i>
-                                        Typ
-                                    </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="user-circle" class="w-4 h-4"></i>
-                                        Telefonist
-                                    </div>
-                                </th>
-                                <th class="bg-primary/20">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="file-text" class="w-4 h-4"></i>
-                                        Notizen
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for ev in my_events %}
-                            <tr class="{{ ev.row_bg_class }} transition-all">
-                                <td>
-                                    <span class="font-semibold">{{ ev.date }}</span>
-                                    {% if ev.is_future %}
-                                    <span class="badge badge-ghost badge-xs ml-2">Zukünftig</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge badge-ghost badge-lg">{{ ev.hour }}</span>
-                                </td>
-                                <td>
-                                    <span class="font-medium">{{ ev.customer_name }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge {{ ev.badge_class }} gap-2">
-                                        <i data-lucide="{{ ev.status_icon }}" class="w-3 h-3"></i>
-                                        {{ ev.status_label }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-sm badge-outline">{{ ev.potential }}</span>
-                                </td>
-                                <td>
-                                    <!-- Initialen-Badge -->
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-sm text-gray-400">{{ ev.desc[:50] if ev.desc != '-' else '-' }}{% if ev.desc|length > 50 %}...{% endif %}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ============================================ -->
+        <!-- KANBAN VIEW (HubSpot-Style) -->
+        <!-- ============================================ -->
+        {% if view_mode == 'kanban' %}
+        <div class="pb-4" data-aos="fade-up">
+            <div class="grid grid-cols-6 gap-4 overflow-x-auto">
+
+                <!-- PENDING Column -->
+                <div>
+                    <div class="glass rounded-2xl p-4 h-full">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-400/30">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+                                <h3 class="font-bold text-gray-300 uppercase text-sm">Pending</h3>
+                            </div>
+                            <span class="badge badge-ghost">{{ kanban_columns.pending|length }}</span>
+                        </div>
+
+                        <div class="space-y-3 kanban-column" data-column="pending" id="column-pending">
+                            {% for ev in kanban_columns.pending %}
+                            <div class="kanban-card glass rounded-xl p-4 cursor-move border border-gray-400/20"
+                                 data-event-id="{{ ev.id }}"
+                                 data-customer-name="{{ ev.customer_name }}">
+                                <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
+                                    <span>{{ ev.customer_name }}</span>
+                                    {{ match_badge(ev.match_reason) }}
+                                </h4>
+
+                                <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2 mb-2">
                                     <div class="avatar placeholder">
-                                        <div class="bg-primary text-primary-content rounded-full w-8 h-8">
-                                            <span class="text-xs font-bold">{{ ev.booked_by_initials }}</span>
+                                        <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                            <span class="text-xs">{{ ev.booked_by_initials }}</span>
                                         </div>
                                     </div>
-                                </td>
-                                <td>
-                                    <span class="text-sm text-gray-400">{{ ev.desc[:50] if ev.desc != '-' else '-' }}{% if ev.desc|length > 50 %}...{% endif %}</span>
-                                </td>
-                            </tr>
+                                    <span class="text-xs text-gray-400">{{ ev.booked_by }}</span>
+                                </div>
+
+                                {% if ev.days_until > 0 %}
+                                <div class="text-xs text-warning flex items-center gap-1">
+                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                    In {{ ev.days_until }} Tag{% if ev.days_until != 1 %}en{% endif %}
+                                </div>
+                                {% elif ev.days_until == 0 %}
+                                <div class="text-xs text-warning font-bold flex items-center gap-1">
+                                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                                    Heute!
+                                </div>
+                                {% endif %}
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- ============================================ -->
-            <!-- KANBAN VIEW (HubSpot-Style) -->
-            <!-- ============================================ -->
-            {% if view_mode == 'kanban' %}
-            <div class="pb-4" data-aos="fade-up">
-                <div class="grid grid-cols-6 gap-4 overflow-x-auto">
-
-                    <!-- PENDING Column -->
-                    <div>
-                        <div class="glass rounded-2xl p-4 h-full">
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-400/30">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-gray-400"></div>
-                                    <h3 class="font-bold text-gray-300 uppercase text-sm">Pending</h3>
-                                </div>
-                                <span class="badge badge-ghost">{{ kanban_columns.pending|length }}</span>
-                            </div>
-
-                            <div class="space-y-3 kanban-column" data-column="pending" id="column-pending">
-                                {% for ev in kanban_columns.pending %}
-                                <div class="kanban-card glass rounded-xl p-4 cursor-move border border-gray-400/20"
-                                     data-event-id="{{ ev.id }}"
-                                     data-customer-name="{{ ev.customer_name }}">
-                                    <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
-                                        <span>{{ ev.customer_name }}</span>
-                                        {{ match_badge(ev.match_reason) }}
-                                    </h4>
-
-                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <div class="avatar placeholder">
-                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
-                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
-                                            </div>
-                                        </div>
-                                        <span class="text-xs text-gray-400">{{ ev.booked_by }}</span>
-                                    </div>
-
-                                    {% if ev.days_until > 0 %}
-                                    <div class="text-xs text-warning flex items-center gap-1">
-                                        <i data-lucide="clock" class="w-3 h-3"></i>
-                                        In {{ ev.days_until }} Tag{% if ev.days_until != 1 %}en{% endif %}
-                                    </div>
-                                    {% elif ev.days_until == 0 %}
-                                    <div class="text-xs text-warning font-bold flex items-center gap-1">
-                                        <i data-lucide="alert-circle" class="w-3 h-3"></i>
-                                        Heute!
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
                         </div>
-                    </div>
-
-                    <!-- ERSCHIENEN Column -->
-                    <div class="">
-                        <div class="glass rounded-2xl p-4 h-full">
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-success/30">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-success"></div>
-                                    <h3 class="font-bold text-success uppercase text-sm">Erschienen</h3>
-                                </div>
-                                <span class="badge badge-success">{{ kanban_columns.erschienen|length }}</span>
-                            </div>
-
-                            <div class="space-y-3 kanban-column" data-column="erschienen" id="column-erschienen">
-                                {% for ev in kanban_columns.erschienen %}
-                                <div class="kanban-card glass rounded-xl bg-success/5 p-4 border-l-4 border-success cursor-move"
-                                     data-event-id="{{ ev.id }}"
-                                     data-customer-name="{{ ev.customer_name }}">
-                                    <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
-                                        <span>{{ ev.customer_name }}</span>
-                                        {{ match_badge(ev.match_reason) }}
-                                    </h4>
-
-                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <div class="avatar placeholder">
-                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
-                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {% if ev.days_ago > 0 %}
-                                    <div class="text-xs text-success flex items-center gap-1">
-                                        <i data-lucide="check" class="w-3 h-3"></i>
-                                        Vor {{ ev.days_ago }} Tag{% if ev.days_ago != 1 %}en{% endif %}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ABGESAGT Column -->
-                    <div class="">
-                        <div class="glass rounded-2xl p-4 h-full">
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-orange-500/30">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-orange-500"></div>
-                                    <h3 class="font-bold text-orange-400 uppercase text-sm">Abgesagt</h3>
-                                </div>
-                                <span class="badge badge-warning">{{ kanban_columns.abgesagt|length }}</span>
-                            </div>
-
-                            <div class="space-y-3 kanban-column" data-column="abgesagt" id="column-abgesagt">
-                                {% for ev in kanban_columns.abgesagt %}
-                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-orange-500 cursor-move"
-                                     data-event-id="{{ ev.id }}"
-                                     data-customer-name="{{ ev.customer_name }}">
-                                    <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
-                                        <span>{{ ev.customer_name }}</span>
-                                        {{ match_badge(ev.match_reason) }}
-                                    </h4>
-
-                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2">
-                                        <div class="avatar placeholder">
-                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
-                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    <!-- VERSCHOBEN Column -->
-                    <div class="">
-                        <div class="glass rounded-2xl p-4 h-full">
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-info/30">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-info"></div>
-                                    <h3 class="font-bold text-info uppercase text-sm">Verschoben</h3>
-                                </div>
-                                <span class="badge badge-info">{{ kanban_columns.verschoben|length }}</span>
-                            </div>
-
-                            <div class="space-y-3 kanban-column" data-column="verschoben" id="column-verschoben">
-                                {% for ev in kanban_columns.verschoben %}
-                                <div class="kanban-card glass rounded-xl bg-info/5 p-4 border-l-4 border-info cursor-move"
-                                     data-event-id="{{ ev.id }}"
-                                     data-customer-name="{{ ev.customer_name }}">
-                                    <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
-                                        <span>{{ ev.customer_name }}</span>
-                                        {{ match_badge(ev.match_reason) }}
-                                    </h4>
-
-                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2">
-                                        <div class="avatar placeholder">
-                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
-                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- NICHT ERSCHIENEN Column -->
-                    <div class="">
-                        <div class="glass rounded-2xl p-4 h-full">
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-error/30">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-error"></div>
-                                    <h3 class="font-bold text-error uppercase text-sm">Nicht Erschienen</h3>
-                                </div>
-                                <span class="badge badge-error">{{ kanban_columns.nicht_erschienen|length }}</span>
-                            </div>
-
-                            <div class="space-y-3 kanban-column" data-column="nicht_erschienen" id="column-nicht_erschienen">
-                                {% for ev in kanban_columns.nicht_erschienen %}
-                                <div class="kanban-card glass rounded-xl bg-error/5 p-4 border-l-4 border-error cursor-move"
-                                     data-event-id="{{ ev.id }}"
-                                     data-customer-name="{{ ev.customer_name }}">
-                                    <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
-                                        <span>{{ ev.customer_name }}</span>
-                                        {{ match_badge(ev.match_reason) }}
-                                    </h4>
-
-                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2">
-                                        <div class="avatar placeholder">
-                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
-                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- GHOST Column -->
-                    <div class="">
-                        <div class="glass rounded-2xl p-4 h-full">
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-red-900/50">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-red-900"></div>
-                                    <h3 class="font-bold text-red-300 uppercase text-sm">Ghost</h3>
-                                </div>
-                                <span class="badge bg-red-900 border-red-900 text-red-100">{{ kanban_columns.ghost|length }}</span>
-                            </div>
-
-                            <div class="space-y-3 kanban-column" data-column="ghost" id="column-ghost">
-                                {% for ev in kanban_columns.ghost %}
-                                <div class="kanban-card glass rounded-xl p-4 border-l-4 border-red-900 cursor-move"
-                                     data-event-id="{{ ev.id }}"
-                                     data-customer-name="{{ ev.customer_name }}">
-                                    <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
-                                        <span>{{ ev.customer_name }}</span>
-                                        {{ match_badge(ev.match_reason) }}
-                                    </h4>
-
-                                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                                        <span>{{ ev.date }} · {{ ev.hour }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2">
-                                        <div class="avatar placeholder">
-                                            <div class="bg-primary text-primary-content rounded-full w-6 h-6">
-                                                <span class="text-xs">{{ ev.booked_by_initials }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            {% endif %}
-
-            {% else %}
-            <!-- Empty State -->
-            <div class="glass rounded-3xl p-12 text-center" data-aos="fade-up">
-                <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-warning/20 flex items-center justify-center">
-                    <i data-lucide="calendar-x" class="w-12 h-12 text-warning"></i>
-                </div>
-                <h3 class="text-2xl font-bold mb-2">Keine Buchungen gefunden</h3>
-                <p class="text-gray-400 mb-6">Du hast aktuell keine gebuchten Kunden in den letzten 30 Tagen.</p>
-                <a href="{{ url_for('main.index') }}" class="btn btn-primary gap-2">
-                    <i data-lucide="calendar-plus" class="w-4 h-4"></i>
-                    Kunden buchen
-                </a>
-            </div>
-            {% endif %}
-        </main>
-
-        <!-- Footer -->
-        <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
-            <div class="container mx-auto px-4 py-8">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p class="text-sm text-gray-400">Beraterwelt v3.3.15 - ZFA</p>
-                    <div class="flex gap-4">
-                        <a href="{{ url_for('main.index') }}" class="text-gray-400 hover:text-primary transition-colors">Dashboard</a>
-                        <a href="/health" class="text-gray-400 hover:text-primary transition-colors">Status</a>
                     </div>
                 </div>
+
+                <!-- ERSCHIENEN Column -->
+                <div class="">
+                    <div class="glass rounded-2xl p-4 h-full">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-success/30">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-success"></div>
+                                <h3 class="font-bold text-success uppercase text-sm">Erschienen</h3>
+                            </div>
+                            <span class="badge badge-success">{{ kanban_columns.erschienen|length }}</span>
+                        </div>
+
+                        <div class="space-y-3 kanban-column" data-column="erschienen" id="column-erschienen">
+                            {% for ev in kanban_columns.erschienen %}
+                            <div class="kanban-card glass rounded-xl bg-success/5 p-4 border-l-4 border-success cursor-move"
+                                 data-event-id="{{ ev.id }}"
+                                 data-customer-name="{{ ev.customer_name }}">
+                                <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
+                                    <span>{{ ev.customer_name }}</span>
+                                    {{ match_badge(ev.match_reason) }}
+                                </h4>
+
+                                <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                            <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if ev.days_ago > 0 %}
+                                <div class="text-xs text-success flex items-center gap-1">
+                                    <i data-lucide="check" class="w-3 h-3"></i>
+                                    Vor {{ ev.days_ago }} Tag{% if ev.days_ago != 1 %}en{% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABGESAGT Column -->
+                <div class="">
+                    <div class="glass rounded-2xl p-4 h-full">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-orange-500/30">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                                <h3 class="font-bold text-orange-400 uppercase text-sm">Abgesagt</h3>
+                            </div>
+                            <span class="badge badge-warning">{{ kanban_columns.abgesagt|length }}</span>
+                        </div>
+
+                        <div class="space-y-3 kanban-column" data-column="abgesagt" id="column-abgesagt">
+                            {% for ev in kanban_columns.abgesagt %}
+                            <div class="kanban-card glass rounded-xl p-4 border-l-4 border-orange-500 cursor-move"
+                                 data-event-id="{{ ev.id }}"
+                                 data-customer-name="{{ ev.customer_name }}">
+                                <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
+                                    <span>{{ ev.customer_name }}</span>
+                                    {{ match_badge(ev.match_reason) }}
+                                </h4>
+
+                                <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                            <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <!-- VERSCHOBEN Column -->
+                <div class="">
+                    <div class="glass rounded-2xl p-4 h-full">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-info/30">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-info"></div>
+                                <h3 class="font-bold text-info uppercase text-sm">Verschoben</h3>
+                            </div>
+                            <span class="badge badge-info">{{ kanban_columns.verschoben|length }}</span>
+                        </div>
+
+                        <div class="space-y-3 kanban-column" data-column="verschoben" id="column-verschoben">
+                            {% for ev in kanban_columns.verschoben %}
+                            <div class="kanban-card glass rounded-xl bg-info/5 p-4 border-l-4 border-info cursor-move"
+                                 data-event-id="{{ ev.id }}"
+                                 data-customer-name="{{ ev.customer_name }}">
+                                <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
+                                    <span>{{ ev.customer_name }}</span>
+                                    {{ match_badge(ev.match_reason) }}
+                                </h4>
+
+                                <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                            <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NICHT ERSCHIENEN Column -->
+                <div class="">
+                    <div class="glass rounded-2xl p-4 h-full">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-error/30">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-error"></div>
+                                <h3 class="font-bold text-error uppercase text-sm">Nicht Erschienen</h3>
+                            </div>
+                            <span class="badge badge-error">{{ kanban_columns.nicht_erschienen|length }}</span>
+                        </div>
+
+                        <div class="space-y-3 kanban-column" data-column="nicht_erschienen" id="column-nicht_erschienen">
+                            {% for ev in kanban_columns.nicht_erschienen %}
+                            <div class="kanban-card glass rounded-xl bg-error/5 p-4 border-l-4 border-error cursor-move"
+                                 data-event-id="{{ ev.id }}"
+                                 data-customer-name="{{ ev.customer_name }}">
+                                <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
+                                    <span>{{ ev.customer_name }}</span>
+                                    {{ match_badge(ev.match_reason) }}
+                                </h4>
+
+                                <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                            <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GHOST Column -->
+                <div class="">
+                    <div class="glass rounded-2xl p-4 h-full">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-red-900/50">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-900"></div>
+                                <h3 class="font-bold text-red-300 uppercase text-sm">Ghost</h3>
+                            </div>
+                            <span class="badge bg-red-900 border-red-900 text-red-100">{{ kanban_columns.ghost|length }}</span>
+                        </div>
+
+                        <div class="space-y-3 kanban-column" data-column="ghost" id="column-ghost">
+                            {% for ev in kanban_columns.ghost %}
+                            <div class="kanban-card glass rounded-xl p-4 border-l-4 border-red-900 cursor-move"
+                                 data-event-id="{{ ev.id }}"
+                                 data-customer-name="{{ ev.customer_name }}">
+                                <h4 class="font-bold text-lg mb-2 line-clamp-1 flex items-center">
+                                    <span>{{ ev.customer_name }}</span>
+                                    {{ match_badge(ev.match_reason) }}
+                                </h4>
+
+                                <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>{{ ev.date }} · {{ ev.hour }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-6 h-6">
+                                            <span class="text-xs">{{ ev.booked_by_initials }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </footer>
-    </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="glass rounded-3xl p-12 text-center" data-aos="fade-up">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-warning/20 flex items-center justify-center">
+                <i data-lucide="calendar-x" class="w-12 h-12 text-warning"></i>
+            </div>
+            <h3 class="text-2xl font-bold mb-2">Keine Buchungen gefunden</h3>
+            <p class="text-gray-400 mb-6">Du hast aktuell keine gebuchten Kunden in den letzten 30 Tagen.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary gap-2">
+                <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                Kunden buchen
+            </a>
+        </div>
+        {% endif %}
+    </main>
 
     <!-- Undo Button (Hidden by default) -->
     <button id="undo-btn" class="btn btn-warning fixed bottom-4 left-4 z-50 hidden gap-2 undo-enter" data-action="undoAction">
         <i data-lucide="undo" class="w-4 h-4"></i>
         <span id="undo-text">Rückgängig (3s)</span>
     </button>
+{% endblock %}
 
-    <!-- JavaScript -->
+{% block footer %}
+    <!-- Footer -->
+    <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-sm text-gray-400">Beraterwelt v3.3.15 - ZFA</p>
+                <div class="flex gap-4">
+                    <a href="{{ url_for('main.index') }}" class="text-gray-400 hover:text-primary transition-colors">Dashboard</a>
+                    <a href="/health" class="text-gray-400 hover:text-primary transition-colors">Status</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+{% endblock %}
+
+{% block particles_config %}
+    <!-- Calendar Particles.js Configuration (60 particles with interactivity) -->
     <script nonce="{{ csp_nonce }}">
-        // Event Dispatcher for CSP compliance (standalone template)
-        (function() {
-            document.addEventListener('click', function(e) {
-                var target = e.target.closest('[data-action]');
-                if (!target) return;
-                var action = target.dataset.action;
-                var args = [];
-                if (target.dataset.args) {
-                    try { args = JSON.parse(target.dataset.args); }
-                    catch (err) { console.error('Invalid data-args JSON:', target.dataset.args); }
-                }
-                if (typeof window[action] === 'function') {
-                    e.preventDefault();
-                    window[action].apply(null, [e].concat(args));
-                }
-            });
-        })();
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            easing: 'ease-out-cubic',
-            once: true,
-            offset: 50
-        });
-
-        // Initialize Particles.js
         particlesJS('particles-js', {
             particles: {
                 number: { value: 60, density: { enable: true, value_area: 800 } },
@@ -755,7 +672,11 @@
             },
             retina_detect: true
         });
+    </script>
+{% endblock %}
 
+{% block extra_js %}
+    <script nonce="{{ csp_nonce }}">
         // CSP-compliant wrappers for data-action
         window.undoAction = function(e) { undo(); };
         window.closeRescheduleModal = function(e) { _closeRescheduleModal(); };
@@ -1137,13 +1058,12 @@
         let autoRefreshInterval = null;
 
         function startAutoRefresh() {
-            // Increased from 5 to 10 minutes to reduce server load
             autoRefreshInterval = setInterval(() => {
                 if (!document.hidden) {
                     console.log('Auto-refreshing my-calendar...');
                     location.reload();
                 }
-            }, 10 * 60 * 1000); // Changed from 5 to 10 minutes
+            }, 10 * 60 * 1000);
         }
 
         function stopAutoRefresh() {
@@ -1163,30 +1083,11 @@
             if (document.hidden) {
                 stopAutoRefresh();
             } else {
-                // Don't immediately start refresh when returning to tab
-                // User might just be checking something
                 startAutoRefresh();
             }
         });
 
         // Stop on page unload
         window.addEventListener('beforeunload', stopAutoRefresh);
-
-        // CSRF Protection - Patch global fetch to auto-include CSRF token
-        function getCSRFToken() {
-            return document.querySelector('meta[name="csrf-token"]')?.content || '';
-        }
-
-        const originalFetch = window.fetch;
-        window.fetch = function(url, options = {}) {
-            if (options.method && options.method !== 'GET' && !url.startsWith('http')) {
-                options.headers = options.headers || {};
-                if (!options.headers['X-CSRFToken']) {
-                    options.headers['X-CSRFToken'] = getCSRFToken();
-                }
-            }
-            return originalFetch(url, options);
-        };
     </script>
-</body>
-</html>
+{% endblock %}

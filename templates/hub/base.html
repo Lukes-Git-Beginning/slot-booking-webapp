@@ -1,75 +1,15 @@
-<!DOCTYPE html>
-<html lang="de" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{% block title %}ZFA Beraterwelt{% endblock %}</title>
+{% extends "base.html" %}
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+{% block title %}{% block hub_title %}ZFA Beraterwelt{% endblock %}{% endblock %}
+{% block title_suffix %}{% endblock %}
 
-    <!-- Tailwind CSS + DaisyUI -->
-    <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-    <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
-
-    <!-- Lucide Icons -->
-    <script src="{{ url_for('static', filename='lucide.js') }}"></script>
-
-    <!-- AOS (Animate On Scroll) -->
-    <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
-    <script src="{{ url_for('static', filename='aos.js') }}"></script>
-
-    <!-- Alpine.js -->
-    <script defer src="{{ url_for('static', filename='alpine.min.js') }}"></script>
-
-    <!-- Particles.js -->
-    <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
-
+{% block extra_head_imports %}
     <!-- Cosmetics Effects System -->
     <script src="{{ url_for('static', filename='cosmetics-effects.js') }}"></script>
+    {% block hub_extra_imports %}{% endblock %}
+{% endblock %}
 
-    <!-- Custom Tailwind Config -->
-    <script nonce="{{ csp_nonce }}">
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#d4af6a',
-                        'primary-dark': '#c2ae7f',
-                        'secondary': '#207487',
-                        'accent': '#294c5d',
-                        'zfa-gray': '#77726d',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                    animation: {
-                        'gradient': 'gradient 15s ease infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                        'glow': 'glow 2s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        gradient: {
-                            '0%, 100%': { backgroundPosition: '0% 50%' },
-                            '50%': { backgroundPosition: '100% 50%' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        },
-                        glow: {
-                            '0%, 100%': { boxShadow: '0 0 20px rgba(212,175,106,0.3)' },
-                            '50%': { boxShadow: '0 0 40px rgba(212,175,106,0.6)' },
-                        },
-                    },
-                },
-            },
-        }
-    </script>
-
-    <!-- User Theme Colors (from Cosmetics Shop) -->
+{% block theme_colors %}
     {% if user_theme %}
     <style id="user-theme-colors" nonce="{{ csp_nonce }}">
         :root {
@@ -78,7 +18,6 @@
             --theme-accent: {{ user_theme.colors.accent }};
         }
 
-        /* Apply theme colors to specific elements */
         .glass {
             border-color: var(--theme-primary, rgba(212, 175, 106, 0.2)) !important;
         }
@@ -99,7 +38,6 @@
             border-color: var(--theme-primary, #d4af6a) !important;
         }
 
-        /* Gradient backgrounds */
         .gradient-bg {
             background: linear-gradient(-45deg,
                 var(--theme-accent, #294c5d),
@@ -110,88 +48,20 @@
             animation: gradient 15s ease infinite;
         }
 
-        /* Particle colors */
         #particles-js canvas {
             filter: hue-rotate({{ user_theme.hue_shift or 0 }}deg);
         }
     </style>
     {% endif %}
+{% endblock %}
 
-    <!-- Custom Styles -->
+{% block body_attrs %}{% endblock %}
+
+{% block area_css %}
     <style nonce="{{ csp_nonce }}">
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        /* Dark Theme (Default) */
-        [data-theme="dark"] body {
-            background: linear-gradient(to bottom right, #0f172a, #294c5d, #0f172a);
-            color: white;
-        }
-
-        /* Light Theme - Softer, less bright */
-        [data-theme="light"] body {
-            background: linear-gradient(to bottom right, #f5f5f4, #e7e5e4, #fafaf9);
-            color: #292524;
-        }
-
-        /* Glassmorphism Utilities - Dark Theme */
-        [data-theme="dark"] .glass {
-            background: rgba(18, 24, 32, 0.65);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        /* Glassmorphism Utilities - Light Theme (softer) */
-        [data-theme="light"] .glass {
-            background: rgba(255, 255, 255, 0.90);
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
-            border: 1px solid rgba(212, 175, 106, 0.25);
-            box-shadow: 0 8px 32px rgba(120, 113, 108, 0.15);
-        }
-
-        /* Text Colors - Light Theme (better contrast) */
-        [data-theme="light"] .text-white {
-            color: #1c1917 !important;
-        }
-
-        [data-theme="light"] .text-gray-400 {
-            color: #44403c !important;
-        }
-
-        [data-theme="light"] .text-white\/60 {
-            color: rgba(28, 25, 23, 0.70) !important;
-        }
-
-        [data-theme="light"] .text-white\/80 {
-            color: rgba(28, 25, 23, 0.90) !important;
-        }
-
-        /* Icon Backgrounds - Light Theme (subtle gray gradient) */
+        /* Light Theme - Additional Overrides */
         [data-theme="light"] .bg-gradient-to-br {
             background: linear-gradient(135deg, rgba(120, 113, 108, 0.12), rgba(168, 162, 158, 0.18)) !important;
-        }
-
-        /* Tool Card Description Text - Light Theme */
-        [data-theme="light"] .text-white\/70 {
-            color: #57534e !important;
-        }
-
-        /* Admin Quick Access - Light Theme */
-        [data-theme="light"] .text-white\/90 {
-            color: #292524 !important;
         }
 
         [data-theme="light"] .bg-white\/5 {
@@ -202,7 +72,7 @@
             background: rgba(120, 113, 108, 0.15) !important;
         }
 
-        /* Badge Colors - Light Theme (better visibility) */
+        /* Badge Colors - Light Theme */
         [data-theme="light"] .bg-success\/20 {
             background: rgba(16, 185, 129, 0.20) !important;
         }
@@ -227,23 +97,8 @@
             color: #ca8a04 !important;
         }
 
-        [data-theme="light"] .bg-white\/10 {
-            background: rgba(120, 113, 108, 0.15) !important;
-        }
-
         [data-theme="light"] .border-white\/20 {
             border-color: rgba(120, 113, 108, 0.25) !important;
-        }
-
-        [data-theme="light"] .text-white\/60 {
-            color: #57534e !important;
-        }
-
-        /* Animated Gradient Background */
-        .gradient-bg {
-            background: linear-gradient(-45deg, #294c5d, #207487, #d4af6a, #207487);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
         }
 
         /* Toast Notifications */
@@ -287,58 +142,6 @@
             }
         }
 
-        /* Particle Container */
-        #particles-js {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        /* Particles - Light Theme */
-        [data-theme="light"] #particles-js {
-            opacity: 0.4;
-        }
-
-        /* Custom Scrollbar - Dark */
-        [data-theme="dark"] ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        [data-theme="dark"] ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        [data-theme="dark"] ::-webkit-scrollbar-thumb {
-            background: rgba(212, 175, 106, 0.3);
-            border-radius: 10px;
-        }
-
-        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-            background: rgba(212, 175, 106, 0.6);
-        }
-
-        /* Custom Scrollbar - Light */
-        [data-theme="light"] ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        [data-theme="light"] ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        [data-theme="light"] ::-webkit-scrollbar-thumb {
-            background: rgba(212, 175, 106, 0.4);
-            border-radius: 10px;
-        }
-
-        [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-            background: rgba(212, 175, 106, 0.7);
-        }
-
         /* Glow Effects */
         .glow-primary {
             box-shadow: 0 0 20px rgba(212, 175, 106, 0.4), 0 0 40px rgba(212, 175, 106, 0.2);
@@ -361,135 +164,124 @@
             transform: scale(1.1);
         }
     </style>
+{% endblock %}
 
-    {% block extra_css %}{% endblock %}
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 text-white min-h-screen">
+{% block navbar %}
+    <!-- Modern Navbar -->
+    <nav class="glass sticky top-0 z-50 backdrop-blur-xl"
+         x-data="{ userMenuOpen: false }"
+         data-aos="fade-down">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
 
-    <!-- Particle Background -->
-    <div id="particles-js"></div>
+                <!-- Brand -->
+                <a href="{{ url_for('hub.dashboard') }}"
+                   class="flex items-center hover:opacity-80 transition-opacity group">
+                    <!-- Dark Mode Logo -->
+                    <img src="{{ url_for('static', filename='zfa-dark.png') }}"
+                         alt="Zentrum für Finanzielle Aufklärung"
+                         class="h-12 w-auto group-hover:scale-105 transition-transform"
+                         x-show="$store.theme.current === 'dark'">
+                    <!-- Light Mode Logo -->
+                    <img src="{{ url_for('static', filename='zfa-light.png') }}"
+                         alt="Zentrum für Finanzielle Aufklärung"
+                         class="h-12 w-auto group-hover:scale-105 transition-transform"
+                         x-show="$store.theme.current === 'light'">
+                </a>
 
-    <!-- Main Container -->
-    <div class="relative z-10">
+                <!-- User Menu -->
+                {% if user %}
+                <div class="flex items-center gap-4">
 
-        <!-- Modern Navbar -->
-        <nav class="glass sticky top-0 z-50 backdrop-blur-xl"
-             x-data="{ userMenuOpen: false }"
-             data-aos="fade-down">
-            <div class="container mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
+                    <!-- Theme Toggle -->
+                    <button @click="toggleTheme()"
+                            class="btn btn-circle btn-ghost hover:bg-white/10 theme-toggle">
+                        <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
+                        <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
+                    </button>
 
-                    <!-- Brand -->
-                    <a href="{{ url_for('hub.dashboard') }}"
-                       class="flex items-center hover:opacity-80 transition-opacity group">
-                        <!-- Dark Mode Logo -->
-                        <img src="{{ url_for('static', filename='zfa-dark.png') }}"
-                             alt="Zentrum für Finanzielle Aufklärung"
-                             class="h-12 w-auto group-hover:scale-105 transition-transform"
-                             x-show="$store.theme.current === 'dark'">
-                        <!-- Light Mode Logo -->
-                        <img src="{{ url_for('static', filename='zfa-light.png') }}"
-                             alt="Zentrum für Finanzielle Aufklärung"
-                             class="h-12 w-auto group-hover:scale-105 transition-transform"
-                             x-show="$store.theme.current === 'light'">
-                    </a>
-
-                    <!-- User Menu -->
-                    {% if user %}
-                    <div class="flex items-center gap-4">
-
-                        <!-- Theme Toggle -->
-                        <button @click="toggleTheme()"
-                                class="btn btn-circle btn-ghost hover:bg-white/10 theme-toggle">
-                            <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
-                            <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
+                    <!-- User Dropdown -->
+                    <div class="relative" @click.away="userMenuOpen = false">
+                        <button @click="userMenuOpen = !userMenuOpen"
+                                class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
+                                {{ user[0]|upper }}
+                            </div>
+                            <div class="text-left hidden md:block">
+                                <p class="font-semibold">{{ user }}</p>
+                                <p class="text-xs text-gray-400">
+                                    {% if is_admin %}Admin{% else %}Benutzer{% endif %}
+                                </p>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
                         </button>
 
-                        <!-- User Dropdown -->
-                        <div class="relative" @click.away="userMenuOpen = false">
-                            <button @click="userMenuOpen = !userMenuOpen"
-                                    class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
-                                    {{ user[0]|upper }}
-                                </div>
-                                <div class="text-left hidden md:block">
-                                    <p class="font-semibold">{{ user }}</p>
-                                    <p class="text-xs text-gray-400">
-                                        {% if is_admin %}Admin{% else %}Benutzer{% endif %}
-                                    </p>
-                                </div>
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                            </button>
-
-                            <!-- User Dropdown Menu -->
-                            <div x-show="userMenuOpen"
-                                 x-transition
-                                 class="absolute right-0 mt-2 w-56 glass rounded-2xl p-2 shadow-2xl">
-                                <a href="{{ url_for('hub.profile') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                                    <i data-lucide="user" class="w-4 h-4"></i>
-                                    <span>Profil</span>
-                                </a>
-                                <a href="{{ url_for('hub.settings') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                                    <i data-lucide="settings" class="w-4 h-4"></i>
-                                    <span>Einstellungen</span>
-                                </a>
-                                {% if is_admin %}
-                                <div class="divider my-1"></div>
-                                <a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                                    <i data-lucide="shield" class="w-4 h-4"></i>
-                                    <span>Administration</span>
-                                </a>
-                                {% endif %}
-                                <div class="divider my-1"></div>
-                                <a href="{{ url_for('auth.logout') }}"
-                                   class="flex items-center gap-3 px-4 py-2 hover:bg-error/20 text-error rounded-lg transition-colors">
-                                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                                    <span>Abmelden</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content -->
-        <main class="container mx-auto px-4 py-8 min-h-[calc(100vh-200px)]">
-            {% block content %}{% endblock %}
-        </main>
-
-        <!-- Footer -->
-        <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
-            <div class="container mx-auto px-4 py-8">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h5 class="font-bold text-lg mb-2">Beraterwelt</h5>
-                        <p class="text-sm text-gray-400">Zentrum für Finanzielle Aufklärung</p>
-                    </div>
-                    <div class="flex flex-col md:flex-row gap-4 items-center">
-                        <a href="/health" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
-                            <i data-lucide="activity" class="w-4 h-4"></i>
-                            <span>System Status</span>
-                        </a>
-                        <a href="#" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
-                            <i data-lucide="help-circle" class="w-4 h-4"></i>
-                            <span>Hilfe</span>
-                        </a>
-                        <div class="text-sm text-gray-400">
-                            <span>Version {{ app_version or '3.2' }}</span>
-                            <span class="mx-2">•</span>
-                            <span>{{ current_year or '2025' }}</span>
+                        <!-- User Dropdown Menu -->
+                        <div x-show="userMenuOpen"
+                             x-transition
+                             class="absolute right-0 mt-2 w-56 glass rounded-2xl p-2 shadow-2xl">
+                            <a href="{{ url_for('hub.profile') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                                <span>Profil</span>
+                            </a>
+                            <a href="{{ url_for('hub.settings') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="settings" class="w-4 h-4"></i>
+                                <span>Einstellungen</span>
+                            </a>
+                            {% if is_admin %}
+                            <div class="divider my-1"></div>
+                            <a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="shield" class="w-4 h-4"></i>
+                                <span>Administration</span>
+                            </a>
+                            {% endif %}
+                            <div class="divider my-1"></div>
+                            <a href="{{ url_for('auth.logout') }}"
+                               class="flex items-center gap-3 px-4 py-2 hover:bg-error/20 text-error rounded-lg transition-colors">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <span>Abmelden</span>
+                            </a>
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
-        </footer>
-    </div>
+        </div>
+    </nav>
+{% endblock %}
 
-    <!-- JavaScript Initialization -->
+{% block footer %}
+    <!-- Footer -->
+    <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h5 class="font-bold text-lg mb-2">Beraterwelt</h5>
+                    <p class="text-sm text-gray-400">Zentrum für Finanzielle Aufklärung</p>
+                </div>
+                <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <a href="/health" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                        <span>System Status</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        <span>Hilfe</span>
+                    </a>
+                    <div class="text-sm text-gray-400">
+                        <span>Version {{ app_version or '3.2' }}</span>
+                        <span class="mx-2">•</span>
+                        <span>{{ current_year or '2025' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+{% endblock %}
+
+{% block theme_js %}
+    <!-- Alpine.js Theme Store (with backend persistence) -->
     <script nonce="{{ csp_nonce }}">
-        // Alpine.js Theme Store
         document.addEventListener('alpine:init', () => {
             Alpine.store('theme', {
                 current: localStorage.getItem('theme') || 'dark',
@@ -524,75 +316,8 @@
         // Global toggle function
         function toggleTheme() {
             Alpine.store('theme').toggle();
-            // Refresh icons after theme change
             setTimeout(() => lucide.createIcons(), 100);
         }
-
-        // Initialize theme on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            Alpine.store('theme').current = savedTheme;
-        });
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            easing: 'ease-out-cubic',
-            once: true,
-            offset: 50
-        });
-
-        // Initialize Particles.js with optimized settings
-        particlesJS('particles-js', {
-            particles: {
-                number: { value: 30, density: { enable: true, value_area: 800 } }, // Reduced from 80 to 30
-                color: { value: '#d4af6a' },
-                shape: { type: 'circle' },
-                opacity: {
-                    value: 0.3,
-                    random: true,
-                    anim: { enable: false } // Disabled animation for performance
-                },
-                size: {
-                    value: 3,
-                    random: true,
-                    anim: { enable: false } // Disabled animation for performance
-                },
-                line_linked: {
-                    enable: true,
-                    distance: 150,
-                    color: '#d4af6a',
-                    opacity: 0.2,
-                    width: 1
-                },
-                move: {
-                    enable: true,
-                    speed: 0.5, // Reduced from 1 to 0.5
-                    direction: 'none',
-                    random: false,
-                    straight: false,
-                    out_mode: 'out',
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: {
-                    onhover: { enable: false }, // Disabled for performance
-                    onclick: { enable: false }, // Disabled for performance
-                    resize: true
-                },
-                modes: {
-                    grab: { distance: 140, line_linked: { opacity: 0.5 } },
-                    push: { particles_nb: 4 }
-                }
-            },
-            retina_detect: false // Disabled for performance
-        });
 
         // Auto-refresh dashboard stats
         function updateDashboardStats() {
@@ -601,7 +326,6 @@
             }
         }
 
-        // Update dashboard stats with visibility awareness
         setInterval(() => {
             if (!document.hidden) {
                 updateDashboardStats();
@@ -636,97 +360,27 @@
             if (!document.hidden) {
                 updateClock();
             }
-        }, 5000); // Changed from 1000ms to 5000ms
+        }, 5000);
         updateClock();
-
-        // ========================================
-        // CSRF Protection for AJAX Requests
-        // ========================================
-
-        /**
-         * Get CSRF token from meta tag
-         * @returns {string} CSRF token
-         */
-        function getCSRFToken() {
-            const metaTag = document.querySelector('meta[name="csrf-token"]');
-            return metaTag ? metaTag.getAttribute('content') : '';
-        }
-
-        /**
-         * Wrapper for fetch() that automatically includes CSRF token
-         * @param {string} url - Request URL
-         * @param {object} options - Fetch options (method, body, headers, etc.)
-         * @returns {Promise} Fetch promise
-         */
-        window.csrfFetch = function(url, options = {}) {
-            // Set default method to POST if not specified
-            options.method = options.method || 'POST';
-
-            // Initialize headers if not present
-            options.headers = options.headers || {};
-
-            // Add CSRF token to headers for non-GET requests
-            if (options.method !== 'GET') {
-                options.headers['X-CSRFToken'] = getCSRFToken();
-            }
-
-            // Set Content-Type to JSON if body is an object (not FormData)
-            if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
-                options.headers['Content-Type'] = 'application/json';
-                options.body = JSON.stringify(options.body);
-            }
-
-            return fetch(url, options);
-        };
-
-        /**
-         * Legacy: Patch global fetch to auto-include CSRF for backwards compatibility
-         * New code should use csrfFetch() explicitly
-         */
-        const originalFetch = window.fetch;
-        window.fetch = function(url, options = {}) {
-            // Only auto-add CSRF for same-origin POST/PUT/DELETE/PATCH requests
-            if (options.method && options.method !== 'GET' && !url.startsWith('http')) {
-                options.headers = options.headers || {};
-                if (!options.headers['X-CSRFToken']) {
-                    options.headers['X-CSRFToken'] = getCSRFToken();
-                }
-            }
-            return originalFetch(url, options);
-        };
-
-        console.log('✅ CSRF Protection initialized - All AJAX requests protected');
     </script>
+{% endblock %}
 
+{% block session_monitor %}
+    <!-- Session Timeout Warning System -->
     <script nonce="{{ csp_nonce }}">
-    // ========================================
-    // Session Timeout Warning System
-    // ========================================
-
-    /**
-     * Session Timeout Monitor
-     * - Tracks user activity (mouse, keyboard, touch)
-     * - Warns user 5 minutes before session expires
-     * - Redirects to login page on session expiry
-     */
     (function() {
-        // Session configuration (8 hours = 28800 seconds)
-        const SESSION_TIMEOUT = 8 * 60 * 60 * 1000;  // 8 hours in milliseconds
-        const WARNING_BEFORE = 5 * 60 * 1000;        // Warn 5 minutes before expiry
-        const CHECK_INTERVAL = 60 * 1000;            // Check every minute
+        const SESSION_TIMEOUT = 8 * 60 * 60 * 1000;
+        const WARNING_BEFORE = 5 * 60 * 1000;
+        const CHECK_INTERVAL = 60 * 1000;
 
         let lastActivity = Date.now();
         let warningShown = false;
         let warningToastId = null;
 
-        /**
-         * Update last activity timestamp
-         */
         function updateActivity() {
             lastActivity = Date.now();
             warningShown = false;
 
-            // Remove warning toast if it exists
             if (warningToastId) {
                 const toastElement = document.getElementById(warningToastId);
                 if (toastElement) {
@@ -736,17 +390,12 @@
             }
         }
 
-        /**
-         * Show warning toast
-         * @param {number} minutesRemaining - Minutes until session expires
-         */
         function showSessionWarning(minutesRemaining) {
             if (warningShown) return;
 
             warningShown = true;
             warningToastId = 'session-warning-toast-' + Date.now();
 
-            // Create toast HTML
             const toastHTML = `
                 <div id="${warningToastId}" class="alert alert-warning shadow-lg fixed bottom-4 right-4 w-96 z-50 animate-bounce">
                     <div>
@@ -769,19 +418,13 @@
                 </div>
             `;
 
-            // Insert toast into DOM
             document.body.insertAdjacentHTML('beforeend', toastHTML);
-
-            console.warn(`⚠️ Session expires in ${minutesRemaining} minutes`);
+            console.warn('⚠️ Session expires in ' + minutesRemaining + ' minutes');
         }
 
-        /**
-         * Redirect to login page on session expiry
-         */
         function handleSessionExpiry() {
             console.error('🔴 Session expired - Redirecting to login');
 
-            // Show final notification
             const toastHTML = `
                 <div class="alert alert-error shadow-lg fixed bottom-4 right-4 w-96 z-50">
                     <div>
@@ -794,146 +437,37 @@
             `;
             document.body.insertAdjacentHTML('beforeend', toastHTML);
 
-            // Redirect after 2 seconds
             setTimeout(() => {
                 window.location.href = '/auth/login?expired=true';
             }, 2000);
         }
 
-        /**
-         * Check session timeout status
-         */
         function checkSessionTimeout() {
             const now = Date.now();
             const inactiveDuration = now - lastActivity;
             const timeRemaining = SESSION_TIMEOUT - inactiveDuration;
 
-            // Session expired
             if (timeRemaining <= 0) {
                 handleSessionExpiry();
                 return;
             }
 
-            // Show warning if within warning window
             if (timeRemaining <= WARNING_BEFORE && !warningShown) {
                 const minutesRemaining = Math.ceil(timeRemaining / 60000);
                 showSessionWarning(minutesRemaining);
             }
         }
 
-        // ========================================
-        // Event Listeners
-        // ========================================
-
-        // Track user activity
         const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
 
         activityEvents.forEach(eventType => {
             document.addEventListener(eventType, updateActivity, { passive: true });
         });
 
-        // Start timeout checker
         setInterval(checkSessionTimeout, CHECK_INTERVAL);
 
-        // Initialize
         updateActivity();
         console.log('✅ Session Timeout Monitor initialized (Timeout: 8h, Warning: 5min before)');
-
     })();
     </script>
-
-    <!-- CSP-Compliant Event Dispatcher -->
-    <script nonce="{{ csp_nonce }}">
-    // ========================================
-    // Global Event Dispatcher for CSP Compliance
-    // ========================================
-    // Replaces inline onclick/onsubmit handlers with data-action attributes
-
-    (function() {
-        // Common helper functions available globally
-        window.reloadPage = function() { location.reload(); };
-        window.goBack = function() { history.back(); };
-        window.navigateTo = function(e, url) { window.location.href = url; };
-        window.showModal = function(e, modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal && modal.showModal) modal.showModal();
-        };
-        window.closeModal = function(e, modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal && modal.close) modal.close();
-        };
-        window.toggleElement = function(e, elementId) {
-            const el = document.getElementById(elementId);
-            if (el) el.classList.toggle('hidden');
-        };
-        window.submitForm = function(e, formId) {
-            const form = document.getElementById(formId);
-            if (form) form.submit();
-        };
-
-        // Handle data-action clicks (delegated)
-        document.addEventListener('click', function(e) {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
-
-            const action = target.dataset.action;
-            let args = [];
-
-            // Parse arguments if present
-            if (target.dataset.args) {
-                try {
-                    args = JSON.parse(target.dataset.args);
-                } catch (err) {
-                    console.error('Invalid data-args JSON:', target.dataset.args);
-                }
-            }
-
-            // Call the action function if it exists
-            if (typeof window[action] === 'function') {
-                e.preventDefault();
-                window[action].apply(null, [e, ...args]);
-            } else {
-                console.warn('Action function not found:', action);
-            }
-        });
-
-        // Handle data-submit for forms (delegated)
-        document.addEventListener('submit', function(e) {
-            const form = e.target.closest('[data-submit]');
-            if (!form) return;
-
-            const action = form.dataset.submit;
-            if (typeof window[action] === 'function') {
-                e.preventDefault();
-                window[action](e);
-            }
-        });
-
-        // Handle data-change for inputs/selects (delegated)
-        document.addEventListener('change', function(e) {
-            const target = e.target.closest('[data-change]');
-            if (!target) return;
-
-            const action = target.dataset.change;
-            let args = [];
-
-            if (target.dataset.args) {
-                try {
-                    args = JSON.parse(target.dataset.args);
-                } catch (err) {
-                    console.error('Invalid data-args JSON:', target.dataset.args);
-                }
-            }
-
-            if (typeof window[action] === 'function') {
-                window[action].apply(null, [e, ...args]);
-            }
-        });
-
-        console.log('✅ CSP Event Dispatcher initialized');
-    })();
-    </script>
-
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+{% endblock %}

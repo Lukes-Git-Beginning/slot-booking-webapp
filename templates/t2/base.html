@@ -1,553 +1,251 @@
-<!DOCTYPE html>
-<html lang="de" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>{% block title %}T2-Closer System{% endblock %} • Business Tool Hub</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+{% block title %}{% block t2_title %}T2-Closer System{% endblock %}{% endblock %}
 
-  <!-- Tailwind CSS + DaisyUI -->
-  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+{% block tailwind_config_colors %}'t2-purple': '#d4af6a',{% endblock %}
 
-  <!-- Lucide Icons -->
-  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
+{% block body_attrs %}{% endblock %}
 
-  <!-- AOS Animations -->
-  <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
-  <script src="{{ url_for('static', filename='aos.js') }}"></script>
+{% block area_css %}
+    <style nonce="{{ csp_nonce }}">
+        /* T2-Specific Styles */
+        .closer-card {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-  <!-- Alpine.js -->
-  <script defer src="{{ url_for('static', filename='alpine.min.js') }}"></script>
+        .closer-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(212, 175, 106, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
 
-  <!-- Particles.js -->
-  <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
+        .closer-card:hover::after {
+            opacity: 1;
+        }
 
-  <!-- Tailwind Config -->
-  <script nonce="{{ csp_nonce }}">
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#d4af6a',
-            'primary-dark': '#c2ae7f',
-            'secondary': '#207487',
-            'accent': '#294c5d',
-            't2-purple': '#d4af6a',
-          },
-          animation: {
-            'gradient': 'gradient 15s ease infinite',
-            'float': 'float 6s ease-in-out infinite',
-          },
-          keyframes: {
-            gradient: {
-              '0%, 100%': { backgroundPosition: '0% 50%' },
-              '50%': { backgroundPosition: '100% 50%' },
-            },
-            float: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-20px)' },
-            },
-          },
-        },
-      },
-    }
-  </script>
+        .closer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(212, 175, 106, 0.3);
+        }
 
-  <style nonce="{{ csp_nonce }}">
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        /* Ticket Badge Animation */
+        .ticket-badge {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+    </style>
+{% endblock %}
 
-    body {
-      font-family: 'Inter', sans-serif;
-      overflow-x: hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    /* Dark Theme (Default) */
-    [data-theme="dark"] body {
-      background: linear-gradient(to bottom right, #0f172a, #294c5d, #0f172a);
-      color: white;
-    }
-
-    /* Light Theme */
-    [data-theme="light"] body {
-      background: linear-gradient(to bottom right, #fafaf9, #e7e5e4, #f5f5f4);
-      color: #1c1917;
-    }
-
-    /* Glassmorphism - Dark Theme */
-    [data-theme="dark"] .glass {
-      background: rgba(18, 24, 32, 0.65);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    /* Glassmorphism - Light Theme */
-    [data-theme="light"] .glass {
-      background: rgba(255, 255, 255, 0.90);
-      backdrop-filter: blur(20px) saturate(150%);
-      -webkit-backdrop-filter: blur(20px) saturate(150%);
-      border: 1px solid rgba(212, 175, 106, 0.25);
-      box-shadow: 0 8px 32px rgba(120, 113, 108, 0.15);
-    }
-
-    /* Text Colors - Light Theme */
-    [data-theme="light"] .text-white {
-      color: #1c1917 !important;
-    }
-
-    [data-theme="light"] .text-gray-400 {
-      color: #57534e !important;
-    }
-
-    /* Particle Container */
-    #particles-js {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    /* Particles - Light Theme */
-    [data-theme="light"] #particles-js {
-      opacity: 0.3;
-    }
-
-    /* Custom Scrollbar - Dark */
-    [data-theme="dark"] ::-webkit-scrollbar {
-      width: 10px;
-    }
-
-    [data-theme="dark"] ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    [data-theme="dark"] ::-webkit-scrollbar-thumb {
-      background: rgba(212, 175, 106, 0.3);
-      border-radius: 10px;
-    }
-
-    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-      background: rgba(212, 175, 106, 0.6);
-    }
-
-    /* Custom Scrollbar - Light */
-    [data-theme="light"] ::-webkit-scrollbar {
-      width: 10px;
-    }
-
-    [data-theme="light"] ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    [data-theme="light"] ::-webkit-scrollbar-thumb {
-      background: rgba(212, 175, 106, 0.4);
-      border-radius: 10px;
-    }
-
-    [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-      background: rgba(212, 175, 106, 0.7);
-    }
-
-    /* T2-Specific Styles */
-    .closer-card {
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .closer-card::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(212, 175, 106, 0.1) 0%, transparent 70%);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .closer-card:hover::after {
-      opacity: 1;
-    }
-
-    .closer-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 60px rgba(212, 175, 106, 0.3);
-    }
-
-    /* Ticket Badge Animation */
-    .ticket-badge {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.7;
-      }
-    }
-  </style>
-
-  {% block extra_css %}{% endblock %}
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 text-white min-h-screen">
-
-  <!-- Particle Background -->
-  <div id="particles-js"></div>
-
-  <!-- Main Container -->
-  <div class="relative z-10">
-
+{% block navbar %}
     <!-- Modern Navbar -->
     <nav class="glass sticky top-0 z-50 backdrop-blur-xl"
          x-data="{ userMenuOpen: false }"
          data-aos="fade-down">
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
 
-          <!-- Brand & Back Button -->
-          <div class="flex items-center gap-4">
-            <a href="{{ url_for('hub.dashboard') }}"
-               class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all group">
-              <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
-              <span class="hidden md:inline">Zurück zum Hub</span>
-            </a>
+                <!-- Brand & Back Button -->
+                <div class="flex items-center gap-4">
+                    <a href="{{ url_for('hub.dashboard') }}"
+                       class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all group">
+                        <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+                        <span class="hidden md:inline">Zurück zum Hub</span>
+                    </a>
 
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <i data-lucide="target" class="w-5 h-5 text-white"></i>
-              </div>
-              <div class="hidden md:block">
-                <h1 class="text-lg font-bold">T2-Closer System</h1>
-                <p class="text-xs text-gray-400">Premium 2-Stunden-Beratungen</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- User Menu -->
-          {% if user %}
-          <div class="flex items-center gap-4">
-            <!-- Theme Toggle -->
-            <button @click="toggleTheme()"
-                    class="btn btn-circle btn-ghost hover:bg-white/10">
-              <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
-              <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
-            </button>
-
-            <div class="relative" @click.away="userMenuOpen = false">
-              <button @click="userMenuOpen = !userMenuOpen"
-                      class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
-                  {{ user[0]|upper }}
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                            <i data-lucide="target" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <h1 class="text-lg font-bold">T2-Closer System</h1>
+                            <p class="text-xs text-gray-400">Premium 2-Stunden-Beratungen</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-left hidden md:block">
-                  <p class="font-semibold">{{ user }}</p>
-                  <p class="text-xs text-gray-400">
-                    {% if is_admin %}Admin{% else %}Benutzer{% endif %}
-                  </p>
-                </div>
-                <i data-lucide="chevron-down" class="w-4 h-4"></i>
-              </button>
 
-            <!-- User Dropdown Menu -->
-            <div x-show="userMenuOpen"
-                 x-transition
-                 class="absolute right-0 mt-2 w-56 glass rounded-2xl p-2 shadow-2xl">
-              <a href="{{ url_for('t2.dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                <i data-lucide="home" class="w-4 h-4"></i>
-                <span>T2 Dashboard</span>
-              </a>
-              <a href="{{ url_for('t2.my_analytics') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                <span>Meine Analytics</span>
-              </a>
-              {% if is_admin %}
-              <div class="divider my-1"></div>
-              <a href="{{ url_for('t2.admin_bucket_config') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                <i data-lucide="settings" class="w-4 h-4"></i>
-                <span>Bucket Config</span>
-              </a>
-              <a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
-                <i data-lucide="shield" class="w-4 h-4"></i>
-                <span>Administration</span>
-              </a>
-              {% endif %}
-              <div class="divider my-1"></div>
-              <a href="{{ url_for('auth.logout') }}"
-                 class="flex items-center gap-3 px-4 py-2 hover:bg-error/20 text-error rounded-lg transition-colors">
-                <i data-lucide="log-out" class="w-4 h-4"></i>
-                <span>Abmelden</span>
-              </a>
+                <!-- User Menu -->
+                {% if user %}
+                <div class="flex items-center gap-4">
+                    <!-- Theme Toggle -->
+                    <button @click="toggleTheme()"
+                            class="btn btn-circle btn-ghost hover:bg-white/10">
+                        <i data-lucide="sun" class="w-5 h-5" x-show="$store.theme.current === 'dark'"></i>
+                        <i data-lucide="moon" class="w-5 h-5" x-show="$store.theme.current === 'light'"></i>
+                    </button>
+
+                    <div class="relative" @click.away="userMenuOpen = false">
+                        <button @click="userMenuOpen = !userMenuOpen"
+                                class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold">
+                                {{ user[0]|upper }}
+                            </div>
+                            <div class="text-left hidden md:block">
+                                <p class="font-semibold">{{ user }}</p>
+                                <p class="text-xs text-gray-400">
+                                    {% if is_admin %}Admin{% else %}Benutzer{% endif %}
+                                </p>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+
+                        <!-- User Dropdown Menu -->
+                        <div x-show="userMenuOpen"
+                             x-transition
+                             class="absolute right-0 mt-2 w-56 glass rounded-2xl p-2 shadow-2xl">
+                            <a href="{{ url_for('t2.dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="home" class="w-4 h-4"></i>
+                                <span>T2 Dashboard</span>
+                            </a>
+                            <a href="{{ url_for('t2.my_analytics') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                                <span>Meine Analytics</span>
+                            </a>
+                            {% if is_admin %}
+                            <div class="divider my-1"></div>
+                            <a href="{{ url_for('t2.admin_bucket_config') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="settings" class="w-4 h-4"></i>
+                                <span>Bucket Config</span>
+                            </a>
+                            <a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <i data-lucide="shield" class="w-4 h-4"></i>
+                                <span>Administration</span>
+                            </a>
+                            {% endif %}
+                            <div class="divider my-1"></div>
+                            <a href="{{ url_for('auth.logout') }}"
+                               class="flex items-center gap-3 px-4 py-2 hover:bg-error/20 text-error rounded-lg transition-colors">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <span>Abmelden</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            </div>
-          </div>
-          {% endif %}
         </div>
-      </div>
     </nav>
+{% endblock %}
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8 min-h-[calc(100vh-200px)]">
-      {% block content %}{% endblock %}
-    </main>
-
+{% block footer %}
     <!-- Footer -->
     <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">
-      <div class="container mx-auto px-4 py-8">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="text-sm">
+                        <p class="font-semibold">T2-Closer System</p>
+                        <p class="text-gray-400">Premium 2-Stunden-Beratungen</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-6 text-sm text-gray-400">
+                    <a href="/health" class="flex items-center gap-2 hover:text-primary transition-colors">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                        <span>Status</span>
+                    </a>
+                    <span>Version 3.3.15</span>
+                </div>
             </div>
-            <div class="text-sm">
-              <p class="font-semibold">T2-Closer System</p>
-              <p class="text-gray-400">Premium 2-Stunden-Beratungen</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-6 text-sm text-gray-400">
-            <a href="/health" class="flex items-center gap-2 hover:text-primary transition-colors">
-              <i data-lucide="activity" class="w-4 h-4"></i>
-              <span>Status</span>
-            </a>
-            <span>Version 3.3.15</span>
-          </div>
         </div>
-      </div>
     </footer>
-  </div>
+{% endblock %}
 
-  <!-- JavaScript -->
-  <script nonce="{{ csp_nonce }}">
-    // Initialize Lucide Icons
-    lucide.createIcons();
+{% block particles_config %}
+    <!-- T2 Particles.js Configuration (80 particles, with interactivity) -->
+    <script nonce="{{ csp_nonce }}">
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#d4af6a' },
+                shape: { type: 'circle' },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#d4af6a',
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'grab' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                    push: { particles_nb: 4 }
+                }
+            },
+            retina_detect: true
+        });
+    </script>
+{% endblock %}
 
-    // Initialize AOS
-    AOS.init({
-      duration: 800,
-      easing: 'ease-out-cubic',
-      once: true,
-      offset: 50
-    });
+{% block theme_js %}
+    <!-- Alpine.js Theme Store -->
+    <script nonce="{{ csp_nonce }}">
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('theme', {
+                current: localStorage.getItem('theme') || 'dark',
+                init() {
+                    document.documentElement.setAttribute('data-theme', this.current);
+                },
+                toggle() {
+                    this.current = this.current === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem('theme', this.current);
+                    document.documentElement.setAttribute('data-theme', this.current);
+                    setTimeout(() => lucide.createIcons(), 50);
+                }
+            });
+        });
 
-    // Initialize Particles.js (T2 theme with ZFA gold)
-    particlesJS('particles-js', {
-      particles: {
-        number: { value: 80, density: { enable: true, value_area: 800 } },
-        color: { value: '#d4af6a' },
-        shape: { type: 'circle' },
-        opacity: {
-          value: 0.3,
-          random: true,
-          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
-        },
-        size: {
-          value: 3,
-          random: true,
-          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
-        },
-        line_linked: {
-          enable: true,
-          distance: 150,
-          color: '#d4af6a',
-          opacity: 0.2,
-          width: 1
-        },
-        move: {
-          enable: true,
-          speed: 1,
-          direction: 'none',
-          random: false,
-          straight: false,
-          out_mode: 'out',
-          bounce: false
+        // Set initial theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Toggle theme function
+        function toggleTheme() {
+            const store = Alpine.store('theme');
+            if (store) store.toggle();
         }
-      },
-      interactivity: {
-        detect_on: 'canvas',
-        events: {
-          onhover: { enable: true, mode: 'grab' },
-          onclick: { enable: true, mode: 'push' },
-          resize: true
-        },
-        modes: {
-          grab: { distance: 140, line_linked: { opacity: 0.5 } },
-          push: { particles_nb: 4 }
-        }
-      },
-      retina_detect: true
-    });
-
-    // Alpine.js Theme Store
-    document.addEventListener('alpine:init', () => {
-      Alpine.store('theme', {
-        current: localStorage.getItem('theme') || 'dark',
-        init() {
-          document.documentElement.setAttribute('data-theme', this.current);
-        },
-        toggle() {
-          this.current = this.current === 'dark' ? 'light' : 'dark';
-          localStorage.setItem('theme', this.current);
-          document.documentElement.setAttribute('data-theme', this.current);
-          setTimeout(() => lucide.createIcons(), 50);
-        }
-      });
-    });
-
-    // Set initial theme
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
-    // Toggle theme function
-    function toggleTheme() {
-      const store = Alpine.store('theme');
-      if (store) store.toggle();
-    }
-
-    // Re-init icons after Alpine loads
-    document.addEventListener('alpine:initialized', () => {
-      setTimeout(() => lucide.createIcons(), 100);
-    });
-
-    // CSRF Protection for AJAX Requests
-    function getCSRFToken() {
-      const metaTag = document.querySelector('meta[name="csrf-token"]');
-      return metaTag ? metaTag.getAttribute('content') : '';
-    }
-
-    window.csrfFetch = function(url, options = {}) {
-      options.method = options.method || 'POST';
-      options.headers = options.headers || {};
-
-      if (options.method !== 'GET') {
-        options.headers['X-CSRFToken'] = getCSRFToken();
-      }
-
-      if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
-        options.headers['Content-Type'] = 'application/json';
-        options.body = JSON.stringify(options.body);
-      }
-
-      return fetch(url, options);
-    };
-
-    // Patch global fetch to auto-include CSRF
-    const originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
-      if (options.method && options.method !== 'GET' && !url.startsWith('http')) {
-        options.headers = options.headers || {};
-        if (!options.headers['X-CSRFToken']) {
-          options.headers['X-CSRFToken'] = getCSRFToken();
-        }
-      }
-      return originalFetch(url, options);
-    };
-
-    console.log('✅ CSRF Protection initialized - All AJAX requests protected');
-  </script>
-
-  <!-- CSP-Compliant Event Dispatcher -->
-  <script nonce="{{ csp_nonce }}">
-  // ========================================
-  // Global Event Dispatcher for CSP Compliance
-  // ========================================
-
-  (function() {
-      // Common helper functions
-      window.reloadPage = window.reloadPage || function() { location.reload(); };
-      window.goBack = window.goBack || function() { history.back(); };
-      window.navigateTo = window.navigateTo || function(e, url) { window.location.href = url; };
-      window.showModal = window.showModal || function(e, modalId) {
-          const modal = document.getElementById(modalId);
-          if (modal && modal.showModal) modal.showModal();
-      };
-      window.closeModal = window.closeModal || function(e, modalId) {
-          const modal = document.getElementById(modalId);
-          if (modal && modal.close) modal.close();
-      };
-      window.toggleElement = window.toggleElement || function(e, elementId) {
-          const el = document.getElementById(elementId);
-          if (el) el.classList.toggle('hidden');
-      };
-
-      // Handle data-action clicks (delegated)
-      document.addEventListener('click', function(e) {
-          const target = e.target.closest('[data-action]');
-          if (!target) return;
-
-          const action = target.dataset.action;
-          let args = [];
-
-          if (target.dataset.args) {
-              try {
-                  args = JSON.parse(target.dataset.args);
-              } catch (err) {
-                  console.error('Invalid data-args JSON:', target.dataset.args);
-              }
-          }
-
-          if (typeof window[action] === 'function') {
-              e.preventDefault();
-              window[action].apply(null, [e, ...args]);
-          } else {
-              console.warn('Action function not found:', action);
-          }
-      });
-
-      // Handle data-submit for forms
-      document.addEventListener('submit', function(e) {
-          const form = e.target.closest('[data-submit]');
-          if (!form) return;
-
-          const action = form.dataset.submit;
-          if (typeof window[action] === 'function') {
-              e.preventDefault();
-              window[action](e);
-          }
-      });
-
-      // Handle data-change for inputs/selects
-      document.addEventListener('change', function(e) {
-          const target = e.target.closest('[data-change]');
-          if (!target) return;
-
-          const action = target.dataset.change;
-          let args = [];
-
-          if (target.dataset.args) {
-              try {
-                  args = JSON.parse(target.dataset.args);
-              } catch (err) {
-                  console.error('Invalid data-args JSON:', target.dataset.args);
-              }
-          }
-
-          if (typeof window[action] === 'function') {
-              window[action].apply(null, [e, ...args]);
-          }
-      });
-
-      console.log('✅ CSP Event Dispatcher initialized');
-  })();
-  </script>
-
-  {% block extra_js %}{% endblock %}
-</body>
-</html>
+    </script>
+{% endblock %}

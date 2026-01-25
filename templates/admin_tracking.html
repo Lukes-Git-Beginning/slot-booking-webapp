@@ -1,390 +1,401 @@
-<!DOCTYPE html>
-<html lang="de" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <title>📊 Tracking Analytics - Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+{% extends "hub/base.html" %}
 
-  <!-- Tailwind CSS + DaisyUI (Local) -->
-  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+{% block hub_title %}Tracking Analytics - Admin{% endblock %}
+{% block title_suffix %}{% endblock %}
 
-  <!-- Lucide Icons (Local) -->
-  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
+{% block hub_extra_imports %}
+    <!-- ApexCharts -->
+    <script src="{{ url_for('static', filename='js/apexcharts.min.js') }}"></script>
+{% endblock %}
 
-  <!-- ApexCharts (Local) -->
-  <script src="{{ url_for('static', filename='js/apexcharts.min.js') }}"></script>
+{% block particles %}{% endblock %}
 
-  <!-- AOS Animations (Local) -->
-  <link href="{{ url_for('static', filename='aos.css') }}" rel="stylesheet">
-  <script src="{{ url_for('static', filename='aos.js') }}"></script>
+{% block extra_css %}
+    <style nonce="{{ csp_nonce }}">
+        .stat-card {
+            transition: all 0.3s ease;
+        }
 
-  <!-- Tailwind Config -->
-  <script nonce="{{ csp_nonce }}">
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#d4af6a',
-            'primary-dark': '#c2ae7f',
-            'secondary': '#207487',
-            'accent': '#294c5d',
-          },
-        },
-      },
-    }
-  </script>
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(212, 175, 106, 0.2);
+        }
+    </style>
+{% endblock %}
 
-  <style nonce="{{ csp_nonce }}">
-    body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      min-height: 100vh;
-    }
+{% block navbar %}
+    <!-- Header -->
+    <div class="container mx-auto px-4 pt-8 pb-4" data-aos="fade-down">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost btn-circle hover:bg-white/10">
+                    <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
+                        <i data-lucide="bar-chart-3" class="w-10 h-10 text-primary"></i>
+                        Tracking Analytics
+                    </h1>
+                    <p class="text-white/60 mt-1">Show/No-Show Statistiken · Stand: {{ current_date }}</p>
+                </div>
+            </div>
 
-    .glass {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 text-sm text-white/60 mr-2">
+                    <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+                    <span id="current-period-label">Letzte 30 Tage</span>
+                </div>
 
-    .stat-card {
-      transition: all 0.3s ease;
-    }
+                <label for="settings-drawer" class="btn btn-ghost hover:bg-white/10 gap-2 cursor-pointer">
+                    <i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary"></i>
+                    <span class="hidden md:inline text-white">Einstellungen</span>
+                </label>
 
-    .stat-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(212, 175, 106, 0.2);
-    }
-  </style>
-</head>
-<body class="p-4 md:p-8">
-
-  <!-- Header -->
-  <div class="max-w-7xl mx-auto mb-8" data-aos="fade-down">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-4">
-        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost btn-circle hover:bg-white/10">
-          <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
-        </a>
-        <div>
-          <h1 class="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
-            <i data-lucide="bar-chart-3" class="w-10 h-10 text-primary"></i>
-            Tracking Analytics
-          </h1>
-          <p class="text-white/60 mt-1">Show/No-Show Statistiken · Stand: {{ current_date }}</p>
+                <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
+                </button>
+            </div>
         </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2">
-        <!-- Current Period Display -->
-        <div class="flex items-center gap-2 text-sm text-white/60 mr-2">
-          <i data-lucide="calendar-clock" class="w-4 h-4"></i>
-          <span id="current-period-label">Letzte 30 Tage</span>
-        </div>
-
-        <!-- Settings Button (opens Drawer) -->
-        <label for="settings-drawer" class="btn btn-ghost hover:bg-white/10 gap-2 cursor-pointer">
-          <i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary"></i>
-          <span class="hidden md:inline text-white">Einstellungen</span>
-        </label>
-
-        <!-- Refresh Button -->
-        <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
-          <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
-        </button>
-      </div>
     </div>
-  </div>
+{% endblock %}
 
-  <div class="max-w-7xl mx-auto space-y-8">
+{% block content %}
+    <div class="space-y-8">
 
     <!-- Letzte 5 Werktage -->
     <div id="daily-section" class="glass rounded-2xl p-6 md:p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-          <i data-lucide="calendar-days" class="w-6 h-6 text-primary"></i>
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                <i data-lucide="calendar-days" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div>
+                <h2 id="daily-section-title" class="text-2xl font-bold text-white">Tagesübersicht · Letzte 30 Tage</h2>
+                <p class="text-white/60 text-sm">Tägliche Termin-Übersicht</p>
+            </div>
         </div>
-        <div>
-          <h2 id="daily-section-title" class="text-2xl font-bold text-white">Tagesübersicht · Letzte 30 Tage</h2>
-          <p class="text-white/60 text-sm">Tägliche Termin-Übersicht</p>
-        </div>
-      </div>
 
-      <!-- Tabelle -->
-      <div class="overflow-x-auto">
-        <table class="table table-zebra w-full">
-          <thead>
-            <tr class="bg-white/5 border-b border-white/10">
-              <th class="text-white font-bold">Datum</th>
-              <th class="text-white font-bold">Wochentag</th>
-              <th class="text-white font-bold text-center">Gelegte Termine</th>
-              <th class="text-white font-bold text-center">Erschienen</th>
-              <th class="text-white font-bold text-center">Nicht erschienen</th>
-              <th class="text-white font-bold text-center">Ghosts</th>
-              <th class="text-white font-bold text-center">Abgesagt</th>
-              <th class="text-white font-bold text-center">Verschoben</th>
-              <th class="text-white font-bold text-center">Auftauchquote</th>
-            </tr>
-          </thead>
-          <tbody id="daily-table-body">
-            {% if last_5_workdays %}
-              {% for day in last_5_workdays %}
-              <tr class="hover:bg-white/5 transition-colors">
-                <td class="text-white font-medium">{{ day.date }}</td>
-                <td class="text-white/80">{{ day.weekday_de }}</td>
-                <td class="text-center">
-                  <span class="badge badge-primary badge-lg">{{ day.total_slots }}</span>
-                </td>
-                <td class="text-center">
-                  <span class="badge badge-success badge-lg">{{ day.completed }}</span>
-                </td>
-                <td class="text-center">
-                  <span class="badge badge-error badge-lg">{{ day.no_shows }}</span>
-                </td>
-                <td class="text-center">
-                  <span class="badge badge-lg" style="background: #0ea5e9; color: white;">{{ day.ghosts | default(0) }}</span>
-                </td>
-                <td class="text-center">
-                  <span class="badge badge-warning badge-lg">{{ day.cancelled }}</span>
-                </td>
-                <td class="text-center">
-                  <span class="badge badge-lg" style="background: #8b5cf6; color: white;">{{ day.rescheduled }}</span>
-                </td>
-                <td class="text-center">
-                  {% if day.appearance_rate >= 80 %}
-                    <span class="badge badge-success badge-lg font-bold">{{ day.appearance_rate }}%</span>
-                  {% elif day.appearance_rate >= 60 %}
-                    <span class="badge badge-warning badge-lg font-bold">{{ day.appearance_rate }}%</span>
-                  {% else %}
-                    <span class="badge badge-error badge-lg font-bold">{{ day.appearance_rate }}%</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            {% else %}
-              <tr>
-                <td colspan="7" class="text-center text-white/60 py-8">
-                  <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
-                  <p>Keine Daten für die letzten 5 Werktage verfügbar</p>
-                </td>
-              </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr class="bg-white/5 border-b border-white/10">
+                        <th class="text-white font-bold">Datum</th>
+                        <th class="text-white font-bold">Wochentag</th>
+                        <th class="text-white font-bold text-center">Gelegte Termine</th>
+                        <th class="text-white font-bold text-center">Erschienen</th>
+                        <th class="text-white font-bold text-center">Nicht erschienen</th>
+                        <th class="text-white font-bold text-center">Ghosts</th>
+                        <th class="text-white font-bold text-center">Abgesagt</th>
+                        <th class="text-white font-bold text-center">Verschoben</th>
+                        <th class="text-white font-bold text-center">Auftauchquote</th>
+                    </tr>
+                </thead>
+                <tbody id="daily-table-body">
+                    {% if last_5_workdays %}
+                        {% for day in last_5_workdays %}
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="text-white font-medium">{{ day.date }}</td>
+                            <td class="text-white/80">{{ day.weekday_de }}</td>
+                            <td class="text-center">
+                                <span class="badge badge-primary badge-lg">{{ day.total_slots }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-success badge-lg">{{ day.completed }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-error badge-lg">{{ day.no_shows }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-lg" style="background: #0ea5e9; color: white;">{{ day.ghosts | default(0) }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-warning badge-lg">{{ day.cancelled }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-lg" style="background: #8b5cf6; color: white;">{{ day.rescheduled }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% if day.appearance_rate >= 80 %}
+                                    <span class="badge badge-success badge-lg font-bold">{{ day.appearance_rate }}%</span>
+                                {% elif day.appearance_rate >= 60 %}
+                                    <span class="badge badge-warning badge-lg font-bold">{{ day.appearance_rate }}%</span>
+                                {% else %}
+                                    <span class="badge badge-error badge-lg font-bold">{{ day.appearance_rate }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-white/60 py-8">
+                                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                                <p>Keine Daten für die letzten 5 Werktage verfügbar</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- Seit Go-Live (01.09.2025) -->
+    <!-- Seit Go-Live -->
     <div class="glass rounded-2xl p-6 md:p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-          <i data-lucide="trending-up" class="w-6 h-6 text-primary"></i>
-        </div>
-        <div>
-          <h2 id="stats-section-title" class="text-2xl font-bold text-white">Gesamtstatistik</h2>
-          <p class="text-white/60 text-sm">Aggregierte Kennzahlen für gewählten Zeitraum</p>
-        </div>
-      </div>
-
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <!-- Total Slots -->
-        <div class="stat-card glass rounded-xl p-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white/60 text-sm font-medium">Gelegte Termine</span>
-            <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
-          </div>
-          <p id="total-slots" class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div>
+                <h2 id="stats-section-title" class="text-2xl font-bold text-white">Gesamtstatistik</h2>
+                <p class="text-white/60 text-sm">Aggregierte Kennzahlen für gewählten Zeitraum</p>
+            </div>
         </div>
 
-        <!-- T1 Gebucht (nach Buchungsdatum) -->
-        <div class="stat-card glass rounded-xl p-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white/60 text-sm font-medium">T1 Gebucht</span>
-            <i data-lucide="calendar-plus" class="w-5 h-5 text-secondary"></i>
-          </div>
-          <p id="bookings-created" class="text-4xl font-bold text-secondary">0</p>
-          <p class="text-xs text-white/40 mt-1">Nach Buchungsdatum</p>
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div class="stat-card glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-white/60 text-sm font-medium">Gelegte Termine</span>
+                    <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
+                </div>
+                <p id="total-slots" class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
+            </div>
+
+            <div class="stat-card glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-white/60 text-sm font-medium">T1 Gebucht</span>
+                    <i data-lucide="calendar-plus" class="w-5 h-5 text-secondary"></i>
+                </div>
+                <p id="bookings-created" class="text-4xl font-bold text-secondary">0</p>
+                <p class="text-xs text-white/40 mt-1">Nach Buchungsdatum</p>
+            </div>
+
+            <div class="stat-card glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-white/60 text-sm font-medium">Erschienen</span>
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-success"></i>
+                </div>
+                <p id="completed-slots" class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
+            </div>
+
+            <div class="stat-card glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-white/60 text-sm font-medium">Nicht erschienen</span>
+                    <i data-lucide="x-circle" class="w-5 h-5 text-error"></i>
+                </div>
+                <p id="no-shows" class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
+                <p class="text-xs text-white/40 mt-1">Bestätigt, nicht erschienen</p>
+            </div>
+
+            <div class="stat-card glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-white/60 text-sm font-medium">Ghosts</span>
+                    <i data-lucide="ghost" class="w-5 h-5 text-sky-400"></i>
+                </div>
+                <p id="ghosts" class="text-4xl font-bold text-sky-400">{{ since_golive.ghosts | default(0) }}</p>
+                <p class="text-xs text-white/40 mt-1">Nicht bestätigt & nicht erschienen</p>
+            </div>
+
+            <div class="stat-card glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-white/60 text-sm font-medium">Auftauchquote</span>
+                    <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
+                </div>
+                <p id="appearance-rate" class="text-4xl font-bold text-success">{{ since_golive.appearance_rate }}%</p>
+            </div>
         </div>
 
-        <!-- Erschienen -->
-        <div class="stat-card glass rounded-xl p-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white/60 text-sm font-medium">Erschienen</span>
-            <i data-lucide="check-circle-2" class="w-5 h-5 text-success"></i>
-          </div>
-          <p id="completed-slots" class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass rounded-xl p-6">
+                <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="line-chart" class="w-5 h-5 text-primary"></i>
+                    Auftauchquote im Zeitverlauf
+                </h3>
+                <div id="trendChart"></div>
+            </div>
+
+            <div class="glass rounded-xl p-6">
+                <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i>
+                    Terminverteilung
+                </h3>
+                <div id="donutChart"></div>
+            </div>
         </div>
 
-        <!-- No-Shows (bestätigt, nicht erschienen) -->
-        <div class="stat-card glass rounded-xl p-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white/60 text-sm font-medium">Nicht erschienen</span>
-            <i data-lucide="x-circle" class="w-5 h-5 text-error"></i>
-          </div>
-          <p id="no-shows" class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
-          <p class="text-xs text-white/40 mt-1">Bestätigt, nicht erschienen</p>
+        <!-- Zusätzliche Metriken -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div class="glass rounded-xl p-4 text-center">
+                <p class="text-white/60 text-sm mb-1">Completion Rate</p>
+                <p class="text-2xl font-bold text-white">{{ since_golive.completion_rate }}%</p>
+            </div>
+            <div class="glass rounded-xl p-4 text-center">
+                <p class="text-white/60 text-sm mb-1">No-Show Rate</p>
+                <p class="text-2xl font-bold text-error">{{ since_golive.no_show_rate }}%</p>
+            </div>
+            <div class="glass rounded-xl p-4 text-center">
+                <p class="text-white/60 text-sm mb-1">Ghost Rate</p>
+                <p class="text-2xl font-bold text-sky-400">{{ since_golive.ghost_rate | default(0) }}%</p>
+            </div>
+            <div class="glass rounded-xl p-4 text-center">
+                <p class="text-white/60 text-sm mb-1">Abgesagt</p>
+                <p class="text-2xl font-bold text-white">{{ since_golive.cancelled }}</p>
+            </div>
         </div>
-
-        <!-- Ghosts (nicht bestätigt, nicht erschienen) -->
-        <div class="stat-card glass rounded-xl p-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white/60 text-sm font-medium">Ghosts</span>
-            <i data-lucide="ghost" class="w-5 h-5 text-sky-400"></i>
-          </div>
-          <p id="ghosts" class="text-4xl font-bold text-sky-400">{{ since_golive.ghosts | default(0) }}</p>
-          <p class="text-xs text-white/40 mt-1">Nicht bestätigt & nicht erschienen</p>
-        </div>
-
-        <!-- Auftauchquote -->
-        <div class="stat-card glass rounded-xl p-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white/60 text-sm font-medium">Auftauchquote</span>
-            <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
-          </div>
-          <p id="appearance-rate" class="text-4xl font-bold text-success">{{ since_golive.appearance_rate }}%</p>
-        </div>
-      </div>
-
-      <!-- Charts Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Trend Chart -->
-        <div class="glass rounded-xl p-6">
-          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <i data-lucide="line-chart" class="w-5 h-5 text-primary"></i>
-            Auftauchquote im Zeitverlauf
-          </h3>
-          <div id="trendChart"></div>
-        </div>
-
-        <!-- Donut Chart -->
-        <div class="glass rounded-xl p-6">
-          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i>
-            Terminverteilung
-          </h3>
-          <div id="donutChart"></div>
-        </div>
-      </div>
-
-      <!-- Zusätzliche Metriken -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-        <div class="glass rounded-xl p-4 text-center">
-          <p class="text-white/60 text-sm mb-1">Completion Rate</p>
-          <p class="text-2xl font-bold text-white">{{ since_golive.completion_rate }}%</p>
-        </div>
-        <div class="glass rounded-xl p-4 text-center">
-          <p class="text-white/60 text-sm mb-1">No-Show Rate</p>
-          <p class="text-2xl font-bold text-error">{{ since_golive.no_show_rate }}%</p>
-        </div>
-        <div class="glass rounded-xl p-4 text-center">
-          <p class="text-white/60 text-sm mb-1">Ghost Rate</p>
-          <p class="text-2xl font-bold text-sky-400">{{ since_golive.ghost_rate | default(0) }}%</p>
-        </div>
-        <div class="glass rounded-xl p-4 text-center">
-          <p class="text-white/60 text-sm mb-1">Abgesagt</p>
-          <p class="text-2xl font-bold text-white">{{ since_golive.cancelled }}</p>
-        </div>
-      </div>
     </div>
 
     <!-- Berater-Ranking -->
     <div class="glass rounded-2xl p-6 md:p-8">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-            <i data-lucide="trophy" class="w-6 h-6 text-primary"></i>
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-white">Berater-Ranking</h2>
-            <p class="text-white/60 text-sm">Kombinierte Leistungsbewertung</p>
-          </div>
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                    <i data-lucide="trophy" class="w-6 h-6 text-primary"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Berater-Ranking</h2>
+                    <p class="text-white/60 text-sm">Kombinierte Leistungsbewertung</p>
+                </div>
+            </div>
+
+            <div class="tabs tabs-boxed bg-white/5">
+                <a class="tab tab-active" data-tab="combined" data-action="switchRankingTab" data-args='["combined"]'>Kombiniert</a>
+                <a class="tab" data-tab="showrates" data-action="switchRankingTab" data-args='["showrates"]'>Erschienen-Quoten</a>
+            </div>
         </div>
 
-        <!-- Ranking Tabs -->
-        <div class="tabs tabs-boxed bg-white/5">
-          <a class="tab tab-active" data-tab="combined" data-action="switchRankingTab" data-args='["combined"]'>Kombiniert</a>
-          <a class="tab" data-tab="showrates" data-action="switchRankingTab" data-args='["showrates"]'>Erschienen-Quoten</a>
+        <div id="rankingLoading" class="text-center py-8">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+            <p class="text-white/60 mt-2">Lade Ranking-Daten...</p>
         </div>
-      </div>
 
-      <!-- Loading State -->
-      <div id="rankingLoading" class="text-center py-8">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
-        <p class="text-white/60 mt-2">Lade Ranking-Daten...</p>
-      </div>
+        <div id="rankingGrid" class="hidden"></div>
 
-      <!-- Ranking Grid -->
-      <div id="rankingGrid" class="hidden">
-        <!-- Will be populated by JavaScript -->
-      </div>
-
-      <!-- Summary Stats -->
-      <div id="rankingSummary" class="hidden grid grid-cols-1 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-white/10">
-        <div class="text-center">
-          <p class="text-white/60 text-sm">Durchschn. Erschienen-Quote</p>
-          <p id="avgShowRate" class="text-xl font-bold text-white">--</p>
+        <div id="rankingSummary" class="hidden grid grid-cols-1 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-white/10">
+            <div class="text-center">
+                <p class="text-white/60 text-sm">Durchschn. Erschienen-Quote</p>
+                <p id="avgShowRate" class="text-xl font-bold text-white">--</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white/60 text-sm">Durchschn. Tel. Zielerreichung</p>
+                <p id="avgAchievement" class="text-xl font-bold text-white">--</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white/60 text-sm">Gesamt T1 gelegt</p>
+                <p id="totalT1Booked" class="text-xl font-bold text-secondary">--</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white/60 text-sm">Top-Performer</p>
+                <p id="highPerformers" class="text-xl font-bold text-success">--</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white/60 text-sm">Verbesserungsbedarf</p>
+                <p id="lowPerformers" class="text-xl font-bold text-warning">--</p>
+            </div>
         </div>
-        <div class="text-center">
-          <p class="text-white/60 text-sm">Durchschn. Tel. Zielerreichung</p>
-          <p id="avgAchievement" class="text-xl font-bold text-white">--</p>
-        </div>
-        <div class="text-center">
-          <p class="text-white/60 text-sm">Gesamt T1 gelegt</p>
-          <p id="totalT1Booked" class="text-xl font-bold text-secondary">--</p>
-        </div>
-        <div class="text-center">
-          <p class="text-white/60 text-sm">Top-Performer</p>
-          <p id="highPerformers" class="text-xl font-bold text-success">--</p>
-        </div>
-        <div class="text-center">
-          <p class="text-white/60 text-sm">Verbesserungsbedarf</p>
-          <p id="lowPerformers" class="text-xl font-bold text-warning">--</p>
-        </div>
-      </div>
     </div>
 
-  </div>
+    </div>
 
-  <!-- Initialize Scripts -->
-  <script nonce="{{ csp_nonce }}">
-    // CSP-Compliant Event Dispatcher (standalone template)
-    (function() {
-        // Common helper functions
-        window.reloadPage = function() { location.reload(); };
+    <!-- Settings Drawer (Sidebar) -->
+    <div class="drawer drawer-end">
+        <input id="settings-drawer" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-side z-[9999]">
+            <label for="settings-drawer" class="drawer-overlay"></label>
+            <div class="menu p-6 w-80 min-h-full bg-base-200 text-base-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary"></i>
+                        Einstellungen
+                    </h2>
+                    <label for="settings-drawer" class="btn btn-ghost btn-sm btn-circle">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </label>
+                </div>
 
-        // Handle data-action clicks
-        document.addEventListener('click', function(e) {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
+                <div class="mb-6">
+                    <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Zeitraum</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                            <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
+                                   data-action="loadPeriodAndClose" data-args='["last7days"]'>
+                            <span class="text-white">Letzte 7 Tage</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                            <input type="radio" name="period-radio" class="radio radio-primary radio-sm" checked
+                                   data-action="loadPeriodAndClose" data-args='["last30days"]'>
+                            <span class="text-white">Letzte 30 Tage</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                            <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
+                                   data-action="loadPeriodAndClose" data-args='["thisMonth"]'>
+                            <span class="text-white">Dieser Monat</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                            <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
+                                   data-action="loadPeriodAndClose" data-args='["thisYear"]'>
+                            <span class="text-white">Dieses Jahr</span>
+                        </label>
+                    </div>
 
-            const action = target.dataset.action;
-            let args = [];
-            if (target.dataset.args) {
-                try { args = JSON.parse(target.dataset.args); }
-                catch (err) { console.error('Invalid data-args JSON:', target.dataset.args); }
-            }
+                    <div class="mt-4 p-3 rounded-lg bg-white/5">
+                        <label class="flex items-center gap-3 mb-3 cursor-pointer">
+                            <input type="radio" name="period-radio" id="custom-radio" class="radio radio-primary radio-sm">
+                            <span class="text-white font-medium">Eigener Zeitraum</span>
+                        </label>
+                        <div class="space-y-3 pl-7">
+                            <div class="form-control">
+                                <label class="label py-1">
+                                    <span class="label-text text-white/60 text-xs">Von</span>
+                                </label>
+                                <input type="date" id="custom-start-date" class="input input-bordered input-sm w-full bg-base-300">
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-1">
+                                    <span class="label-text text-white/60 text-xs">Bis</span>
+                                </label>
+                                <input type="date" id="custom-end-date" class="input input-bordered input-sm w-full bg-base-300">
+                            </div>
+                            <button data-action="loadCustomPeriodAndClose" class="btn btn-primary btn-sm w-full gap-2">
+                                <i data-lucide="check" class="w-4 h-4"></i>
+                                Anwenden
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-            if (typeof window[action] === 'function') {
-                e.preventDefault();
-                window[action].apply(null, [e, ...args]);
-            }
-        });
-    })();
+                <div class="divider my-2"></div>
 
-    // Initialize Lucide Icons
-    lucide.createIcons();
+                <div>
+                    <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Export</h3>
+                    <div class="space-y-2">
+                        <button data-action="exportExcelAndClose" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+                            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-success"></i>
+                            Excel (.xlsx)
+                        </button>
+                        <button data-action="exportCSVAndClose" data-args='["daily"]' class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+                            <i data-lucide="file-text" class="w-5 h-5 text-info"></i>
+                            CSV (Tagesstatistik)
+                        </button>
+                        <button data-action="exportCSVAndClose" data-args='["summary"]' class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
+                            <i data-lucide="file-bar-chart" class="w-5 h-5 text-warning"></i>
+                            CSV (Zusammenfassung)
+                        </button>
+                    </div>
+                </div>
 
-    // Initialize AOS
-    AOS.init({
-      duration: 800,
-      once: true
-    });
+                <div class="mt-auto pt-6">
+                    <p class="text-xs text-white/40 text-center">
+                        Daten werden nach Auswahl automatisch aktualisiert
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
 
-    // Global chart references for updates
+{% block extra_js %}
+    <script nonce="{{ csp_nonce }}">
+    // Global chart references
     let trendChart = null;
     let donutChart = null;
 
@@ -394,145 +405,99 @@
 
     // Trend Chart
     if (trendData && Array.isArray(trendData) && trendData.length > 0) {
-      try {
-      const trendOptions = {
-        series: [{
-          name: 'Auftauchquote',
-          data: trendData.map(d => d.appearance_rate)
-        }],
-        chart: {
-          type: 'line',
-          height: 300,
-          background: 'transparent',
-          toolbar: {
-            show: false
-          }
-        },
-        stroke: {
-          curve: 'smooth',
-          width: 3,
-          colors: ['#d4af6a']
-        },
-        markers: {
-          size: 4,
-          colors: ['#d4af6a'],
-          strokeColors: '#fff',
-          strokeWidth: 2
-        },
-        xaxis: {
-          categories: trendData.map(d => d.date),
-          labels: {
-            style: {
-              colors: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '10px'
+        try {
+        const trendOptions = {
+            series: [{
+                name: 'Auftauchquote',
+                data: trendData.map(d => d.appearance_rate)
+            }],
+            chart: {
+                type: 'line',
+                height: 300,
+                background: 'transparent',
+                toolbar: { show: false }
             },
-            rotate: -45,
-            formatter: function(val) {
-              // Zeige nur jeden 5. Tag
-              const date = new Date(val);
-              return date.getDate() + '.' + (date.getMonth() + 1);
-            }
-          }
-        },
-        yaxis: {
-          min: 0,
-          max: 100,
-          labels: {
-            style: {
-              colors: 'rgba(255, 255, 255, 0.7)'
+            stroke: {
+                curve: 'smooth',
+                width: 3,
+                colors: ['#d4af6a']
             },
-            formatter: function(val) {
-              return val.toFixed(0) + '%';
+            markers: {
+                size: 4,
+                colors: ['#d4af6a'],
+                strokeColors: '#fff',
+                strokeWidth: 2
+            },
+            xaxis: {
+                categories: trendData.map(d => d.date),
+                labels: {
+                    style: { colors: 'rgba(255, 255, 255, 0.7)', fontSize: '10px' },
+                    rotate: -45,
+                    formatter: function(val) {
+                        const date = new Date(val);
+                        return date.getDate() + '.' + (date.getMonth() + 1);
+                    }
+                }
+            },
+            yaxis: {
+                min: 0, max: 100,
+                labels: {
+                    style: { colors: 'rgba(255, 255, 255, 0.7)' },
+                    formatter: function(val) { return val.toFixed(0) + '%'; }
+                }
+            },
+            grid: { borderColor: 'rgba(255, 255, 255, 0.1)', strokeDashArray: 4 },
+            tooltip: {
+                theme: 'dark',
+                y: { formatter: function(val) { return val.toFixed(1) + '%'; } }
             }
-          }
-        },
-        grid: {
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          strokeDashArray: 4
-        },
-        tooltip: {
-          theme: 'dark',
-          y: {
-            formatter: function(val) {
-              return val.toFixed(1) + '%';
-            }
-          }
-        }
-      };
+        };
 
-      trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
-      trendChart.render();
-      } catch (e) {
-        console.error('Trend chart error:', e);
-        document.querySelector("#trendChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
-      }
+        trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
+        trendChart.render();
+        } catch (e) {
+            console.error('Trend chart error:', e);
+            document.querySelector("#trendChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
+        }
     } else {
-      console.warn('No trend data available, length:', trendData ? trendData.length : 'null');
-      document.querySelector("#trendChart").innerHTML = '<p class="text-center text-white/60 py-20">Keine Daten verfügbar (' + (trendData ? trendData.length : 0) + ' Einträge)</p>';
+        console.warn('No trend data available, length:', trendData ? trendData.length : 'null');
+        document.querySelector("#trendChart").innerHTML = '<p class="text-center text-white/60 py-20">Keine Daten verfügbar (' + (trendData ? trendData.length : 0) + ' Einträge)</p>';
     }
 
     // Donut Chart
     try {
     const donutData = [{{ since_golive.completed | default(0) }}, {{ since_golive.no_shows | default(0) }}, {{ since_golive.ghosts | default(0) }}, {{ since_golive.cancelled | default(0) }}, {{ since_golive.rescheduled | default(0) }}];
-    console.log('Donut data:', donutData);
     const donutOptions = {
-      series: donutData,
-      chart: {
-        type: 'donut',
-        height: 300,
-        background: 'transparent'
-      },
-      labels: ['Erschienen', 'Nicht erschienen', 'Ghosts', 'Abgesagt', 'Verschoben'],
-      colors: ['#10b981', '#ef4444', '#0ea5e9', '#f59e0b', '#8b5cf6'],
-      legend: {
-        position: 'bottom',
-        labels: {
-          colors: 'rgba(255, 255, 255, 0.9)'
-        }
-      },
-      dataLabels: {
-        enabled: true,
-        style: {
-          fontSize: '14px',
-          fontWeight: 'bold',
-          colors: ['#fff']
-        }
-      },
-      plotOptions: {
-        pie: {
-          donut: {
-            size: '65%',
-            labels: {
-              show: true,
-              total: {
-                show: true,
-                label: 'Gesamt',
-                fontSize: '14px',
-                color: 'rgba(255, 255, 255, 0.7)',
-                formatter: function (w) {
-                  return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+        series: donutData,
+        chart: { type: 'donut', height: 300, background: 'transparent' },
+        labels: ['Erschienen', 'Nicht erschienen', 'Ghosts', 'Abgesagt', 'Verschoben'],
+        colors: ['#10b981', '#ef4444', '#0ea5e9', '#f59e0b', '#8b5cf6'],
+        legend: { position: 'bottom', labels: { colors: 'rgba(255, 255, 255, 0.9)' } },
+        dataLabels: { enabled: true, style: { fontSize: '14px', fontWeight: 'bold', colors: ['#fff'] } },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true, label: 'Gesamt', fontSize: '14px',
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            formatter: function (w) { return w.globals.seriesTotals.reduce((a, b) => a + b, 0); }
+                        },
+                        value: { show: true, fontSize: '24px', fontWeight: 'bold', color: '#fff' }
+                    }
                 }
-              },
-              value: {
-                show: true,
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#fff'
-              }
             }
-          }
-        }
-      },
-      tooltip: {
-        theme: 'dark'
-      }
+        },
+        tooltip: { theme: 'dark' }
     };
 
     donutChart = new ApexCharts(document.querySelector("#donutChart"), donutOptions);
     donutChart.render();
     } catch (e) {
-      console.error('Donut chart error:', e);
-      document.querySelector("#donutChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
+        console.error('Donut chart error:', e);
+        document.querySelector("#donutChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
     }
 
     // ========== BERATER-RANKING ==========
@@ -540,625 +505,344 @@
     let currentRankingData = null;
     let currentTab = 'combined';
 
-    // NOTE: Ranking data now loaded by unified date range system (loadAllData)
-    // loadRankingData(); // DISABLED - replaced by unified loading
-
-    async function loadRankingData() {
-      try {
-        const response = await fetch('/admin/tracking/api/combined-ranking', {
-          credentials: 'same-origin'
-        });
-        const result = await response.json();
-
-        if (result.success) {
-          currentRankingData = result.data;
-          renderRanking(currentRankingData, currentTab);
-
-          // Update summary
-          const summary = currentRankingData.summary;
-          document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
-          document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
-          document.getElementById('highPerformers').textContent = summary.high_performers;
-          document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
-
-          document.getElementById('rankingLoading').classList.add('hidden');
-          document.getElementById('rankingGrid').classList.remove('hidden');
-          document.getElementById('rankingSummary').classList.remove('hidden');
-        } else {
-          showRankingError(result.error);
-        }
-      } catch (error) {
-        showRankingError(error.message);
-      }
-    }
-
-    function showRankingError(message) {
-      document.getElementById('rankingLoading').innerHTML = `
-        <div class="text-center py-8">
-          <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-error mb-2"></i>
-          <p class="text-white/60">Fehler beim Laden: ${message}</p>
-        </div>
-      `;
-      lucide.createIcons();
-    }
-
-    // CSP-compliant wrapper
-    window.switchRankingTab = function(e, tab) {
-      _switchRankingTab(tab);
-    };
+    window.switchRankingTab = function(e, tab) { _switchRankingTab(tab); };
 
     function _switchRankingTab(tab) {
-      currentTab = tab;
-
-      // Update tab styles
-      document.querySelectorAll('[data-tab]').forEach(t => {
-        t.classList.remove('tab-active');
-        if (t.dataset.tab === tab) t.classList.add('tab-active');
-      });
-
-      if (currentRankingData) {
-        renderRanking(currentRankingData, tab);
-      }
+        currentTab = tab;
+        document.querySelectorAll('[data-tab]').forEach(t => {
+            t.classList.remove('tab-active');
+            if (t.dataset.tab === tab) t.classList.add('tab-active');
+        });
+        if (currentRankingData) renderRanking(currentRankingData, tab);
     }
 
     function renderRanking(data, tab) {
-      const rankings = data.rankings || [];
-      const grid = document.getElementById('rankingGrid');
+        const rankings = data.rankings || [];
+        const grid = document.getElementById('rankingGrid');
 
-      if (rankings.length === 0) {
-        grid.innerHTML = '<p class="text-center text-white/60 py-8">Keine Ranking-Daten verfügbar</p>';
-        return;
-      }
+        if (rankings.length === 0) {
+            grid.innerHTML = '<p class="text-center text-white/60 py-8">Keine Ranking-Daten verfügbar</p>';
+            return;
+        }
 
-      // German category labels
-      const categoryLabels = { 'high': 'TOP', 'medium': 'MITTEL', 'low': 'NIEDRIG' };
+        const categoryLabels = { 'high': 'TOP', 'medium': 'MITTEL', 'low': 'NIEDRIG' };
+        let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">';
 
-      let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">';
+        rankings.forEach((r, idx) => {
+            const medal = getMedal(idx);
+            const categoryClass = getCategoryClass(r.category);
+            const score = tab === 'combined' ? r.combined_score : r.show_rate;
+            const label = tab === 'combined' ? 'Gesamt-Score' : 'Erschienen-Quote';
+            const categoryLabel = categoryLabels[r.category] || r.category.toUpperCase();
 
-      rankings.forEach((r, idx) => {
-        const medal = getMedal(idx);
-        const categoryClass = getCategoryClass(r.category);
-        const score = tab === 'combined' ? r.combined_score : r.show_rate;
-        const label = tab === 'combined' ? 'Gesamt-Score' : 'Erschienen-Quote';
-        const categoryLabel = categoryLabels[r.category] || r.category.toUpperCase();
+            html += `
+                <div class="glass rounded-xl p-4 ${categoryClass} transition-all hover:scale-105">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            ${medal}
+                            <span class="text-white font-bold text-lg">#${r.rank}</span>
+                        </div>
+                        <span class="badge ${getBadgeClass(r.category)}">${categoryLabel}</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">${r.name}</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-white/60">${label}</span>
+                            <span class="text-white font-semibold">${score}%</span>
+                        </div>
+                        ${tab === 'combined' ? `
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Erschienen-Quote</span>
+                                <span class="text-white">${r.show_rate}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">T1 gelegt</span>
+                                <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Tel. Zielerreichung</span>
+                                <span class="text-white">${r.telefonie_achievement}%</span>
+                            </div>
+                        ` : `
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Termine</span>
+                                <span class="text-white">${r.total_slots}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Erschienen</span>
+                                <span class="text-success">${r.completed}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Nicht erschienen</span>
+                                <span class="text-error">${r.no_shows}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Ghosts</span>
+                                <span class="text-sky-400">${r.ghosts || 0}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">T1 gelegt</span>
+                                <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
 
-        html += `
-          <div class="glass rounded-xl p-4 ${categoryClass} transition-all hover:scale-105">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-2">
-                ${medal}
-                <span class="text-white font-bold text-lg">#${r.rank}</span>
-              </div>
-              <span class="badge ${getBadgeClass(r.category)}">${categoryLabel}</span>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">${r.name}</h3>
-            <div class="space-y-1 text-sm">
-              <div class="flex justify-between">
-                <span class="text-white/60">${label}</span>
-                <span class="text-white font-semibold">${score}%</span>
-              </div>
-              ${tab === 'combined' ? `
-                <div class="flex justify-between">
-                  <span class="text-white/60">Erschienen-Quote</span>
-                  <span class="text-white">${r.show_rate}%</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/60">T1 gelegt</span>
-                  <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/60">Tel. Zielerreichung</span>
-                  <span class="text-white">${r.telefonie_achievement}%</span>
-                </div>
-              ` : `
-                <div class="flex justify-between">
-                  <span class="text-white/60">Termine</span>
-                  <span class="text-white">${r.total_slots}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/60">Erschienen</span>
-                  <span class="text-success">${r.completed}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/60">Nicht erschienen</span>
-                  <span class="text-error">${r.no_shows}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/60">Ghosts</span>
-                  <span class="text-sky-400">${r.ghosts || 0}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/60">T1 gelegt</span>
-                  <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
-                </div>
-              `}
-            </div>
-          </div>
-        `;
-      });
-
-      html += '</div>';
-      grid.innerHTML = html;
-      lucide.createIcons();
+        html += '</div>';
+        grid.innerHTML = html;
+        lucide.createIcons();
     }
 
     function getMedal(idx) {
-      if (idx === 0) return '<i data-lucide="trophy" class="w-6 h-6 text-yellow-400"></i>';
-      if (idx === 1) return '<i data-lucide="medal" class="w-6 h-6 text-gray-300"></i>';
-      if (idx === 2) return '<i data-lucide="award" class="w-6 h-6 text-amber-600"></i>';
-      return '';
+        if (idx === 0) return '<i data-lucide="trophy" class="w-6 h-6 text-yellow-400"></i>';
+        if (idx === 1) return '<i data-lucide="medal" class="w-6 h-6 text-gray-300"></i>';
+        if (idx === 2) return '<i data-lucide="award" class="w-6 h-6 text-amber-600"></i>';
+        return '';
     }
 
     function getCategoryClass(category) {
-      if (category === 'high') return 'border-l-4 border-success';
-      if (category === 'medium') return 'border-l-4 border-warning';
-      return 'border-l-4 border-error';
+        if (category === 'high') return 'border-l-4 border-success';
+        if (category === 'medium') return 'border-l-4 border-warning';
+        return 'border-l-4 border-error';
     }
 
     function getBadgeClass(category) {
-      if (category === 'high') return 'badge-success';
-      if (category === 'medium') return 'badge-warning';
-      return 'badge-error';
+        if (category === 'high') return 'badge-success';
+        if (category === 'medium') return 'badge-warning';
+        return 'badge-error';
     }
 
     // ========== UNIFIED DATE RANGE & DATA LOADING ==========
 
-    // Global state for current period
     let currentStartDate = null;
     let currentEndDate = null;
 
-    // CSP-compliant wrappers
-    window.loadPeriodAndClose = function(e, preset) {
-      loadPeriod(preset);
-      closeDrawer();
-    };
+    window.loadPeriodAndClose = function(e, preset) { loadPeriod(preset); closeDrawer(); };
+    window.loadCustomPeriodAndClose = function(e) { loadCustomPeriod(); closeDrawer(); };
+    window.exportExcelAndClose = function(e) { exportExcel(e); closeDrawer(); };
+    window.exportCSVAndClose = function(e, type) { exportCSV(e, type); closeDrawer(); };
 
-    window.loadCustomPeriodAndClose = function(e) {
-      loadCustomPeriod();
-      closeDrawer();
-    };
-
-    window.exportExcelAndClose = function(e) {
-      exportExcel(e);
-      closeDrawer();
-    };
-
-    window.exportCSVAndClose = function(e, type) {
-      exportCSV(e, type);
-      closeDrawer();
-    };
-
-    // Load all data for a preset period
     async function loadPeriod(preset) {
-      const { startDate, endDate } = calculateDateRange(preset);
-      await loadAllData(startDate, endDate, getPresetLabel(preset), preset);
-      highlightActiveButton(preset);
+        const { startDate, endDate } = calculateDateRange(preset);
+        await loadAllData(startDate, endDate, getPresetLabel(preset), preset);
+        highlightActiveButton(preset);
     }
 
-    // Calculate date range based on preset
     function calculateDateRange(preset) {
-      const today = new Date();
-      let startDate, endDate = today;
-
-      switch(preset) {
-        case 'last7days':
-          startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last30days':
-          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'thisMonth':
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          break;
-        case 'thisYear':
-          startDate = new Date(today.getFullYear(), 0, 1);
-          break;
-      }
-
-      return {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
-      };
-    }
-
-    // Load custom date range from dropdown
-    async function loadCustomPeriod() {
-      const startDate = document.getElementById('custom-start-date').value;
-      const endDate = document.getElementById('custom-end-date').value;
-
-      if (!startDate || !endDate) {
-        alert('Bitte beide Datumswerte auswählen');
-        return;
-      }
-
-      if (new Date(startDate) > new Date(endDate)) {
-        alert('Startdatum muss vor Enddatum liegen');
-        return;
-      }
-
-      await loadAllData(startDate, endDate, `${startDate} bis ${endDate}`, 'custom');
-      highlightActiveButton('custom');
-
-      // Close dropdown
-      document.activeElement.blur();
-    }
-
-    // Main function: Load all sections with unified date range
-    async function loadAllData(startDate, endDate, periodLabel, preset = null) {
-      // Update global state
-      currentStartDate = startDate;
-      currentEndDate = endDate;
-
-      // Update URL
-      const url = new URL(window.location);
-      url.searchParams.set('start_date', startDate);
-      url.searchParams.set('end_date', endDate);
-      window.history.pushState({}, '', url);
-
-      // Update period label
-      document.getElementById('current-period-label').textContent = periodLabel;
-
-      // Show/hide daily section based on preset (only show for last7days)
-      const dailySection = document.getElementById('daily-section');
-      if (dailySection) {
-        dailySection.style.display = preset === 'last7days' ? 'block' : 'none';
-      }
-
-      // Show loading
-      showLoadingStates();
-
-      try {
-        // Fetch all data in parallel
-        const [statsData, rankingData] = await Promise.all([
-          fetch(`/admin/tracking/api/period-stats?type=custom&start_date=${startDate}&end_date=${endDate}`)
-            .then(r => r.json()),
-          fetch(`/admin/tracking/api/combined-ranking?start_date=${startDate}&end_date=${endDate}`)
-            .then(r => r.json())
-        ]);
-
-        // Update all sections - extract data from API response
-        const stats = statsData.success ? statsData.data : {};
-        updateDailySection(stats);
-        updateStatsSection(stats);
-        updateRankingSection(rankingData);
-
-      } catch (error) {
-        console.error('Error loading data:', error);
-        alert('Fehler beim Laden der Daten');
-      } finally {
-        hideLoadingStates();
-      }
-    }
-
-    // Highlight active button
-    function highlightActiveButton(preset) {
-      // Remove active class from all buttons
-      document.querySelectorAll('[id^="btn-"]').forEach(btn => {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-outline');
-      });
-
-      // Highlight active button
-      const activeBtn = document.getElementById(`btn-${preset}`);
-      if (activeBtn) {
-        activeBtn.classList.add('btn-primary');
-        activeBtn.classList.remove('btn-outline');
-      }
-    }
-
-    // Get preset label for display
-    function getPresetLabel(preset) {
-      const labels = {
-        'last7days': 'Letzte 7 Tage',
-        'last30days': 'Letzte 30 Tage',
-        'thisMonth': 'Dieser Monat',
-        'thisYear': 'Dieses Jahr'
-      };
-      return labels[preset] || 'Custom';
-    }
-
-    // Update daily section (Tagesübersicht)
-    function updateDailySection(data) {
-      if (!data || !data.daily_data) return;
-
-      // Update section title
-      const title = document.querySelector('#daily-section-title');
-      if (title && data.start_date && data.end_date) {
-        title.textContent = `Tagesübersicht · ${data.start_date} bis ${data.end_date}`;
-      }
-
-      // Update table
-      updateDailyTable(data.daily_data);
-    }
-
-    // Update daily table
-    function updateDailyTable(dailyData) {
-      const tbody = document.querySelector('#daily-table-body');
-      if (!tbody) return;
-
-      if (!dailyData || dailyData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = dailyData.map(day => `
-        <tr class="hover:bg-white/5 transition-colors">
-          <td class="text-white font-medium">${day.date}</td>
-          <td class="text-white/80">${day.weekday_de || ''}</td>
-          <td class="text-center"><span class="badge badge-outline badge-info">${day.total_slots || 0}</span></td>
-          <td class="text-center"><span class="badge badge-outline badge-success">${day.completed || 0}</span></td>
-          <td class="text-center"><span class="badge badge-outline badge-error">${day.no_shows || 0}</span></td>
-          <td class="text-center"><span class="badge badge-outline" style="border-color: #0ea5e9; color: #0ea5e9;">${day.ghosts || 0}</span></td>
-          <td class="text-center"><span class="badge badge-outline badge-warning">${day.cancelled || 0}</span></td>
-          <td class="text-center"><span class="badge badge-outline badge-secondary">${day.rescheduled || 0}</span></td>
-          <td class="text-center font-bold ${(day.appearance_rate || 0) >= 70 ? 'text-success' : 'text-warning'}">
-            ${(day.appearance_rate || 0).toFixed(1)}%
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // Update stats section (Gesamtstatistik)
-    function updateStatsSection(data) {
-      if (!data) return;
-
-      // Update aggregate stats
-      const totalSlots = document.getElementById('total-slots');
-      const completedSlots = document.getElementById('completed-slots');
-      const noShows = document.getElementById('no-shows');
-      const ghosts = document.getElementById('ghosts');
-      const appearanceRate = document.getElementById('appearance-rate');
-      const bookingsCreated = document.getElementById('bookings-created');
-
-      if (totalSlots) totalSlots.textContent = data.total_slots || 0;
-      if (completedSlots) completedSlots.textContent = data.completed || 0;
-      if (noShows) noShows.textContent = data.no_shows || 0;
-      if (ghosts) ghosts.textContent = data.ghosts || 0;
-      if (bookingsCreated) bookingsCreated.textContent = data.bookings_created || 0;
-
-      if (appearanceRate) {
-        const rate = (data.appearance_rate || 0).toFixed(1);
-        appearanceRate.textContent = rate + '%';
-
-        // Update color based on rate
-        appearanceRate.classList.remove('text-success', 'text-warning', 'text-error');
-        if (parseFloat(rate) >= 80) {
-          appearanceRate.classList.add('text-success');
-        } else if (parseFloat(rate) >= 60) {
-          appearanceRate.classList.add('text-warning');
-        } else {
-          appearanceRate.classList.add('text-error');
+        const today = new Date();
+        let startDate, endDate = today;
+        switch(preset) {
+            case 'last7days': startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+            case 'last30days': startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+            case 'thisMonth': startDate = new Date(today.getFullYear(), today.getMonth(), 1); break;
+            case 'thisYear': startDate = new Date(today.getFullYear(), 0, 1); break;
         }
-      }
+        return { startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] };
+    }
 
-      // Update Donut Chart (mit Ghosts)
-      if (donutChart) {
-        donutChart.updateSeries([
-          data.completed || 0,
-          data.no_shows || 0,
-          data.ghosts || 0,
-          data.cancelled || 0,
-          data.rescheduled || 0
-        ]);
-      }
+    async function loadCustomPeriod() {
+        const startDate = document.getElementById('custom-start-date').value;
+        const endDate = document.getElementById('custom-end-date').value;
+        if (!startDate || !endDate) { alert('Bitte beide Datumswerte auswählen'); return; }
+        if (new Date(startDate) > new Date(endDate)) { alert('Startdatum muss vor Enddatum liegen'); return; }
+        await loadAllData(startDate, endDate, `${startDate} bis ${endDate}`, 'custom');
+        highlightActiveButton('custom');
+        document.activeElement.blur();
+    }
 
-      // Update Trend Chart
-      if (trendChart && data.daily_data && data.daily_data.length > 0) {
-        trendChart.updateOptions({
-          xaxis: {
-            categories: data.daily_data.map(d => d.date)
-          }
+    async function loadAllData(startDate, endDate, periodLabel, preset = null) {
+        currentStartDate = startDate;
+        currentEndDate = endDate;
+
+        const url = new URL(window.location);
+        url.searchParams.set('start_date', startDate);
+        url.searchParams.set('end_date', endDate);
+        window.history.pushState({}, '', url);
+
+        document.getElementById('current-period-label').textContent = periodLabel;
+
+        const dailySection = document.getElementById('daily-section');
+        if (dailySection) {
+            dailySection.style.display = preset === 'last7days' ? 'block' : 'none';
+        }
+
+        showLoadingStates();
+
+        try {
+            const [statsData, rankingData] = await Promise.all([
+                fetch(`/admin/tracking/api/period-stats?type=custom&start_date=${startDate}&end_date=${endDate}`).then(r => r.json()),
+                fetch(`/admin/tracking/api/combined-ranking?start_date=${startDate}&end_date=${endDate}`).then(r => r.json())
+            ]);
+
+            const stats = statsData.success ? statsData.data : {};
+            updateDailySection(stats);
+            updateStatsSection(stats);
+            updateRankingSection(rankingData);
+        } catch (error) {
+            console.error('Error loading data:', error);
+            alert('Fehler beim Laden der Daten');
+        } finally {
+            hideLoadingStates();
+        }
+    }
+
+    function highlightActiveButton(preset) {
+        document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline');
         });
-        trendChart.updateSeries([{
-          name: 'Auftauchquote',
-          data: data.daily_data.map(d => d.appearance_rate)
-        }]);
-      }
+        const activeBtn = document.getElementById(`btn-${preset}`);
+        if (activeBtn) {
+            activeBtn.classList.add('btn-primary');
+            activeBtn.classList.remove('btn-outline');
+        }
     }
 
-    // Update ranking section
+    function getPresetLabel(preset) {
+        const labels = { 'last7days': 'Letzte 7 Tage', 'last30days': 'Letzte 30 Tage', 'thisMonth': 'Dieser Monat', 'thisYear': 'Dieses Jahr' };
+        return labels[preset] || 'Custom';
+    }
+
+    function updateDailySection(data) {
+        if (!data || !data.daily_data) return;
+        const title = document.querySelector('#daily-section-title');
+        if (title && data.start_date && data.end_date) {
+            title.textContent = `Tagesübersicht · ${data.start_date} bis ${data.end_date}`;
+        }
+        updateDailyTable(data.daily_data);
+    }
+
+    function updateDailyTable(dailyData) {
+        const tbody = document.querySelector('#daily-table-body');
+        if (!tbody) return;
+        if (!dailyData || dailyData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
+            return;
+        }
+        tbody.innerHTML = dailyData.map(day => `
+            <tr class="hover:bg-white/5 transition-colors">
+                <td class="text-white font-medium">${day.date}</td>
+                <td class="text-white/80">${day.weekday_de || ''}</td>
+                <td class="text-center"><span class="badge badge-outline badge-info">${day.total_slots || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline badge-success">${day.completed || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline badge-error">${day.no_shows || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline" style="border-color: #0ea5e9; color: #0ea5e9;">${day.ghosts || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline badge-warning">${day.cancelled || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline badge-secondary">${day.rescheduled || 0}</span></td>
+                <td class="text-center font-bold ${(day.appearance_rate || 0) >= 70 ? 'text-success' : 'text-warning'}">
+                    ${(day.appearance_rate || 0).toFixed(1)}%
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateStatsSection(data) {
+        if (!data) return;
+        const totalSlots = document.getElementById('total-slots');
+        const completedSlots = document.getElementById('completed-slots');
+        const noShows = document.getElementById('no-shows');
+        const ghosts = document.getElementById('ghosts');
+        const appearanceRate = document.getElementById('appearance-rate');
+        const bookingsCreated = document.getElementById('bookings-created');
+
+        if (totalSlots) totalSlots.textContent = data.total_slots || 0;
+        if (completedSlots) completedSlots.textContent = data.completed || 0;
+        if (noShows) noShows.textContent = data.no_shows || 0;
+        if (ghosts) ghosts.textContent = data.ghosts || 0;
+        if (bookingsCreated) bookingsCreated.textContent = data.bookings_created || 0;
+
+        if (appearanceRate) {
+            const rate = (data.appearance_rate || 0).toFixed(1);
+            appearanceRate.textContent = rate + '%';
+            appearanceRate.classList.remove('text-success', 'text-warning', 'text-error');
+            if (parseFloat(rate) >= 80) appearanceRate.classList.add('text-success');
+            else if (parseFloat(rate) >= 60) appearanceRate.classList.add('text-warning');
+            else appearanceRate.classList.add('text-error');
+        }
+
+        if (donutChart) {
+            donutChart.updateSeries([data.completed || 0, data.no_shows || 0, data.ghosts || 0, data.cancelled || 0, data.rescheduled || 0]);
+        }
+
+        if (trendChart && data.daily_data && data.daily_data.length > 0) {
+            trendChart.updateOptions({ xaxis: { categories: data.daily_data.map(d => d.date) } });
+            trendChart.updateSeries([{ name: 'Auftauchquote', data: data.daily_data.map(d => d.appearance_rate) }]);
+        }
+    }
+
     function updateRankingSection(result) {
-      if (!result || !result.success) return;
+        if (!result || !result.success) return;
+        const data = result.data;
+        currentRankingData = data;
+        renderRanking(data, currentTab);
 
-      const data = result.data;
-      currentRankingData = data;
+        const summary = data.summary;
+        if (summary) {
+            document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
+            document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
+            document.getElementById('totalT1Booked').textContent = summary.total_t1_booked || 0;
+            document.getElementById('highPerformers').textContent = summary.high_performers;
+            document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
+        }
 
-      // Render rankings with current tab
-      renderRanking(data, currentTab);
-
-      // Update summary stats
-      const summary = data.summary;
-      if (summary) {
-        document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
-        document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
-        document.getElementById('totalT1Booked').textContent = summary.total_t1_booked || 0;
-        document.getElementById('highPerformers').textContent = summary.high_performers;
-        document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
-      }
-
-      // Show ranking grid
-      document.getElementById('rankingLoading').classList.add('hidden');
-      document.getElementById('rankingGrid').classList.remove('hidden');
-      document.getElementById('rankingSummary').classList.remove('hidden');
+        document.getElementById('rankingLoading').classList.add('hidden');
+        document.getElementById('rankingGrid').classList.remove('hidden');
+        document.getElementById('rankingSummary').classList.remove('hidden');
     }
 
-    // Show loading spinners
     function showLoadingStates() {
-      // Fade all main sections
-      document.querySelectorAll('.stat-card').forEach(card => {
-        card.style.opacity = '0.5';
-      });
-
-      const rankingGrid = document.getElementById('rankingGrid');
-      if (rankingGrid) rankingGrid.style.opacity = '0.5';
-
-      const dailyTable = document.getElementById('daily-table-body');
-      if (dailyTable) dailyTable.style.opacity = '0.5';
+        document.querySelectorAll('.stat-card').forEach(card => { card.style.opacity = '0.5'; });
+        const rankingGrid = document.getElementById('rankingGrid');
+        if (rankingGrid) rankingGrid.style.opacity = '0.5';
+        const dailyTable = document.getElementById('daily-table-body');
+        if (dailyTable) dailyTable.style.opacity = '0.5';
     }
 
-    // Hide loading spinners
     function hideLoadingStates() {
-      document.querySelectorAll('.stat-card').forEach(card => {
-        card.style.opacity = '1';
-      });
-
-      const rankingGrid = document.getElementById('rankingGrid');
-      if (rankingGrid) rankingGrid.style.opacity = '1';
-
-      const dailyTable = document.getElementById('daily-table-body');
-      if (dailyTable) dailyTable.style.opacity = '1';
-
-      // Reinit Lucide icons
-      lucide.createIcons();
+        document.querySelectorAll('.stat-card').forEach(card => { card.style.opacity = '1'; });
+        const rankingGrid = document.getElementById('rankingGrid');
+        if (rankingGrid) rankingGrid.style.opacity = '1';
+        const dailyTable = document.getElementById('daily-table-body');
+        if (dailyTable) dailyTable.style.opacity = '1';
+        lucide.createIcons();
     }
 
-    // ========== DRAWER FUNCTIONS ==========
+    function closeDrawer() { document.getElementById('settings-drawer').checked = false; }
 
-    function closeDrawer() {
-      document.getElementById('settings-drawer').checked = false;
-    }
-
-    // ========== EXPORT FUNCTIONS ==========
-
-    // Export to Excel with current date range
     function exportExcel(e) {
-      e.preventDefault();
-      if (currentStartDate && currentEndDate) {
-        window.location.href = `/admin/tracking/export/excel?start_date=${currentStartDate}&end_date=${currentEndDate}`;
-      } else {
-        window.location.href = '/admin/tracking/export/excel';
-      }
+        e.preventDefault();
+        if (currentStartDate && currentEndDate) {
+            window.location.href = `/admin/tracking/export/excel?start_date=${currentStartDate}&end_date=${currentEndDate}`;
+        } else {
+            window.location.href = '/admin/tracking/export/excel';
+        }
     }
 
-    // Export to CSV with current date range
     function exportCSV(e, type) {
-      e.preventDefault();
-      let url = `/admin/tracking/export/csv?type=${type}`;
-      if (currentStartDate && currentEndDate) {
-        url += `&start_date=${currentStartDate}&end_date=${currentEndDate}`;
-      }
-      window.location.href = url;
+        e.preventDefault();
+        let url = `/admin/tracking/export/csv?type=${type}`;
+        if (currentStartDate && currentEndDate) {
+            url += `&start_date=${currentStartDate}&end_date=${currentEndDate}`;
+        }
+        window.location.href = url;
     }
 
     // On page load: Check URL params or load default
     document.addEventListener('DOMContentLoaded', function() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlStartDate = urlParams.get('start_date');
-      const urlEndDate = urlParams.get('end_date');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlStartDate = urlParams.get('start_date');
+        const urlEndDate = urlParams.get('end_date');
 
-      if (urlStartDate && urlEndDate) {
-        // Load from URL
-        document.getElementById('custom-start-date').value = urlStartDate;
-        document.getElementById('custom-end-date').value = urlEndDate;
-        loadAllData(urlStartDate, urlEndDate, `${urlStartDate} bis ${urlEndDate}`, 'custom');
-        highlightActiveButton('custom');
-      } else {
-        // Load default: Last 30 days
-        loadPeriod('last30days');
-      }
+        if (urlStartDate && urlEndDate) {
+            document.getElementById('custom-start-date').value = urlStartDate;
+            document.getElementById('custom-end-date').value = urlEndDate;
+            loadAllData(urlStartDate, urlEndDate, `${urlStartDate} bis ${urlEndDate}`, 'custom');
+            highlightActiveButton('custom');
+        } else {
+            loadPeriod('last30days');
+        }
     });
-  </script>
-
-  <!-- Settings Drawer (Sidebar) -->
-  <div class="drawer drawer-end">
-    <input id="settings-drawer" type="checkbox" class="drawer-toggle" />
-    <div class="drawer-side z-[9999]">
-      <label for="settings-drawer" class="drawer-overlay"></label>
-      <div class="menu p-6 w-80 min-h-full bg-base-200 text-base-content">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-bold text-white flex items-center gap-2">
-            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary"></i>
-            Einstellungen
-          </h2>
-          <label for="settings-drawer" class="btn btn-ghost btn-sm btn-circle">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </label>
-        </div>
-
-        <!-- Zeitraum Section -->
-        <div class="mb-6">
-          <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Zeitraum</h3>
-          <div class="space-y-2">
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-              <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
-                     data-action="loadPeriodAndClose" data-args='["last7days"]'>
-              <span class="text-white">Letzte 7 Tage</span>
-            </label>
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-              <input type="radio" name="period-radio" class="radio radio-primary radio-sm" checked
-                     data-action="loadPeriodAndClose" data-args='["last30days"]'>
-              <span class="text-white">Letzte 30 Tage</span>
-            </label>
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-              <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
-                     data-action="loadPeriodAndClose" data-args='["thisMonth"]'>
-              <span class="text-white">Dieser Monat</span>
-            </label>
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-              <input type="radio" name="period-radio" class="radio radio-primary radio-sm"
-                     data-action="loadPeriodAndClose" data-args='["thisYear"]'>
-              <span class="text-white">Dieses Jahr</span>
-            </label>
-          </div>
-
-          <!-- Custom Date Range -->
-          <div class="mt-4 p-3 rounded-lg bg-white/5">
-            <label class="flex items-center gap-3 mb-3 cursor-pointer">
-              <input type="radio" name="period-radio" id="custom-radio" class="radio radio-primary radio-sm">
-              <span class="text-white font-medium">Eigener Zeitraum</span>
-            </label>
-            <div class="space-y-3 pl-7">
-              <div class="form-control">
-                <label class="label py-1">
-                  <span class="label-text text-white/60 text-xs">Von</span>
-                </label>
-                <input type="date" id="custom-start-date" class="input input-bordered input-sm w-full bg-base-300">
-              </div>
-              <div class="form-control">
-                <label class="label py-1">
-                  <span class="label-text text-white/60 text-xs">Bis</span>
-                </label>
-                <input type="date" id="custom-end-date" class="input input-bordered input-sm w-full bg-base-300">
-              </div>
-              <button data-action="loadCustomPeriodAndClose" class="btn btn-primary btn-sm w-full gap-2">
-                <i data-lucide="check" class="w-4 h-4"></i>
-                Anwenden
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="divider my-2"></div>
-
-        <!-- Export Section -->
-        <div>
-          <h3 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Export</h3>
-          <div class="space-y-2">
-            <button data-action="exportExcelAndClose" class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
-              <i data-lucide="file-spreadsheet" class="w-5 h-5 text-success"></i>
-              Excel (.xlsx)
-            </button>
-            <button data-action="exportCSVAndClose" data-args='["daily"]' class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
-              <i data-lucide="file-text" class="w-5 h-5 text-info"></i>
-              CSV (Tagesstatistik)
-            </button>
-            <button data-action="exportCSVAndClose" data-args='["summary"]' class="btn btn-ghost w-full justify-start gap-3 hover:bg-white/10">
-              <i data-lucide="file-bar-chart" class="w-5 h-5 text-warning"></i>
-              CSV (Zusammenfassung)
-            </button>
-          </div>
-        </div>
-
-        <!-- Footer Info -->
-        <div class="mt-auto pt-6">
-          <p class="text-xs text-white/40 text-center">
-            Daten werden nach Auswahl automatisch aktualisiert
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</body>
-</html>
+    </script>
+{% endblock %}
