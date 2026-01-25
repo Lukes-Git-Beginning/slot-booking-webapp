@@ -8,6 +8,7 @@ Tracking System für Slot Booking Webapp
 """
 
 import os
+import re
 import json
 import pytz
 import logging
@@ -253,6 +254,15 @@ class BookingTracker:
                             consultant_name = name
                             consultant_email = organizer_email
                             break
+
+                # Fallback: Parse [Booked by: X] aus Description
+                if consultant_name == "Unknown":
+                    description = event.get("description", "")
+                    booked_by_match = re.search(r'\[Booked by:\s*([^\]]+)\]', description)
+                    if booked_by_match:
+                        username = booked_by_match.group(1).strip().lower()
+                        # Map username to display name
+                        consultant_name = USERNAME_TO_DISPLAY.get(username, username.title())
 
                 # WICHTIG: Nutze titel-basierte Outcome-Bestimmung
                 outcome = self._get_outcome_from_title_and_color(customer_name, color_id)
@@ -1503,7 +1513,17 @@ class BookingTracker:
                 # Extrahiere Kundennamen aus Summary (ohne Status-Marker)
                 customer_name = self._clean_customer_name(summary)
                 lookup_key = f"{event_date.strftime('%Y-%m-%d')}_{customer_name.lower().strip()}"
-                consultant = booking_lookup.get(lookup_key, "Unknown")
+                consultant = booking_lookup.get(lookup_key)
+
+                # Fallback: Parse [Booked by: X] aus Description
+                if not consultant:
+                    description = event.get("description", "")
+                    booked_by_match = re.search(r'\[Booked by:\s*([^\]]+)\]', description)
+                    if booked_by_match:
+                        consultant = booked_by_match.group(1).strip().lower()
+                    else:
+                        consultant = "Unknown"
+
                 # Map username to display name for ranking
                 consultant = USERNAME_TO_DISPLAY.get(consultant.lower(), consultant)
 
