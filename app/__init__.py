@@ -359,6 +359,17 @@ def register_template_context(app: Flask) -> None:
         from app.utils.avatar_generator import get_avatar_url
         return get_avatar_url(avatar_id, category, size)
 
+    @app.template_filter('de_number')
+    def de_number_filter(value, decimals=1):
+        """Format number with German decimal separator (comma)."""
+        if value is None:
+            return "0"
+        try:
+            formatted = f"{float(value):.{decimals}f}"
+            return formatted.replace(".", ",")
+        except (ValueError, TypeError):
+            return str(value)
+
 
 def register_request_hooks(app: Flask) -> None:
     """Request-Hooks für Session-Management und Logging"""

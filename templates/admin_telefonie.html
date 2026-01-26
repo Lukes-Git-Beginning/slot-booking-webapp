@@ -290,9 +290,10 @@
             <label class="label">
               <span class="label-text text-white/90 font-semibold">Ziel</span>
             </label>
-            <input type="number" name="goal_points" x-model="goal" min="0" max="100" step="1" required
+            <input type="text" name="goal_points" x-model="goal" inputmode="decimal"
+                   pattern="[0-9]+([,\.][0-9]+)?" required
                    class="input input-bordered bg-white/10 border-white/20 text-white"
-                   placeholder="z.B. 20">
+                   placeholder="z.B. 20 oder 18,5">
           </div>
 
           <button type="submit" class="btn gradient-success text-white border-0 w-full">
@@ -343,9 +344,10 @@
             <label class="label">
               <span class="label-text text-white/90 font-semibold">Punkte</span>
             </label>
-            <input type="number" name="points" x-model="points" min="0" max="100" step="1" required
+            <input type="text" name="points" x-model="points" inputmode="decimal"
+                   pattern="[0-9]+([,\.][0-9]+)?" required
                    class="input input-bordered bg-white/10 border-white/20 text-white"
-                   placeholder="z.B. 5">
+                   placeholder="z.B. 5 oder 3,5">
           </div>
 
           <div class="form-control mb-4">
@@ -552,15 +554,15 @@
             <tr class="hover:bg-gray-800/50 transition-colors">
               <td class="text-center font-semibold">{{ u.user }}</td>
               <td class="text-center">
-                <span class="badge-custom badge-yellow">{{ u.goal }}</span>
+                <span class="badge-custom badge-yellow">{{ u.goal|de_number }}</span>
               </td>
               <td class="text-center">
-                <span class="badge-custom badge-green">{{ u.achieved }}</span>
+                <span class="badge-custom badge-green">{{ u.achieved|de_number }}</span>
               </td>
               <td class="text-center">
-                <span class="badge-custom badge-red">{{ u.remaining }}</span>
+                <span class="badge-custom badge-red">{{ u.remaining|de_number }}</span>
               </td>
-              <td class="text-center font-mono">{{ u.balance }}</td>
+              <td class="text-center font-mono">{{ u.balance|de_number }}</td>
               <td class="text-center">
                 {% if u.on_vacation %}
                   <span class="badge badge-info badge-sm">Ja</span>
@@ -578,19 +580,19 @@
           <span class="font-semibold text-primary">Gesamt:</span>
           <span class="flex items-center gap-1">
             <i data-lucide="target" class="w-3 h-3"></i>
-            Ziel <strong class="text-warning">{{ stats.summary.total_goal }}</strong>
+            Ziel <strong class="text-warning">{{ stats.summary.total_goal|de_number }}</strong>
           </span>
           <span class="flex items-center gap-1">
             <i data-lucide="check-circle" class="w-3 h-3"></i>
-            Erreicht <strong class="text-success">{{ stats.summary.total_achieved }}</strong>
+            Erreicht <strong class="text-success">{{ stats.summary.total_achieved|de_number }}</strong>
           </span>
           <span class="flex items-center gap-1">
             <i data-lucide="x-circle" class="w-3 h-3"></i>
-            Offen <strong class="text-error">{{ stats.summary.total_remaining }}</strong>
+            Offen <strong class="text-error">{{ stats.summary.total_remaining|de_number }}</strong>
           </span>
           <span class="flex items-center gap-1">
             <i data-lucide="trending-up" class="w-3 h-3"></i>
-            Bilanz <strong class="text-accent">{{ stats.summary.total_balance }}</strong>
+            Bilanz <strong class="text-accent">{{ stats.summary.total_balance|de_number }}</strong>
           </span>
         </p>
       </div>
@@ -625,7 +627,7 @@
             <div class="glass rounded-lg p-3 flex items-center justify-between hover:bg-white/10 transition-colors">
               <div class="flex items-center gap-4 flex-1">
                 <span class="badge badge-outline badge-sm">{{ activity.kind }}</span>
-                <span class="font-mono text-primary">{{ activity.points }} Punkte</span>
+                <span class="font-mono text-primary">{{ activity.points|de_number }} Punkte</span>
                 {% if activity.note %}
                 <span class="text-white/70 text-sm">{{ activity.note }}</span>
                 {% endif %}
@@ -705,12 +707,12 @@
               </td>
               <td class="text-center text-sm">
                 {% if a.type in ['activity','activity_applied'] %}
-                  <span class="font-mono">{{ a.kind }}: {{ a.points }}</span>
+                  <span class="font-mono">{{ a.kind }}: {{ a.points|de_number }}</span>
                   {% if a.note %}
                     <span class="text-gray-400">- {{ a.note }}</span>
                   {% endif %}
                 {% elif a.type in ['goal_set','goal_applied'] %}
-                  <span class="font-mono">Ziel: {{ a.points }}</span>
+                  <span class="font-mono">Ziel: {{ a.points|de_number }}</span>
                 {% else %}
                   <span class="text-gray-500">—</span>
                 {% endif %}
@@ -927,7 +929,7 @@
         theme: 'dark',
         y: {
           formatter: function (val) {
-            return val + " Punkte"
+            return val.toFixed(1).replace('.', ',') + " Punkte"
           }
         },
         style: {

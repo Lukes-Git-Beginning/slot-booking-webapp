@@ -8,6 +8,14 @@ from flask import render_template, request, redirect, url_for, flash, make_respo
 from datetime import datetime, timedelta
 import pytz
 
+
+def parse_german_decimal(value: str) -> float:
+    """Parse German decimal format (comma as separator) to float."""
+    if not value:
+        return 0.0
+    # Replace comma with dot for float conversion
+    return float(str(value).replace(",", "."))
+
 from app.config.base import slot_config
 from app.utils.decorators import require_admin
 from app.routes.admin import admin_bp
@@ -53,7 +61,7 @@ def admin_telefonie():
 
             elif action == "set_goal":
                 user = request.form.get("user")
-                goal = int(request.form.get("goal_points", 0))
+                goal = parse_german_decimal(request.form.get("goal_points", "0"))
                 result = set_week_goal(week_key, user, goal, "admin")
                 if result["success"]:
                     flash(f"Ziel für {user} in Woche {week_key} auf {goal} gesetzt", "success")
@@ -63,7 +71,7 @@ def admin_telefonie():
             elif action == "record_activity":
                 user = request.form.get("user")
                 kind = request.form.get("kind", "telefonie")
-                points = int(request.form.get("points", 0))
+                points = parse_german_decimal(request.form.get("points", "0"))
                 note = request.form.get("note", "")
                 result = record_activity(week_key, user, kind, points, "admin", note)
                 if result["success"]:

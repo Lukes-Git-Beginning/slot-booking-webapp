@@ -158,7 +158,7 @@ def validate_participant(user: str) -> Dict[str, Union[bool, str]]:
     return {"valid": True, "error": None}
 
 
-def check_duplicate_activity(week_key: str, user: str, kind: str, points: int, window_minutes: int = 5) -> Dict[str, Union[bool, str]]:
+def check_duplicate_activity(week_key: str, user: str, kind: str, points: float, window_minutes: int = 5) -> Dict[str, Union[bool, str]]:
     """Checks for duplicate activities within time window."""
     data = load_data()
     if week_key not in data["weeks"] or user not in data["weeks"][week_key]["users"]:
@@ -183,7 +183,7 @@ def check_duplicate_activity(week_key: str, user: str, kind: str, points: int, w
     return {"duplicate": False, "error": None}
 
 
-def set_week_goal(week_key: str, user: str, goal_points: int, set_by: str) -> Dict[str, Union[bool, str]]:
+def set_week_goal(week_key: str, user: str, goal_points: float, set_by: str) -> Dict[str, Union[bool, str]]:
     """Setzt Wochenziel. Außerhalb des Fensters als pending gespeichert."""
     # Validation
     validation = validate_participant(user)
@@ -199,14 +199,14 @@ def set_week_goal(week_key: str, user: str, goal_points: int, set_by: str) -> Di
         data = load_data()
         ensure_user_week(data, week_key, user)
         user_entry = data["weeks"][week_key]["users"][user]
-        clamped = min(100, max(0, int(goal_points)))
+        clamped = round(min(100.0, max(0.0, float(goal_points))), 1)
 
         if is_in_commit_window():
             user_entry["goal_points"] = clamped
             user_entry["pending_goal"] = None
             user_entry.setdefault("audit", []).append({
                 "type": "goal_set",
-                "points": int(clamped),
+                "points": clamped,
                 "by": set_by,
                 "ts": datetime.now(TZ).isoformat()
             })
@@ -220,7 +220,7 @@ def set_week_goal(week_key: str, user: str, goal_points: int, set_by: str) -> Di
         return {"success": False, "error": f"Failed to set goal: {str(e)}"}
 
 
-def record_activity(week_key: str, user: str, kind: str, points: int, set_by: str, note: str = "") -> Dict[str, Union[bool, str]]:
+def record_activity(week_key: str, user: str, kind: str, points: float, set_by: str, note: str = "") -> Dict[str, Union[bool, str]]:
     """Erfasst Aktivität. Außerhalb des Fensters pending."""
     # Validation
     if kind not in ("T1", "T2", "telefonie", "extra"):
@@ -238,7 +238,7 @@ def record_activity(week_key: str, user: str, kind: str, points: int, set_by: st
     # Duplicate-Check entfernt - Admin kann mehrere gleiche Termine für einen Berater eintragen
 
     try:
-        points = min(100, max(0, int(points)))
+        points = round(min(100.0, max(0.0, float(points))), 1)
         data = load_data()
         ensure_user_week(data, week_key, user)
         user_entry = data["weeks"][week_key]["users"][user]
@@ -339,12 +339,12 @@ def apply_pending(week_key: str) -> Tuple[int, int]:
     for user, udata in users.items():
         # pending goal
         if udata.get("pending_goal") is not None:
-            udata["goal_points"] = max(0, int(udata["pending_goal"]))
+            udata["goal_points"] = round(max(0.0, float(udata["pending_goal"])), 1)
             udata["pending_goal"] = None
             goals_applied += 1
             udata.setdefault("audit", []).append({
                 "type": "goal_applied",
-                "points": int(udata["goal_points"]),
+                "points": udata["goal_points"],
                 "by": "system",
                 "ts": datetime.now(TZ).isoformat()
             })
@@ -360,7 +360,7 @@ def apply_pending(week_key: str) -> Tuple[int, int]:
                 udata.setdefault("audit", []).append({
                     "type": "activity_applied",
                     "kind": p.get("kind"),
-                    "points": int(p.get("points", 0)),
+                    "points": float(p.get("points", 0)),
                     "note": p.get("note", ""),
                     "by": p.get("by", "unknown"),
                     "ts": now_iso
@@ -373,8 +373,8 @@ def compute_user_stats(week_key: str, user: str) -> Dict:
     data = load_data()
     ensure_user_week(data, week_key, user)
     u = data["weeks"][week_key]["users"][user]
-    goal = 0 if u.get("on_vacation") else int(u.get("goal_points", 0))
-    achieved = sum(int(a.get("points", 0)) for a in u.get("activities", []))
+    goal = 0 if u.get("on_vacation") else float(u.get("goal_points", 0))
+    achieved = sum(float(a.get("points", 0)) for a in u.get("activities", []))
     remaining = max(goal - achieved, 0)
     balance = achieved - goal  # negativ = Ziel verfehlt
     return {
