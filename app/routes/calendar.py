@@ -876,9 +876,22 @@ def calendar_view():
         availability_data = {}
 
     # Generate weekdays data for calendar display
+    from app.services.holiday_service import holiday_service
+
     weekdays_data = []
     for i in range(7):
         day = current_week + timedelta(days=i)
+
+        # Skip blocked dates - show as empty
+        if holiday_service.is_blocked_date(day):
+            weekdays_data.append({
+                'date': day,
+                'name': day.strftime('%A'),
+                'is_today': day == today,
+                'availability': []
+            })
+            continue
+
         day_availability = []
 
         # Process availability for this day

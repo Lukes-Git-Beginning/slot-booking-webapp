@@ -143,9 +143,10 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
         if holiday_service.is_blocked_date(check_date, check_time=hour):
             return []  # No availability on blocked dates/times
     except Exception as e:
-        # If there's any error checking holidays, log it but continue
+        # If there's any error checking holidays, fail safe - no availability
         from app.utils.logging import booking_logger
         booking_logger.warning(f"Error checking holiday status for {date_str}: {e}")
+        return []
 
     availability = load_availability()
 
@@ -353,9 +354,13 @@ def extract_detailed_summary(availability):
         "weekday_frequency": defaultdict(int)
     }
 
+    from app.services.holiday_service import holiday_service
+
     for date_str, date_slots in availability.items():
         try:
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+            if holiday_service.is_blocked_date(date_obj.date()):
+                continue
             weekday = date_obj.strftime("%A")
             summary["weekday_frequency"][weekday] += len(date_slots)
         except ValueError:
@@ -434,9 +439,14 @@ def get_slot_suggestions(availability, n=5):
     today = datetime.now(TZ).date()
 
     # Look ahead for next few days
+    from app.services.holiday_service import holiday_service
+
     for days_ahead in range(1, 15):  # Look 2 weeks ahead
         check_date = today + timedelta(days=days_ahead)
         date_str = check_date.strftime("%Y-%m-%d")
+
+        if holiday_service.is_blocked_date(check_date):
+            continue
 
         if date_str in availability:
             for hour in ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]:

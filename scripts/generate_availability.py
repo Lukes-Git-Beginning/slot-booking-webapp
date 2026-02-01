@@ -201,6 +201,16 @@ def main():
                 skipped_past += 1
                 continue
 
+            # Skip blocked dates (holidays, custom blocks)
+            try:
+                from app.services.holiday_service import holiday_service
+                if holiday_service.is_blocked_date(day.date()):
+                    if slot_key in availability:
+                        del availability[slot_key]
+                    continue
+            except Exception as e:
+                print(f"⚠️ Could not check blocked dates: {e}")
+
             # Verfügbare Berater finden
             available = []
 
