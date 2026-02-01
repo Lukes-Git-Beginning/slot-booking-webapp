@@ -106,6 +106,10 @@ static/level_history.json
 !data/historical/*.json
 !data/historical/*.jsonl
 
+# Documentation (local only, except README.md)
+*.md
+!README.md
+
 # Build artifacts
 /build/
 /.coverage
