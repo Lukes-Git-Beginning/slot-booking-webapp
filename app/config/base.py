@@ -69,6 +69,9 @@ class SlotConfig:
     # Spezielle Kapazität für 9-Uhr-Slots (nur 2 Kunden pro Berater)
     SLOTS_PER_BERATER_9AM: int = int(os.getenv("SLOTS_PER_BERATER_9AM", "2"))
 
+    # Spezielle Kapazität für 20-Uhr-Slots (nur 2 Kunden pro Berater)
+    SLOTS_PER_BERATER_8PM: int = int(os.getenv("SLOTS_PER_BERATER_8PM", "2"))
+
     # Zeitzone
     TIMEZONE: str = os.getenv("TIMEZONE", "Europe/Berlin")
 
@@ -212,6 +215,30 @@ class ConsultantConfig:
     EXTENDED_CONSULTANTS: List[str] = ["Simon", "Sonja", "Tim", "Christian", "Daniel"]
 
 
+# ========== HUBSPOT CRM KONFIGURATION ==========
+class HubSpotConfig:
+    """Konfiguration für HubSpot CRM Integration"""
+
+    # API-Zugangsdaten
+    HUBSPOT_ACCESS_TOKEN: str = os.getenv("HUBSPOT_ACCESS_TOKEN", "")
+    HUBSPOT_PORTAL_ID: str = os.getenv("HUBSPOT_PORTAL_ID", "")
+    HUBSPOT_PIPELINE_ID: str = os.getenv("HUBSPOT_PIPELINE_ID", "default")
+    HUBSPOT_WEBHOOK_SECRET: str = os.getenv("HUBSPOT_WEBHOOK_SECRET", "")
+
+    # Feature-Toggle: Integration nur aktiv wenn Token vorhanden
+    HUBSPOT_ENABLED: bool = bool(os.getenv("HUBSPOT_ACCESS_TOKEN", ""))
+
+    # Stage-Mapping: App Outcome → HubSpot Internal Stage Name
+    STAGE_MAPPING: Dict[str, str] = {
+        "ghost_first": "rueckholung",
+        "ghost_repeat": "verloren_vor_t1",
+        "no_show": "verloren_vor_t1",
+    }
+
+    # Cache-TTL für HubSpot-Daten (Sekunden)
+    HUBSPOT_CACHE_TTL: int = int(os.getenv("HUBSPOT_CACHE_TTL", "1800"))  # 30 Minuten
+
+
 # ========== LOGGING KONFIGURATION ==========
 class LoggingConfig:
     """Konfiguration für Logging"""
@@ -279,3 +306,4 @@ api_config = APIConfig()
 consultant_config = ConsultantConfig()
 logging_config = LoggingConfig()
 storage_config = StorageConfig()
+hubspot_config = HubSpotConfig()

@@ -1,6 +1,6 @@
 # Central Business Tool Hub
 
-**Version:** 3.3.15 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
+**Version:** 3.3.16 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
 
 Professional multi-tool platform combining slot booking, T2 appointment management, gamification, and business analytics.
 
@@ -103,7 +103,7 @@ SENTRY_DSN=<your-sentry-dsn>  # Error tracking
 **Backend:** Flask 3.1.1, Python 3.11+, PostgreSQL, Gunicorn (4 workers)
 **Frontend:** Tailwind CSS + DaisyUI (Hub/T2), Bootstrap 5.3.2 (Slots), Jinja2
 **Infrastructure:** Hetzner VPS, Nginx, Systemd, Ubuntu 22.04 LTS
-**APIs:** Google Calendar API v3
+**APIs:** Google Calendar API v3, Discord Webhooks
 **Monitoring:** Sentry error tracking
 
 ---
@@ -169,13 +169,23 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for comprehensive deployment guide 
 slot_booking_webapp/
 ├── app/
 │   ├── __init__.py           # Application factory
-│   ├── routes/               # Blueprints (auth, booking, hub, slots, t2, etc.)
-│   ├── services/             # Business logic (booking, gamification, analytics)
-│   ├── core/                 # Core infrastructure (calendar, database, extensions)
-│   └── utils/                # Helpers (decorators, validators, rate limiting)
-├── templates/                # Jinja2 templates (hub/, slots/, t2/)
-├── static/                   # CSS, JS, images (dual-write for gamification)
-├── data/persistent/          # JSON databases & persistent storage
+│   ├── config/               # Configuration classes (base.py)
+│   ├── core/                 # Core infrastructure (calendar, cache, extensions, middleware)
+│   ├── models/               # SQLAlchemy models (user, booking, t2_booking, gamification, etc.)
+│   ├── routes/               # Blueprints (15+ blueprints)
+│   │   ├── admin/            # Admin panel (dashboard, tracking, reports, telefonie, users, export)
+│   │   ├── t2/               # T2 modular blueprints (core, booking, bucket, admin)
+│   │   └── gamification/     # Gamification routes
+│   ├── services/             # Business logic (27 services)
+│   └── utils/                # Helpers (19 modules: decorators, rate limiting, error handling, etc.)
+├── templates/                # Jinja2 templates (60+ HTML files)
+│   ├── hub/                  # Central hub (dashboard, profile, settings, base)
+│   ├── slots/                # Slot booking (booking, day_view, dashboard, base)
+│   ├── t2/                   # T2 system (dashboard, booking, draw, analytics, calendar, etc.)
+│   ├── analytics/            # Business intelligence (dashboard, executive, lead_insights, team_performance)
+│   └── errors/               # Error pages (400, 401, 403, 404, 500, maintenance, base)
+├── static/                   # CSS, JS, images
+├── data/persistent/          # JSON databases (26 files) & persistent storage
 ├── tests/                    # Pytest test suite (26 files, 200+ tests)
 ├── docs/                     # Comprehensive documentation
 ├── deployment/               # Server configs (nginx, systemd, backup scripts)
@@ -233,16 +243,50 @@ User Request → Nginx (Rate Limiting)
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Key Services:
-├── data_persistence    → Scores, Badges, Coins (PostgreSQL + JSON dual-write)
-├── tracking_system     → Booking outcomes, Customer tracking
-├── achievement_system  → 50+ badges, XP awards
-├── level_system        → XP → Level calculation
-├── t2_bucket_system    → T2 dice draw, Coach assignments
-├── notification_service → In-app notifications, Popups
-├── audit_service       → Security logging, User actions
-├── daily_quests        → Daily challenges, Progress tracking
-└── cosmetics_shop      → Theme purchases, Avatar unlocks
+Key Services (27 total):
+
+Core Data & Persistence:
+├── data_persistence       → Scores, Badges, Coins (PostgreSQL + JSON dual-write)
+├── tracking_system        → Booking outcomes, Customer tracking
+├── audit_service          → Security logging, User actions
+├── activity_tracking      → User activity & session tracking
+
+T1 Booking:
+├── booking_service        → Slot availability & calendar booking
+├── holiday_service        → German NRW holiday blocking
+
+T2 Appointment System:
+├── t2_bucket_system       → T2 dice draw, Coach assignments
+├── t2_analytics_service   → T2 performance metrics
+├── t2_availability_service → Coach availability management
+├── t2_calendar_parser     → Calendar integration for T2
+├── t2_dynamic_availability → Dynamic scheduling
+
+Gamification:
+├── achievement_system     → 50+ badges, XP awards
+├── level_system           → XP → Level calculation
+├── prestige_system        → Prestige progression
+├── cosmetics_shop         → Theme purchases, Avatar unlocks
+├── personalization_system → Profile customization
+├── daily_quests           → Daily challenges, Progress tracking
+├── daily_reward_system    → Daily reward distribution
+├── weekly_points          → Weekly leaderboards & champions
+├── consultant_ranking     → Consultant ranking system
+
+Analytics & Reporting:
+├── analytics_service      → Business intelligence dashboards
+├── executive_reports      → PDF report generation (ZFA branded)
+
+Notifications & Integrations:
+├── notification_service   → In-app notifications, Popups
+├── discord_webhook_service → Discord notifications
+
+Security:
+├── security_service       → Password hashing, 2FA (TOTP)
+├── account_lockout        → Progressive account lockout
+
+Internal:
+└── refactoring_status_service → Refactoring tracking
 ```
 
 ---
@@ -285,7 +329,7 @@ See [docs/ROLES_AND_CALENDARS.md](docs/ROLES_AND_CALENDARS.md) for detailed role
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
-### Latest (v3.3.15 - 2026-01-05)
+### Latest (v3.3.16 - 2026-02-01)
 
 **Fixed:**
 - ✅ CSRF Protection Complete: 100% coverage (30/30 endpoints)
@@ -312,7 +356,7 @@ curl https://berater.zfa.gmbh/health
 ```json
 {
   "status": "healthy",
-  "version": "3.3.15",
+  "version": "3.3.16",
   "timestamp": "2026-01-05T...",
   "database": "healthy",
   "memory": "ok"
@@ -379,9 +423,9 @@ Proprietary - Internal use only
 **Development:** Luke Hoppe
 **Organization:** ZFA GmbH
 **Infrastructure:** Hetzner VPS
-**Version:** 3.3.15 (2026-01-05)
+**Version:** 3.3.16 (2026-02-01)
 
 ---
 
-**Last Updated:** 2026-01-05
-**Next Review:** 2026-04-05
+**Last Updated:** 2026-02-01
+**Next Review:** 2026-05-01

@@ -72,6 +72,9 @@ bcrypt==4.2.1
 # Remove this line if not using Sentry
 sentry-sdk[flask]==2.18.0
 
+# CRM Integration
+hubspot-api-client>=8.0.0
+
 # Database & ORM
 SQLAlchemy==2.0.36
 psycopg2-binary==2.9.10

@@ -231,9 +231,11 @@ def extract_weekly_summary(availability, current_date=None):
                     slot_time = f"{date_str} {hour}"
                     dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
 
-                    # Use different capacity for 9am slots
+                    # Use different capacity for 9am and 8pm slots
                     if hour == "09:00":
                         slots_per_consultant = slot_config.SLOTS_PER_BERATER_9AM
+                    elif hour == "20:00":
+                        slots_per_consultant = slot_config.SLOTS_PER_BERATER_8PM
                     else:
                         slots_per_consultant = slot_config.SLOTS_PER_BERATER
 
@@ -374,9 +376,11 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
 
     9am slots have reduced capacity: SLOTS_PER_BERATER_9AM (2) instead of SLOTS_PER_BERATER (3)
     """
-    # Use different capacity for 9am slots
+    # Use different capacity for 9am and 8pm slots
     if hour == "09:00":
         slots_per_consultant = slot_config.SLOTS_PER_BERATER_9AM
+    elif hour == "20:00":
+        slots_per_consultant = slot_config.SLOTS_PER_BERATER_8PM
     else:
         slots_per_consultant = slot_config.SLOTS_PER_BERATER
 

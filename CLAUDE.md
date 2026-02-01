@@ -227,6 +227,17 @@ particlesJS('particles-js', {
 | `user_passwords.json` | Passwort-Hashes | `security_service` |
 | `user_2fa.json` | 2FA-Secrets | `security_service` |
 | `account_lockouts.json` | Gesperrte Accounts | `account_lockout` |
+| `persistent_data.json` | Allgemeine persistente Daten | `data_persistence` |
+| `user_stats.json` | User-Statistiken | `data_persistence` |
+| `daily_user_stats.json` | Tägliche User-Statistiken | `activity_tracking` |
+| `user_analytics.json` | User-Analytics-Daten | `analytics_service` |
+| `user_predictions.json` | User-Vorhersagen | `analytics_service` |
+| `behavior_patterns.json` | Verhaltensmuster | `analytics_service` |
+| `personal_insights.json` | Persönliche Insights | `personalization_system` |
+| `personal_goals.json` | Persönliche Ziele | `personalization_system` |
+| `mastery_data.json` | Mastery-Fortschritt | `achievement_system` |
+| `minigame_data.json` | Minigame-Daten | `daily_reward_system` |
+| `customization_achievements.json` | Customization-Achievements | `cosmetics_shop` |
 
 ### Service-Zuordnung (Welcher Service für was?)
 
@@ -241,7 +252,24 @@ particlesJS('particles-js', {
 | Notifications | `notification_service` | `from app.services.notification_service import notification_service` |
 | Audit-Logging | `audit_service` | `from app.services.audit_service import AuditService` |
 | Coins verwalten | `data_persistence` | `data_persistence.add_coins(username, amount)` |
-| Google Calendar | `calendar_service` | `from app.core.calendar_service import calendar_service` |
+| Google Calendar | `google_calendar` | `from app.core.google_calendar import get_google_calendar_service` |
+| Analytics/BI | `analytics_service` | `from app.services.analytics_service import AnalyticsService` |
+| Executive Reports | `executive_reports` | `from app.services.executive_reports import ExecutiveReportService` |
+| Prestige-System | `prestige_system` | `from app.services.prestige_system import PrestigeSystem` |
+| Wöchentliche Punkte | `weekly_points` | `from app.services.weekly_points import WeeklyPointsSystem` |
+| Consultant Ranking | `consultant_ranking` | `from app.services.consultant_ranking import ConsultantRanking` |
+| Personalisierung | `personalization_system` | `from app.services.personalization_system import PersonalizationSystem` |
+| Tägliche Belohnungen | `daily_reward_system` | `from app.services.daily_reward_system import DailyRewardSystem` |
+| Discord Webhooks | `discord_webhook_service` | `from app.services.discord_webhook_service import DiscordWebhookService` |
+| Activity Tracking | `activity_tracking` | `from app.services.activity_tracking import ActivityTracking` |
+| Security/2FA | `security_service` | `from app.services.security_service import SecurityService` |
+| Account Lockout | `account_lockout` | `from app.services.account_lockout import AccountLockout` |
+| T2 Analytics | `t2_analytics_service` | `from app.services.t2_analytics_service import T2AnalyticsService` |
+| T2 Verfügbarkeit | `t2_availability_service` | `from app.services.t2_availability_service import T2AvailabilityService` |
+| T2 Kalender-Parser | `t2_calendar_parser` | `from app.services.t2_calendar_parser import T2CalendarParser` |
+| T2 Dynamische Slots | `t2_dynamic_availability` | `from app.services.t2_dynamic_availability import T2DynamicAvailability` |
+| Feiertage | `holiday_service` | `from app.services.holiday_service import HolidayService` |
+| Cosmetics Shop | `cosmetics_shop` | `from app.services.cosmetics_shop import CosmeticsShop` |
 
 ### Daten-Zugriff Patterns
 
@@ -466,7 +494,7 @@ with app.app_context():
 
 ## VERSION & STATUS
 
-**Version:** 3.3.15 | **Status:** Production | **URL:** https://berater.zfa.gmbh/
+**Version:** 3.3.16 | **Status:** Production | **URL:** https://berater.zfa.gmbh/
 
 **Technologie:** Flask 3.1.1, Python 3.11+, PostgreSQL, Tailwind/DaisyUI, Hetzner VPS
 

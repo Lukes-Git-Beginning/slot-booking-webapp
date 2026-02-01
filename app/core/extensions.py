@@ -17,6 +17,7 @@ data_persistence = None
 error_handler = None
 level_system = None
 tracking_system = None
+hubspot_service = None  # HubSpot CRM Integration
 limiter = None
 csrf = None  # CSRF Protection
 sess = None  # Flask-Session with Redis
@@ -24,7 +25,7 @@ sess = None  # Flask-Session with Redis
 
 def init_extensions(app: Flask) -> None:
     """Initialize all Flask extensions and external services"""
-    global cache_manager, data_persistence, error_handler, level_system, tracking_system, limiter, csrf, sess
+    global cache_manager, data_persistence, error_handler, level_system, tracking_system, hubspot_service, limiter, csrf, sess
 
     # Import and initialize cache manager
     from app.core.cache_manager import cache_manager as cm
@@ -57,6 +58,15 @@ def init_extensions(app: Flask) -> None:
     except Exception as e:
         logger.warning(f"Could not initialize tracking system", extra={'error': str(e)})
         tracking_system = None
+
+    # Initialize HubSpot CRM Integration (graceful degradation)
+    try:
+        from app.services.hubspot_service import hubspot_service as hs
+        hubspot_service = hs
+        hubspot_service.init_app(app)
+    except Exception as e:
+        logger.info(f"HubSpot integration not initialized: {e}")
+        hubspot_service = None
 
     # Initialize CSRF Protection (Security Critical)
     try:

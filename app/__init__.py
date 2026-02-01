@@ -82,7 +82,7 @@ def create_app(config_object: Optional[str] = None) -> Flask:
         health_status = {
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'version': '1.0.0',
+            'version': '3.3.16',
             'tools': {
                 'slots': 'healthy',
                 'analytics': 'not_ready',
@@ -273,6 +273,18 @@ def register_blueprints(app: Flask) -> None:
         app.logger.info("Analytics blueprint registered")
     except ImportError as e:
         app.logger.warning(f"Analytics blueprint error: {e}")
+
+    # HubSpot Webhook Blueprint (CRM Integration)
+    try:
+        from app.routes.hubspot_webhook import hubspot_webhook_bp
+        app.register_blueprint(hubspot_webhook_bp)
+        # CSRF-Exemption für externe Webhooks
+        from app.core.extensions import csrf
+        if csrf:
+            csrf.exempt(hubspot_webhook_bp)
+        app.logger.info("HubSpot webhook blueprint registered")
+    except ImportError as e:
+        app.logger.warning(f"HubSpot webhook blueprint error: {e}")
 
 
 def register_error_handlers(app: Flask) -> None:
