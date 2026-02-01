@@ -149,14 +149,27 @@ def load_bucket_data() -> Dict:
 
                         _sync_closers_from_data(closers_dict)
 
+                        # Load draw history from T2DrawHistory
+                        draw_history_records = session.query(T2DrawHistory).order_by(
+                            T2DrawHistory.drawn_at.desc()
+                        ).limit(50).all()
+                        draw_history = [record.to_dict() for record in reversed(draw_history_records)]
+
+                        # Load user_last_draw from T2UserLastDraw
+                        user_last_draw_records = session.query(T2UserLastDraw).all()
+                        user_last_draw = {
+                            record.username: record.to_dict()
+                            for record in user_last_draw_records
+                        }
+
                         # Convert to dict format
                         data = {
                             "closers": closers_dict,
                             "probabilities": bucket_state.probabilities,
                             "default_probabilities": {name: info["default_probability"] for name, info in closers_dict.items()},
                             "bucket": bucket_state.bucket,
-                            "draw_history": [],  # Not loaded here (query separately if needed)
-                            "user_last_draw": {},  # Not loaded here (query separately if needed)
+                            "draw_history": draw_history,
+                            "user_last_draw": user_last_draw,
                             "stats": bucket_state.stats,
                             "total_draws": bucket_state.total_draws,
                             "last_reset": bucket_state.last_reset.isoformat() if bucket_state.last_reset else datetime.now(TZ).isoformat(),
@@ -707,6 +720,23 @@ def add_closer(name: str, color: str, full_name: str, default_probability: float
         "default_probability": default_probability
     }
 
+    # Write to T2CloserConfig in PostgreSQL
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            with get_db_context() as session:
+                if session:
+                    closer_config = T2CloserConfig(
+                        name=name,
+                        full_name=full_name,
+                        color=color,
+                        default_probability=default_probability,
+                        is_active=True
+                    )
+                    session.add(closer_config)
+                    logger.info(f"✅ Added T2CloserConfig to PostgreSQL: {name}")
+        except Exception as e:
+            logger.error(f"PostgreSQL T2CloserConfig insert failed (continuing with JSON): {e}")
+
     # Update data
     data = load_bucket_data()
 
@@ -743,6 +773,18 @@ def remove_closer(name: str) -> Dict:
 
     # Remove from T2_CLOSERS
     del T2_CLOSERS[name]
+
+    # Deactivate in T2CloserConfig in PostgreSQL
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            with get_db_context() as session:
+                if session:
+                    closer_config = session.query(T2CloserConfig).filter_by(name=name).first()
+                    if closer_config:
+                        closer_config.is_active = False
+                        logger.info(f"✅ Deactivated T2CloserConfig in PostgreSQL: {name}")
+        except Exception as e:
+            logger.error(f"PostgreSQL T2CloserConfig deactivate failed (continuing with JSON): {e}")
 
     # Update data
     data = load_bucket_data()
@@ -785,6 +827,21 @@ def update_closer_info(name: str, new_color: str = None, new_full_name: str = No
     # Update full name if provided
     if new_full_name:
         T2_CLOSERS[name]["full_name"] = new_full_name
+
+    # Update T2CloserConfig in PostgreSQL
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            with get_db_context() as session:
+                if session:
+                    closer_config = session.query(T2CloserConfig).filter_by(name=name).first()
+                    if closer_config:
+                        if new_color:
+                            closer_config.color = new_color
+                        if new_full_name:
+                            closer_config.full_name = new_full_name
+                        logger.info(f"✅ Updated T2CloserConfig in PostgreSQL: {name}")
+        except Exception as e:
+            logger.error(f"PostgreSQL T2CloserConfig update failed (continuing with JSON): {e}")
 
     # Persist changes
     data = load_bucket_data()

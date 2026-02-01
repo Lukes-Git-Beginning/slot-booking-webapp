@@ -17,7 +17,7 @@ TZ = pytz.timezone("Europe/Berlin")
 
 # PostgreSQL Imports (for draw history migration)
 try:
-    from app.models import T2DrawHistory, get_db_session, is_postgres_enabled
+    from app.models import T2DrawHistory, T2Booking, get_db_session, is_postgres_enabled
     POSTGRES_IMPORTS_AVAILABLE = True
 except ImportError:
     POSTGRES_IMPORTS_AVAILABLE = False
@@ -45,19 +45,37 @@ class T2AnalyticsService:
         self.data_persistence = data_persistence
 
     def _load_bucket_data(self) -> Dict:
-        """Load T2 bucket system data with draw history"""
+        """Load T2 bucket system data with draw history (PostgreSQL-first, JSON fallback)"""
         try:
-            if not os.path.exists(BUCKET_FILE):
+            from app.services.t2_bucket_system import load_bucket_data
+            return load_bucket_data()
+        except Exception as e:
+            logger.warning(f"Failed to load bucket data via service, falling back to JSON: {e}")
+            try:
+                if not os.path.exists(BUCKET_FILE):
+                    return {"draw_history": [], "probabilities": {}, "bucket": []}
+
+                with open(BUCKET_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e2:
+                logger.error(f"Error loading bucket data from JSON: {e2}")
                 return {"draw_history": [], "probabilities": {}, "bucket": []}
 
-            with open(BUCKET_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading bucket data: {e}")
-            return {"draw_history": [], "probabilities": {}, "bucket": []}
-
     def _load_t2_bookings(self) -> List[Dict]:
-        """Load T2 bookings data"""
+        """Load T2 bookings data (PostgreSQL-first, JSON fallback)"""
+        # Try PostgreSQL first
+        if POSTGRES_IMPORTS_AVAILABLE and is_postgres_enabled():
+            try:
+                session = get_db_session()
+                bookings = session.query(T2Booking).all()
+                result = [booking.to_dict() for booking in bookings]
+                session.close()
+                logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL (analytics)")
+                return result
+            except Exception as e:
+                logger.warning(f"PostgreSQL T2 bookings load failed, falling back to JSON: {e}")
+
+        # Fallback to JSON
         try:
             if not os.path.exists(T2_BOOKINGS_FILE):
                 return []
@@ -66,7 +84,7 @@ class T2AnalyticsService:
                 data = json.load(f)
                 return data.get("bookings", [])
         except Exception as e:
-            logger.error(f"Error loading T2 bookings: {e}")
+            logger.error(f"Error loading T2 bookings from JSON: {e}")
             return []
 
     def _load_tracking_bookings(self) -> List[Dict]:
