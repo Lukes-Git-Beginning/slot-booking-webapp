@@ -15,6 +15,14 @@ from collections import defaultdict, Counter
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone("Europe/Berlin")
 
+
+def _parse_ts(ts: str) -> datetime:
+    """Parse timestamp string and ensure it's timezone-aware (Europe/Berlin)."""
+    dt = datetime.fromisoformat(ts)
+    if dt.tzinfo is None:
+        dt = TZ.localize(dt)
+    return dt
+
 # PostgreSQL Imports (for draw history migration)
 try:
     from app.models import T2DrawHistory, T2Booking, get_db_session, is_postgres_enabled
@@ -298,17 +306,17 @@ class T2AnalyticsService:
 
         this_week_draws = [
             d for d in user_draws
-            if datetime.fromisoformat(d["timestamp"]) >= week_start
+            if _parse_ts(d["timestamp"]) >= week_start
         ]
 
         this_month_draws = [
             d for d in user_draws
-            if datetime.fromisoformat(d["timestamp"]) >= month_start
+            if _parse_ts(d["timestamp"]) >= month_start
         ]
 
         # Calculate weekly average (if user has been active for more than 1 week)
         if user_draws:
-            first_draw = min(datetime.fromisoformat(d["timestamp"]) for d in user_draws)
+            first_draw = min(_parse_ts(d["timestamp"]) for d in user_draws)
             weeks_active = max(1, (now - first_draw).days / 7)
             average_per_week = len(user_draws) / weeks_active
         else:
@@ -401,13 +409,13 @@ class T2AnalyticsService:
         # T1 This Week
         t1_this_week = [
             b for b in user_t1_bookings
-            if datetime.strptime(b.get("date", "1970-01-01"), "%Y-%m-%d").replace(tzinfo=TZ) >= week_start
+            if TZ.localize(datetime.strptime(b.get("date", "1970-01-01"), "%Y-%m-%d")) >= week_start
         ]
 
         # T2 This Week
         t2_this_week = [
             b for b in user_t2_bookings
-            if datetime.fromisoformat(b.get("booking_time", "1970-01-01T00:00:00")).replace(tzinfo=TZ) >= week_start
+            if _parse_ts(b.get("booking_time", "1970-01-01T00:00:00")) >= week_start
         ]
 
         # Calculate success rate (T1 only, based on color tracking)
@@ -457,7 +465,7 @@ class T2AnalyticsService:
 
         recent_draws = [
             d for d in user_draws
-            if datetime.fromisoformat(d["timestamp"]) >= cutoff_date
+            if _parse_ts(d["timestamp"]) >= cutoff_date
         ]
 
         # Group by date
