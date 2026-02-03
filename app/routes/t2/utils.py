@@ -397,12 +397,19 @@ def parse_appointment_datetime(date_str: str, time_str: str) -> Optional[datetim
 
     Returns:
         datetime object (Berlin timezone) or None if invalid
-
-    TODO Phase 5: Extract from t2_legacy.py lines 450-470
     """
-    # Stub for Phase 5
-    logger.warning("parse_appointment_datetime - stub implementation")
-    return None
+    try:
+        appointment_date = datetime.fromisoformat(date_str).date()
+        hour, minute = map(int, time_str.split(':'))
+
+        if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+            return None
+
+        naive_dt = datetime.combine(appointment_date, datetime.min.time().replace(hour=hour, minute=minute))
+        return TZ.localize(naive_dt)
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Invalid date/time: date_str={date_str}, time_str={time_str}: {e}")
+        return None
 
 
 def format_berlin_datetime(dt: datetime) -> str:
@@ -427,16 +434,44 @@ def validate_booking_params(data: Dict) -> Tuple[bool, str]:
     Validate booking request parameters
 
     Args:
-        data: Request data dictionary
+        data: Request data dictionary with keys: first_name, last_name, date, time, berater/coach
 
     Returns:
         (is_valid: bool, error_message: str)
-
-    TODO Phase 5: Extract from t2_legacy.py lines 820-845
     """
-    # Stub for Phase 5
-    logger.warning("validate_booking_params - stub implementation")
-    return False, "Phase 5 implementation pending"
+    if not data:
+        return False, "No data provided"
+
+    # Required fields
+    required = ['first_name', 'last_name', 'date', 'time']
+    for field in required:
+        if not data.get(field):
+            return False, f"{field} is required"
+
+    # Validate date format
+    try:
+        booking_date = datetime.fromisoformat(data['date']).date()
+        if booking_date < date.today():
+            return False, "Cannot book in the past"
+    except ValueError:
+        return False, "Invalid date format (expected YYYY-MM-DD)"
+
+    # Validate time format
+    try:
+        hour, minute = map(int, data['time'].split(':'))
+        if hour < 8 or hour > 20:
+            return False, "Time must be between 08:00 and 20:00"
+    except (ValueError, AttributeError):
+        return False, "Invalid time format (expected HH:MM)"
+
+    # Validate berater if provided
+    if data.get('berater') and data['berater'] not in T2_CLOSERS:
+        return False, f"Invalid berater: {data['berater']}"
+
+    if data.get('coach') and data['coach'] not in T2_CLOSERS:
+        return False, f"Invalid coach: {data['coach']}"
+
+    return True, ""
 
 
 def validate_closer_name(name: str) -> Tuple[bool, str]:

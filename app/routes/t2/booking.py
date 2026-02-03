@@ -91,63 +91,111 @@ def booking_calendly():
 
 @booking_bp.route('/api/available-dates', methods=['POST'])
 @require_login
+@rate_limit_api
 def available_dates():
     """
-    Get available dates for selected consultant
+    Get available dates for selected consultant (POST variant)
+
+    Request JSON:
+        {"berater": "Christian", "year": 2025, "month": 11}
+
+    Response:
+        {"success": true, "days": {"2025-11-25": 3, ...}}
 
     MIGRATED FROM: t2_legacy.py line 945
-    DEPENDENCIES: t2_dynamic_availability.py
-
-    TODO Phase 5: Implement
-    - Parse consultant from request
-    - Scan Google Calendar
-    - Return available dates
     """
-    # Stub
-    return jsonify({
-        'success': False,
-        'message': 'Phase 5 implementation pending',
-        'dates': []
-    })
+    try:
+        data = request.get_json() or {}
+        berater = data.get('berater')
+        year = data.get('year')
+        month = data.get('month')
+
+        if not berater or not year or not month:
+            return jsonify({'success': False, 'error': 'berater, year, and month required'}), 400
+
+        if berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        year = int(year)
+        month = int(month)
+        if month < 1 or month > 12:
+            return jsonify({'success': False, 'error': 'Invalid month'}), 400
+
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+        availability = t2_dynamic_availability.get_month_availability(calendar_id, year, month)
+
+        return jsonify({
+            'success': True,
+            'days': availability,
+            'total_days': len(availability)
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading available dates: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @booking_bp.route('/api/available-times', methods=['POST'])
 @require_login
+@rate_limit_api
 def available_times():
     """
-    Get available time slots for selected date
+    Get available time slots for selected date (POST variant)
+
+    Request JSON:
+        {"berater": "Christian", "date": "2025-11-25"}
+
+    Response:
+        {"success": true, "slots": {"morning": [...], "midday": [...], "evening": [...]}}
 
     MIGRATED FROM: t2_legacy.py line 998
-
-    TODO Phase 5: Implement time slot scanning
     """
-    # Stub
-    return jsonify({
-        'success': False,
-        'message': 'Phase 5 implementation pending',
-        'times': []
-    })
+    try:
+        data = request.get_json() or {}
+        berater = data.get('berater')
+        date_str = data.get('date')
+
+        if not berater or not date_str:
+            return jsonify({'success': False, 'error': 'berater and date required'}), 400
+
+        if berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        try:
+            check_date = datetime.fromisoformat(date_str).date()
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+        slots = t2_dynamic_availability.find_2h_slots_non_overlapping(calendar_id, check_date)
+        total_slots = len(slots['morning']) + len(slots['midday']) + len(slots['evening'])
+
+        return jsonify({
+            'success': True,
+            'slots': slots,
+            'total_slots': total_slots
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading available times: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @booking_bp.route('/api/book-appointment', methods=['POST'])
 @require_login
+@rate_limit_api
 def book_appointment():
     """
-    Submit booking and create Google Calendar event
+    Submit booking and create Google Calendar event (alias for book-2h-slot)
+
+    Delegates to api_book_2h_slot() logic. This endpoint exists for backward
+    compatibility with the legacy booking flow.
+
+    Request JSON: Same as /api/book-2h-slot
 
     MIGRATED FROM: t2_legacy.py line 1056
-
-    TODO Phase 5: Implement
-    - Validate booking data
-    - Create calendar event
-    - Save to database (dual-write)
-    - Send confirmation
     """
-    # Stub
-    return jsonify({
-        'success': False,
-        'message': 'Phase 5 implementation pending'
-    }), 501
+    return api_book_2h_slot()
 
 
 @booking_bp.route('/my-bookings')
@@ -517,16 +565,81 @@ def api_reschedule_booking():
 
 @booking_bp.route('/api/get-reschedule-slots', methods=['POST'])
 @require_login
+@rate_limit_api
 def get_reschedule_slots():
     """
-    Get available slots for rescheduling
+    Get available slots for rescheduling an existing booking
+
+    Request JSON:
+        {"booking_id": "T2-ABC12345", "date": "2025-11-26"}
+
+    Response:
+        {"success": true, "slots": {"morning": [...], "midday": [...], "evening": [...]}}
 
     MIGRATED FROM: t2_legacy.py line 1298
-
-    TODO Phase 5: Implement slot availability
     """
-    # Stub
-    return jsonify({'success': False, 'slots': [], 'message': 'Phase 5 pending'}), 501
+    try:
+        user = session.get('user')
+        data = request.get_json() or {}
+        booking_id = data.get('booking_id')
+        date_str = data.get('date')
+
+        if not booking_id:
+            return jsonify({'success': False, 'error': 'booking_id required'}), 400
+
+        # Find booking
+        all_bookings = load_t2_bookings()
+        booking = None
+        for b in all_bookings:
+            if b.get('id') == booking_id:
+                booking = b
+                break
+
+        if not booking:
+            return jsonify({'success': False, 'error': 'Buchung nicht gefunden'}), 404
+
+        if not can_modify_booking(booking, user):
+            return jsonify({'success': False, 'error': 'Keine Berechtigung'}), 403
+
+        berater = booking.get('berater')
+        if not berater or berater not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Invalid berater'}), 400
+
+        calendar_id = T2_CLOSERS[berater]['calendar_id']
+
+        if date_str:
+            # Return slots for specific date
+            try:
+                check_date = datetime.fromisoformat(date_str).date()
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+
+            slots = t2_dynamic_availability.find_2h_slots_non_overlapping(calendar_id, check_date)
+            total_slots = len(slots['morning']) + len(slots['midday']) + len(slots['evening'])
+
+            return jsonify({
+                'success': True,
+                'slots': slots,
+                'total_slots': total_slots,
+                'berater': berater,
+                'date': date_str
+            })
+        else:
+            # Return month availability (next 14 days)
+            today = datetime.now().date()
+            availability = t2_dynamic_availability.get_month_availability(
+                calendar_id, today.year, today.month
+            )
+
+            return jsonify({
+                'success': True,
+                'days': availability,
+                'berater': berater
+            })
+
+    except Exception as e:
+        logger.error(f"Error loading reschedule slots: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @booking_bp.route('/booking/success')
@@ -1008,18 +1121,74 @@ def booking_stats():
     """
     Booking statistics API
 
-    MIGRATED FROM: t2_legacy.py line 1534
+    Response:
+        {
+            "total_bookings": 42,
+            "upcoming": 10,
+            "completed": 25,
+            "cancelled": 7,
+            "by_coach": {...},
+            "by_berater": {...}
+        }
 
-    TODO Phase 5: Implement statistics aggregation
+    MIGRATED FROM: t2_legacy.py line 1534
     """
-    # Stub
-    return jsonify({
-        'total_bookings': 0,
-        'upcoming': 0,
-        'completed': 0,
-        'cancelled': 0,
-        'message': 'Phase 5 implementation pending'
-    })
+    try:
+        all_bookings = load_t2_bookings()
+        now = datetime.now()
+
+        total = len(all_bookings)
+        upcoming = 0
+        completed = 0
+        cancelled = 0
+        by_coach = {}
+        by_berater = {}
+
+        for b in all_bookings:
+            status = b.get('status', 'active')
+
+            if status == 'cancelled':
+                cancelled += 1
+            elif status == 'rescheduled':
+                pass  # Don't count rescheduled originals
+            else:
+                # Check if upcoming or completed
+                try:
+                    booking_date = datetime.fromisoformat(b['date'])
+                    booking_time = b.get('time', '00:00')
+                    hour, minute = map(int, booking_time.split(':'))
+                    booking_dt = booking_date.replace(hour=hour, minute=minute)
+                    if booking_dt > now:
+                        upcoming += 1
+                    else:
+                        completed += 1
+                except (ValueError, KeyError):
+                    completed += 1
+
+            # Count by coach/berater
+            coach = b.get('coach', 'Unknown')
+            berater = b.get('berater', 'Unknown')
+            by_coach[coach] = by_coach.get(coach, 0) + 1
+            by_berater[berater] = by_berater.get(berater, 0) + 1
+
+        return jsonify({
+            'total_bookings': total,
+            'upcoming': upcoming,
+            'completed': completed,
+            'cancelled': cancelled,
+            'by_coach': by_coach,
+            'by_berater': by_berater
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading booking stats: {e}")
+        return jsonify({
+            'total_bookings': 0,
+            'upcoming': 0,
+            'completed': 0,
+            'cancelled': 0,
+            'error': str(e)
+        }), 500
 
 
 # ============================================================================

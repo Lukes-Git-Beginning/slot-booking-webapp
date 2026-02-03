@@ -2,7 +2,7 @@
 """
 T2 Bucket Routes - Closer Drawing & Bucket Management
 
-Routes (8 total):
+Routes (8 user-facing + 4 admin API):
 1. /t2/draw-closer - Main closer draw UI (CRITICAL!)
 2. /t2/api/draw-closer - Draw API endpoint (CRITICAL!)
 3. /t2/get-user-tickets - User ticket count
@@ -11,14 +11,37 @@ Routes (8 total):
 6. /t2/admin/bucket-config - Bucket configuration UI
 7. /t2/api/update-bucket-config - Update config API
 8. /t2/api/bucket-stats - Bucket statistics
++ /t2/api/admin/update-probability - Update closer probability
++ /t2/api/admin/update-bucket-size - Update bucket size
++ /t2/api/admin/add-closer - Add new closer
++ /t2/api/admin/remove-closer - Remove closer
++ /t2/api/admin/update-closer-info - Update closer info
 
-Migration Status: Phase 2 - Stub created, implementation in Phase 6 (HIGH RISK!)
-CRITICAL: Draw closer is most-used T2 feature, requires extensive testing
+Migration Status: Phase 6 - Fully implemented from t2_bucket_routes.py
 """
 
-from flask import Blueprint, render_template, jsonify, request, session
+from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for
 from app.utils.decorators import require_login
-from .utils import is_admin_user
+from app.core.extensions import csrf
+from app.services.t2_bucket_system import (
+    draw_closer as bucket_draw_closer,
+    get_probabilities,
+    update_probability,
+    get_bucket_composition,
+    reset_bucket as bucket_reset,
+    get_system_stats,
+    get_available_closers,
+    check_user_timeout,
+    update_bucket_size,
+    get_bucket_config,
+    add_closer,
+    remove_closer,
+    update_closer_info
+)
+from .utils import is_admin_user, get_user_tickets_remaining
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create sub-blueprint
 bucket_bp = Blueprint('bucket', __name__)
@@ -27,171 +50,425 @@ bucket_bp = Blueprint('bucket', __name__)
 @bucket_bp.route('/draw-closer')
 @require_login
 def draw_closer():
-    """
-    Main closer draw interface (CRITICAL FEATURE!)
+    """Main closer draw interface (CRITICAL FEATURE!)"""
+    user = session.get('user')
 
-    MIGRATED FROM: t2_legacy.py line 234
-    TEMPLATE: templates/t2/draw_closer.html
+    # Get timeout info
+    timeout_info = check_user_timeout(user, 'T2')
 
-    Usage: Most-used T2 feature, hundreds of draws per week
-    TODO Phase 6: Implement with EXTENSIVE error handling
-    - Load available closers
-    - Check user timeout
-    - Display ticket count
-    - Handle draw errors gracefully
-    """
-    # Stub
+    # Get bucket stats
+    bucket_comp = get_bucket_composition()
+
     return render_template('t2/draw_closer.html',
-                         active_page='t2',
-                         message='Phase 6 will implement draw closer logic',
-                         closers=[],
-                         tickets_remaining=0)
+                         user=user,
+                         timeout_info=timeout_info,
+                         bucket_stats={
+                             'tickets_remaining': bucket_comp['total_tickets'],
+                             'draws_until_reset': bucket_comp['draws_until_reset'],
+                             'draws_this_cycle': 10 - bucket_comp['draws_until_reset']
+                         },
+                         closers=get_available_closers())
 
 
 @bucket_bp.route('/api/draw-closer', methods=['POST'])
 @require_login
 def api_draw_closer():
-    """
-    Execute closer draw (CRITICAL API!)
+    """Execute closer draw (CRITICAL API!)"""
+    try:
+        user = session.get('user')
+        data = request.get_json() or {}
+        draw_type = data.get('draw_type', 'T2')
+        customer_name = data.get('customer_name', '').strip()
 
-    MIGRATED FROM: t2_legacy.py line 289
+        # Perform draw with customer name
+        result = bucket_draw_closer(user, draw_type, customer_name if customer_name else None)
 
-    TODO Phase 6: Implement bulletproof error handling
-    - Validate user can draw
-    - Check timeout
-    - Execute draw with bucket system
-    - Log draw history (PostgreSQL + JSON)
-    - Return result with error details
-    """
-    # Stub
-    return jsonify({
-        'success': False,
-        'message': 'Phase 6 implementation pending',
-        'error': 'Draw system not yet migrated'
-    }), 501
+        if result['success']:
+            # Store in session for booking
+            session['t2_current_closer'] = result['closer']
+            session['t2_closer_color'] = result['color']
+            session.modified = True
+
+            log_msg = f"T2 Draw: {user} drew {result['closer']}"
+            if customer_name:
+                log_msg += f" for customer '{customer_name}'"
+            logger.info(log_msg)
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Draw error: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Error during draw'
+        }), 500
 
 
 @bucket_bp.route('/get-user-tickets')
 @require_login
 def get_user_tickets():
-    """
-    Get user's remaining ticket count
-
-    MIGRATED FROM: t2_legacy.py line 345
-
-    TODO Phase 6: Implement ticket counting logic
-    """
-    # Stub
+    """Get user's remaining ticket count"""
+    user = session.get('user')
+    tickets = get_user_tickets_remaining(user)
     return jsonify({
-        'tickets_remaining': 0,
-        'message': 'Phase 6 implementation pending'
+        'tickets_remaining': tickets
     })
 
 
 @bucket_bp.route('/admin/reset-bucket', methods=['POST'])
 @require_login
 def reset_bucket():
-    """
-    Manual bucket reset (Admin only)
-
-    MIGRATED FROM: t2_legacy.py line 387
-
-    TODO Phase 6: Implement
-    - Admin auth check
-    - Reset bucket state
-    - Reset probabilities
-    - Log reset action
-    """
-    # Stub
+    """Manual bucket reset (Admin only)"""
     user = session.get('user')
     if not is_admin_user(user):
-        return jsonify({'error': 'Admin only'}), 403
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
-    return jsonify({
-        'success': False,
-        'message': 'Phase 6 implementation pending'
-    }), 501
+    try:
+        result = bucket_reset()
+
+        if result['success']:
+            logger.info(f"Admin {user} reset bucket")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error resetting bucket: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error resetting bucket'
+        }), 500
 
 
 @bucket_bp.route('/admin/bucket-history')
 @require_login
 def bucket_history():
-    """
-    Draw history view (Admin only)
-
-    MIGRATED FROM: t2_legacy.py line 412
-    TEMPLATE: templates/t2/bucket_history.html
-
-    TODO Phase 6: Implement history display
-    """
-    # Stub
+    """Draw history view (Admin only)"""
     user = session.get('user')
     if not is_admin_user(user):
         return render_template('errors/403.html'), 403
 
-    return render_template('t2/bucket_history.html',
-                         active_page='t2',
-                         history=[],
-                         message='Phase 6 implementation pending')
+    try:
+        system_stats = get_system_stats()
+        history = system_stats.get('recent_draws', [])
+
+        return render_template('t2/bucket_history.html',
+                             active_page='t2',
+                             history=history,
+                             system_stats=system_stats)
+    except Exception as e:
+        logger.error(f"Error loading bucket history: {e}", exc_info=True)
+        return render_template('t2/bucket_history.html',
+                             active_page='t2',
+                             history=[],
+                             system_stats={},
+                             error="Fehler beim Laden der Draw-History")
 
 
 @bucket_bp.route('/admin/bucket-config')
 @require_login
 def bucket_config():
-    """
-    Bucket configuration UI (Admin only)
+    """Bucket configuration UI (Admin only)"""
+    try:
+        user = session.get('user')
+        if not is_admin_user(user):
+            return redirect(url_for('t2.dashboard'))
 
-    MIGRATED FROM: t2_legacy.py line 456
-    TEMPLATE: templates/t2/admin_bucket_config.html
+        # Get current data with fallbacks
+        probabilities = get_probabilities() if get_probabilities else {}
+        bucket_comp = get_bucket_composition() if get_bucket_composition else {
+            'composition': {},
+            'total_tickets': 0,
+            'draws_until_reset': 10,
+            'max_draws_before_reset': 10,
+            'default_probabilities': {}
+        }
+        system_stats = get_system_stats() if get_system_stats else {
+            'total_all_time_draws': 0,
+            'closer_distribution': {},
+            'recent_draws': []
+        }
+        closers = get_available_closers() if get_available_closers else {}
 
-    TODO Phase 6: Implement config UI
-    """
-    # Stub
-    user = session.get('user')
-    if not is_admin_user(user):
-        return render_template('errors/403.html'), 403
-
-    return render_template('t2/admin_bucket_config.html',
-                         active_page='t2',
-                         config={},
-                         message='Phase 6 implementation pending')
+        return render_template('t2/admin_bucket_config.html',
+                             user=user,
+                             probabilities=probabilities,
+                             bucket_composition=bucket_comp,
+                             bucket_stats={
+                                 'current_bucket_size': bucket_comp.get('total_tickets', 0),
+                                 'draws_until_reset': bucket_comp.get('draws_until_reset', 10),
+                                 'draws_this_cycle': bucket_comp.get('max_draws_before_reset', 10) - bucket_comp.get('draws_until_reset', 10)
+                             },
+                             system_stats=system_stats,
+                             closers=closers)
+    except Exception as e:
+        logger.error(f"Error loading bucket config: {e}", exc_info=True)
+        return render_template('t2/admin_bucket_config.html',
+                             user=session.get('user', ''),
+                             probabilities={},
+                             bucket_composition={
+                                 'composition': {},
+                                 'total_tickets': 0,
+                                 'draws_until_reset': 10,
+                                 'max_draws_before_reset': 10,
+                                 'default_probabilities': {}
+                             },
+                             bucket_stats={
+                                 'current_bucket_size': 0,
+                                 'draws_until_reset': 10,
+                                 'draws_this_cycle': 0
+                             },
+                             system_stats={
+                                 'total_all_time_draws': 0,
+                                 'closer_distribution': {},
+                                 'recent_draws': []
+                             },
+                             closers={},
+                             error="Fehler beim Laden der Bucket-Konfiguration")
 
 
 @bucket_bp.route('/api/update-bucket-config', methods=['POST'])
 @require_login
 def update_bucket_config():
-    """
-    Update bucket configuration (Admin only)
-
-    MIGRATED FROM: t2_legacy.py line 523
-
-    TODO Phase 6: Implement config updates
-    """
-    # Stub
+    """Update bucket configuration (Admin only) - handles probability and size updates"""
     user = session.get('user')
     if not is_admin_user(user):
-        return jsonify({'error': 'Admin only'}), 403
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
-    return jsonify({
-        'success': False,
-        'message': 'Phase 6 implementation pending'
-    }), 501
+    try:
+        data = request.get_json()
+        action = data.get('action', 'update_probability')
+
+        if action == 'update_probability':
+            closer_name = data.get('closer_name')
+            probability = float(data.get('probability'))
+            result = update_probability(closer_name, probability)
+            if result['success']:
+                logger.info(f"Admin {user} updated probability for {closer_name}: {probability}")
+        elif action == 'update_bucket_size':
+            bucket_size = int(data.get('bucket_size'))
+            result = update_bucket_size(bucket_size)
+            if result['success']:
+                logger.info(f"Admin {user} updated bucket size to {bucket_size}")
+        else:
+            result = {'success': False, 'message': f'Unknown action: {action}'}
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error updating bucket config: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error updating bucket configuration'
+        }), 500
 
 
 @bucket_bp.route('/api/bucket-stats', methods=['GET'])
 @require_login
 def bucket_stats():
-    """
-    Bucket statistics API
+    """Bucket statistics API"""
+    try:
+        system_stats = get_system_stats()
+        bucket_comp = get_bucket_composition()
 
-    MIGRATED FROM: t2_legacy.py line 578
+        return jsonify({
+            'total_draws': system_stats.get('total_all_time_draws', 0),
+            'closer_distribution': system_stats.get('closer_distribution', {}),
+            'recent_draws': system_stats.get('recent_draws', []),
+            'current_bucket_size': bucket_comp.get('total_tickets', 0),
+            'draws_until_reset': bucket_comp.get('draws_until_reset', 10)
+        })
+    except Exception as e:
+        logger.error(f"Error loading bucket stats: {e}")
+        return jsonify({
+            'total_draws': 0,
+            'closer_distribution': {},
+            'recent_draws': [],
+            'error': str(e)
+        }), 500
 
-    TODO Phase 6: Implement statistics
-    """
-    # Stub
-    return jsonify({
-        'total_draws': 0,
-        'bucket_resets': 0,
-        'closer_distribution': {},
-        'message': 'Phase 6 implementation pending'
-    })
+
+# ========== Additional Admin API Routes ==========
+# These match the routes from t2_bucket_routes.py for full compatibility
+
+
+@bucket_bp.route('/api/admin/update-probability', methods=['POST'])
+@require_login
+def api_admin_update_probability():
+    """Update probability for a closer (Admin only)"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        data = request.get_json()
+        closer_name = data.get('closer_name')
+        probability = float(data.get('probability'))
+
+        result = update_probability(closer_name, probability)
+
+        if result['success']:
+            logger.info(f"Admin {user} updated probability for {closer_name}: {probability}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error updating probability: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error updating probability'
+        }), 500
+
+
+@bucket_bp.route('/api/admin/reset-bucket', methods=['POST'])
+@require_login
+def api_admin_reset_bucket():
+    """Reset bucket via admin API (Admin only)"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        result = bucket_reset()
+
+        if result['success']:
+            logger.info(f"Admin {user} reset bucket via API")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error resetting bucket: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error resetting bucket'
+        }), 500
+
+
+@bucket_bp.route('/api/admin/update-bucket-size', methods=['POST'])
+@require_login
+def api_admin_update_bucket_size():
+    """Update bucket size (Admin only)"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        data = request.get_json()
+        bucket_size = int(data.get('bucket_size'))
+
+        result = update_bucket_size(bucket_size)
+
+        if result['success']:
+            logger.info(f"Admin {user} updated bucket size to {bucket_size}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error updating bucket size: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error updating bucket size'
+        }), 500
+
+
+@bucket_bp.route('/api/admin/add-closer', methods=['POST'])
+@require_login
+def api_admin_add_closer():
+    """Add new closer (Admin only)"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        color = data.get('color', '').strip()
+        full_name = data.get('full_name', '').strip()
+        default_probability = float(data.get('default_probability', 1.0))
+
+        if not name or not color or not full_name:
+            return jsonify({
+                'success': False,
+                'message': 'Name, Farbe und vollstaendiger Name sind erforderlich'
+            }), 400
+
+        result = add_closer(name, color, full_name, default_probability)
+
+        if result['success']:
+            logger.info(f"Admin {user} added closer {name}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error adding closer: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error adding closer'
+        }), 500
+
+
+@bucket_bp.route('/api/admin/remove-closer', methods=['POST'])
+@require_login
+def api_admin_remove_closer():
+    """Remove closer (Admin only)"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+
+        if not name:
+            return jsonify({
+                'success': False,
+                'message': 'Closer-Name erforderlich'
+            }), 400
+
+        result = remove_closer(name)
+
+        if result['success']:
+            logger.info(f"Admin {user} removed closer {name}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error removing closer: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error removing closer'
+        }), 500
+
+
+@bucket_bp.route('/api/admin/update-closer-info', methods=['POST'])
+@require_login
+def api_admin_update_closer_info():
+    """Update closer info (Admin only)"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        new_color = data.get('color', '').strip() or None
+        new_full_name = data.get('full_name', '').strip() or None
+
+        if not name:
+            return jsonify({
+                'success': False,
+                'message': 'Closer-Name erforderlich'
+            }), 400
+
+        result = update_closer_info(name, new_color, new_full_name)
+
+        if result['success']:
+            logger.info(f"Admin {user} updated closer {name}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error updating closer: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error updating closer'
+        }), 500
