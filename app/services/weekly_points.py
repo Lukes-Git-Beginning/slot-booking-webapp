@@ -20,6 +20,20 @@ import pytz
 
 TZ = pytz.timezone("Europe/Berlin")
 
+# PostgreSQL dual-write support
+import logging
+_wp_logger = logging.getLogger(__name__)
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.weekly import WeeklyPoints as WeeklyPointsModel
+    from app.models.base import get_db_session
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    _wp_logger.warning("PostgreSQL models not available for weekly_points, using JSON-only mode")
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
 # Use same persistence strategy as other data
 PERSIST_BASE = os.getenv("PERSIST_BASE", "/opt/render/project/src/persist")
 if not os.path.exists(PERSIST_BASE):
@@ -71,7 +85,48 @@ def is_in_commit_window(check_dt: Optional[datetime] = None) -> bool:
 
 
 def load_data() -> Dict:
+    """Lade Weekly Points (PostgreSQL-first, JSON-Fallback)"""
     _ensure_dirs()
+
+    # 1. PostgreSQL-first
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            session = get_db_session()
+            try:
+                rows = session.query(WeeklyPointsModel).all()
+                if rows:
+                    # Sammle participants aus DB
+                    participants_set = set()
+                    weeks: Dict = {}
+                    for row in rows:
+                        participants_set.add(row.participant_name)
+                        if row.week_id not in weeks:
+                            weeks[row.week_id] = {
+                                "users": {},
+                                "created_at": row.created_at.isoformat() if row.created_at else datetime.now(TZ).isoformat(),
+                                "frozen": False,
+                                "reset_info": {}
+                            }
+                        weeks[row.week_id]["users"][row.participant_name] = {
+                            "goal_points": row.goal_points,
+                            "on_vacation": row.on_vacation,
+                            "activities": row.activities or [],
+                            "pending_activities": row.pending_activities or [],
+                            "pending_goal": row.pending_goal,
+                            "vacation_periods": [],
+                            "audit": row.audit or []
+                        }
+                    # Merge mit DEFAULT_PARTICIPANTS
+                    all_participants = list(set(DEFAULT_PARTICIPANTS) | participants_set)
+                    data = {"participants": all_participants, "weeks": weeks}
+                    _wp_logger.debug(f"Loaded weekly points from PostgreSQL ({len(rows)} rows, {len(weeks)} weeks)")
+                    return data
+            finally:
+                session.close()
+        except Exception as e:
+            _wp_logger.warning(f"PostgreSQL weekly points load failed: {e}, falling back to JSON")
+
+    # 2. JSON-Fallback
     if not os.path.exists(DATA_FILE):
         return {
             "participants": DEFAULT_PARTICIPANTS,
@@ -80,7 +135,6 @@ def load_data() -> Dict:
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            # Backfill Standardfelder
             if "participants" not in data:
                 data["participants"] = DEFAULT_PARTICIPANTS
             if "weeks" not in data:
@@ -94,8 +148,61 @@ def load_data() -> Dict:
 
 
 def save_data(data: Dict) -> None:
+    """Speichere Weekly Points (Dual-Write: PostgreSQL + JSON)"""
     _ensure_dirs()
-    # Dual-write: persist disk + static fallback
+
+    # 1. PostgreSQL write
+    if USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            session = get_db_session()
+            try:
+                for week_id, week_data in data.get("weeks", {}).items():
+                    if not isinstance(week_data, dict):
+                        continue
+                    for participant, user_data in week_data.get("users", {}).items():
+                        if not isinstance(user_data, dict):
+                            continue
+                        activities = user_data.get("activities", [])
+                        total_pts = sum(a.get("points", 0) for a in activities if isinstance(a, dict))
+
+                        existing = session.query(WeeklyPointsModel).filter_by(
+                            week_id=week_id, participant_name=participant
+                        ).first()
+                        if existing:
+                            existing.goal_points = user_data.get("goal_points", 0)
+                            existing.on_vacation = user_data.get("on_vacation", False)
+                            existing.activities = activities
+                            existing.pending_activities = user_data.get("pending_activities", [])
+                            existing.pending_goal = user_data.get("pending_goal")
+                            existing.audit = user_data.get("audit", [])
+                            existing.total_points = total_pts
+                            existing.is_goal_set = user_data.get("goal_points", 0) > 0
+                        else:
+                            new_row = WeeklyPointsModel(
+                                week_id=week_id,
+                                participant_name=participant,
+                                goal_points=user_data.get("goal_points", 0),
+                                bonus_points=0,
+                                total_points=total_pts,
+                                on_vacation=user_data.get("on_vacation", False),
+                                is_goal_set=user_data.get("goal_points", 0) > 0,
+                                activities=activities,
+                                pending_activities=user_data.get("pending_activities", []),
+                                pending_goal=user_data.get("pending_goal"),
+                                audit=user_data.get("audit", [])
+                            )
+                            session.add(new_row)
+                session.commit()
+                _wp_logger.debug("Weekly points saved to PostgreSQL")
+            except Exception as e:
+                session.rollback()
+                _wp_logger.error(f"PostgreSQL weekly points save failed: {e}")
+            finally:
+                session.close()
+        except Exception as e:
+            _wp_logger.error(f"PostgreSQL connection failed for weekly points: {e}")
+
+    # 2. JSON write (always, as backup)
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -104,7 +211,7 @@ def save_data(data: Dict) -> None:
         with open(STATIC_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
-        pass  # Don't fail if static write fails
+        pass
 
 
 def ensure_week(data: Dict, week_key: str) -> None:

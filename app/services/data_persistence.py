@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
 
 try:
-    from app.models.gamification import Score as ScoreModel, UserBadge as UserBadgeModel
+    from app.models.gamification import Score as ScoreModel, UserBadge as UserBadgeModel, Champion as ChampionModel
     from app.models.base import get_db_session
     POSTGRES_AVAILABLE = True
 except ImportError:
@@ -296,21 +296,63 @@ class DataPersistence:
             return {}
     
     def save_champions(self, champions_data):
-        """Speichere Champions mit Backup"""
+        """Speichere Champions (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for period, champ_data in champions_data.items():
+                        if not isinstance(champ_data, dict):
+                            continue
+                        username = champ_data.get("user", "")
+                        if not username:
+                            continue
+                        # Bestimme period_type aus Format
+                        period_type = "weekly" if "-W" in period or (len(period.split("-")) == 2 and len(period.split("-")[1]) <= 2 and int(period.split("-")[1]) > 12) else "monthly"
+
+                        existing = session.query(ChampionModel).filter_by(
+                            period=period, rank=1
+                        ).first()
+                        if existing:
+                            existing.username = username
+                            existing.total_points = champ_data.get("score", 0)
+                            existing.stats_data = {k: v for k, v in champ_data.items() if k not in ("user", "score")}
+                        else:
+                            new_row = ChampionModel(
+                                period=period,
+                                period_type=period_type,
+                                username=username,
+                                rank=1,
+                                total_points=champ_data.get("score", 0),
+                                total_bookings=0,
+                                show_rate=0.0,
+                                reward_coins=0,
+                                stats_data={k: v for k, v in champ_data.items() if k not in ("user", "score")}
+                            )
+                            session.add(new_row)
+                    session.commit()
+                    logger.debug("Champions saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL champions save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for champions: {e}")
+
+        # 2. JSON write (always, as backup)
         try:
-            # Speichere in persistentem Verzeichnis
             champions_file = self.data_dir / "champions.json"
             with open(champions_file, "w", encoding="utf-8") as f:
                 json.dump(champions_data, f, indent=2, ensure_ascii=False)
-            
-            # Backup erstellen
+
             self._create_backup("champions.json", champions_data)
-            
-            # Auch in static/ für Kompatibilität
+
             static_champions = self.static_dir / "champions.json"
             with open(static_champions, "w", encoding="utf-8") as f:
                 json.dump(champions_data, f, indent=2, ensure_ascii=False)
-                
+
             logger.info(f"Champions gespeichert: {len(champions_data)} Monate")
             return True
         except Exception as e:
@@ -368,24 +410,45 @@ class DataPersistence:
             return False
     
     def load_champions(self):
-        """Lade Champions mit Fallback"""
+        """Lade Champions (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(ChampionModel).filter_by(rank=1).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            entry = {
+                                "user": row.username,
+                                "score": row.total_points
+                            }
+                            # Merge stats_data zurueck
+                            if row.stats_data and isinstance(row.stats_data, dict):
+                                entry.update(row.stats_data)
+                            data[row.period] = entry
+                        logger.debug(f"Loaded champions from PostgreSQL ({len(data)} periods)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL champions load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
-            # Versuche persistentes Verzeichnis
             champions_file = self.data_dir / "champions.json"
             if champions_file.exists():
                 with open(champions_file, "r", encoding="utf-8") as f:
                     return json.load(f)
-            
-            # Fallback: static/ Verzeichnis
+
             static_champions = self.static_dir / "champions.json"
             if static_champions.exists():
                 with open(static_champions, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # Speichere in persistentes Verzeichnis
                     self.save_champions(data)
                     return data
-            
-            # Fallback: Leere Daten
+
             return {}
         except Exception as e:
             logger.error(f"Fehler beim Laden der Champions: {e}")
