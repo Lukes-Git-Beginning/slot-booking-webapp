@@ -6,11 +6,27 @@ Erweitert das Level-System um Prestige-Sterne und Mastery-Kategorien
 
 import os
 import json
+import logging
 import pytz
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
+
 TZ = pytz.timezone("Europe/Berlin")
+
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.weekly import PrestigeData as PrestigeDataModel
+    from app.models.gamification import MasteryData as MasteryDataModel
+    from app.models.base import get_db_session
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    logger.warning("PostgreSQL models not available for prestige_system, using JSON-only mode")
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 # Mastery-Kategorien und ihre Kriterien
 MASTERY_CATEGORIES = {
@@ -102,28 +118,154 @@ class PrestigeSystem:
                     json.dump({}, f)
     
     def load_prestige_data(self):
-        """Lade Prestige-Daten aller User"""
+        """Lade Prestige-Daten aller User (PostgreSQL-first, JSON-fallback)"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(PrestigeDataModel).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            data[row.username] = {
+                                "prestige_level": row.prestige_level,
+                                "prestige_points": row.prestige_points,
+                                "total_prestiges": row.prestige_level,
+                                "prestige_history": row.prestige_history or [],
+                                "xp_offset": row.pre_prestige_points,
+                                "last_reset_xp": row.pre_prestige_level,
+                                "last_reset_date": row.last_prestige_date.isoformat() if row.last_prestige_date else None
+                            }
+                        logger.debug(f"Loaded prestige data from PostgreSQL ({len(data)} users)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL prestige load failed: {e}, falling back to JSON")
+        # JSON Fallback
         try:
             with open(self.prestige_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except:
             return {}
-    
+
     def save_prestige_data(self, data):
-        """Speichere Prestige-Daten"""
+        """Speichere Prestige-Daten (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, user_data in data.items():
+                        existing = session.query(PrestigeDataModel).filter_by(username=username).first()
+                        if existing:
+                            existing.prestige_level = user_data.get("prestige_level", 0)
+                            existing.prestige_points = user_data.get("prestige_points", 0)
+                            existing.prestige_history = user_data.get("prestige_history", [])
+                            existing.pre_prestige_points = user_data.get("xp_offset", 0)
+                            existing.pre_prestige_level = user_data.get("last_reset_xp", 0)
+                            if user_data.get("last_reset_date"):
+                                try:
+                                    existing.last_prestige_date = datetime.fromisoformat(user_data["last_reset_date"])
+                                except (ValueError, TypeError):
+                                    pass
+                        else:
+                            last_date = None
+                            if user_data.get("last_reset_date"):
+                                try:
+                                    last_date = datetime.fromisoformat(user_data["last_reset_date"])
+                                except (ValueError, TypeError):
+                                    pass
+                            new_row = PrestigeDataModel(
+                                username=username,
+                                prestige_level=user_data.get("prestige_level", 0),
+                                prestige_points=user_data.get("prestige_points", 0),
+                                prestige_history=user_data.get("prestige_history", []),
+                                pre_prestige_points=user_data.get("xp_offset", 0),
+                                pre_prestige_level=user_data.get("last_reset_xp", 0),
+                                last_prestige_date=last_date,
+                            )
+                            session.add(new_row)
+                    session.commit()
+                    logger.debug("Prestige data saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL prestige save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for prestige: {e}")
+        # 2. JSON write (always, as backup)
         with open(self.prestige_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
     def load_mastery_data(self):
-        """Lade Mastery-Daten aller User"""
+        """Lade Mastery-Daten aller User (PostgreSQL-first, JSON-fallback)"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(MasteryDataModel).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            if row.username not in data:
+                                data[row.username] = {}
+                            data[row.username][row.skill_id] = {
+                                "level": row.current_level,
+                                "upgraded_at": row.unlocked_abilities or []
+                            }
+                        logger.debug(f"Loaded mastery data from PostgreSQL ({len(data)} users)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL mastery load failed: {e}, falling back to JSON")
+        # JSON Fallback
         try:
             with open(self.mastery_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except:
             return {}
-    
+
     def save_mastery_data(self, data):
-        """Speichere Mastery-Daten"""
+        """Speichere Mastery-Daten (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, categories in data.items():
+                        for category_id, cat_data in categories.items():
+                            category_info = MASTERY_CATEGORIES.get(category_id, {})
+                            existing = session.query(MasteryDataModel).filter_by(
+                                username=username, skill_id=category_id
+                            ).first()
+                            if existing:
+                                existing.current_level = cat_data.get("level", 0)
+                                existing.unlocked_abilities = cat_data.get("upgraded_at", [])
+                            else:
+                                new_row = MasteryDataModel(
+                                    username=username,
+                                    skill_id=category_id,
+                                    skill_name=category_info.get("name", category_id),
+                                    skill_category="gamification",
+                                    current_level=cat_data.get("level", 0),
+                                    current_xp=0,
+                                    xp_to_next_level=0,
+                                    unlocked_abilities=cat_data.get("upgraded_at", []),
+                                )
+                                session.add(new_row)
+                    session.commit()
+                    logger.debug("Mastery data saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL mastery save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for mastery: {e}")
+        # 2. JSON write (always, as backup)
         with open(self.mastery_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
@@ -277,8 +419,7 @@ class PrestigeSystem:
                 pass
 
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Error resetting level for {user}: {e}")
+            logger.error(f"Error resetting level for {user}: {e}")
 
     def get_xp_offset(self, user):
         """Get XP offset for user (used by level_system to calculate effective XP)"""
