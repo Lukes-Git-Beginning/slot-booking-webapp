@@ -23,6 +23,7 @@ USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
 try:
     from app.models.user import User as UserModel
     from app.models.gamification import DailyQuest as DailyQuestModel, QuestProgress as QuestProgressModel
+    from app.models.weekly import MinigameData as MinigameDataModel
     from app.models.base import get_db_session
     POSTGRES_AVAILABLE = True
 except ImportError:
@@ -741,7 +742,30 @@ class DailyQuestSystem:
         }
     
     def load_minigame_data(self):
-        """Lade Mini-Game Daten"""
+        """Lade Mini-Game Daten (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(MinigameDataModel).filter_by(minigame_id="wheel_spin").all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            data[row.username] = {
+                                "spins": (row.achievements_unlocked or {}).get("spins", []),
+                                "total_spins": row.times_played,
+                                "total_winnings": row.total_coins_earned
+                            }
+                        _wp_logger = logging.getLogger(__name__)
+                        _wp_logger.debug(f"Loaded minigame data from PostgreSQL ({len(data)} users)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"PostgreSQL minigame load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
             with open(self.minigame_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -749,7 +773,52 @@ class DailyQuestSystem:
             return {}
     
     def save_minigame_data(self, data):
-        """Speichere Mini-Game Daten"""
+        """Speichere Mini-Game Daten (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, user_data in data.items():
+                        if not isinstance(user_data, dict):
+                            continue
+                        existing = session.query(MinigameDataModel).filter_by(
+                            username=username, minigame_id="wheel_spin"
+                        ).first()
+                        spins = user_data.get("spins", [])
+                        total_spins = user_data.get("total_spins", 0)
+                        total_winnings = user_data.get("total_winnings", 0)
+                        if existing:
+                            existing.times_played = total_spins
+                            existing.total_coins_earned = total_winnings
+                            existing.high_score = max(existing.high_score, total_winnings)
+                            existing.achievements_unlocked = {"spins": spins[-100:]}
+                            existing.last_played = datetime.utcnow()
+                        else:
+                            new_row = MinigameDataModel(
+                                username=username,
+                                minigame_id="wheel_spin",
+                                minigame_name="Glücksrad",
+                                times_played=total_spins,
+                                high_score=total_winnings,
+                                average_score=0.0,
+                                achievements_unlocked={"spins": spins[-100:]},
+                                total_coins_earned=total_winnings,
+                                total_xp_earned=0,
+                                last_played=datetime.utcnow()
+                            )
+                            session.add(new_row)
+                    session.commit()
+                    logger.debug("Minigame data saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL minigame save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for minigame: {e}")
+
+        # 2. JSON write (always, as backup)
         with open(self.minigame_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     

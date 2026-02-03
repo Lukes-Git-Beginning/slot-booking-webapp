@@ -19,6 +19,7 @@ USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
 
 try:
     from app.models.gamification import Score as ScoreModel, UserBadge as UserBadgeModel, Champion as ChampionModel
+    from app.models.user import UserStats as UserStatsModel
     from app.models.base import get_db_session
     POSTGRES_AVAILABLE = True
 except ImportError:
@@ -364,45 +365,120 @@ class DataPersistence:
         return self.save_badges(badges_data)
     
     def load_daily_user_stats(self):
-        """Lade Daily User Stats mit Fallback"""
+        """Lade Daily User Stats (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(UserStatsModel).filter_by(stat_type='daily').all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            date_str = row.stat_date.strftime("%Y-%m-%d") if hasattr(row.stat_date, 'strftime') else str(row.stat_date)
+                            if date_str not in data:
+                                data[date_str] = {}
+                            data[date_str][row.username] = {
+                                "bookings": row.bookings_count,
+                                "points": row.points_earned,
+                                "badges_earned": row.achievements_unlocked
+                            }
+                            # Merge additional metrics from JSON field
+                            if row.metrics_data and isinstance(row.metrics_data, dict):
+                                data[date_str][row.username].update(row.metrics_data)
+                        logger.debug(f"Loaded daily user stats from PostgreSQL ({len(data)} dates)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL daily stats load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
-            # Versuche persistentes Verzeichnis
             stats_file = self.data_dir / "daily_user_stats.json"
             if stats_file.exists():
                 with open(stats_file, "r", encoding="utf-8") as f:
                     return json.load(f)
-            
-            # Fallback: static/ Verzeichnis
+
             static_stats = self.static_dir / "daily_user_stats.json"
             if static_stats.exists():
                 with open(static_stats, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # Speichere in persistentes Verzeichnis
                     self.save_daily_user_stats(data)
                     return data
-            
-            # Fallback: Leere Daten
+
             return {}
         except Exception as e:
             logger.error(f"Fehler beim Laden der Daily User Stats: {e}")
             return {}
     
     def save_daily_user_stats(self, stats_data):
-        """Speichere Daily User Stats mit Backup"""
+        """Speichere Daily User Stats (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for date_str, users in stats_data.items():
+                        if not isinstance(users, dict):
+                            continue
+                        try:
+                            stat_date = datetime.strptime(date_str, "%Y-%m-%d")
+                        except (ValueError, TypeError):
+                            continue
+                        for username, user_stats in users.items():
+                            if not isinstance(user_stats, dict):
+                                continue
+                            bookings = user_stats.get("bookings", 0)
+                            points = user_stats.get("points", 0)
+                            badges = user_stats.get("badges_earned", 0)
+                            # Extra fields go into metrics_data
+                            extra = {k: v for k, v in user_stats.items() if k not in ("bookings", "points", "badges_earned")}
+
+                            existing = session.query(UserStatsModel).filter(
+                                UserStatsModel.username == username,
+                                UserStatsModel.stat_date == stat_date,
+                                UserStatsModel.stat_type == 'daily'
+                            ).first()
+                            if existing:
+                                existing.bookings_count = bookings
+                                existing.points_earned = points
+                                existing.achievements_unlocked = badges
+                                if extra:
+                                    existing.metrics_data = extra
+                            else:
+                                new_row = UserStatsModel(
+                                    username=username,
+                                    stat_date=stat_date,
+                                    stat_type='daily',
+                                    bookings_count=bookings,
+                                    points_earned=points,
+                                    achievements_unlocked=badges,
+                                    metrics_data=extra if extra else None
+                                )
+                                session.add(new_row)
+                    session.commit()
+                    logger.debug("Daily user stats saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL daily stats save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for daily stats: {e}")
+
+        # 2. JSON write (always, as backup)
         try:
-            # Speichere in persistentem Verzeichnis
             stats_file = self.data_dir / "daily_user_stats.json"
             with open(stats_file, "w", encoding="utf-8") as f:
                 json.dump(stats_data, f, indent=2, ensure_ascii=False)
-            
-            # Backup erstellen
+
             self._create_backup("daily_user_stats.json", stats_data)
-            
-            # Auch in static/ für Kompatibilität
+
             static_stats = self.static_dir / "daily_user_stats.json"
             with open(static_stats, "w", encoding="utf-8") as f:
                 json.dump(stats_data, f, indent=2, ensure_ascii=False)
-                
+
             logger.info(f"Daily User Stats gespeichert: {len(stats_data)} Tage")
             return True
         except Exception as e:
