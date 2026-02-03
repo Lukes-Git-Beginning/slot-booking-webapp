@@ -17,16 +17,17 @@ logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
-# PostgreSQL dual-write support for coins
+# PostgreSQL dual-write support
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
 
 try:
     from app.models.user import User as UserModel
+    from app.models.gamification import DailyQuest as DailyQuestModel, QuestProgress as QuestProgressModel
     from app.models.base import get_db_session
-    POSTGRES_COINS_AVAILABLE = True
+    POSTGRES_AVAILABLE = True
 except ImportError:
-    logger.warning("PostgreSQL models not available for daily_quests coins, using JSON-only mode")
-    POSTGRES_COINS_AVAILABLE = False
+    logger.warning("PostgreSQL models not available for daily_quests, using JSON-only mode")
+    POSTGRES_AVAILABLE = False
     USE_POSTGRES = False
 
 # Daily Quest Definitionen
@@ -151,7 +152,47 @@ class DailyQuestSystem:
                     json.dump({}, f)
     
     def load_daily_quests(self):
-        """Lade tägliche Quest-Konfiguration"""
+        """Lade tägliche Quest-Konfiguration (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(DailyQuestModel).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            date_str = row.quest_date.strftime("%Y-%m-%d") if hasattr(row.quest_date, 'strftime') else str(row.quest_date)
+                            if date_str not in data:
+                                data[date_str] = {
+                                    "date": date_str,
+                                    "generated_at": row.created_at.isoformat() if row.created_at else None,
+                                    "quests": [],
+                                    "bonus_multiplier": (row.reward_items or {}).get("bonus_multiplier", 1.0)
+                                }
+                            quest_pool_entry = QUEST_POOL.get(row.quest_id, {})
+                            data[date_str]["quests"].append({
+                                "id": row.quest_id,
+                                "title": row.title,
+                                "description": row.description,
+                                "type": row.target_type,
+                                "target": row.target_value,
+                                "rewards": {
+                                    "xp": quest_pool_entry.get("rewards", {}).get("xp", 0),
+                                    "coins": row.reward_coins,
+                                    "points": row.reward_points
+                                },
+                                "rarity": row.difficulty,
+                                "category": row.category
+                            })
+                        logger.debug(f"Loaded daily quests from PostgreSQL ({len(data)} dates)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL daily quests load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
             with open(self.quests_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -159,12 +200,100 @@ class DailyQuestSystem:
             return {}
     
     def save_daily_quests(self, data):
-        """Speichere tägliche Quest-Konfiguration"""
+        """Speichere tägliche Quest-Konfiguration (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for date_str, day_data in data.items():
+                        if not isinstance(day_data, dict):
+                            continue
+                        bonus_multiplier = day_data.get("bonus_multiplier", 1.0)
+                        for quest in day_data.get("quests", []):
+                            quest_id = quest.get("id", "")
+                            if not quest_id:
+                                continue
+                            try:
+                                quest_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                            except (ValueError, TypeError):
+                                continue
+
+                            existing = session.query(DailyQuestModel).filter_by(
+                                quest_id=quest_id
+                            ).first()
+                            rewards = quest.get("rewards", {})
+                            if existing:
+                                existing.quest_date = quest_date
+                                existing.title = quest.get("title", "")
+                                existing.description = quest.get("description", "")
+                                existing.category = quest.get("category", "booking")
+                                existing.difficulty = quest.get("rarity", "common")
+                                existing.target_value = quest.get("target", 1)
+                                existing.target_type = quest.get("type", "booking")
+                                existing.reward_points = rewards.get("points", 0)
+                                existing.reward_coins = rewards.get("coins", 0)
+                                existing.reward_items = {"bonus_multiplier": bonus_multiplier}
+                            else:
+                                new_row = DailyQuestModel(
+                                    quest_id=quest_id,
+                                    quest_date=quest_date,
+                                    title=quest.get("title", ""),
+                                    description=quest.get("description", ""),
+                                    category=quest.get("category", "booking"),
+                                    difficulty=quest.get("rarity", "common"),
+                                    target_value=quest.get("target", 1),
+                                    target_type=quest.get("type", "booking"),
+                                    reward_points=rewards.get("points", 0),
+                                    reward_coins=rewards.get("coins", 0),
+                                    reward_items={"bonus_multiplier": bonus_multiplier},
+                                    is_active=True
+                                )
+                                session.add(new_row)
+                    session.commit()
+                    logger.debug("Daily quests saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL daily quests save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for daily quests: {e}")
+
+        # 2. JSON write (always, as backup)
         with open(self.quests_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
     def load_user_progress(self):
-        """Lade User Quest-Fortschritt"""
+        """Lade User Quest-Fortschritt (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(QuestProgressModel).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            if row.username not in data:
+                                data[row.username] = {}
+                            # Ermittle date_str aus quest_id oder started_at
+                            date_str = row.started_at.strftime("%Y-%m-%d") if row.started_at else "unknown"
+                            if date_str not in data[row.username]:
+                                data[row.username][date_str] = {}
+                            data[row.username][date_str][row.quest_id] = {
+                                "progress": row.current_value,
+                                "completed": row.is_completed,
+                                "claimed": row.is_claimed
+                            }
+                        logger.debug(f"Loaded quest progress from PostgreSQL ({len(data)} users)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL quest progress load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
             with open(self.user_progress_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -172,14 +301,74 @@ class DailyQuestSystem:
             return {}
     
     def save_user_progress(self, data):
-        """Speichere User Quest-Fortschritt"""
+        """Speichere User Quest-Fortschritt (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, dates in data.items():
+                        if not isinstance(dates, dict):
+                            continue
+                        for date_str, quests in dates.items():
+                            if not isinstance(quests, dict):
+                                continue
+                            try:
+                                quest_date = datetime.strptime(date_str, "%Y-%m-%d")
+                            except (ValueError, TypeError):
+                                continue
+                            for quest_id, progress in quests.items():
+                                if not isinstance(progress, dict):
+                                    continue
+                                current_value = progress.get("progress", 0)
+                                is_completed = progress.get("completed", False)
+                                is_claimed = progress.get("claimed", False)
+                                # Ermittle target_value aus QUEST_POOL
+                                target_value = QUEST_POOL.get(quest_id, {}).get("target", 1)
+
+                                existing = session.query(QuestProgressModel).filter_by(
+                                    username=username, quest_id=quest_id
+                                ).first()
+                                if existing:
+                                    existing.current_value = current_value
+                                    existing.is_completed = is_completed
+                                    existing.is_claimed = is_claimed
+                                    existing.progress_percent = min(100.0, (current_value / target_value * 100)) if target_value > 0 else 0.0
+                                    existing.last_progress_at = datetime.utcnow()
+                                    if is_completed and not existing.completed_at:
+                                        existing.completed_at = datetime.utcnow()
+                                else:
+                                    new_row = QuestProgressModel(
+                                        username=username,
+                                        quest_id=quest_id,
+                                        current_value=current_value,
+                                        target_value=target_value,
+                                        progress_percent=min(100.0, (current_value / target_value * 100)) if target_value > 0 else 0.0,
+                                        is_completed=is_completed,
+                                        is_claimed=is_claimed,
+                                        started_at=quest_date,
+                                        completed_at=datetime.utcnow() if is_completed else None,
+                                        last_progress_at=datetime.utcnow()
+                                    )
+                                    session.add(new_row)
+                    session.commit()
+                    logger.debug("Quest progress saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL quest progress save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for quest progress: {e}")
+
+        # 2. JSON write (always, as backup)
         with open(self.user_progress_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
     def load_user_coins(self):
         """Lade User Coin-Guthaben (PostgreSQL-first, JSON-Fallback)"""
         # 1. PostgreSQL-first
-        if USE_POSTGRES and POSTGRES_COINS_AVAILABLE:
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
                 session = get_db_session()
                 try:
@@ -203,7 +392,7 @@ class DailyQuestSystem:
     def save_user_coins(self, data):
         """Speichere User Coin-Guthaben (Dual-Write: PostgreSQL + JSON)"""
         # 1. PostgreSQL write
-        if USE_POSTGRES and POSTGRES_COINS_AVAILABLE:
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
                 session = get_db_session()
                 try:
