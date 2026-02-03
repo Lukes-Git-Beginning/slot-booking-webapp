@@ -351,17 +351,18 @@ class RefactoringStatusService:
                     lines = f.readlines()
 
                 for line_num, line in enumerate(lines, start=1):
-                    if 'TODO' in line and not line.strip().startswith('#'):
+                    stripped = line.strip()
+                    if 'TODO' in line and stripped.startswith('#'):
                         todos.append({
                             'file': str(py_file.relative_to(self.project_root)),
                             'line': line_num,
-                            'text': line.strip()
+                            'text': stripped
                         })
-                    if 'FIXME' in line and not line.strip().startswith('#'):
+                    if 'FIXME' in line and stripped.startswith('#'):
                         fixmes.append({
                             'file': str(py_file.relative_to(self.project_root)),
                             'line': line_num,
-                            'text': line.strip()
+                            'text': stripped
                         })
 
             except Exception as e:
@@ -376,29 +377,65 @@ class RefactoringStatusService:
         }
 
     def get_test_coverage_status(self) -> Dict:
-        """Get test coverage statistics"""
+        """Get test coverage statistics from .coverage file or fallback to hardcoded values"""
 
-        # Hardcoded from known test results (would integrate with pytest-cov in production)
-        return {
-            'overall_coverage': 98.0,  # From recent test runs
-            'target_coverage': 100.0,
-            'services': {
-                'security_service.py': 98,
-                't2_bucket_system.py': 89,
-                'tracking_system.py': 95,
-                'data_persistence.py': 92,
-                'booking_service.py': 88,
-                't2_analytics_service.py': 85,
-                'achievement_system.py': 75,
-                'daily_quests.py': 70,
-                'prestige_system.py': 65,
-                'cosmetics_shop.py': 60,
-                'weekly_points.py': 55,
-                'notification_service.py': 50,
-                'activity_tracking.py': 45,
-                'audit_service.py': 40,
+        try:
+            from coverage import Coverage
+
+            coverage_file = self.project_root / '.coverage'
+            if not coverage_file.exists():
+                raise FileNotFoundError("No .coverage file found")
+
+            cov = Coverage(data_file=str(coverage_file))
+            cov.load()
+
+            services = {}
+            overall_lines = 0
+            overall_covered = 0
+
+            for filename in cov.get_data().measured_files():
+                normalized = filename.replace('\\', '/')
+                if '/app/services/' in normalized or '\\app\\services\\' in filename:
+                    analysis = cov.analysis2(filename)
+                    total = len(analysis[1]) + len(analysis[3])
+                    covered = len(analysis[1])
+                    if total > 0:
+                        short_name = Path(filename).name
+                        services[short_name] = round(covered / total * 100, 1)
+                    overall_lines += total
+                    overall_covered += covered
+
+            overall_pct = round(overall_covered / overall_lines * 100, 1) if overall_lines > 0 else 0.0
+
+            return {
+                'overall_coverage': overall_pct,
+                'target_coverage': 100.0,
+                'services': dict(sorted(services.items(), key=lambda x: x[1], reverse=True)),
+                'source': 'dynamic'
             }
-        }
+        except Exception as e:
+            logger.warning(f"Could not load coverage data: {e}, using hardcoded fallback")
+            return {
+                'overall_coverage': 98.0,
+                'target_coverage': 100.0,
+                'services': {
+                    'security_service.py': 98,
+                    't2_bucket_system.py': 89,
+                    'tracking_system.py': 95,
+                    'data_persistence.py': 92,
+                    'booking_service.py': 88,
+                    't2_analytics_service.py': 85,
+                    'achievement_system.py': 75,
+                    'daily_quests.py': 70,
+                    'prestige_system.py': 65,
+                    'cosmetics_shop.py': 60,
+                    'weekly_points.py': 55,
+                    'notification_service.py': 50,
+                    'activity_tracking.py': 45,
+                    'audit_service.py': 40,
+                },
+                'source': 'hardcoded'
+            }
 
     def get_roadmap_progress(self) -> Dict:
         """Calculate overall roadmap completion"""
