@@ -17,6 +17,18 @@ logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
+# PostgreSQL dual-write support for coins
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.user import User as UserModel
+    from app.models.base import get_db_session
+    POSTGRES_COINS_AVAILABLE = True
+except ImportError:
+    logger.warning("PostgreSQL models not available for daily_quests coins, using JSON-only mode")
+    POSTGRES_COINS_AVAILABLE = False
+    USE_POSTGRES = False
+
 # Daily Quest Definitionen
 QUEST_POOL = {
     # Buchungs-Quests
@@ -165,7 +177,23 @@ class DailyQuestSystem:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
     def load_user_coins(self):
-        """Lade User Coin-Guthaben"""
+        """Lade User Coin-Guthaben (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_COINS_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(UserModel.username, UserModel.total_coins).all()
+                    if rows:
+                        data = {row.username: row.total_coins for row in rows}
+                        logger.debug(f"Loaded user coins from PostgreSQL ({len(data)} users)")
+                        return data
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL coins load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
             with open(self.coins_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -173,7 +201,29 @@ class DailyQuestSystem:
             return {}
     
     def save_user_coins(self, data):
-        """Speichere User Coin-Guthaben"""  
+        """Speichere User Coin-Guthaben (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_COINS_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, coins in data.items():
+                        existing = session.query(UserModel).filter_by(username=username).first()
+                        if existing:
+                            existing.total_coins = int(coins)
+                        else:
+                            logger.debug(f"User {username} not found in PostgreSQL, skipping coins update")
+                    session.commit()
+                    logger.debug("User coins saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL coins save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for coins: {e}")
+
+        # 2. JSON write (always, as backup)
         with open(self.coins_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     

@@ -14,6 +14,18 @@ from app.utils.json_utils import atomic_write_json, atomic_read_json, atomic_upd
 # Logger setup
 logger = logging.getLogger(__name__)
 
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.gamification import Score as ScoreModel, UserBadge as UserBadgeModel
+    from app.models.base import get_db_session
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    logger.warning("PostgreSQL models not available for data_persistence, using JSON-only mode")
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
 class DataPersistence:
     def __init__(self) -> None:
         """
@@ -53,20 +65,51 @@ class DataPersistence:
         self.static_dir.mkdir(parents=True, exist_ok=True)
     
     def save_scores(self, scores_data: Dict[str, Any]) -> bool:
-        """Speichere Scores mit Backup und atomischen Schreibvorgängen"""
+        """Speichere Scores (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, months in scores_data.items():
+                        if not isinstance(months, dict):
+                            continue
+                        for month, points in months.items():
+                            points_int = int(points) if isinstance(points, (int, float, str)) else 0
+                            existing = session.query(ScoreModel).filter_by(
+                                username=username, month=month
+                            ).first()
+                            if existing:
+                                existing.points = points_int
+                            else:
+                                new_row = ScoreModel(
+                                    username=username,
+                                    month=month,
+                                    points=points_int,
+                                    bookings_count=0
+                                )
+                                session.add(new_row)
+                    session.commit()
+                    logger.debug("Scores saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL scores save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for scores: {e}")
+
+        # 2. JSON write (always, as backup)
         try:
-            # Speichere in persistentem Verzeichnis mit atomischen Operationen
             scores_file = str(self.data_dir / "scores.json")
             if not atomic_write_json(scores_file, scores_data):
                 return False
-            
-            # Backup erstellen
+
             self._create_backup("scores.json", scores_data)
-            
-            # Auch in static/ für Kompatibilität
+
             static_scores = str(self.static_dir / "scores.json")
             atomic_write_json(static_scores, scores_data)
-                
+
             logger.info(f"Scores gespeichert: {len(scores_data)} Benutzer")
             return True
         except Exception as e:
@@ -74,48 +117,119 @@ class DataPersistence:
             return False
     
     def load_scores(self) -> Dict[str, Any]:
-        """Lade Scores mit Fallback und atomischen Lesevorgängen"""
+        """Lade Scores (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(ScoreModel).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            if row.username not in data:
+                                data[row.username] = {}
+                            data[row.username][row.month] = row.points
+                        logger.debug(f"Loaded scores from PostgreSQL ({len(data)} users)")
+                        return self._normalize_usernames_in_data(data)
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL scores load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
-            # Versuche persistentes Verzeichnis
             scores_file = str(self.data_dir / "scores.json")
             data = atomic_read_json(scores_file)
             if data is not None:
-                # Normalisiere Usernames beim Laden
                 data = self._normalize_usernames_in_data(data)
                 return data
 
-            # Fallback: static/ Verzeichnis
             static_scores = str(self.static_dir / "scores.json")
             data = atomic_read_json(static_scores)
             if data is not None:
-                # Normalisiere Usernames beim Laden
                 data = self._normalize_usernames_in_data(data)
-                # Speichere in persistentes Verzeichnis
                 self.save_scores(data)
                 return data
 
-            # Fallback: Leere Daten
             return {}
         except Exception as e:
             logger.error(f"Fehler beim Laden der Scores: {e}")
             return {}
     
     def save_badges(self, badges_data):
-        """Speichere Badges mit Backup"""
+        """Speichere Badges (Dual-Write: PostgreSQL + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    for username, user_data in badges_data.items():
+                        badges_list = user_data.get("badges", []) if isinstance(user_data, dict) else []
+                        for badge in badges_list:
+                            badge_id = badge.get("id", "")
+                            if not badge_id:
+                                continue
+                            # Parse earned_date
+                            earned_date = None
+                            earned_date_str = badge.get("earned_date")
+                            if earned_date_str:
+                                try:
+                                    earned_date = datetime.fromisoformat(earned_date_str)
+                                except (ValueError, TypeError):
+                                    try:
+                                        earned_date = datetime.strptime(earned_date_str, "%Y-%m-%d %H:%M:%S")
+                                    except (ValueError, TypeError):
+                                        earned_date = datetime.utcnow()
+                            else:
+                                earned_date = datetime.utcnow()
+
+                            existing = session.query(UserBadgeModel).filter_by(
+                                username=username, badge_id=badge_id
+                            ).first()
+                            if existing:
+                                existing.name = badge.get("name", "")
+                                existing.description = badge.get("description", "")
+                                existing.emoji = badge.get("emoji", "")
+                                existing.rarity = badge.get("rarity", "common")
+                                existing.category = badge.get("category", "special")
+                                existing.color = badge.get("color", "#3b82f6")
+                                existing.earned_date = earned_date
+                            else:
+                                new_row = UserBadgeModel(
+                                    username=username,
+                                    badge_id=badge_id,
+                                    name=badge.get("name", ""),
+                                    description=badge.get("description", ""),
+                                    emoji=badge.get("emoji", ""),
+                                    rarity=badge.get("rarity", "common"),
+                                    category=badge.get("category", "special"),
+                                    color=badge.get("color", "#3b82f6"),
+                                    earned_date=earned_date
+                                )
+                                session.add(new_row)
+                    session.commit()
+                    logger.debug("Badges saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL badges save failed: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for badges: {e}")
+
+        # 2. JSON write (always, as backup)
         try:
-            # Speichere in persistentem Verzeichnis
             badges_file = self.data_dir / "user_badges.json"
             with open(badges_file, "w", encoding="utf-8") as f:
                 json.dump(badges_data, f, indent=2, ensure_ascii=False)
-            
-            # Backup erstellen
+
             self._create_backup("user_badges.json", badges_data)
-            
-            # Auch in static/ für Kompatibilität
+
             static_badges = self.static_dir / "user_badges.json"
             with open(static_badges, "w", encoding="utf-8") as f:
                 json.dump(badges_data, f, indent=2, ensure_ascii=False)
-                
+
             logger.info(f"Badges gespeichert: {len(badges_data)} Benutzer")
             return True
         except Exception as e:
@@ -123,28 +237,59 @@ class DataPersistence:
             return False
     
     def load_badges(self):
-        """Lade Badges mit Fallback"""
+        """Lade Badges (PostgreSQL-first, JSON-Fallback)"""
+        # 1. PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(UserBadgeModel).all()
+                    if rows:
+                        data = {}
+                        for row in rows:
+                            if row.username not in data:
+                                data[row.username] = {
+                                    "badges": [],
+                                    "earned_dates": {},
+                                    "total_badges": 0
+                                }
+                            earned_str = row.earned_date.strftime("%Y-%m-%d %H:%M:%S") if row.earned_date else None
+                            data[row.username]["badges"].append({
+                                "id": row.badge_id,
+                                "name": row.name,
+                                "description": row.description,
+                                "emoji": row.emoji or "",
+                                "rarity": row.rarity or "common",
+                                "category": row.category or "special",
+                                "earned_date": earned_str,
+                                "color": row.color or "#3b82f6"
+                            })
+                            data[row.username]["earned_dates"][row.badge_id] = earned_str
+                        for username in data:
+                            data[username]["total_badges"] = len(data[username]["badges"])
+                        logger.debug(f"Loaded badges from PostgreSQL ({len(data)} users)")
+                        return self._normalize_usernames_in_data(data)
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL badges load failed: {e}, falling back to JSON")
+
+        # 2. JSON-Fallback
         try:
-            # Versuche persistentes Verzeichnis
             badges_file = self.data_dir / "user_badges.json"
             if badges_file.exists():
                 with open(badges_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # Normalisiere Usernames beim Laden
                     return self._normalize_usernames_in_data(data)
 
-            # Fallback: static/ Verzeichnis
             static_badges = self.static_dir / "user_badges.json"
             if static_badges.exists():
                 with open(static_badges, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # Normalisiere Usernames beim Laden
                     data = self._normalize_usernames_in_data(data)
-                    # Speichere in persistentes Verzeichnis
                     self.save_badges(data)
                     return data
 
-            # Fallback: Leere Daten
             return {}
         except Exception as e:
             logger.error(f"Fehler beim Laden der Badges: {e}")
@@ -173,26 +318,8 @@ class DataPersistence:
             return False
     
     def save_user_badges(self, badges_data):
-        """Speichere User Badges mit Backup"""
-        try:
-            # Speichere in persistentem Verzeichnis
-            badges_file = self.data_dir / "user_badges.json"
-            with open(badges_file, "w", encoding="utf-8") as f:
-                json.dump(badges_data, f, indent=2, ensure_ascii=False)
-            
-            # Backup erstellen
-            self._create_backup("user_badges.json", badges_data)
-            
-            # Auch in static/ für Kompatibilität
-            static_badges = self.static_dir / "user_badges.json"
-            with open(static_badges, "w", encoding="utf-8") as f:
-                json.dump(badges_data, f, indent=2, ensure_ascii=False)
-                
-            logger.info(f"User Badges gespeichert: {len(badges_data)} Benutzer")
-            return True
-        except Exception as e:
-            logger.error(f"Fehler beim Speichern der User Badges: {e}")
-            return False
+        """Speichere User Badges (delegiert an save_badges für Dual-Write)"""
+        return self.save_badges(badges_data)
     
     def load_daily_user_stats(self):
         """Lade Daily User Stats mit Fallback"""
