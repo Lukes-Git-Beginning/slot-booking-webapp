@@ -32,6 +32,10 @@ class ConsultantRankingService:
     WEIGHT_ACTIVITY = 0.2        # Aktivitätsvolumen (T1+T2+Tel)
     WEIGHT_CONSISTENCY = 0.1      # Konsistenz (niedrige Varianz)
 
+    # Festvertrag-Telefonisten: Keine eigenen Ziele, daher Achievement/Consistency
+    # nicht relevant. Score wird nur auf Show-Rate + Activity gewichtet.
+    FIXED_CONTRACT = {"Ann-Kathrin", "Yasmine", "Ben"}
+
     def __init__(self):
         # Nur aktive Telefonisten im Ranking anzeigen (nicht alle Consultants)
         all_consultants = consultant_config.get_consultants()
@@ -76,8 +80,11 @@ class ConsultantRankingService:
                 show_data = show_rates.get(consultant.lower(), {})
                 tel_data = telefonie_data.get(consultant, {})
 
+                is_fixed = consultant in self.FIXED_CONTRACT
+
                 consultant_perf = {
                     "name": consultant,
+                    "fixed_contract": is_fixed,
                     # Show-Rate Daten
                     "show_rate": show_data.get("appearance_rate", 0.0),
                     "total_slots": show_data.get("total_slots", 0),
@@ -105,7 +112,8 @@ class ConsultantRankingService:
                     consultant_perf["show_rate"],
                     consultant_perf["telefonie_achievement"],
                     consultant_perf["total_activities"],
-                    consultant_perf["consistency_score"]
+                    consultant_perf["consistency_score"],
+                    is_fixed_contract=is_fixed
                 )
 
                 # Klassifiziere Performance
@@ -226,18 +234,18 @@ class ConsultantRankingService:
         show_rate: float,
         achievement_rate: float,
         total_activities: int,
-        consistency_score: float
+        consistency_score: float,
+        is_fixed_contract: bool = False
     ) -> float:
         """
         Berechne gewichteten Combined Score
 
-        Score = Show Rate * 0.4 + Achievement * 0.3 + Activity * 0.2 + Consistency * 0.1
+        Normale Telefonisten:
+            Score = Show Rate * 0.4 + Achievement * 0.3 + Activity * 0.2 + Consistency * 0.1
 
-        Args:
-            show_rate: Erschienen-Quote (0-100)
-            achievement_rate: Zielerreichung (0-100+)
-            total_activities: Anzahl Aktivitäten
-            consistency_score: Konsistenz (0-100)
+        Festvertrag (kein eigenes Ziel):
+            Score = Show Rate * 0.65 + Activity * 0.35
+            Achievement und Consistency entfallen.
 
         Returns:
             Combined Score (0-100)
@@ -245,15 +253,22 @@ class ConsultantRankingService:
         # Normalisiere Activity Volume auf 0-100 (max 30 Aktivitäten = 100%)
         activity_normalized = min(total_activities / 30 * 100, 100)
 
-        # Cap achievement rate at 150% for scoring purposes
-        achievement_capped = min(achievement_rate, 150)
+        if is_fixed_contract:
+            # Festvertrag: Nur Show-Rate und Aktivität zählen
+            score = (
+                show_rate * 0.65 +
+                activity_normalized * 0.35
+            )
+        else:
+            # Cap achievement rate at 150% for scoring purposes
+            achievement_capped = min(achievement_rate, 150)
 
-        score = (
-            show_rate * self.WEIGHT_SHOW_RATE +
-            achievement_capped * self.WEIGHT_ACHIEVEMENT +
-            activity_normalized * self.WEIGHT_ACTIVITY +
-            consistency_score * self.WEIGHT_CONSISTENCY
-        )
+            score = (
+                show_rate * self.WEIGHT_SHOW_RATE +
+                achievement_capped * self.WEIGHT_ACHIEVEMENT +
+                activity_normalized * self.WEIGHT_ACTIVITY +
+                consistency_score * self.WEIGHT_CONSISTENCY
+            )
 
         return round(score, 1)
 
