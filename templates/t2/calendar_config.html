@@ -1,0 +1,88 @@
+{% extends "t2/base.html" %}
+
+{% block t2_title %}Kalender-Konfiguration{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 class="text-4xl font-bold text-primary flex items-center gap-3">
+            <i data-lucide="calendar" class="w-10 h-10"></i>
+            Kalender-Konfiguration
+          </h1>
+          <p class="text-base-content/70 mt-2">Google Calendar IDs und Rollen der Closer (nur Lesezugriff)</p>
+        </div>
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-ghost">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          Zurück
+        </a>
+      </div>
+    </div>
+
+    <!-- Calendar Table -->
+    <div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="100">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Rolle</th>
+              <th>Calendar ID</th>
+              <th class="text-center">Schreibzugriff</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, info in closers.items() %}
+            <tr>
+              <td>
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                       style="background-color: {{ info.get('color', '#666') }}">
+                    {{ name[0]|upper }}
+                  </div>
+                  <span class="font-semibold">{{ name }}</span>
+                </div>
+              </td>
+              <td>
+                {% if info.get('role') == 'coach' %}
+                  <span class="badge badge-primary">Coach</span>
+                {% else %}
+                  <span class="badge badge-secondary">Berater</span>
+                {% endif %}
+              </td>
+              <td class="font-mono text-sm text-base-content/60">{{ info.get('calendar_id', '-') }}</td>
+              <td class="text-center">
+                {% if info.get('can_write') %}
+                  <span class="badge badge-success">Ja</span>
+                {% else %}
+                  <span class="badge badge-error">Nein</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if not closers %}
+      <div class="text-center py-8">
+        <i data-lucide="calendar" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></i>
+        <p class="text-base-content/50">Keine Kalender konfiguriert.</p>
+      </div>
+      {% endif %}
+
+      <div class="mt-6 p-4 rounded-xl bg-base-content/5">
+        <p class="text-sm text-base-content/50 flex items-center gap-2">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          Kalender-IDs werden in der Serverkonfiguration verwaltet. Änderungen erfordern ein Deployment.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

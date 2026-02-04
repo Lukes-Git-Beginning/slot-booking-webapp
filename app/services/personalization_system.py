@@ -2,6 +2,8 @@
 """
 Personalization & Customization System für Slot Booking Webapp
 Custom Avatars, persönliche Ziele, Themes und individuelle Einstellungen
+
+Dual-Write: PostgreSQL + JSON (Migration Phase)
 """
 
 import os
@@ -10,11 +12,25 @@ import pytz
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+from app.utils.json_utils import atomic_write_json, atomic_read_json
 
 # Logger setup
 logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
+
+# PostgreSQL Dual-Write Setup
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+try:
+    from app.models.cosmetics import UserCosmetic, CustomizationAchievement
+    from app.models.gamification import PersonalGoal as PersonalGoalModel
+    from app.models.user import User as UserModel
+    from app.models.base import get_db_session
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    logger.warning("PostgreSQL models not available for personalization, using JSON-only")
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 # Avatar-Komponenten
 AVATAR_COMPONENTS = {
@@ -58,7 +74,7 @@ THEMES = {
     "default": {
         "name": "Standard",
         "primary": "#5a9fff",
-        "accent": "#3b82f6", 
+        "accent": "#3b82f6",
         "background": "#0f172a",
         "surface": "#1e293b",
         "text": "#f8fafc",
@@ -69,7 +85,7 @@ THEMES = {
         "primary": "#10b981",
         "accent": "#059669",
         "background": "#064e3b",
-        "surface": "#065f46", 
+        "surface": "#065f46",
         "text": "#ecfdf5",
         "unlock": "level_8"
     },
@@ -124,7 +140,7 @@ GOAL_TEMPLATES = {
     },
     "weekly_bookings": {
         "name": "Wöchentliche Buchungen",
-        "description": "Mache X Buchungen pro Woche", 
+        "description": "Mache X Buchungen pro Woche",
         "type": "weekly",
         "default_target": 15,
         "min_target": 5,
@@ -166,25 +182,35 @@ class PersonalizationSystem:
         self.customization_file = "data/persistent/user_customizations.json"
         self.goals_file = "data/persistent/personal_goals.json"
         self.achievements_file = "data/persistent/customization_achievements.json"
-        
+
         # Ensure directories exist
         os.makedirs("data/persistent", exist_ok=True)
-        
+
         # Initialize files
         for file_path in [self.profiles_file, self.customization_file, self.goals_file, self.achievements_file]:
             if not os.path.exists(file_path):
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump({}, f)
-    
+
+    # ========================================================================
+    # HELPER: JSON Load/Save (atomic)
+    # ========================================================================
+
+    def _load_json(self, file_path):
+        """Lade JSON-Datei atomar"""
+        data = atomic_read_json(file_path)
+        return data if data is not None else {}
+
+    def _save_json(self, file_path, data):
+        """Speichere JSON-Datei atomar"""
+        atomic_write_json(file_path, data)
+
+    # ========================================================================
+    # USER PROFILES (Dual-Write: User.profile_data + JSON)
+    # ========================================================================
+
     def load_user_profile(self, user):
         """Lade vollständiges User-Profil mit Customizations"""
-        try:
-            with open(self.profiles_file, "r", encoding="utf-8") as f:
-                profiles = json.load(f)
-        except:
-            profiles = {}
-        
-        # Default Profile
         default_profile = {
             "user": user,
             "created_at": datetime.now(TZ).isoformat(),
@@ -206,86 +232,178 @@ class PersonalizationSystem:
             "theme": "default",
             "last_active": datetime.now(TZ).isoformat()
         }
-        
+
+        # PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    db_user = session.query(UserModel).filter_by(username=user).first()
+                    if db_user and db_user.profile_data:
+                        profile = db_user.profile_data.copy()
+                        profile["last_active"] = datetime.now(TZ).isoformat()
+                        profile["customization"] = self.get_user_customization(user)
+                        # Update last_active in DB
+                        db_user.profile_data = profile
+                        db_user.last_activity = datetime.now(TZ).replace(tzinfo=None)
+                        session.commit()
+                        logger.debug(f"Loaded profile for {user} from PostgreSQL")
+                        return profile
+                except Exception as e:
+                    session.rollback()
+                    logger.warning(f"PostgreSQL profile load failed for {user}: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL connection failed for profile load: {e}")
+
+        # JSON fallback
+        profiles = self._load_json(self.profiles_file)
         user_profile = profiles.get(user, default_profile)
-        # Update last active
         user_profile["last_active"] = datetime.now(TZ).isoformat()
-        
+
         profiles[user] = user_profile
-        with open(self.profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles, f, ensure_ascii=False, indent=2)
-        
+        self._save_json(self.profiles_file, profiles)
+
         return user_profile
-    
+
     def update_user_profile(self, user, updates):
         """Update User-Profil mit neuen Daten"""
         profile = self.load_user_profile(user)
-        
+
         # Update erlaubte Felder
-        allowed_fields = ["display_name", "bio", "favorite_quote", "privacy_settings", 
+        allowed_fields = ["display_name", "bio", "favorite_quote", "privacy_settings",
                          "notification_preferences", "theme"]
-        
+
         for field, value in updates.items():
             if field in allowed_fields:
                 profile[field] = value
-        
+
         profile["last_updated"] = datetime.now(TZ).isoformat()
-        
-        # Speichere Updates
-        with open(self.profiles_file, "r", encoding="utf-8") as f:
-            profiles = json.load(f)
-        
+
+        # PostgreSQL Dual-Write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    db_user = session.query(UserModel).filter_by(username=user).first()
+                    if db_user:
+                        db_user.profile_data = profile
+                        db_user.last_activity = datetime.now(TZ).replace(tzinfo=None)
+                        session.commit()
+                        logger.debug(f"Profile for {user} saved to PostgreSQL")
+                    else:
+                        # User existiert noch nicht in PG — nur JSON
+                        logger.debug(f"User {user} not found in PostgreSQL, saving profile to JSON only")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL profile save failed for {user}: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for profile save: {e}")
+
+        # JSON always
+        profiles = self._load_json(self.profiles_file)
         profiles[user] = profile
-        
-        with open(self.profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles, f, ensure_ascii=False, indent=2)
-        
+        self._save_json(self.profiles_file, profiles)
+
         return profile
-    
+
+    # ========================================================================
+    # USER CUSTOMIZATIONS (Dual-Write: UserCosmetic + JSON)
+    # ========================================================================
+
     def get_user_customization(self, user):
         """Lade User Avatar-Customization"""
-        try:
-            with open(self.customization_file, "r", encoding="utf-8") as f:
-                customizations = json.load(f)
-        except:
-            customizations = {}
-        
         default_customization = {
             "avatar": {
                 "background": "gradient_blue",
-                "border": "simple", 
+                "border": "simple",
                 "effect": "none",
                 "title": "none"
             },
             "unlocked_items": ["gradient_blue", "simple", "none"]
         }
-        
+
+        # PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    row = session.query(UserCosmetic).filter_by(
+                        username=user, item_id='avatar_config', item_type='avatar_config'
+                    ).first()
+                    if row and row.config:
+                        logger.debug(f"Loaded customization for {user} from PostgreSQL")
+                        return row.config
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL customization load failed for {user}: {e}")
+
+        # JSON fallback
+        customizations = self._load_json(self.customization_file)
         return customizations.get(user, default_customization)
-    
+
+    def _save_customization_to_pg(self, user, customization_data):
+        """Speichere Customization in PostgreSQL"""
+        if not (USE_POSTGRES and POSTGRES_AVAILABLE):
+            return
+        try:
+            session = get_db_session()
+            try:
+                row = session.query(UserCosmetic).filter_by(
+                    username=user, item_id='avatar_config', item_type='avatar_config'
+                ).first()
+                if row:
+                    row.config = customization_data
+                    row.updated_at = datetime.utcnow()
+                else:
+                    row = UserCosmetic(
+                        username=user,
+                        item_id='avatar_config',
+                        item_type='avatar_config',
+                        item_category='visual',
+                        name='Avatar Configuration',
+                        rarity='common',
+                        is_owned=True,
+                        is_active=True,
+                        config=customization_data
+                    )
+                    session.add(row)
+                session.commit()
+                logger.debug(f"Customization for {user} saved to PostgreSQL")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"PostgreSQL customization save failed for {user}: {e}")
+            finally:
+                session.close()
+        except Exception as e:
+            logger.error(f"PostgreSQL connection failed for customization save: {e}")
+
     def update_user_customization(self, user, customization_data):
         """Update User Avatar-Customization"""
-        try:
-            with open(self.customization_file, "r", encoding="utf-8") as f:
-                customizations = json.load(f)
-        except:
-            customizations = {}
-        
         current = self.get_user_customization(user)
-        
+
         # Prüfe ob Items freigeschaltet sind
         for component, item in customization_data.get("avatar", {}).items():
             if item not in current.get("unlocked_items", []):
                 return {"success": False, "message": f"{item} ist noch nicht freigeschaltet"}
-        
+
         # Update Customization
         current["avatar"].update(customization_data.get("avatar", {}))
+
+        # PostgreSQL Dual-Write
+        self._save_customization_to_pg(user, current)
+
+        # JSON always
+        customizations = self._load_json(self.customization_file)
         customizations[user] = current
-        
-        with open(self.customization_file, "w", encoding="utf-8") as f:
-            json.dump(customizations, f, ensure_ascii=False, indent=2)
-        
+        self._save_json(self.customization_file, customizations)
+
         return {"success": True, "message": "Avatar erfolgreich aktualisiert"}
-    
+
     def check_unlock_progress(self, user):
         """Prüfe und schalte neue Customization-Items frei"""
         unlocked_items = []
@@ -326,13 +444,13 @@ class PersonalizationSystem:
             user_stats = daily_stats.get(user, {})
             streak_info = achievement_system.calculate_advanced_streak(user_stats)
             current_streak = streak_info.get("work_streak", 0)
-            
+
             # Prüfe alle Avatar-Komponenten
             for category, items in AVATAR_COMPONENTS.items():
                 for item_id, item_data in items.items():
                     unlock_condition = item_data["unlock"]
                     should_unlock = False
-                    
+
                     if unlock_condition == "free":
                         should_unlock = True
                     elif unlock_condition.startswith("level_"):
@@ -347,15 +465,15 @@ class PersonalizationSystem:
                     elif unlock_condition.startswith("streak_"):
                         required_streak = int(unlock_condition.split("_")[1])
                         should_unlock = current_streak >= required_streak
-                    
+
                     if should_unlock:
                         unlocked_items.append(item_id)
-            
+
             # Prüfe Themes
             for theme_id, theme_data in THEMES.items():
                 unlock_condition = theme_data["unlock"]
                 should_unlock = False
-                
+
                 if unlock_condition == "free":
                     should_unlock = True
                 elif unlock_condition.startswith("level_"):
@@ -370,73 +488,110 @@ class PersonalizationSystem:
                 elif unlock_condition.startswith("streak_"):
                     required_streak = int(unlock_condition.split("_")[1])
                     should_unlock = current_streak >= required_streak
-                
+
                 if should_unlock:
                     unlocked_items.append(theme_id)
-            
+
             # Update unlocked items
             customization = self.get_user_customization(user)
             existing_unlocked = set(customization.get("unlocked_items", []))
             new_unlocked = set(unlocked_items)
-            
+
             newly_unlocked = list(new_unlocked - existing_unlocked)
-            
+
             if newly_unlocked:
                 customization["unlocked_items"] = list(new_unlocked)
-                
-                try:
-                    with open(self.customization_file, "r", encoding="utf-8") as f:
-                        customizations = json.load(f)
-                except:
-                    customizations = {}
-                
+
+                # PostgreSQL Dual-Write
+                self._save_customization_to_pg(user, customization)
+
+                # JSON always
+                customizations = self._load_json(self.customization_file)
                 customizations[user] = customization
-                
-                with open(self.customization_file, "w", encoding="utf-8") as f:
-                    json.dump(customizations, f, ensure_ascii=False, indent=2)
-            
+                self._save_json(self.customization_file, customizations)
+
             return {
                 "newly_unlocked": newly_unlocked,
                 "total_unlocked": list(new_unlocked)
             }
-        
+
         except Exception as e:
             logger.error(f"Fehler beim Unlock-Check für {user}", extra={'error': str(e)})
             return {"newly_unlocked": [], "total_unlocked": []}
-    
+
+    # ========================================================================
+    # PERSONAL GOALS (Dual-Write: PersonalGoal + JSON)
+    # ========================================================================
+
     def get_personal_goals(self, user):
         """Lade persönliche Ziele eines Users"""
-        try:
-            with open(self.goals_file, "r", encoding="utf-8") as f:
-                goals = json.load(f)
-        except:
-            goals = {}
-        
-        user_goals = goals.get(user, [])
-        
+        user_goals = None
+
+        # PostgreSQL-first
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    rows = session.query(PersonalGoalModel).filter_by(
+                        username=user, is_active=True
+                    ).all()
+                    if rows:
+                        user_goals = []
+                        for row in rows:
+                            goal = {
+                                "id": row.goal_id,
+                                "template": row.category,
+                                "name": row.title,
+                                "description": row.description,
+                                "type": row.milestones.get("type", "daily") if row.milestones else "daily",
+                                "target": row.target_value,
+                                "current_progress": row.current_value,
+                                "created_at": row.created_at.isoformat() if row.created_at else datetime.now(TZ).isoformat(),
+                                "deadline": row.milestones.get("deadline", "") if row.milestones else "",
+                                "reward_multiplier": row.milestones.get("reward_multiplier", 1.0) if row.milestones else 1.0,
+                                "completed": row.is_completed,
+                                "claimed": row.milestones.get("claimed", False) if row.milestones else False,
+                            }
+                            if row.milestones and "claimed_at" in row.milestones:
+                                goal["claimed_at"] = row.milestones["claimed_at"]
+                            user_goals.append(goal)
+                        logger.debug(f"Loaded {len(user_goals)} goals for {user} from PostgreSQL")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.warning(f"PostgreSQL goals load failed for {user}: {e}")
+
+        # JSON fallback
+        if user_goals is None:
+            goals = self._load_json(self.goals_file)
+            user_goals = goals.get(user, [])
+
         # Update progress for existing goals
         updated_goals = []
         for goal in user_goals:
             updated_goal = self._update_goal_progress(user, goal)
             updated_goals.append(updated_goal)
-        
+
         return updated_goals
-    
+
     def create_personal_goal(self, user, goal_template, custom_target=None):
         """Erstelle neues persönliches Ziel"""
         if goal_template not in GOAL_TEMPLATES:
             return {"success": False, "message": "Unbekannte Ziel-Vorlage"}
-        
+
         template = GOAL_TEMPLATES[goal_template]
         target = custom_target if custom_target else template["default_target"]
-        
+
         # Validiere Target
         if target < template["min_target"] or target > template["max_target"]:
-            return {"success": False, 
+            return {"success": False,
                    "message": f"Ziel muss zwischen {template['min_target']} und {template['max_target']} liegen"}
-        
+
+        goal_id = f"{goal_template}_{datetime.now(TZ).timestamp()}"
+        deadline = self._calculate_deadline(template["type"])
+
         new_goal = {
-            "id": f"{goal_template}_{datetime.now(TZ).timestamp()}",
+            "id": goal_id,
             "template": goal_template,
             "name": template["name"],
             "description": template["description"].replace("X", str(target)),
@@ -444,33 +599,63 @@ class PersonalizationSystem:
             "target": target,
             "current_progress": 0,
             "created_at": datetime.now(TZ).isoformat(),
-            "deadline": self._calculate_deadline(template["type"]),
+            "deadline": deadline,
             "reward_multiplier": template["reward_multiplier"],
             "completed": False,
             "claimed": False
         }
-        
-        # Speichere Ziel
-        try:
-            with open(self.goals_file, "r", encoding="utf-8") as f:
-                goals = json.load(f)
-        except:
-            goals = {}
-        
+
+        # PostgreSQL Dual-Write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    db_goal = PersonalGoalModel(
+                        username=user,
+                        goal_id=goal_id,
+                        title=template["name"],
+                        description=template["description"].replace("X", str(target)),
+                        category=goal_template,
+                        target_value=float(target),
+                        current_value=0.0,
+                        is_active=True,
+                        is_completed=False,
+                        milestones={
+                            "type": template["type"],
+                            "deadline": deadline,
+                            "reward_multiplier": template["reward_multiplier"],
+                            "claimed": False
+                        }
+                    )
+                    # Parse deadline for target_date
+                    try:
+                        db_goal.target_date = datetime.fromisoformat(deadline).replace(tzinfo=None)
+                    except (ValueError, TypeError):
+                        pass
+                    session.add(db_goal)
+                    session.commit()
+                    logger.debug(f"Goal {goal_id} for {user} saved to PostgreSQL")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL goal save failed for {user}: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for goal save: {e}")
+
+        # JSON always
+        goals = self._load_json(self.goals_file)
         if user not in goals:
             goals[user] = []
-        
         goals[user].append(new_goal)
-        
-        with open(self.goals_file, "w", encoding="utf-8") as f:
-            json.dump(goals, f, ensure_ascii=False, indent=2)
-        
+        self._save_json(self.goals_file, goals)
+
         return {"success": True, "message": "Persönliches Ziel erstellt!", "goal": new_goal}
-    
+
     def _calculate_deadline(self, goal_type):
         """Berechne Deadline basierend auf Ziel-Typ"""
         now = datetime.now(TZ)
-        
+
         if goal_type == "daily":
             return (now + timedelta(days=1)).replace(hour=23, minute=59, second=59).isoformat()
         elif goal_type == "weekly":
@@ -480,16 +665,16 @@ class PersonalizationSystem:
             return (now + timedelta(days=days_until_sunday)).replace(hour=23, minute=59, second=59).isoformat()
         else:
             return (now + timedelta(days=30)).replace(hour=23, minute=59, second=59).isoformat()
-    
+
     def _update_goal_progress(self, user, goal):
         """Update Fortschritt eines persönlichen Ziels"""
         try:
             goal_type = goal["type"]
             template = goal["template"]
             target = goal["target"]
-            
+
             current_progress = 0
-            
+
             if goal_type == "daily":
                 # Heutige Punkte
                 from achievement_system import achievement_system
@@ -497,24 +682,24 @@ class PersonalizationSystem:
                 today = datetime.now(TZ).strftime("%Y-%m-%d")
                 user_stats = daily_stats.get(user, {})
                 current_progress = user_stats.get(today, {}).get("points", 0)
-            
+
             elif goal_type == "weekly":
                 # Wöchentliche Buchungen
                 if template == "weekly_bookings":
                     from tracking_system import BookingTracker
                     tracker = BookingTracker()
                     all_bookings = tracker.load_all_bookings()
-                    
+
                     # Aktuelle Woche
                     now = datetime.now(TZ)
                     week_start = now - timedelta(days=now.weekday())
                     week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                    
-                    week_bookings = [b for b in all_bookings 
-                                   if b.get("user") == user and 
+
+                    week_bookings = [b for b in all_bookings
+                                   if b.get("user") == user and
                                    datetime.fromisoformat(b.get("timestamp", "2000-01-01")) >= week_start]
                     current_progress = len(week_bookings)
-            
+
             elif goal_type == "streak":
                 # Streak-Ziele
                 from achievement_system import achievement_system
@@ -522,83 +707,101 @@ class PersonalizationSystem:
                 user_stats = daily_stats.get(user, {})
                 streak_info = achievement_system.calculate_advanced_streak(user_stats)
                 current_progress = streak_info.get("work_streak", 0)
-            
+
             elif goal_type == "collection":
                 # Badge-Sammlung
                 if template == "badge_collection":
                     from achievement_system import achievement_system
                     user_badges = achievement_system.get_user_badges(user)
-                    
+
                     # Zähle Badges seit Ziel-Erstellung
                     created_at = datetime.fromisoformat(goal["created_at"])
                     recent_badges = [b for b in user_badges.get("badges", [])
                                    if datetime.fromisoformat(b.get("earned_date", "2000-01-01")) >= created_at]
                     current_progress = len(recent_badges)
-            
+
             elif goal_type == "ranking":
                 # Ranking-Ziele
                 from data_persistence import data_persistence
                 scores = data_persistence.load_scores()
                 current_month = datetime.now(TZ).strftime("%Y-%m")
-                
+
                 user_score = scores.get(user, {}).get(current_month, 0)
                 all_scores = [(u, s.get(current_month, 0)) for u, s in scores.items()]
                 all_scores.sort(key=lambda x: x[1], reverse=True)
-                
+
                 current_rank = next((i + 1 for i, (u, s) in enumerate(all_scores) if u == user), 999)
                 current_progress = target - current_rank + 1 if current_rank <= target else 0
-            
+
             # Update goal
             goal["current_progress"] = current_progress
             goal["completed"] = current_progress >= target
             goal["progress_percent"] = min(100, (current_progress / target) * 100) if target > 0 else 0
-            
+
             # Prüfe Deadline
             try:
                 deadline = datetime.fromisoformat(goal["deadline"])
                 goal["expired"] = datetime.now(TZ) > deadline
             except:
                 goal["expired"] = False
-        
+
         except Exception as e:
             logger.error(f"Fehler beim Goal-Update für {user}", extra={'error': str(e)})
-        
+
         return goal
-    
+
     def claim_goal_reward(self, user, goal_id):
         """Hole Belohnung für abgeschlossenes persönliches Ziel ab"""
         user_goals = self.get_personal_goals(user)
         goal = next((g for g in user_goals if g["id"] == goal_id), None)
-        
+
         if not goal:
             return {"success": False, "message": "Ziel nicht gefunden"}
-        
+
         if not goal["completed"]:
             return {"success": False, "message": "Ziel noch nicht abgeschlossen"}
-        
+
         if goal.get("claimed", False):
             return {"success": False, "message": "Belohnung bereits abgeholt"}
-        
+
         # Berechne Belohnung
         base_reward = 50  # Base XP
         multiplied_reward = int(base_reward * goal["reward_multiplier"])
-        
+
         # Markiere als abgeholt
         goal["claimed"] = True
         goal["claimed_at"] = datetime.now(TZ).isoformat()
-        
-        # Speichere Update
-        try:
-            with open(self.goals_file, "r", encoding="utf-8") as f:
-                goals = json.load(f)
-        except:
-            goals = {}
-        
+
+        # PostgreSQL Dual-Write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                session = get_db_session()
+                try:
+                    db_goal = session.query(PersonalGoalModel).filter_by(
+                        username=user, goal_id=goal_id
+                    ).first()
+                    if db_goal:
+                        db_goal.is_completed = True
+                        db_goal.completed_at = datetime.now(TZ).replace(tzinfo=None)
+                        milestones = db_goal.milestones or {}
+                        milestones["claimed"] = True
+                        milestones["claimed_at"] = goal["claimed_at"]
+                        db_goal.milestones = milestones
+                        session.commit()
+                        logger.debug(f"Goal {goal_id} claimed in PostgreSQL for {user}")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"PostgreSQL goal claim failed for {user}: {e}")
+                finally:
+                    session.close()
+            except Exception as e:
+                logger.error(f"PostgreSQL connection failed for goal claim: {e}")
+
+        # JSON always
+        goals = self._load_json(self.goals_file)
         goals[user] = user_goals
-        
-        with open(self.goals_file, "w", encoding="utf-8") as f:
-            json.dump(goals, f, ensure_ascii=False, indent=2)
-        
+        self._save_json(self.goals_file, goals)
+
         return {
             "success": True,
             "message": f"Belohnung für '{goal['name']}' erhalten!",
@@ -607,19 +810,23 @@ class PersonalizationSystem:
                 "goal_title": goal["name"]
             }
         }
-    
+
+    # ========================================================================
+    # CUSTOMIZATION SHOP (read-only, no Dual-Write needed)
+    # ========================================================================
+
     def get_customization_shop(self, user):
         """Hole verfügbare Customization-Items mit Unlock-Status"""
         unlocked = self.check_unlock_progress(user)
         unlocked_items = set(unlocked["total_unlocked"])
-        
+
         shop = {
             "avatar_components": {},
             "themes": {},
             "locked_count": 0,
             "unlocked_count": len(unlocked_items)
         }
-        
+
         # Avatar Components
         for category, items in AVATAR_COMPONENTS.items():
             shop["avatar_components"][category] = []
@@ -631,7 +838,7 @@ class PersonalizationSystem:
                     "unlock_condition": item_data["unlock"],
                     "preview": item_data
                 })
-        
+
         # Themes
         for theme_id, theme_data in THEMES.items():
             shop["themes"][theme_id] = {
@@ -641,11 +848,11 @@ class PersonalizationSystem:
                 "unlock_condition": theme_data["unlock"],
                 "preview": theme_data
             }
-        
+
         # Zähle locked items
         all_items = sum(len(items) for items in AVATAR_COMPONENTS.values()) + len(THEMES)
         shop["locked_count"] = all_items - len(unlocked_items)
-        
+
         return shop
 
 # Globale Instanz

@@ -2,7 +2,7 @@
 """
 T2 Booking Routes - Calendly-Style 4-Step Booking Flow
 
-Routes (11 total):
+Routes (23 total):
 1. /t2/booking/calendly - Main booking UI
 2. /t2/api/available-dates - Date picker API
 3. /t2/api/available-times - Time slot API
@@ -14,6 +14,18 @@ Routes (11 total):
 9. /t2/booking/success - Success page
 10. /t2/booking/error - Error page
 11. /t2/api/booking-stats - Booking statistics
+12. /t2/api/select-berater - Berater selection
+13. /t2/api/my-2h-bookings - User's 2h bookings
+14. /t2/api/month-availability/<berater>/<year>/<month> - Month availability
+15. /t2/api/day-slots/<berater>/<date> - Day slots
+16. /t2/api/book-2h-slot - Book 2h slot
+17. /t2/api/check-coach-availability/<coach>/<year>/<month> - Coach availability
+18. /t2/api/admin/2h-analytics - Admin analytics
+19. /t2/api/availability-calendar/<closer> - 6-week availability (C.4)
+20. /t2/api/availability/<closer>/<date> - Free slots for date (C.4)
+21. /t2/api/my-calendar-events/<date> - Closer's own events (C.4)
+22. /t2/api/my-upcoming-events - Closer's next 5 events (C.4)
+23. /t2/api/my-upcoming-bookings - Opener's upcoming bookings (C.4)
 
 Migration Status: Phase 2 - Stub created, implementation in Phase 5
 """
@@ -25,13 +37,17 @@ from app.services.t2_dynamic_availability import t2_dynamic_availability
 from app.services.data_persistence import data_persistence
 from app.services.tracking_system import tracking_system
 from app.services.t2_analytics_service import t2_analytics_service
-from app.core.google_calendar import GoogleCalendarService
+from app.core.google_calendar import GoogleCalendarService, get_google_calendar_service
+from app.services.t2_availability_service import availability_service
+from app.services.t2_calendar_parser import calendar_parser
 from .utils import (
     is_admin_user,
+    is_closer,
     T2_CLOSERS,
     get_user_tickets_remaining,
     get_next_ticket_reset,
     get_user_t2_bookings,
+    get_next_t2_appointments,
     load_t2_bookings,
     can_modify_booking,
     return_user_ticket,
@@ -1310,3 +1326,195 @@ def api_admin_2h_analytics():
     except Exception as e:
         logger.error(f"Error fetching 2h analytics: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# C.4 — Restliche Legacy-Routen (migrated from t2_legacy.py)
+# ============================================================================
+
+@booking_bp.route('/api/availability-calendar/<closer_name>')
+@require_login
+def api_availability_calendar(closer_name):
+    """
+    Get 6-week availability calendar for a closer.
+    Returns dates with available slots (for green dots).
+
+    MIGRATED FROM: t2_legacy.py line 822
+    """
+    try:
+        if closer_name not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Unknown closer'}), 400
+
+        # Get available dates (dates with at least one free slot)
+        available_dates = availability_service.get_available_dates(closer_name, days=42)
+
+        return jsonify({
+            'success': True,
+            'closer': closer_name,
+            'available_dates': available_dates
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting availability calendar: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@booking_bp.route('/api/availability/<closer_name>/<date_str>')
+@require_login
+def api_availability_by_date(closer_name, date_str):
+    """
+    Get available time slots for specific closer and date.
+    Returns list of free 2h slots (09:00-22:00).
+
+    MIGRATED FROM: t2_legacy.py line 849
+    """
+    try:
+        if closer_name not in T2_CLOSERS:
+            return jsonify({'success': False, 'error': 'Unknown closer'}), 400
+
+        # Get cached availability
+        availability = availability_service.get_cached_availability(closer_name, date_str)
+        closer_data = availability.get(closer_name, {})
+        slots = closer_data.get(date_str, [])
+
+        return jsonify({
+            'success': True,
+            'closer': closer_name,
+            'date': date_str,
+            'available_slots': slots
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting availability: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@booking_bp.route('/api/my-calendar-events/<date_str>')
+@require_login
+def api_my_calendar_events(date_str):
+    """
+    Get closer's own calendar events for specific date.
+    Only accessible by closers.
+
+    MIGRATED FROM: t2_legacy.py line 879
+    """
+    try:
+        user = session.get('user')
+
+        if not is_closer(user):
+            return jsonify({'success': False, 'error': 'Not authorized - Closers only'}), 403
+
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return jsonify({'success': False, 'error': 'Calendar service unavailable'}), 500
+
+        # Get calendar ID for this closer
+        closer_data = T2_CLOSERS.get(user)
+        if not closer_data:
+            return jsonify({'success': False, 'error': 'Closer calendar not found'}), 404
+
+        calendar_id = closer_data['calendar_id']
+
+        # Get events for this date
+        start_time = f"{date_str}T00:00:00Z"
+        end_time = f"{date_str}T23:59:59Z"
+
+        result = calendar_service.get_events(
+            calendar_id=calendar_id,
+            time_min=start_time,
+            time_max=end_time,
+            cache_duration=1800  # 30min cache
+        )
+
+        events = result.get('items', []) if result else []
+
+        # Classify events
+        classified_events = [calendar_parser.classify_appointment(event) for event in events]
+
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'events': classified_events
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting calendar events: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@booking_bp.route('/api/my-upcoming-events')
+@require_login
+def api_my_upcoming_events():
+    """
+    Get closer's next 5 upcoming appointments.
+    Only accessible by closers.
+
+    MIGRATED FROM: t2_legacy.py line 933
+    """
+    try:
+        user = session.get('user')
+
+        if not is_closer(user):
+            return jsonify({'success': False, 'error': 'Not authorized - Closers only'}), 403
+
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return jsonify({'success': False, 'error': 'Calendar service unavailable'}), 500
+
+        # Get calendar ID
+        closer_data = T2_CLOSERS.get(user)
+        if not closer_data:
+            return jsonify({'success': False, 'error': 'Closer calendar not found'}), 404
+
+        calendar_id = closer_data['calendar_id']
+
+        # Get next 14 days of events
+        start_time = datetime.now().isoformat() + 'Z'
+        end_time = (datetime.now() + timedelta(days=14)).isoformat() + 'Z'
+
+        result = calendar_service.get_events(
+            calendar_id=calendar_id,
+            time_min=start_time,
+            time_max=end_time,
+            max_results=10,
+            cache_duration=1800
+        )
+
+        events = result.get('items', []) if result else []
+
+        # Classify and limit to 5
+        classified_events = [calendar_parser.classify_appointment(event) for event in events]
+        upcoming = classified_events[:5]
+
+        return jsonify({
+            'success': True,
+            'upcoming_events': upcoming
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting upcoming events: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@booking_bp.route('/api/my-upcoming-bookings')
+@require_login
+def api_my_upcoming_bookings():
+    """
+    Get next 5 upcoming bookings for current user (opener).
+
+    MIGRATED FROM: t2_legacy.py line 1011
+    """
+    try:
+        user = session.get('user')
+
+        # Get upcoming appointments
+        upcoming = get_next_t2_appointments(user)
+
+        return jsonify({
+            'success': True,
+            'upcoming_bookings': upcoming
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting upcoming bookings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

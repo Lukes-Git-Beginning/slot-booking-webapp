@@ -17,6 +17,7 @@ class Config:
 
     # Feature Flags
     T2_MODULAR_BLUEPRINTS: bool = os.getenv("T2_MODULAR_BLUEPRINTS", "false").lower() in ["true", "1", "yes"]
+    CALENDAR_DRY_RUN: bool = os.getenv("CALENDAR_DRY_RUN", "false").lower() in ["true", "1", "yes"]
 
     # Google Calendar API
     GOOGLE_CREDS_BASE64: str = os.getenv("GOOGLE_CREDS_BASE64", "")

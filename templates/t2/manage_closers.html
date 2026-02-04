@@ -1,0 +1,212 @@
+{% extends "t2/base.html" %}
+
+{% block t2_title %}Closer-Verwaltung{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 class="text-4xl font-bold text-primary flex items-center gap-3">
+            <i data-lucide="users" class="w-10 h-10"></i>
+            Closer-Verwaltung
+          </h1>
+          <p class="text-base-content/70 mt-2">Closer hinzufügen, bearbeiten und entfernen</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="document.getElementById('add-modal').showModal()" class="btn btn-primary">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            Closer hinzufügen
+          </button>
+          <a href="{{ url_for('t2.dashboard') }}" class="btn btn-ghost">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            Zurück
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Closer Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" data-aos="fade-up" data-aos-delay="100">
+      {% for name, info in closers.items() %}
+      <div class="glass rounded-2xl p-6 hover:bg-white/5 transition-all">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+               style="background-color: {{ info.get('color', '#666') }}">
+            {{ name[0]|upper }}
+          </div>
+          <div>
+            <h3 class="text-xl font-bold">{{ name }}</h3>
+            <p class="text-base-content/60 text-sm">{{ info.get('full_name', name) }}</p>
+          </div>
+        </div>
+
+        <div class="space-y-2 text-sm mb-4">
+          <div class="flex justify-between">
+            <span class="text-base-content/60">Farbe:</span>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded" style="background-color: {{ info.get('color', '#666') }}"></div>
+              <span>{{ info.get('color', '-') }}</span>
+            </div>
+          </div>
+          {% if probabilities %}
+          <div class="flex justify-between">
+            <span class="text-base-content/60">Wahrscheinlichkeit:</span>
+            <span class="font-semibold">{{ probabilities.get(name, 1.0) }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="flex gap-2">
+          <button onclick="openEditModal('{{ name }}', '{{ info.get('color', '') }}', '{{ info.get('full_name', '') }}')"
+                  class="btn btn-sm btn-ghost flex-1">
+            <i data-lucide="edit" class="w-4 h-4"></i>
+            Bearbeiten
+          </button>
+          <button onclick="confirmRemove('{{ name }}')"
+                  class="btn btn-sm btn-ghost text-error">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if not closers %}
+    <div class="glass rounded-3xl p-12 text-center" data-aos="fade-up">
+      <i data-lucide="users" class="w-16 h-16 text-base-content/30 mx-auto mb-4"></i>
+      <h3 class="text-xl font-semibold text-base-content/60 mb-2">Keine Closer vorhanden</h3>
+      <p class="text-base-content/40">Füge deinen ersten Closer hinzu.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Add Closer Modal -->
+<dialog id="add-modal" class="modal">
+  <div class="modal-box glass">
+    <h3 class="text-lg font-bold mb-4">Neuen Closer hinzufügen</h3>
+    <form id="add-form" class="space-y-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text">Name (Kürzel)</span></label>
+        <input type="text" name="name" class="input input-bordered w-full" placeholder="z.B. David" required>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Vollständiger Name</span></label>
+        <input type="text" name="full_name" class="input input-bordered w-full" placeholder="z.B. David Nehm" required>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Farbe (Hex)</span></label>
+        <input type="color" name="color" class="input input-bordered w-full h-12" value="#9C27B0" required>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Standard-Wahrscheinlichkeit</span></label>
+        <input type="number" name="default_probability" class="input input-bordered w-full" value="1.0" step="0.1" min="0" required>
+      </div>
+      <div class="modal-action">
+        <button type="button" onclick="document.getElementById('add-modal').close()" class="btn btn-ghost">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Hinzufügen</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<!-- Edit Closer Modal -->
+<dialog id="edit-modal" class="modal">
+  <div class="modal-box glass">
+    <h3 class="text-lg font-bold mb-4">Closer bearbeiten</h3>
+    <form id="edit-form" class="space-y-4">
+      <input type="hidden" name="name" id="edit-name">
+      <div class="form-control">
+        <label class="label"><span class="label-text">Name</span></label>
+        <input type="text" id="edit-name-display" class="input input-bordered w-full" disabled>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Vollständiger Name</span></label>
+        <input type="text" name="full_name" id="edit-full-name" class="input input-bordered w-full">
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Farbe (Hex)</span></label>
+        <input type="color" name="color" id="edit-color" class="input input-bordered w-full h-12">
+      </div>
+      <div class="modal-action">
+        <button type="button" onclick="document.getElementById('edit-modal').close()" class="btn btn-ghost">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Speichern</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script nonce="{{ csp_nonce }}">
+function openEditModal(name, color, fullName) {
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-name-display').value = name;
+    document.getElementById('edit-full-name').value = fullName;
+    document.getElementById('edit-color').value = color || '#666666';
+    document.getElementById('edit-modal').showModal();
+}
+
+function confirmRemove(name) {
+    if (confirm(`Closer "${name}" wirklich entfernen?`)) {
+        fetch('/t2/api/remove-closer', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert(data.message || 'Fehler beim Entfernen');
+        })
+        .catch(() => alert('Netzwerkfehler'));
+    }
+}
+
+document.getElementById('add-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const fd = new FormData(this);
+    fetch('/t2/api/add-closer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            name: fd.get('name'),
+            full_name: fd.get('full_name'),
+            color: fd.get('color'),
+            default_probability: parseFloat(fd.get('default_probability'))
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert(data.message || 'Fehler beim Hinzufügen');
+    })
+    .catch(() => alert('Netzwerkfehler'));
+});
+
+document.getElementById('edit-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const fd = new FormData(this);
+    fetch('/t2/api/update-closer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            name: fd.get('name'),
+            full_name: fd.get('full_name'),
+            color: fd.get('color')
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert(data.message || 'Fehler beim Speichern');
+    })
+    .catch(() => alert('Netzwerkfehler'));
+});
+</script>
+{% endblock %}

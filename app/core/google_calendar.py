@@ -4,8 +4,10 @@ Google Calendar API service
 Centralized calendar integration with aggressive caching
 """
 
+import os
 import pytz
 import time
+import uuid
 from typing import Callable, Any, Optional, Dict
 from datetime import datetime, timedelta
 from googleapiclient.discovery import build
@@ -28,6 +30,9 @@ class GoogleCalendarService:
         self._daily_quota_used = 0
         self._quota_reset_time = time.time() + 86400  # Reset in 24h
         self._quota_limit = 5000  # Conservative daily limit (50% of 10,000 Google default)
+        self._dry_run = os.getenv("CALENDAR_DRY_RUN", "false").lower() in ["true", "1", "yes"]
+        if self._dry_run:
+            calendar_logger.warning("CALENDAR_DRY_RUN=true — all write operations will be skipped")
         self._initialize_service()
 
     def _initialize_service(self):
@@ -369,6 +374,11 @@ class GoogleCalendarService:
 
     def create_event(self, calendar_id: str, event_data: dict):
         """Create a new calendar event"""
+        if self._dry_run:
+            dry_id = f"dry-run-{uuid.uuid4().hex[:8]}"
+            calendar_logger.info(f"DRY-RUN: Would create event in {calendar_id}: {event_data.get('summary', '?')}")
+            return {'id': dry_id, 'status': 'confirmed', 'dry_run': True}
+
         if not self.service:
             return None
 
@@ -393,6 +403,11 @@ class GoogleCalendarService:
             - 'status_code': HTTP status code if applicable
             - 'retry_after': Seconds to wait before retry
         """
+        if self._dry_run:
+            dry_id = f"dry-run-{uuid.uuid4().hex[:8]}"
+            calendar_logger.info(f"DRY-RUN: Would create event in {calendar_id}: {event_data.get('summary', '?')}")
+            return {'id': dry_id, 'status': 'confirmed', 'dry_run': True}, {}
+
         error_context = {}
 
         if not self.service:
@@ -511,6 +526,10 @@ class GoogleCalendarService:
 
     def update_event(self, calendar_id: str, event_id: str, event_data: dict):
         """Update an existing calendar event"""
+        if self._dry_run:
+            calendar_logger.info(f"DRY-RUN: Would update event {event_id} in {calendar_id}")
+            return {'id': event_id, 'status': 'confirmed', 'dry_run': True}
+
         if not self.service:
             return None
 
@@ -538,6 +557,10 @@ class GoogleCalendarService:
         - Network errors
         - Permission errors
         """
+        if self._dry_run:
+            calendar_logger.info(f"DRY-RUN: Would delete event {event_id} from {calendar_id}")
+            return True, None
+
         if not self.service:
             return False, "Google Calendar not configured"
 

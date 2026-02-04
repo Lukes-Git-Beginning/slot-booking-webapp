@@ -1,0 +1,130 @@
+{% extends "t2/base.html" %}
+
+{% block t2_title %}Admin Analytics{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 class="text-4xl font-bold text-primary flex items-center gap-3">
+            <i data-lucide="bar-chart-3" class="w-10 h-10"></i>
+            Admin Analytics
+          </h1>
+          <p class="text-base-content/70 mt-2">2-Stunden-Buchungs-Statistiken der letzten 30 Tage</p>
+        </div>
+        <div class="flex gap-2">
+          <a href="{{ url_for('t2.dashboard') }}" class="btn btn-ghost">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            Zurück
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall KPIs -->
+    {% set overall = analytics.get('overall', {}) %}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="100">
+      <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-4xl font-bold text-primary mb-2">{{ overall.get('total_bookings', 0) }}</div>
+        <div class="text-base-content/60">Buchungen Gesamt</div>
+      </div>
+      <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-4xl font-bold text-green-500 mb-2">{{ overall.get('active_bookings', 0) }}</div>
+        <div class="text-base-content/60">Aktive Buchungen</div>
+      </div>
+      <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-4xl font-bold text-red-400 mb-2">{{ overall.get('cancelled_bookings', 0) }}</div>
+        <div class="text-base-content/60">Stornierungen</div>
+      </div>
+      <div class="glass rounded-2xl p-6 text-center hover:bg-white/5 transition-all">
+        <div class="text-4xl font-bold text-yellow-500 mb-2">{{ overall.get('rescheduled_bookings', 0) }}</div>
+        <div class="text-base-content/60">Umgebucht</div>
+      </div>
+    </div>
+
+    <!-- Berater Stats -->
+    {% set berater_stats = analytics.get('berater_stats', {}) %}
+    {% if berater_stats %}
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="200">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+        <i data-lucide="users" class="w-7 h-7 text-primary"></i>
+        Berater-Statistiken
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Berater</th>
+              <th class="text-center">Buchungen</th>
+              <th class="text-center">Aktiv</th>
+              <th class="text-center">Storniert</th>
+              <th class="text-center">Umgebucht</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, stats in berater_stats.items() %}
+            <tr>
+              <td class="font-semibold">{{ name }}</td>
+              <td class="text-center">{{ stats.get('total', 0) }}</td>
+              <td class="text-center"><span class="badge badge-success">{{ stats.get('active', 0) }}</span></td>
+              <td class="text-center"><span class="badge badge-error">{{ stats.get('cancelled', 0) }}</span></td>
+              <td class="text-center"><span class="badge badge-warning">{{ stats.get('rescheduled', 0) }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Coach Stats -->
+    {% set coach_stats = analytics.get('coach_stats', {}) %}
+    {% if coach_stats %}
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="300">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+        <i data-lucide="trophy" class="w-7 h-7 text-primary"></i>
+        Coach-Statistiken
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Coach</th>
+              <th class="text-center">Buchungen</th>
+              <th class="text-center">Aktiv</th>
+              <th class="text-center">Storniert</th>
+              <th class="text-center">Umgebucht</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, stats in coach_stats.items() %}
+            <tr>
+              <td class="font-semibold">{{ name }}</td>
+              <td class="text-center">{{ stats.get('total', 0) }}</td>
+              <td class="text-center"><span class="badge badge-success">{{ stats.get('active', 0) }}</span></td>
+              <td class="text-center"><span class="badge badge-error">{{ stats.get('cancelled', 0) }}</span></td>
+              <td class="text-center"><span class="badge badge-warning">{{ stats.get('rescheduled', 0) }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not analytics %}
+    <div class="glass rounded-3xl p-12 text-center" data-aos="fade-up">
+      <i data-lucide="bar-chart-3" class="w-16 h-16 text-base-content/30 mx-auto mb-4"></i>
+      <h3 class="text-xl font-semibold text-base-content/60 mb-2">Keine Daten verfügbar</h3>
+      <p class="text-base-content/40">Es liegen noch keine Buchungs-Statistiken vor.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

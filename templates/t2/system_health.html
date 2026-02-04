@@ -1,0 +1,130 @@
+{% extends "t2/base.html" %}
+
+{% block t2_title %}System Health{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 class="text-4xl font-bold text-primary flex items-center gap-3">
+            <i data-lucide="activity" class="w-10 h-10"></i>
+            System Health
+          </h1>
+          <p class="text-base-content/70 mt-2">T2-System Status und Statistiken</p>
+        </div>
+        <a href="{{ url_for('t2.dashboard') }}" class="btn btn-ghost">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          Zurück
+        </a>
+      </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="100">
+
+      <!-- Bucket System -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="box" class="w-6 h-6 text-primary"></i>
+          <span class="font-semibold">Bucket System</span>
+        </div>
+        {% if health.get('bucket_system') == 'healthy' %}
+          <span class="badge badge-success badge-lg">Healthy</span>
+        {% else %}
+          <span class="badge badge-error badge-lg">Error</span>
+          {% if health.get('bucket_error') %}
+          <p class="text-xs text-error mt-2">{{ health.bucket_error }}</p>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- PostgreSQL -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="database" class="w-6 h-6 text-primary"></i>
+          <span class="font-semibold">PostgreSQL</span>
+        </div>
+        {% if health.get('postgres_enabled') %}
+          <span class="badge badge-success badge-lg">Aktiv</span>
+        {% else %}
+          <span class="badge badge-warning badge-lg">Deaktiviert</span>
+        {% endif %}
+      </div>
+
+      <!-- Active Closers -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="users" class="w-6 h-6 text-primary"></i>
+          <span class="font-semibold">Aktive Closer</span>
+        </div>
+        <span class="text-3xl font-bold">{{ health.get('active_closers', 0) }}</span>
+      </div>
+
+      <!-- Total Draws -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <i data-lucide="dice-5" class="w-6 h-6 text-primary"></i>
+          <span class="font-semibold">Total Draws</span>
+        </div>
+        <span class="text-3xl font-bold">{{ health.get('total_draws', 0) }}</span>
+      </div>
+
+    </div>
+
+    <!-- Bucket Details -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" data-aos="fade-up" data-aos-delay="200">
+
+      <div class="glass rounded-3xl p-8">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <i data-lucide="gauge" class="w-7 h-7 text-primary"></i>
+          Bucket-Status
+        </h2>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-base-content/60">Tickets im Bucket</span>
+            <span class="text-xl font-bold">{{ health.get('bucket_size', 0) }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-base-content/60">Draws bis Reset</span>
+            <span class="text-xl font-bold text-yellow-500">{{ health.get('draws_until_reset', 0) }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-base-content/60">Gesamte Resets</span>
+            <span class="text-xl font-bold">{{ health.get('total_resets', 0) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Draws -->
+      <div class="glass rounded-3xl p-8">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <i data-lucide="clock" class="w-7 h-7 text-primary"></i>
+          Letzte Draws
+        </h2>
+        {% set recent = health.get('recent_draws', []) %}
+        {% if recent %}
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          {% for draw in recent %}
+          <div class="flex justify-between items-center p-2 rounded-lg bg-base-content/5">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold">{{ draw.get('closer', '-') }}</span>
+              <span class="text-xs text-base-content/40">von {{ draw.get('user', '-') }}</span>
+            </div>
+            <span class="text-xs text-base-content/40">{{ draw.get('timestamp', '-') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-base-content/50 text-center py-4">Keine Draws vorhanden.</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

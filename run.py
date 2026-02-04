@@ -4,6 +4,9 @@ Application entry point for Slot Booking Webapp
 Replaces the original slot_booking_webapp.py for startup
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from app import create_app
 import os
 
