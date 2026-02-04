@@ -44,9 +44,9 @@ DATA_FILE = os.path.join(DATA_DIR, "weekly_points.json")
 STATIC_DIR = "static"
 STATIC_FILE = os.path.join(STATIC_DIR, "weekly_points.json")
 
-# Standard-Teilnehmer (kann im UI erweitert werden)
+# Standard-Teilnehmer — sync mit ACTIVE_TELEFONISTS in app/config/base.py
 DEFAULT_PARTICIPANTS = [
-    "Christian", "Dominik", "Sara", "Tim", "Sonja"
+    "Ann-Kathrin", "Sara", "Dominik", "Sonja", "Tim", "Christian", "Yasmine", "Ben"
 ]
 
 
@@ -136,7 +136,10 @@ def load_data() -> Dict:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             if "participants" not in data:
-                data["participants"] = DEFAULT_PARTICIPANTS
+                data["participants"] = list(DEFAULT_PARTICIPANTS)
+            else:
+                # Merge mit DEFAULT_PARTICIPANTS (wie PostgreSQL-Pfad)
+                data["participants"] = list(set(DEFAULT_PARTICIPANTS) | set(data["participants"]))
             if "weeks" not in data:
                 data["weeks"] = {}
             return data
