@@ -190,7 +190,7 @@ def extract_weekly_summary(availability, current_date=None):
     week_offset = 0
     max_weeks_to_scan = 15  # Enough buffer to skip blocked weeks
 
-    while valid_weeks_collected < 4 and week_offset < max_weeks_to_scan:
+    while valid_weeks_collected < 6 and week_offset < max_weeks_to_scan:
         week_start = get_week_start(today) + timedelta(weeks=week_offset)
 
         # Pre-check: Does this week have ANY availability? (Skip fully blocked weeks)
