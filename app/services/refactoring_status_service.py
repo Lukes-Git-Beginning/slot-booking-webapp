@@ -427,8 +427,8 @@ class RefactoringStatusService:
 
         phases = {
             'Phase 1: PostgreSQL + Redis': {
-                'total_hours': 27,
-                'completed_hours': 27,
+                'total_hours': 17,
+                'completed_hours': 17,
                 'status': 'complete',
                 'tasks': [
                     {'name': 'PostgreSQL Setup (24 tables, 121 indexes)', 'status': 'complete'},
@@ -438,24 +438,24 @@ class RefactoringStatusService:
                 ]
             },
             'Phase 2: Code Cleanup': {
-                'total_hours': 12,
-                'completed_hours': 4,
-                'status': 'in_progress',
+                'total_hours': 10,
+                'completed_hours': 10,
+                'status': 'complete',
                 'tasks': [
                     {'name': 'Routing Cleanup (1,275 lines removed)', 'status': 'complete'},
-                    {'name': 'Template Unification (Bootstrap → Tailwind)', 'status': 'pending'},
-                    {'name': 'Code Hygiene (TODOs, Comments)', 'status': 'pending'},
+                    {'name': 'Template Unification (Bootstrap → Tailwind/DaisyUI)', 'status': 'complete'},
+                    {'name': 'Code Hygiene (TODOs, Imports, Comments)', 'status': 'complete'},
                 ]
             },
             'Phase 3: Feature Completion': {
-                'total_hours': 11,
-                'completed_hours': 11,
+                'total_hours': 14,
+                'completed_hours': 14,
                 'status': 'complete',
                 'tasks': [
                     {'name': 'T2 Analytics Fix', 'status': 'complete'},
-                    {'name': 'T2 Bucket PostgreSQL', 'status': 'complete'},
-                    {'name': 'Gamification Services Migration', 'status': 'pending'},
-                    {'name': 'Analytics Real Calculations', 'status': 'pending'},
+                    {'name': 'T2 Bucket PostgreSQL (Dual-Write)', 'status': 'complete'},
+                    {'name': 'Gamification Services Migration (Scores, Badges, Quests, Prestige)', 'status': 'complete'},
+                    {'name': 'Analytics Real Calculations', 'status': 'complete'},
                 ]
             },
             'Phase 4: CI/CD & DevOps': {
@@ -466,6 +466,15 @@ class RefactoringStatusService:
                     {'name': 'GitHub Actions Pipeline', 'status': 'pending'},
                     {'name': 'Monitoring & Alerts (Sentry)', 'status': 'pending'},
                     {'name': 'Automated Deployment', 'status': 'pending'},
+                ]
+            },
+            'Phase 5: Quality & Bugfixes': {
+                'total_hours': 8,
+                'completed_hours': 8,
+                'status': 'complete',
+                'tasks': [
+                    {'name': 'Test-Coverage Fix (37 Failures → 561 passed, 0 failed)', 'status': 'complete'},
+                    {'name': 'Parsing-Bug Fix (F.4)', 'status': 'complete'},
                 ]
             }
         }
