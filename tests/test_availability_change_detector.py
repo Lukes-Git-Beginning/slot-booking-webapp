@@ -57,11 +57,16 @@ def test_future_deletion_detected():
 
 def test_backward_compatible_no_now_param():
     """Function should work without now parameter"""
+    from datetime import timedelta
+    # Use a date far in the future to ensure it's always "future"
+    future_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    future_slot = f"{future_date} 14:00"
+
     old = {
-        "2026-01-09 14:00": ["Daniel"]
+        future_slot: ["Daniel"]
     }
     new = {
-        "2026-01-09 14:00": []
+        future_slot: []
     }
 
     # Should not crash when called without 'now' parameter

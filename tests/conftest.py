@@ -45,10 +45,16 @@ def app():
             'SECRET_KEY': 'test-secret-key-for-testing',
             'SESSION_COOKIE_HTTPONLY': False,  # Allow test client to access session
             'SESSION_COOKIE_SECURE': False,     # Not needed for testing
+            'SESSION_TYPE': None,  # Use default Flask cookie sessions for test client compatibility
         })
 
         # Enable session preservation in test context
         app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+
+        # Reset to default Flask cookie sessions for test client compatibility
+        # Flask-Session's server-side sessions break session_transaction()
+        from flask.sessions import SecureCookieSessionInterface
+        app.session_interface = SecureCookieSessionInterface()
 
         yield app
 
@@ -72,6 +78,7 @@ def logged_in_client(client, app):
     """Create Flask test client with logged-in session"""
     with client.session_transaction() as sess:
         sess['user'] = 'test_user'
+        sess['logged_in'] = True
         sess['is_admin'] = False
         sess['last_activity'] = datetime.now().isoformat()
     yield client
@@ -82,6 +89,7 @@ def admin_client(client, app):
     """Create Flask test client with admin session"""
     with client.session_transaction() as sess:
         sess['user'] = 'admin_user'
+        sess['logged_in'] = True
         sess['is_admin'] = True
         sess['last_activity'] = datetime.now().isoformat()
     yield client

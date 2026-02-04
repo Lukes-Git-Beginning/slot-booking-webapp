@@ -786,8 +786,15 @@ def remove_closer(name: str) -> Dict:
         except Exception as e:
             logger.error(f"PostgreSQL T2CloserConfig deactivate failed (continuing with JSON): {e}")
 
+    # Preserve updated closers before load_bucket_data (which resyncs from JSON)
+    updated_closers = T2_CLOSERS.copy()
+
     # Update data
     data = load_bucket_data()
+
+    # Restore closers (load_bucket_data resyncs from old JSON)
+    T2_CLOSERS.clear()
+    T2_CLOSERS.update(updated_closers)
 
     # Remove from probabilities
     if name in data["probabilities"]:

@@ -15,7 +15,7 @@ from unittest.mock import patch, MagicMock
 @pytest.fixture
 def mock_t2_analytics_service():
     """Mock T2 Analytics Service"""
-    with patch('app.services.t2_analytics_service.t2_analytics_service') as mock_service:
+    with patch('app.routes.t2_legacy.t2_analytics_service') as mock_service:
         # Configure default return values
         mock_service.get_user_draw_stats.return_value = {
             'total_draws': 15,
@@ -253,7 +253,7 @@ class TestAdminAnalytics:
     def test_admin_analytics_requires_admin_role(self, logged_in_client, mock_t2_analytics_service):
         """Test admin analytics rejects non-admin users"""
         # Ensure user is NOT admin
-        with patch('app.routes.t2.is_admin_user', return_value=False):
+        with patch('app.routes.t2_legacy.is_admin_user', return_value=False):
             response = logged_in_client.get('/t2/api/admin/2h-analytics')
 
             if response.status_code == 403:
@@ -266,7 +266,7 @@ class TestAdminAnalytics:
     def test_admin_analytics_accessible_by_admin(self, admin_client, mock_t2_analytics_service):
         """Test admin analytics accessible by admin users"""
         # Mock admin check
-        with patch('app.routes.t2.is_admin_user', return_value=True):
+        with patch('app.routes.t2_legacy.is_admin_user', return_value=True):
             response = admin_client.get('/t2/api/admin/2h-analytics')
 
             if response.status_code == 200:
@@ -279,7 +279,7 @@ class TestAdminAnalytics:
 
     def test_admin_analytics_accepts_days_parameter(self, admin_client, mock_t2_analytics_service):
         """Test admin analytics accepts days parameter"""
-        with patch('app.routes.t2.is_admin_user', return_value=True):
+        with patch('app.routes.t2_legacy.is_admin_user', return_value=True):
             response = admin_client.get('/t2/api/admin/2h-analytics?days=60')
 
             if response.status_code == 200:
@@ -290,7 +290,7 @@ class TestAdminAnalytics:
 
     def test_admin_analytics_validates_days_parameter(self, admin_client, mock_t2_analytics_service):
         """Test admin analytics validates days parameter"""
-        with patch('app.routes.t2.is_admin_user', return_value=True):
+        with patch('app.routes.t2_legacy.is_admin_user', return_value=True):
             response = admin_client.get('/t2/api/admin/2h-analytics?days=invalid')
 
             if response.status_code == 400:
@@ -301,7 +301,7 @@ class TestAdminAnalytics:
 
     def test_admin_analytics_returns_comprehensive_data(self, admin_client, mock_t2_analytics_service):
         """Test admin analytics returns berater, coach, and overall stats"""
-        with patch('app.routes.t2.is_admin_user', return_value=True):
+        with patch('app.routes.t2_legacy.is_admin_user', return_value=True):
             response = admin_client.get('/t2/api/admin/2h-analytics')
 
             if response.status_code == 200:

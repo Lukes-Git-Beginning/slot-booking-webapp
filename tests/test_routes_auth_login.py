@@ -116,38 +116,36 @@ class TestLoginFunctionality:
         """Test login creates user session"""
         mock_security_service.verify_password.return_value = True
 
-        with client:
-            response = client.post('/login',
-                                   data={'username': 'test_user', 'password': 'test_pass'},
-                                   follow_redirects=False)
+        response = client.post('/login',
+                               data={'username': 'test_user', 'password': 'test_pass'},
+                               follow_redirects=False)
 
-            # Check session was created
-            with client.session_transaction() as sess:
-                assert 'user' in sess
-                assert sess['user'] == 'test_user'
-                assert 'logged_in' in sess
-                assert sess['logged_in'] is True
+        # Check session was created
+        with client.session_transaction() as sess:
+            assert 'user' in sess
+            assert sess['user'] == 'test_user'
+            assert 'logged_in' in sess
+            assert sess['logged_in'] is True
 
     def test_login_clears_previous_session(self, client, mock_security_service, mock_account_lockout,
                                            mock_audit_service, mock_activity_tracking):
         """Test login clears old session data (Session Fixation Protection)"""
         mock_security_service.verify_password.return_value = True
 
-        with client:
-            # Set some old session data
-            with client.session_transaction() as sess:
-                sess['old_data'] = 'should_be_cleared'
-                sess['user'] = 'old_user'
+        # Set some old session data
+        with client.session_transaction() as sess:
+            sess['old_data'] = 'should_be_cleared'
+            sess['user'] = 'old_user'
 
-            # Login
-            response = client.post('/login',
-                                   data={'username': 'new_user', 'password': 'test_pass'},
-                                   follow_redirects=False)
+        # Login
+        response = client.post('/login',
+                               data={'username': 'new_user', 'password': 'test_pass'},
+                               follow_redirects=False)
 
-            # Check old session data was cleared
-            with client.session_transaction() as sess:
-                assert 'old_data' not in sess
-                assert sess['user'] == 'new_user'
+        # Check old session data was cleared
+        with client.session_transaction() as sess:
+            assert 'old_data' not in sess
+            assert sess['user'] == 'new_user'
 
     def test_login_redirects_to_next_page(self, client, mock_security_service, mock_account_lockout,
                                           mock_audit_service, mock_activity_tracking):
@@ -217,15 +215,14 @@ class TestInputValidation:
         """Test login strips leading/trailing whitespace from username"""
         mock_security_service.verify_password.return_value = True
 
-        with client:
-            response = client.post('/login',
-                                   data={'username': '  test_user  ', 'password': 'test_pass'},
-                                   follow_redirects=False)
+        response = client.post('/login',
+                               data={'username': '  test_user  ', 'password': 'test_pass'},
+                               follow_redirects=False)
 
-            # Check session has trimmed username
-            with client.session_transaction() as sess:
-                if 'user' in sess:
-                    assert sess['user'] == 'test_user'
+        # Check session has trimmed username
+        with client.session_transaction() as sess:
+            if 'user' in sess:
+                assert sess['user'] == 'test_user'
 
 
 # ========== TEST CLASS: ACCOUNT LOCKOUT ==========
@@ -352,9 +349,9 @@ class TestActivityTracking:
 
         # Verify online status was updated
         mock_activity_tracking.update_online_status.assert_called()
-        call_args = mock_activity_tracking.update_online_status.call_args[0]
-        assert call_args[0] == 'test_user'
-        assert call_args[2] == 'active'  # action parameter
+        call_args = mock_activity_tracking.update_online_status.call_args
+        assert call_args[0][0] == 'test_user'
+        assert call_args[1].get('action') == 'active'  # action is keyword arg
 
 
 # ========== TEST CLASS: LOGOUT ==========
@@ -365,18 +362,17 @@ class TestLogout:
 
     def test_logout_clears_session(self, logged_in_client, mock_audit_service, mock_activity_tracking):
         """Test logout clears user session"""
-        with logged_in_client:
-            # Verify session exists
-            with logged_in_client.session_transaction() as sess:
-                assert 'user' in sess
+        # Verify session exists
+        with logged_in_client.session_transaction() as sess:
+            assert 'user' in sess
 
-            # Logout
-            response = logged_in_client.get('/logout', follow_redirects=False)
+        # Logout
+        response = logged_in_client.get('/logout', follow_redirects=False)
 
-            # Verify session was cleared
-            with logged_in_client.session_transaction() as sess:
-                assert 'user' not in sess
-                assert 'logged_in' not in sess
+        # Verify session was cleared
+        with logged_in_client.session_transaction() as sess:
+            assert 'user' not in sess
+            assert 'logged_in' not in sess
 
     def test_logout_redirects_to_login(self, logged_in_client, mock_audit_service, mock_activity_tracking):
         """Test logout redirects to login page"""
@@ -404,8 +400,8 @@ class TestLogout:
 
         # Verify online status was updated
         mock_activity_tracking.update_online_status.assert_called()
-        call_args = mock_activity_tracking.update_online_status.call_args[0]
-        assert call_args[2] == 'logout'  # action parameter
+        call_args = mock_activity_tracking.update_online_status.call_args
+        assert call_args[1].get('action') == 'logout'  # action is keyword arg
 
     def test_logout_without_session(self, client, mock_audit_service, mock_activity_tracking):
         """Test logout works even without active session"""

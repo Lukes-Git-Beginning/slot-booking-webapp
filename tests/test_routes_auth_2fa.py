@@ -47,7 +47,7 @@ class Test2FASetup:
 
     def test_2fa_setup_requires_login(self, client):
         """Test 2FA setup requires authentication"""
-        response = client.post('/2fa/setup',
+        response = client.post('/security/2fa/setup',
                                json={},
                                content_type='application/json')
 
@@ -56,7 +56,7 @@ class Test2FASetup:
 
     def test_2fa_setup_returns_secret_and_qr(self, logged_in_client, mock_security_service_2fa):
         """Test 2FA setup returns secret and QR code"""
-        response = logged_in_client.post('/2fa/setup',
+        response = logged_in_client.post('/security/2fa/setup',
                                          json={},
                                          content_type='application/json')
 
@@ -72,7 +72,7 @@ class Test2FASetup:
 
     def test_2fa_setup_generates_backup_codes(self, logged_in_client, mock_security_service_2fa):
         """Test 2FA setup generates backup codes"""
-        response = logged_in_client.post('/2fa/setup',
+        response = logged_in_client.post('/security/2fa/setup',
                                          json={},
                                          content_type='application/json')
 
@@ -89,7 +89,7 @@ class Test2FASetup:
         with logged_in_client.session_transaction() as sess:
             sess['user'] = 'test_user'
 
-        response = logged_in_client.post('/2fa/setup',
+        response = logged_in_client.post('/security/2fa/setup',
                                          json={},
                                          content_type='application/json')
 
@@ -108,7 +108,7 @@ class Test2FAEnable:
 
     def test_2fa_enable_requires_login(self, client):
         """Test 2FA enable requires authentication"""
-        response = client.post('/2fa/enable',
+        response = client.post('/security/2fa/enable',
                                json={'code': '123456'},
                                content_type='application/json')
 
@@ -117,7 +117,7 @@ class Test2FAEnable:
 
     def test_2fa_enable_with_valid_code(self, logged_in_client, mock_security_service_2fa):
         """Test enabling 2FA with valid verification code"""
-        response = logged_in_client.post('/2fa/enable',
+        response = logged_in_client.post('/security/2fa/enable',
                                          json={'code': '123456'},
                                          content_type='application/json')
 
@@ -132,7 +132,7 @@ class Test2FAEnable:
         """Test enabling 2FA with invalid verification code"""
         mock_security_service_2fa.enable_2fa.return_value = (False, 'Ungültiger Code')
 
-        response = logged_in_client.post('/2fa/enable',
+        response = logged_in_client.post('/security/2fa/enable',
                                          json={'code': '999999'},
                                          content_type='application/json')
 
@@ -145,7 +145,7 @@ class Test2FAEnable:
 
     def test_2fa_enable_requires_verification_code(self, logged_in_client, mock_security_service_2fa):
         """Test 2FA enable requires verification code"""
-        response = logged_in_client.post('/2fa/enable',
+        response = logged_in_client.post('/security/2fa/enable',
                                          json={},
                                          content_type='application/json')
 
@@ -157,7 +157,7 @@ class Test2FAEnable:
         with logged_in_client.session_transaction() as sess:
             sess['user'] = 'test_user'
 
-        response = logged_in_client.post('/2fa/enable',
+        response = logged_in_client.post('/security/2fa/enable',
                                          json={'code': '123456'},
                                          content_type='application/json')
 
@@ -176,7 +176,7 @@ class Test2FADisable:
 
     def test_2fa_disable_requires_login(self, client):
         """Test 2FA disable requires authentication"""
-        response = client.post('/2fa/disable',
+        response = client.post('/security/2fa/disable',
                                json={'password': 'test_pass'},
                                content_type='application/json')
 
@@ -185,7 +185,7 @@ class Test2FADisable:
 
     def test_2fa_disable_with_valid_password(self, logged_in_client, mock_security_service_2fa):
         """Test disabling 2FA with valid password"""
-        response = logged_in_client.post('/2fa/disable',
+        response = logged_in_client.post('/security/2fa/disable',
                                          json={'password': 'test_pass'},
                                          content_type='application/json')
 
@@ -200,7 +200,7 @@ class Test2FADisable:
         """Test disabling 2FA with invalid password"""
         mock_security_service_2fa.disable_2fa.return_value = (False, 'Falsches Passwort')
 
-        response = logged_in_client.post('/2fa/disable',
+        response = logged_in_client.post('/security/2fa/disable',
                                          json={'password': 'wrong_pass'},
                                          content_type='application/json')
 
@@ -213,7 +213,7 @@ class Test2FADisable:
 
     def test_2fa_disable_requires_password(self, logged_in_client, mock_security_service_2fa):
         """Test 2FA disable requires password for security"""
-        response = logged_in_client.post('/2fa/disable',
+        response = logged_in_client.post('/security/2fa/disable',
                                          json={},
                                          content_type='application/json')
 
@@ -225,7 +225,7 @@ class Test2FADisable:
         with logged_in_client.session_transaction() as sess:
             sess['user'] = 'test_user'
 
-        response = logged_in_client.post('/2fa/disable',
+        response = logged_in_client.post('/security/2fa/disable',
                                          json={'password': 'test_pass'},
                                          content_type='application/json')
 
@@ -244,7 +244,7 @@ class Test2FAStatus:
 
     def test_2fa_status_requires_login(self, client):
         """Test 2FA status requires authentication"""
-        response = client.get('/2fa/status')
+        response = client.get('/security/2fa/status')
 
         # Should redirect or return 401
         assert response.status_code in [302, 401]
@@ -253,7 +253,7 @@ class Test2FAStatus:
         """Test 2FA status when 2FA is disabled"""
         mock_security_service_2fa.is_2fa_enabled.return_value = False
 
-        response = logged_in_client.get('/2fa/status')
+        response = logged_in_client.get('/security/2fa/status')
 
         if response.status_code == 200:
             data = json.loads(response.data)
@@ -267,7 +267,7 @@ class Test2FAStatus:
         mock_security_service_2fa.is_2fa_enabled.return_value = True
         mock_security_service_2fa.get_backup_codes.return_value = ['12345678', '87654321']
 
-        response = logged_in_client.get('/2fa/status')
+        response = logged_in_client.get('/security/2fa/status')
 
         if response.status_code == 200:
             data = json.loads(response.data)
@@ -283,7 +283,7 @@ class Test2FAStatus:
         mock_security_service_2fa.is_2fa_enabled.return_value = True
         mock_security_service_2fa.get_backup_codes.return_value = ['CODE1', 'CODE2']
 
-        response = logged_in_client.get('/2fa/status')
+        response = logged_in_client.get('/security/2fa/status')
 
         if response.status_code == 200:
             data = json.loads(response.data)
@@ -301,7 +301,7 @@ class TestPasswordChange:
 
     def test_password_change_requires_login(self, client):
         """Test password change requires authentication"""
-        response = client.post('/change-password',
+        response = client.post('/security/change-password',
                                json={'old_password': 'old', 'new_password': 'new', 'confirm_password': 'new'},
                                content_type='application/json')
 
@@ -312,7 +312,7 @@ class TestPasswordChange:
         """Test password change with valid data"""
         mock_security_service_2fa.change_password.return_value = (True, 'Passwort geändert')
 
-        response = logged_in_client.post('/change-password',
+        response = logged_in_client.post('/security/change-password',
                                          json={
                                              'old_password': 'old_pass',
                                              'new_password': 'new_pass',
@@ -328,7 +328,7 @@ class TestPasswordChange:
 
     def test_password_change_validates_matching_passwords(self, logged_in_client, mock_security_service_2fa):
         """Test password change validates new password matches confirmation"""
-        response = logged_in_client.post('/change-password',
+        response = logged_in_client.post('/security/change-password',
                                          json={
                                              'old_password': 'old_pass',
                                              'new_password': 'new_pass',
@@ -345,7 +345,7 @@ class TestPasswordChange:
 
     def test_password_change_requires_all_fields(self, logged_in_client, mock_security_service_2fa):
         """Test password change requires all fields"""
-        response = logged_in_client.post('/change-password',
+        response = logged_in_client.post('/security/change-password',
                                          json={'old_password': 'old_pass'},
                                          content_type='application/json')
 
@@ -360,7 +360,7 @@ class TestPasswordChange:
         """Test password change fails with wrong old password"""
         mock_security_service_2fa.change_password.return_value = (False, 'Altes Passwort falsch')
 
-        response = logged_in_client.post('/change-password',
+        response = logged_in_client.post('/security/change-password',
                                          json={
                                              'old_password': 'wrong_old',
                                              'new_password': 'new_pass',

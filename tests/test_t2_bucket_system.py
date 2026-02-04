@@ -256,16 +256,9 @@ class TestT2BucketSystem:
         # Set small bucket size for testing
         update_bucket_size(3)
 
-        # Draw until reset
-        with patch('app.services.t2_bucket_system.datetime') as mock_dt:
-            # Mock datetime to bypass timeout
-            mock_now = MagicMock()
-            mock_dt.now.return_value = mock_now
-            mock_dt.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x)
-
-            for i in range(4):
-                # Use different users to avoid timeout
-                draw_closer(f'user_{i}', 'T2')
+        # Draw until reset — use different users to avoid timeout
+        for i in range(4):
+            draw_closer(f'user_reset_{i}', 'T2')
 
         stats = get_system_stats()
         # After 3 draws, bucket should reset, then 1 more draw

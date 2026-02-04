@@ -15,8 +15,8 @@ from unittest.mock import patch, MagicMock
 @pytest.fixture
 def mock_t2_booking_dependencies():
     """Mock all T2 booking dependencies"""
-    with patch('app.routes.t2.get_user_tickets_remaining', return_value=3), \
-         patch('app.routes.t2.T2_CLOSERS', {
+    with patch('app.routes.t2_legacy.get_user_tickets_remaining', return_value=3), \
+         patch('app.routes.t2_legacy.T2_CLOSERS', {
              'Alex': {'calendar_id': 'alex@example.com', 'can_write': True, 'full_name': 'Alexander'},
              'David': {'calendar_id': 'david@example.com', 'can_write': True, 'full_name': 'David'},
              'Jose': {'calendar_id': 'jose@example.com', 'can_write': True, 'full_name': 'José'},
@@ -24,7 +24,7 @@ def mock_t2_booking_dependencies():
              'Daniel': {'calendar_id': 'daniel@example.com', 'can_write': True, 'full_name': 'Daniel'},
              'Tim': {'calendar_id': 'tim@example.com', 'can_write': True, 'full_name': 'Tim'}
          }), \
-         patch('app.services.t2_dynamic_availability.t2_dynamic_availability') as mock_avail:
+         patch('app.routes.t2_legacy.t2_dynamic_availability') as mock_avail:
 
         # Configure mock availability
         mock_avail.is_2h_slot_free.return_value = True
@@ -170,11 +170,15 @@ class TestBookingAPI:
 
     def test_book_slot_success(self, logged_in_client_with_coach, mock_t2_booking_dependencies):
         """Test successful booking creation"""
-        # Mock GoogleCalendarService
-        with patch('app.core.google_calendar.GoogleCalendarService') as mock_gcal_class:
+        # Mock GoogleCalendarService and dependencies
+        with patch('app.routes.t2_legacy.GoogleCalendarService') as mock_gcal_class, \
+             patch('app.routes.t2_legacy.tracking_system') as mock_tracking, \
+             patch('app.routes.t2_legacy.save_t2_booking'), \
+             patch('app.routes.t2_legacy.consume_user_ticket'):
             mock_gcal = MagicMock()
-            mock_gcal.create_event.return_value = {'id': 'event123', 'htmlLink': 'https://calendar.google.com/event/123'}
+            mock_gcal.create_event_with_context.return_value = ({'id': 'event123', 'htmlLink': 'https://calendar.google.com/event/123'}, None)
             mock_gcal_class.return_value = mock_gcal
+            mock_tracking.track_booking.return_value = None
 
             booking_data = {
                 'first_name': 'Max',
@@ -201,7 +205,7 @@ class TestBookingAPI:
     def test_book_slot_checks_tickets(self, logged_in_client_with_coach):
         """Test booking fails when user has no tickets"""
         # Mock zero tickets
-        with patch('app.routes.t2.get_user_tickets_remaining', return_value=0):
+        with patch('app.routes.t2_legacy.get_user_tickets_remaining', return_value=0):
             booking_data = {
                 'first_name': 'Max',
                 'last_name': 'Mustermann',
@@ -273,7 +277,7 @@ class TestMyBookings:
     def test_my_bookings_api_returns_list(self, logged_in_client):
         """Test my bookings API returns user's bookings"""
         # Mock booking data
-        with patch('app.routes.t2.get_user_t2_bookings', return_value=[
+        with patch('app.routes.t2_legacy.get_user_t2_bookings', return_value=[
             {
                 'booking_id': 'T2-ABC123',
                 'customer_name': 'Mustermann, Max',
@@ -362,10 +366,14 @@ class TestBookingFlowIntegration:
             assert response.status_code == 200
 
         # Step 3: Book slot
-        with patch('app.core.google_calendar.GoogleCalendarService') as mock_gcal_class:
+        with patch('app.routes.t2_legacy.GoogleCalendarService') as mock_gcal_class, \
+             patch('app.routes.t2_legacy.tracking_system') as mock_tracking, \
+             patch('app.routes.t2_legacy.save_t2_booking'), \
+             patch('app.routes.t2_legacy.consume_user_ticket'):
             mock_gcal = MagicMock()
-            mock_gcal.create_event.return_value = {'id': 'event123'}
+            mock_gcal.create_event_with_context.return_value = ({'id': 'event123'}, None)
             mock_gcal_class.return_value = mock_gcal
+            mock_tracking.track_booking.return_value = None
 
             booking_data = {
                 'first_name': 'Max',
@@ -384,7 +392,7 @@ class TestBookingFlowIntegration:
 
     def test_ticket_system_limits_bookings(self):
         """Test that ticket system correctly limits bookings"""
-        from app.routes.t2 import get_user_tickets_remaining
+        from app.routes.t2_legacy import get_user_tickets_remaining
 
         # This should call the real function (or mock it properly)
         # For now, just check it returns an integer

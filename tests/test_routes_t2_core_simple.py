@@ -67,9 +67,9 @@ def mock_t2_bucket_functions():
 @pytest.fixture
 def mock_t2_functions():
     """Mock T2 helper functions"""
-    with patch('app.routes.t2.get_user_tickets_remaining', return_value=3), \
-         patch('app.routes.t2.get_user_t2_bookings', return_value=[]), \
-         patch('app.routes.t2.get_next_t2_appointments', return_value=[]):
+    with patch('app.routes.t2_legacy.get_user_tickets_remaining', return_value=3), \
+         patch('app.routes.t2_legacy.get_user_t2_bookings', return_value=[]), \
+         patch('app.routes.t2_legacy.get_next_t2_appointments', return_value=[]):
         yield
 
 

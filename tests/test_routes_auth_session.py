@@ -342,7 +342,7 @@ class TestSessionIntegration:
             assert sess['logged_in'] is True
 
         # 3. Make authenticated request
-        response = client.get('/hub/')
+        response = client.get('/')
         # Should work (200 or 302 for redirect)
         assert response.status_code in [200, 302]
 
