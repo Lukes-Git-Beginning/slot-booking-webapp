@@ -132,24 +132,31 @@ class BookingTracker:
                     from app.utils.db_utils import db_session_scope
 
                     with db_session_scope() as session:
-                        booking = Booking(
-                            booking_id=booking_id,
-                            customer=customer_name,
-                            date=booking_date.date(),
-                            time=time_slot,
-                            weekday=booking_data["weekday"],
-                            week_number=booking_data["week_number"],
-                            username=user,
-                            potential_type=booking_data["potential_type"],
-                            color_id=color_id,
-                            description_length=booking_data["description_length"],
-                            has_description=booking_data["has_description"],
-                            booking_lead_time=booking_data["booking_lead_time"],
-                            booked_at_hour=booking_data["booked_at_hour"],
-                            booked_on_weekday=booking_data["booked_on_weekday"],
-                            booking_timestamp=datetime.now(TZ)
-                        )
-                        session.merge(booking)  # Update if exists
+                        existing = session.query(Booking).filter_by(booking_id=booking_id).first()
+                        if existing:
+                            existing.customer = customer_name
+                            existing.username = user
+                            existing.color_id = color_id
+                            existing.booking_timestamp = datetime.now(TZ)
+                        else:
+                            booking = Booking(
+                                booking_id=booking_id,
+                                customer=customer_name,
+                                date=booking_date.date(),
+                                time=time_slot,
+                                weekday=booking_data["weekday"],
+                                week_number=booking_data["week_number"],
+                                username=user,
+                                potential_type=booking_data["potential_type"],
+                                color_id=color_id,
+                                description_length=booking_data["description_length"],
+                                has_description=booking_data["has_description"],
+                                booking_lead_time=booking_data["booking_lead_time"],
+                                booked_at_hour=booking_data["booked_at_hour"],
+                                booked_on_weekday=booking_data["booked_on_weekday"],
+                                booking_timestamp=datetime.now(TZ)
+                            )
+                            session.add(booking)
                         # Commit happens automatically on context manager exit
 
                     postgres_success = True

@@ -297,10 +297,12 @@ function toggleSidebar() {
 
   if (sidebarOpen) {
     sidebar.classList.remove('-translate-x-full');
+    sidebar.classList.remove('pointer-events-none');
     mainContent.classList.add('md:ml-80');
     sidebarToggle.classList.add('md:left-[21rem]');
   } else {
     sidebar.classList.add('-translate-x-full');
+    sidebar.classList.add('pointer-events-none');
     mainContent.classList.remove('md:ml-80');
     sidebarToggle.classList.remove('md:left-[21rem]');
   }

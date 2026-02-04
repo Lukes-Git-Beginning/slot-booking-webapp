@@ -92,17 +92,26 @@ class StructuredLogger:
                     self.logger.warning(f"Could not set up file logging: {e}")
     
     def _log_with_context(
-        self, 
-        level: int, 
-        message: str, 
+        self,
+        level: int,
+        message: str,
         extra_fields: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         request_id: Optional[str] = None,
         operation: Optional[str] = None,
         duration_ms: Optional[float] = None,
-        exc_info: bool = False
+        exc_info: bool = False,
+        **kwargs
     ):
         """Internes Logging mit Kontext"""
+        # Merge unknown kwargs (e.g. extra=) into extra_fields
+        if kwargs:
+            extra_fields = extra_fields or {}
+            for key, val in kwargs.items():
+                if isinstance(val, dict):
+                    extra_fields.update(val)
+                else:
+                    extra_fields[key] = val
         extra = {"extra_fields": extra_fields or {}}
         
         # User-Kontext hinzufügen

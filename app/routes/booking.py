@@ -268,7 +268,7 @@ def book():
                 f"Calendar event creation failed {error_id}: "
                 f"customer={last}, {first}, date={date}, hour={hour}, "
                 f"category={error_category}, details={error_context}",
-                extra={'error_id': error_id, 'error_context': error_context}
+                extra_fields={'error_id': error_id, 'error_context': error_context}
             )
 
             # Get user-friendly message
@@ -308,7 +308,7 @@ def book():
                         f"Dual-write tracking failed {error_id}: "
                         f"customer={last}, {first}, date={date}, hour={hour}, "
                         f"calendar_event_id={result.get('id', 'unknown')}",
-                        extra={'error_id': error_id, 'calendar_event_id': result.get('id')}
+                        extra_fields={'error_id': error_id, 'calendar_event_id': result.get('id')}
                     )
 
                     error_msg = get_error_message('TRACKING_FAILED')
@@ -334,7 +334,7 @@ def book():
             booking_logger.error(
                 f"Tracking exception {error_id}: {e}, customer={last}, {first}, date={date}, hour={hour}",
                 exc_info=True,
-                extra={'error_id': error_id}
+                extra_fields={'error_id': error_id}
             )
 
             error_msg = get_error_message('TRACKING_FAILED')
