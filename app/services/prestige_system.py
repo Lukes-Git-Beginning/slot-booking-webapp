@@ -106,13 +106,12 @@ class PrestigeSystem:
     def __init__(self):
         self.prestige_file = "data/persistent/prestige_data.json"
         self.mastery_file = "data/persistent/mastery_data.json"
-        self.stats_file = "data/persistent/user_stats.json"
-        
+
         # Ensure directories exist
         os.makedirs("data/persistent", exist_ok=True)
-        
+
         # Initialize files
-        for file_path in [self.prestige_file, self.mastery_file, self.stats_file]:
+        for file_path in [self.prestige_file, self.mastery_file]:
             if not os.path.exists(file_path):
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump({}, f)
@@ -267,19 +266,6 @@ class PrestigeSystem:
                 logger.error(f"PostgreSQL connection failed for mastery: {e}")
         # 2. JSON write (always, as backup)
         with open(self.mastery_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    
-    def load_user_stats(self):
-        """Lade erweiterte User-Statistiken"""
-        try:
-            with open(self.stats_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return {}
-    
-    def save_user_stats(self, data):
-        """Speichere erweiterte User-Statistiken"""
-        with open(self.stats_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
     def calculate_user_prestige(self, user):

@@ -167,24 +167,24 @@ class RefactoringStatusService:
                 'description': 'User personal goals'
             },
 
-            # PENDING (No PostgreSQL model yet)
+            # CONSOLIDATED into UserStats (daily_user_stats.json)
             'user_stats.json': {
-                'model': None,
-                'status': 'pending',
-                'migrated': False,
-                'model_exists': False,
-                'migration_exists': False,
-                'service_refactored': False,
-                'description': 'User statistics'
+                'model': 'UserStats',
+                'status': 'consolidated',
+                'migrated': True,
+                'model_exists': True,
+                'migration_exists': True,
+                'service_refactored': True,
+                'description': 'User statistics (consolidated into daily_user_stats/UserStats)'
             },
             'user_profiles.json': {
                 'model': 'User',
-                'status': 'pending',
-                'migrated': False,
+                'status': 'complete',
+                'migrated': True,
                 'model_exists': True,
                 'migration_exists': True,
-                'service_refactored': False,
-                'description': 'User authentication/profiles'
+                'service_refactored': True,
+                'description': 'User authentication/profiles (Dual-Write: PostgreSQL + JSON)'
             },
             't2_bookings.json': {
                 'model': 'T2Booking',
@@ -196,13 +196,13 @@ class RefactoringStatusService:
                 'description': 'T2 closer bookings (Dual-Write: PostgreSQL + JSON)'
             },
             'user_analytics.json': {
-                'model': None,
-                'status': 'pending',
-                'migrated': False,
-                'model_exists': False,
-                'migration_exists': False,
-                'service_refactored': False,
-                'description': 'User analytics data'
+                'model': 'UserStats',
+                'status': 'consolidated',
+                'migrated': True,
+                'model_exists': True,
+                'migration_exists': True,
+                'service_refactored': True,
+                'description': 'User analytics data (consolidated into daily_user_stats/UserStats)'
             },
             'user_predictions.json': {
                 'model': 'UserPrediction',
@@ -352,13 +352,13 @@ class RefactoringStatusService:
 
                 for line_num, line in enumerate(lines, start=1):
                     stripped = line.strip()
-                    if 'TODO' in line and stripped.startswith('#'):
+                    if 'TODO' in line:
                         todos.append({
                             'file': str(py_file.relative_to(self.project_root)),
                             'line': line_num,
                             'text': stripped
                         })
-                    if 'FIXME' in line and stripped.startswith('#'):
+                    if 'FIXME' in line:
                         fixmes.append({
                             'file': str(py_file.relative_to(self.project_root)),
                             'line': line_num,
@@ -414,27 +414,12 @@ class RefactoringStatusService:
                 'source': 'dynamic'
             }
         except Exception as e:
-            logger.warning(f"Could not load coverage data: {e}, using hardcoded fallback")
+            logger.warning(f"Could not load coverage data: {e}. Run 'pytest --cov=app/services' to generate .coverage file.")
             return {
-                'overall_coverage': 98.0,
+                'overall_coverage': 0.0,
                 'target_coverage': 100.0,
-                'services': {
-                    'security_service.py': 98,
-                    't2_bucket_system.py': 89,
-                    'tracking_system.py': 95,
-                    'data_persistence.py': 92,
-                    'booking_service.py': 88,
-                    't2_analytics_service.py': 85,
-                    'achievement_system.py': 75,
-                    'daily_quests.py': 70,
-                    'prestige_system.py': 65,
-                    'cosmetics_shop.py': 60,
-                    'weekly_points.py': 55,
-                    'notification_service.py': 50,
-                    'activity_tracking.py': 45,
-                    'audit_service.py': 40,
-                },
-                'source': 'hardcoded'
+                'services': {},
+                'source': 'unavailable'
             }
 
     def get_roadmap_progress(self) -> Dict:

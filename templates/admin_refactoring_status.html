@@ -1,63 +1,38 @@
-<!DOCTYPE html>
-<html lang="de" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <title>📊 Refactoring Status - Admin Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "hub/base.html" %}
 
-  <!-- Tailwind CSS + DaisyUI (Local) -->
-  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+{% block hub_title %}Refactoring Status - Admin{% endblock %}
+{% block title_suffix %}{% endblock %}
 
-  <!-- Lucide Icons (Local) -->
-  <script src="{{ url_for('static', filename='lucide.js') }}"></script>
+{% block particles %}{% endblock %}
 
-  <!-- Tailwind Config -->
-  <script nonce="{{ csp_nonce }}">
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#d4af6a',
-            'primary-dark': '#c2ae7f',
-            'secondary': '#207487',
-            'accent': '#294c5d',
-          },
-        },
-      },
-    }
-  </script>
-
-  <style nonce="{{ csp_nonce }}">
-    body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      min-height: 100vh;
-    }
-  </style>
-</head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-
-  <!-- Header -->
-  <div class="container mx-auto p-6">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost btn-sm mb-4">
-          <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Zurück zum Admin Dashboard
-        </a>
-        <h1 class="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-          <i data-lucide="trending-up" class="w-10 h-10 text-primary"></i>
-          Refactoring Status Dashboard
-        </h1>
-        <p class="text-gray-400">Real-time progress tracking for codebase modernization</p>
-      </div>
-      <div class="text-right text-sm text-gray-500">
-        <div>Last Updated: {{ current_time }}</div>
-        <button data-action="reloadPage" class="btn btn-sm btn-ghost mt-2">
-          <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i> Refresh
-        </button>
-      </div>
+{% block navbar %}
+    <!-- Header -->
+    <div class="container mx-auto px-4 pt-8 pb-4" data-aos="fade-down">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-ghost btn-circle hover:bg-white/10">
+                    <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
+                        <i data-lucide="trending-up" class="w-10 h-10 text-primary"></i>
+                        Refactoring Status Dashboard
+                    </h1>
+                    <p class="text-white/60 mt-1">Real-time progress tracking for codebase modernization</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-white/60">Last Updated: {{ current_time }}</span>
+                <button data-action="reloadPage" class="btn btn-circle btn-ghost hover:bg-white/10">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 text-primary"></i>
+                </button>
+            </div>
+        </div>
     </div>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 pb-8">
 
     <!-- Overall Progress Card -->
     <div class="card glass mb-6 shadow-2xl">
@@ -190,10 +165,10 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if migration.status == 'complete' %}
+                  {% if migration.status == 'complete' or migration.status == 'consolidated' %}
                     <span class="badge badge-success gap-2">
                       <i data-lucide="check-circle" class="w-3 h-3"></i>
-                      Complete
+                      {% if migration.status == 'consolidated' %}Consolidated{% else %}Complete{% endif %}
                     </span>
                   {% elif migration.status == 'in_progress' %}
                     <span class="badge badge-warning gap-2">
@@ -348,8 +323,19 @@
         <h2 class="card-title text-white mb-4 flex items-center gap-2">
           <i data-lucide="test-tube" class="w-6 h-6 text-primary"></i>
           Test Coverage
+          {% if status.test_coverage.source == 'dynamic' %}
+            <span class="badge badge-success badge-xs">Live</span>
+          {% elif status.test_coverage.source == 'unavailable' %}
+            <span class="badge badge-ghost badge-xs">No Data</span>
+          {% endif %}
         </h2>
 
+        {% if status.test_coverage.source == 'unavailable' %}
+        <div class="alert alert-info">
+          <i data-lucide="info" class="w-5 h-5"></i>
+          <span>Keine Coverage-Daten vorhanden. Lokal <code>pytest --cov=app/services</code> ausführen um Daten zu generieren.</span>
+        </div>
+        {% else %}
         <div class="mb-4">
           <div class="flex justify-between mb-2">
             <span>Overall Coverage</span>
@@ -393,29 +379,9 @@
             </tbody>
           </table>
         </div>
+        {% endif %}
       </div>
     </div>
 
-  </div>
-
-  <script nonce="{{ csp_nonce }}">
-    // Event Dispatcher for CSP compliance (standalone template)
-    (function() {
-        window.reloadPage = function() { location.reload(); };
-        document.addEventListener('click', function(e) {
-            var target = e.target.closest('[data-action]');
-            if (!target) return;
-            var action = target.dataset.action;
-            if (typeof window[action] === 'function') {
-                e.preventDefault();
-                window[action](e);
-            }
-        });
-    })();
-
-    // Initialize Lucide icons
-    lucide.createIcons();
-  </script>
-
-</body>
-</html>
+</div>
+{% endblock %}

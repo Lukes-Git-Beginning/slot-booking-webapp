@@ -483,8 +483,6 @@ def validate_closer_name(name: str) -> Tuple[bool, str]:
 
     Returns:
         (is_valid: bool, error_message: str)
-
-    TODO Phase 6: Extract from bucket validation logic
     """
     if not name or len(name) < 2:
         return False, "Invalid closer name"
@@ -504,8 +502,6 @@ def handle_calendar_error(error: Exception) -> Dict:
 
     Returns:
         Error response dictionary
-
-    TODO Phase 5: Extract common error handling patterns
     """
     logger.error(f"Calendar error: {error}")
     return {
@@ -522,8 +518,6 @@ def log_bucket_draw(username: str, result: Dict):
     Args:
         username: User who drew
         result: Draw result dictionary
-
-    TODO Phase 6: Implement draw logging
     """
     logger.info(f"Bucket draw - user: {username}, result: {result.get('closer', 'unknown')}")
 
