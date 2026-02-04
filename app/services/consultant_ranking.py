@@ -85,6 +85,7 @@ class ConsultantRankingService:
                     "no_shows": show_data.get("no_shows", 0),
                     "cancelled": show_data.get("cancelled", 0),
                     "rescheduled": show_data.get("rescheduled", 0),
+                    "overhang": show_data.get("overhang", 0),
                     # T1 Buchungen (nach Erstellungsdatum) - case-insensitive lookup
                     "t1_booked": bookings_created.get(consultant.lower(), 0),
                     # Telefonie Daten

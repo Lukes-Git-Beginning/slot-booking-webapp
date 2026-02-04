@@ -1137,7 +1137,8 @@ def api_reschedule_booking():
             "new_date": "2025-10-26",
             "new_time": "14:00",
             "consultant": "christian.mast",  # optional, auto-select if empty
-            "note": "Kunde hat angerufen"    # optional
+            "note": "Kunde hat angerufen",   # optional
+            "reason": "customer"             # optional: "customer" (Verschoben) or "overhang" (Überhang)
         }
 
     Returns:
@@ -1157,6 +1158,7 @@ def api_reschedule_booking():
         new_time = data.get('new_time')
         consultant = data.get('consultant', '')
         note = data.get('note', '')
+        reason = data.get('reason', 'customer')  # "customer" or "overhang"
         user = session.get('user')
 
         # Validation
@@ -1192,10 +1194,17 @@ def api_reschedule_booking():
                     eventId=old_event_id
                 ).execute()
 
-                # Update to verschoben (Orange colorId=6)
+                # Update to verschoben or überhang based on reason
                 old_summary = old_event.get('summary', '')
-                if '( Verschoben )' not in old_summary:
-                    new_summary = f"{old_summary.strip()} ( Verschoben )"
+                if reason == 'overhang':
+                    status_marker = '( Überhang )'
+                    log_label = 'überhang'
+                else:
+                    status_marker = '( Verschoben )'
+                    log_label = 'verschoben'
+
+                if status_marker not in old_summary and '( Verschoben )' not in old_summary and '( Überhang )' not in old_summary:
+                    new_summary = f"{old_summary.strip()} {status_marker}"
                 else:
                     new_summary = old_summary
 
@@ -1208,7 +1217,7 @@ def api_reschedule_booking():
                     }
                 ).execute()
 
-                logger.info(f"MY-CALENDAR: Marked old event {old_event_id} as verschoben by {user}")
+                logger.info(f"MY-CALENDAR: Marked old event {old_event_id} as {log_label} by {user}")
 
             except Exception as e:
                 logger.warning(f"Could not update old event {old_event_id}: {e}")

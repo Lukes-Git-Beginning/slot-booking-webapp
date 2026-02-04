@@ -81,13 +81,14 @@
                     <tr class="bg-white/5 border-b border-white/10">
                         <th class="text-white font-bold">Datum</th>
                         <th class="text-white font-bold">Wochentag</th>
-                        <th class="text-white font-bold text-center">Gelegte Termine</th>
-                        <th class="text-white font-bold text-center">Erschienen</th>
-                        <th class="text-white font-bold text-center">Nicht erschienen</th>
-                        <th class="text-white font-bold text-center">Ghosts</th>
-                        <th class="text-white font-bold text-center">Abgesagt</th>
-                        <th class="text-white font-bold text-center">Verschoben</th>
-                        <th class="text-white font-bold text-center">Auftauchquote</th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Gesamtzahl aller gebuchten Termine (alle Status)">Gelegte Termine <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Bestätigte Termine bei denen der Kunde erschienen ist">Erschienen <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Bestätigte Termine bei denen der Kunde nicht erschienen ist">Nicht erschienen <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Unbestätigte Termine — Kunde hat nicht bestätigt und ist nicht erschienen">Ghosts <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Termine die vor dem Termin abgesagt wurden">Abgesagt <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Termine die der Kunde verschoben hat">Verschoben <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Termine die wir verschieben mussten (mehr Kunden als Berater)">Überhang <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
+                        <th class="text-white font-bold text-center tooltip tooltip-bottom" data-tip="Erschienen / (Erschienen + Nicht erschienen + Ghosts) in %">Auftauchquote <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></th>
                     </tr>
                 </thead>
                 <tbody id="daily-table-body">
@@ -115,6 +116,9 @@
                                 <span class="badge badge-lg" style="background: #8b5cf6; color: white;">{{ day.rescheduled }}</span>
                             </td>
                             <td class="text-center">
+                                <span class="badge badge-lg" style="background: #f59e0b; color: white;">{{ day.overhang | default(0) }}</span>
+                            </td>
+                            <td class="text-center">
                                 {% if day.appearance_rate >= 80 %}
                                     <span class="badge badge-success badge-lg font-bold">{{ day.appearance_rate }}%</span>
                                 {% elif day.appearance_rate >= 60 %}
@@ -127,7 +131,7 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="9" class="text-center text-white/60 py-8">
+                            <td colspan="10" class="text-center text-white/60 py-8">
                                 <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
                                 <p>Keine Daten für die letzten 5 Werktage verfügbar</p>
                             </td>
@@ -152,7 +156,7 @@
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <div class="stat-card glass rounded-xl p-6">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Gesamtzahl aller gebuchten Termine (alle Status)">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">Gelegte Termine</span>
                     <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
@@ -160,7 +164,7 @@
                 <p id="total-slots" class="text-4xl font-bold text-white">{{ since_golive.total_slots }}</p>
             </div>
 
-            <div class="stat-card glass rounded-xl p-6">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Termine nach Erstellungsdatum (wann gebucht, nicht wann Termin)">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">T1 Gebucht</span>
                     <i data-lucide="calendar-plus" class="w-5 h-5 text-secondary"></i>
@@ -169,7 +173,7 @@
                 <p class="text-xs text-white/40 mt-1">Nach Buchungsdatum</p>
             </div>
 
-            <div class="stat-card glass rounded-xl p-6">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Bestätigte Termine bei denen der Kunde erschienen ist">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">Erschienen</span>
                     <i data-lucide="check-circle-2" class="w-5 h-5 text-success"></i>
@@ -177,25 +181,23 @@
                 <p id="completed-slots" class="text-4xl font-bold text-success">{{ since_golive.completed }}</p>
             </div>
 
-            <div class="stat-card glass rounded-xl p-6">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Bestätigte Termine bei denen der Kunde nicht erschienen ist">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">Nicht erschienen</span>
                     <i data-lucide="x-circle" class="w-5 h-5 text-error"></i>
                 </div>
                 <p id="no-shows" class="text-4xl font-bold text-error">{{ since_golive.no_shows }}</p>
-                <p class="text-xs text-white/40 mt-1">Bestätigt, nicht erschienen</p>
             </div>
 
-            <div class="stat-card glass rounded-xl p-6">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Unbestätigte Termine — Kunde hat nicht bestätigt und ist nicht erschienen">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">Ghosts</span>
                     <i data-lucide="ghost" class="w-5 h-5 text-sky-400"></i>
                 </div>
                 <p id="ghosts" class="text-4xl font-bold text-sky-400">{{ since_golive.ghosts | default(0) }}</p>
-                <p class="text-xs text-white/40 mt-1">Nicht bestätigt & nicht erschienen</p>
             </div>
 
-            <div class="stat-card glass rounded-xl p-6">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Erschienen / (Erschienen + Nicht erschienen + Ghosts) in %">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">Auftauchquote</span>
                     <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
@@ -252,7 +254,7 @@
                     <i data-lucide="trophy" class="w-6 h-6 text-primary"></i>
                 </div>
                 <div>
-                    <h2 class="text-2xl font-bold text-white">Berater-Ranking</h2>
+                    <h2 class="text-2xl font-bold text-white">Telefonisten-Ranking</h2>
                     <p class="text-white/60 text-sm">Kombinierte Leistungsbewertung</p>
                 </div>
             </div>
@@ -271,11 +273,11 @@
         <div id="rankingGrid" class="hidden"></div>
 
         <div id="rankingSummary" class="hidden grid grid-cols-1 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-white/10">
-            <div class="text-center">
+            <div class="text-center tooltip tooltip-bottom" data-tip="Anteil der Termine bei denen der Kunde erschienen ist">
                 <p class="text-white/60 text-sm">Durchschn. Erschienen-Quote</p>
                 <p id="avgShowRate" class="text-xl font-bold text-white">--</p>
             </div>
-            <div class="text-center">
+            <div class="text-center tooltip tooltip-bottom" data-tip="Erreichung des wöchentlichen Telefonie-Ziels in %">
                 <p class="text-white/60 text-sm">Durchschn. Tel. Zielerreichung</p>
                 <p id="avgAchievement" class="text-xl font-bold text-white">--</p>
             </div>
@@ -466,12 +468,12 @@
 
     // Donut Chart
     try {
-    const donutData = [{{ since_golive.completed | default(0) }}, {{ since_golive.no_shows | default(0) }}, {{ since_golive.ghosts | default(0) }}, {{ since_golive.cancelled | default(0) }}, {{ since_golive.rescheduled | default(0) }}];
+    const donutData = [{{ since_golive.completed | default(0) }}, {{ since_golive.no_shows | default(0) }}, {{ since_golive.ghosts | default(0) }}, {{ since_golive.cancelled | default(0) }}, {{ since_golive.rescheduled | default(0) }}, {{ since_golive.overhang | default(0) }}];
     const donutOptions = {
         series: donutData,
         chart: { type: 'donut', height: 300, background: 'transparent' },
-        labels: ['Erschienen', 'Nicht erschienen', 'Ghosts', 'Abgesagt', 'Verschoben'],
-        colors: ['#10b981', '#ef4444', '#0ea5e9', '#f59e0b', '#8b5cf6'],
+        labels: ['Erschienen', 'Nicht erschienen', 'Ghosts', 'Abgesagt', 'Verschoben', 'Überhang'],
+        colors: ['#10b981', '#ef4444', '#0ea5e9', '#eab308', '#8b5cf6', '#f59e0b'],
         legend: { position: 'bottom', labels: { colors: 'rgba(255, 255, 255, 0.9)' } },
         dataLabels: { enabled: true, style: { fontSize: '14px', fontWeight: 'bold', colors: ['#fff'] } },
         plotOptions: {
@@ -500,7 +502,7 @@
         document.querySelector("#donutChart").innerHTML = '<p class="text-center text-error py-20">Chart-Fehler: ' + e.message + '</p>';
     }
 
-    // ========== BERATER-RANKING ==========
+    // ========== TELEFONISTEN-RANKING ==========
 
     let currentRankingData = null;
     let currentTab = 'combined';
@@ -718,7 +720,7 @@
         const tbody = document.querySelector('#daily-table-body');
         if (!tbody) return;
         if (!dailyData || dailyData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-white/60">Keine Daten für diesen Zeitraum</td></tr>';
             return;
         }
         tbody.innerHTML = dailyData.map(day => `
@@ -730,7 +732,8 @@
                 <td class="text-center"><span class="badge badge-outline badge-error">${day.no_shows || 0}</span></td>
                 <td class="text-center"><span class="badge badge-outline" style="border-color: #0ea5e9; color: #0ea5e9;">${day.ghosts || 0}</span></td>
                 <td class="text-center"><span class="badge badge-outline badge-warning">${day.cancelled || 0}</span></td>
-                <td class="text-center"><span class="badge badge-outline badge-secondary">${day.rescheduled || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline" style="border-color: #8b5cf6; color: #8b5cf6;">${day.rescheduled || 0}</span></td>
+                <td class="text-center"><span class="badge badge-outline" style="border-color: #f59e0b; color: #f59e0b;">${day.overhang || 0}</span></td>
                 <td class="text-center font-bold ${(day.appearance_rate || 0) >= 70 ? 'text-success' : 'text-warning'}">
                     ${(day.appearance_rate || 0).toFixed(1)}%
                 </td>
@@ -763,7 +766,7 @@
         }
 
         if (donutChart) {
-            donutChart.updateSeries([data.completed || 0, data.no_shows || 0, data.ghosts || 0, data.cancelled || 0, data.rescheduled || 0]);
+            donutChart.updateSeries([data.completed || 0, data.no_shows || 0, data.ghosts || 0, data.cancelled || 0, data.rescheduled || 0, data.overhang || 0]);
         }
 
         if (trendChart && data.daily_data && data.daily_data.length > 0) {

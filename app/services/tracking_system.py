@@ -52,7 +52,7 @@ POTENTIAL_TYPES = {
     "6": "cancelled"       # Mandarine = Abgesagt
 }
 
-# Mapping: Login-Username → Display-Name (für Berater-Ranking)
+# Mapping: Login-Username → Display-Name (für Telefonisten-Ranking)
 USERNAME_TO_DISPLAY = {
     "ann-kathrin.welge": "Ann-Kathrin",
     "christian.mast": "Christian",
@@ -64,6 +64,7 @@ USERNAME_TO_DISPLAY = {
     "alexandra.börner": "Alexandra",
     "ladislav.heka": "Ladislav",
     "yasmine.schumacher": "Yasmine",
+    "benjamin.kerstan": "Ben",
     "admin": "Admin",
 }
 
@@ -322,7 +323,8 @@ class BookingTracker:
             "completed": 0,
             "cancelled": 0,
             "rescheduled": 0,
-            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "ghosts": 0, "completed": 0, "cancelled": 0, "rescheduled": 0}),
+            "overhang": 0,
+            "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "ghosts": 0, "completed": 0, "cancelled": 0, "rescheduled": 0, "overhang": 0}),
             "by_user": defaultdict(lambda: {"total": 0, "no_shows": 0, "ghosts": 0, "completed": 0}),
             "by_potential": defaultdict(lambda: {"total": 0, "completed": 0}),
             "calculated_at": datetime.now(TZ).isoformat()
@@ -351,7 +353,9 @@ class BookingTracker:
                 metrics["cancelled"] += 1
             elif outcome == "rescheduled":
                 metrics["rescheduled"] += 1
-            
+            elif outcome == "overhang":
+                metrics["overhang"] += 1
+
             # Nach Stunde
             event_start = event.get("start", {}).get("dateTime")
             if event_start:
@@ -367,6 +371,8 @@ class BookingTracker:
                     metrics["by_hour"][hour]["cancelled"] += 1
                 elif outcome == "rescheduled":
                     metrics["by_hour"][hour]["rescheduled"] += 1
+                elif outcome == "overhang":
+                    metrics["by_hour"][hour]["overhang"] += 1
             
             # Nach Potential-Typ
             if potential_type not in ["no_show", "cancelled"]:
@@ -876,7 +882,7 @@ class BookingTracker:
             color_id: Google Calendar Color ID
 
         Returns:
-            str: 'completed', 'no_show', 'ghost', 'cancelled', 'rescheduled'
+            str: 'completed', 'no_show', 'ghost', 'cancelled', 'rescheduled', 'overhang'
         """
         title_lower = title.lower() if title else ""
 
@@ -887,6 +893,8 @@ class BookingTracker:
             return "no_show"
         elif "abgesagt" in title_lower:
             return "cancelled"
+        elif "überhang" in title_lower or "ueberhang" in title_lower:
+            return "overhang"
         elif "verschoben" in title_lower:
             return "rescheduled"
 
@@ -902,10 +910,10 @@ class BookingTracker:
             title: Event-Titel (Kundenname mit optionalem Status-Marker)
 
         Returns:
-            str: Status ('erschienen', 'nicht erschienen', 'ghost', 'verschoben', 'abgesagt', 'pending')
+            str: Status ('erschienen', 'nicht erschienen', 'ghost', 'verschoben', 'überhang', 'abgesagt', 'pending')
         """
         import re
-        pattern = r'\(\s*(erschienen|nicht erschienen|ghost|verschoben|abgesagt|exit|vorbehalt)\s*\)'
+        pattern = r'\(\s*(erschienen|nicht erschienen|ghost|verschoben|überhang|ueberhang|abgesagt|exit|vorbehalt)\s*\)'
         match = re.search(pattern, title, re.IGNORECASE)
 
         if match:
@@ -1157,6 +1165,7 @@ class BookingTracker:
                     ghosts = metrics.get("ghosts", 0)
                     cancelled = metrics.get("cancelled", 0)
                     rescheduled = metrics.get("rescheduled", 0)
+                    overhang = metrics.get("overhang", 0)
 
                     # Auftauchquote = Erschienene / Alle gelegten Termine
                     # Abgesagt und Verschoben zählen als "nicht erschienen"
@@ -1175,6 +1184,7 @@ class BookingTracker:
                         "ghosts": ghosts,
                         "cancelled": cancelled,
                         "rescheduled": rescheduled,
+                        "overhang": overhang,
                         "appearance_rate": appearance_rate
                     })
                 else:
@@ -1189,6 +1199,7 @@ class BookingTracker:
                         "ghosts": 0,
                         "cancelled": 0,
                         "rescheduled": 0,
+                        "overhang": 0,
                         "appearance_rate": 0.0
                     })
 
@@ -1220,6 +1231,7 @@ class BookingTracker:
                     "ghosts": 0,
                     "cancelled": 0,
                     "rescheduled": 0,
+                    "overhang": 0,
                     "appearance_rate": 0.0,
                     "completion_rate": 0.0,
                     "no_show_rate": 0.0,
@@ -1240,6 +1252,7 @@ class BookingTracker:
             total_ghosts = 0
             total_cancelled = 0
             total_rescheduled = 0
+            total_overhang = 0
             days_with_data = 0
             daily_data = []
 
@@ -1258,6 +1271,7 @@ class BookingTracker:
                         ghosts = metrics.get("ghosts", 0)
                         cancelled = metrics.get("cancelled", 0)
                         rescheduled = metrics.get("rescheduled", 0)
+                        overhang = metrics.get("overhang", 0)
 
                         total_slots += slots
                         total_completed += completed
@@ -1265,6 +1279,7 @@ class BookingTracker:
                         total_ghosts += ghosts
                         total_cancelled += cancelled
                         total_rescheduled += rescheduled
+                        total_overhang += overhang
                         days_with_data += 1
 
                         # Für Trend-Chart
@@ -1316,6 +1331,7 @@ class BookingTracker:
                 "ghosts": total_ghosts,
                 "cancelled": total_cancelled,
                 "rescheduled": total_rescheduled,
+                "overhang": total_overhang,
                 "appearance_rate": appearance_rate,
                 "completion_rate": completion_rate,
                 "no_show_rate": no_show_rate,
@@ -1334,6 +1350,7 @@ class BookingTracker:
                 "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0,
+                "overhang": 0,
                 "appearance_rate": 0.0,
                 "completion_rate": 0.0,
                 "no_show_rate": 0.0,
@@ -1436,6 +1453,7 @@ class BookingTracker:
                     "no_shows": int,
                     "cancelled": int,
                     "rescheduled": int,
+                    "overhang": int,
                     "pending": int,
                     "appearance_rate": float
                 }, ...
@@ -1452,6 +1470,7 @@ class BookingTracker:
                 "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0,
+                "overhang": 0,
                 "pending": 0
             })
 
@@ -1538,6 +1557,8 @@ class BookingTracker:
                     consultant_stats[consultant]["no_shows"] += 1
                 elif status == 'abgesagt':
                     consultant_stats[consultant]["cancelled"] += 1
+                elif status == 'überhang' or status == 'ueberhang':
+                    consultant_stats[consultant]["overhang"] += 1
                 elif status == 'verschoben':
                     consultant_stats[consultant]["rescheduled"] += 1
                 else:
@@ -1563,6 +1584,7 @@ class BookingTracker:
                     "ghosts": stats["ghosts"],
                     "cancelled": stats["cancelled"],
                     "rescheduled": stats["rescheduled"],
+                    "overhang": stats["overhang"],
                     "appearance_rate": appearance_rate
                 }
 
@@ -1593,7 +1615,8 @@ class BookingTracker:
                 "no_shows": 0,
                 "ghosts": 0,
                 "cancelled": 0,
-                "rescheduled": 0
+                "rescheduled": 0,
+                "overhang": 0
             }
             daily_data = []
             days_with_data = 0
@@ -1616,6 +1639,7 @@ class BookingTracker:
                         ghosts = day_metrics.get("ghosts", 0)
                         cancelled = day_metrics.get("cancelled", 0)
                         rescheduled = day_metrics.get("rescheduled", 0)
+                        overhang = day_metrics.get("overhang", 0)
 
                         totals["total_slots"] += slots
                         totals["completed"] += completed
@@ -1623,6 +1647,7 @@ class BookingTracker:
                         totals["ghosts"] += ghosts
                         totals["cancelled"] += cancelled
                         totals["rescheduled"] += rescheduled
+                        totals["overhang"] += overhang
 
                         # Nur Werktage zu Charts hinzufügen
                         if current_date.weekday() < 5 and slots > 0:
@@ -1637,6 +1662,7 @@ class BookingTracker:
                                 "ghosts": ghosts,
                                 "cancelled": cancelled,
                                 "rescheduled": rescheduled,
+                                "overhang": overhang,
                                 "appearance_rate": appearance_rate
                             })
 
@@ -1681,6 +1707,7 @@ class BookingTracker:
                 "ghosts": 0,
                 "cancelled": 0,
                 "rescheduled": 0,
+                "overhang": 0,
                 "appearance_rate": 0.0,
                 "no_show_rate": 0.0,
                 "ghost_rate": 0.0,

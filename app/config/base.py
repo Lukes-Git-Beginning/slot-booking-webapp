@@ -174,7 +174,9 @@ class ConsultantConfig:
         "Tim": "tim.kreisel71@gmail.com",
         "Sara": "mastsara2@gmail.com",
         "Dominik": "mikic.dom@gmail.com",
-        "Sonja": "sonjamast98@gmail.com"
+        "Sonja": "sonjamast98@gmail.com",
+        "Yasmine": "yasmine.schumacher@gmail.com",
+        "Ben": "",  # Kein eigener Kalender (nur Telefonist)
     }
 
     @classmethod
@@ -198,7 +200,9 @@ class ConsultantConfig:
         "Dominik",      # Vollzeit
         "Sonja",        # Teilzeit (variable Verfügbarkeit)
         "Tim",          # Teilzeit (T2 Priorität)
-        "Christian"     # Teilzeit (T2 Priorität)
+        "Christian",    # Teilzeit (T2 Priorität)
+        "Yasmine",      # Telefonistin
+        "Ben",          # Telefonist
     ]
 
     @classmethod

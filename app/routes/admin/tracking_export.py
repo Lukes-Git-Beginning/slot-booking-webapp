@@ -57,13 +57,14 @@ def export_tracking_csv():
             writer.writerow(["Nicht erschienen", stats.get("no_shows", 0)])
             writer.writerow(["Abgesagt", stats.get("cancelled", 0)])
             writer.writerow(["Verschoben", stats.get("rescheduled", 0)])
+            writer.writerow(["Überhang", stats.get("overhang", 0)])
             writer.writerow(["Auftauchquote", f"{stats.get('appearance_rate', 0)}%"])
             writer.writerow(["No-Show-Rate", f"{stats.get('no_show_rate', 0)}%"])
         else:
             # Tagesstatistiken
             writer.writerow([
                 "Datum", "Wochentag", "Termine gesamt", "Erschienen",
-                "Nicht erschienen", "Abgesagt", "Verschoben", "Auftauchquote"
+                "Nicht erschienen", "Abgesagt", "Verschoben", "Überhang", "Auftauchquote"
             ])
 
             for day in stats.get("daily_data", []):
@@ -75,6 +76,7 @@ def export_tracking_csv():
                     day.get("no_shows", 0),
                     day.get("cancelled", 0),
                     day.get("rescheduled", 0),
+                    day.get("overhang", 0),
                     f"{day.get('appearance_rate', 0)}%"
                 ])
 
@@ -166,6 +168,7 @@ def export_tracking_excel():
             ["Nicht erschienen", stats.get("no_shows", 0)],
             ["Abgesagt", stats.get("cancelled", 0)],
             ["Verschoben", stats.get("rescheduled", 0)],
+            ["Überhang", stats.get("overhang", 0)],
             ["Auftauchquote", f"{stats.get('appearance_rate', 0)}%"],
             ["No-Show-Rate", f"{stats.get('no_show_rate', 0)}%"]
         ]
@@ -185,7 +188,7 @@ def export_tracking_excel():
         ws2 = wb.create_sheet("Tagesstatistik")
 
         headers = ["Datum", "Wochentag", "Termine", "Erschienen", "No-Shows",
-                   "Abgesagt", "Verschoben", "Auftauchquote"]
+                   "Abgesagt", "Verschoben", "Überhang", "Auftauchquote"]
 
         for col, header in enumerate(headers, 1):
             cell = ws2.cell(row=1, column=col, value=header)
@@ -204,6 +207,7 @@ def export_tracking_excel():
                 day.get("no_shows", 0),
                 day.get("cancelled", 0),
                 day.get("rescheduled", 0),
+                day.get("overhang", 0),
                 f"{appearance_rate}%"
             ]
 
@@ -212,7 +216,7 @@ def export_tracking_excel():
                 cell.border = thin_border
 
                 # Färbe Auftauchquote
-                if col_idx == 8:
+                if col_idx == 9:
                     if appearance_rate >= 80:
                         cell.fill = good_fill
                     elif appearance_rate >= 60:
@@ -221,14 +225,14 @@ def export_tracking_excel():
                         cell.fill = bad_fill
 
         # Spaltenbreiten
-        for col in range(1, 9):
+        for col in range(1, 10):
             ws2.column_dimensions[get_column_letter(col)].width = 15
 
-        # ========== Sheet 3: Berater Show-Rates ==========
-        ws3 = wb.create_sheet("Berater Show-Rates")
+        # ========== Sheet 3: Telefonisten Show-Rates ==========
+        ws3 = wb.create_sheet("Telefonisten Show-Rates")
 
-        headers = ["Berater", "Termine", "Erschienen", "No-Shows",
-                   "Abgesagt", "Verschoben", "Auftauchquote"]
+        headers = ["Telefonist", "Termine", "Erschienen", "No-Shows",
+                   "Abgesagt", "Verschoben", "Überhang", "Auftauchquote"]
 
         for col, header in enumerate(headers, 1):
             cell = ws3.cell(row=1, column=col, value=header)
@@ -249,6 +253,7 @@ def export_tracking_excel():
                 perf.get("no_shows", 0),
                 perf.get("cancelled", 0),
                 perf.get("rescheduled", 0),
+                perf.get("overhang", 0),
                 f"{appearance_rate}%"
             ]
 
@@ -256,7 +261,7 @@ def export_tracking_excel():
                 cell = ws3.cell(row=row_idx, column=col_idx, value=value)
                 cell.border = thin_border
 
-                if col_idx == 7:
+                if col_idx == 8:
                     if appearance_rate >= 80:
                         cell.fill = good_fill
                     elif appearance_rate >= 60:
@@ -266,7 +271,7 @@ def export_tracking_excel():
 
             row_idx += 1
 
-        for col in range(1, 8):
+        for col in range(1, 9):
             ws3.column_dimensions[get_column_letter(col)].width = 15
 
         # ========== Sheet 4: Combined Ranking ==========
