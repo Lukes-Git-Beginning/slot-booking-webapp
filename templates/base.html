@@ -372,7 +372,13 @@
 
         // Handle data-action clicks (delegated)
         document.addEventListener('click', function(e) {
-            const target = e.target.closest('[data-action]');
+            // Handle SVG elements: traverse up from ownerSVGElement if needed
+            let element = e.target;
+            if (element.ownerSVGElement) {
+                element = element.ownerSVGElement;
+            }
+
+            const target = element.closest('[data-action]');
             if (!target) return;
 
             const action = target.dataset.action;
