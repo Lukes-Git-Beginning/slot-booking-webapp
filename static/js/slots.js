@@ -516,7 +516,7 @@ window.setupKeyboardShortcuts = function(scoreboardUrl) {
 
 // Direct event listener for sidebar toggle button
 // Script loads at end of body, so DOM is already ready - execute immediately
-(function initSidebarToggle() {
+;(function initSidebarToggle() {
   const sidebarToggleBtn = document.getElementById('sidebarToggle');
   if (sidebarToggleBtn) {
     console.log('✅ Sidebar toggle button found, attaching listener');
