@@ -137,8 +137,9 @@
     </div>
 
     {% for week in weekly_summary %}
-    <a href="{{ url_for('main.day_view', date_str=week.start_date) }}"
-       class="block glass rounded-xl p-4 mb-3 hover:bg-white/10 transition-all {% if week.current %}ring-2 ring-primary{% endif %}">
+    <button data-action="navigateToWeek"
+            data-url="{{ url_for('main.day_view', date_str=week.start_date) }}"
+            class="block glass rounded-xl p-4 mb-3 hover:bg-white/10 transition-all w-full text-left cursor-pointer {% if week.current %}ring-2 ring-primary{% endif %}">
       <div class="flex items-center justify-between mb-2">
         <span class="font-semibold text-white">{{ week.label }}</span>
         <span class="text-sm text-white/70">{{ week.usage_pct }}%</span>
@@ -156,7 +157,7 @@
       <div class="text-xs text-white/60">
         {{ week.booked }}/{{ week.possible }} gebucht • {{ week.range }}
       </div>
-    </a>
+    </button>
     {% endfor %}
 
     <!-- Level Display in Sidebar -->
@@ -169,8 +170,8 @@
 </div>
 
 <!-- Sidebar Toggle Button -->
-<button id="sidebarToggle" data-action="toggleSidebar"
-        class="fixed left-4 top-24 z-40 btn btn-circle glass hover:scale-110 transition-transform"
+<button id="sidebarToggle"
+        class="fixed left-4 top-24 z-[60] btn btn-circle glass hover:scale-110 transition-transform"
         title="Menü">
   <i data-lucide="menu" class="w-5 h-5"></i>
 </button>
@@ -462,7 +463,7 @@
 
 {% block extra_js %}
 <!-- Slot Booking JavaScript -->
-<script src="{{ url_for('static', filename='js/slots.js') }}"></script>
+<script src="{{ url_for('static', filename='js/slots.js') }}?v=20260205d"></script>
 
 <!-- Template-specific initialization -->
 <script nonce="{{ csp_nonce }}">

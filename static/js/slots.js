@@ -245,7 +245,7 @@ window.closeModal = function(e, modalId) {
 
 // Quick action wrappers for index.html
 window.quickActionToggleSidebar = function(e) {
-  toggleSidebar();
+  toggleSidebarInternal();
   document.getElementById('quickActionsModal').close();
 };
 
@@ -262,16 +262,30 @@ window.quickActionDay = function(e, direction) {
 };
 
 // Expose slot functions to global scope for data-action
-window.toggleSidebar = function(e) { toggleSidebar(); };
-window.expandAll = function(e) { expandAll(); };
-window.collapseAll = function(e) { collapseAll(); };
-window.jumpToEvening = function(e) { jumpToEvening(); };
+// Note: toggleSidebar is assigned after its definition below
+window.expandAll = function(e) { expandAllSlots(); };
+window.collapseAll = function(e) { collapseAllSlots(); };
+window.jumpToEvening = function(e) { jumpToEveningSlot(); };
 window.toggleSlot = function(e) {
-  // Find the slot-section ancestor (avoids SVG namespace traversal issues with .closest)
-  const section = e.target.closest('.slot-section');
+  // Handle SVG elements: traverse up from ownerSVGElement if needed
+  let element = e.target;
+  if (element.ownerSVGElement) {
+    element = element.ownerSVGElement;
+  }
+
+  // Find the slot-section ancestor
+  const section = element.closest('.slot-section');
   if (section) {
     const header = section.querySelector('.slot-header');
     if (header) toggleSlotInternal(header);
+  }
+};
+
+// Navigate to a specific week (for sidebar links)
+window.navigateToWeek = function(e) {
+  const target = e.target.closest('[data-action="navigateToWeek"]');
+  if (target && target.dataset.url) {
+    window.location.href = target.dataset.url;
   }
 };
 
@@ -289,7 +303,7 @@ window.handleBookingSubmitForm = function(e) {
 // ============================================================================
 let sidebarOpen = false;
 
-function toggleSidebar() {
+function toggleSidebarInternal() {
   sidebarOpen = !sidebarOpen;
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
@@ -313,9 +327,12 @@ function toggleSidebar() {
   setTimeout(() => lucide.createIcons(), 100);
 }
 
+// Expose to global scope
+window.toggleSidebar = toggleSidebarInternal;
+
 // Restore sidebar state
 if (localStorage.getItem('sidebar-open') === 'true' && window.innerWidth >= 768) {
-  toggleSidebar();
+  toggleSidebarInternal();
 }
 
 // ============================================================================
@@ -337,7 +354,7 @@ function toggleSlotInternal(header) {
   }
 }
 
-function expandAll() {
+function expandAllSlots() {
   document.querySelectorAll('.slot-section').forEach(section => {
     const content = section.querySelector('.slot-content');
     content.style.maxHeight = content.scrollHeight + 'px';
@@ -346,7 +363,7 @@ function expandAll() {
   });
 }
 
-function collapseAll() {
+function collapseAllSlots() {
   document.querySelectorAll('.slot-section').forEach(section => {
     const content = section.querySelector('.slot-content');
     content.style.maxHeight = '0';
@@ -355,7 +372,7 @@ function collapseAll() {
   });
 }
 
-function jumpToEvening() {
+function jumpToEveningSlot() {
   const eveningSlot = document.querySelector('[data-hour="18:00"]');
   if (eveningSlot) {
     eveningSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -368,7 +385,7 @@ function jumpToEvening() {
 
 // Collapse all on mobile by default
 if (window.innerWidth < 768) {
-  collapseAll();
+  collapseAllSlots();
 }
 
 // ============================================================================
@@ -463,7 +480,7 @@ window.setupKeyboardShortcuts = function(scoreboardUrl) {
     switch(e.key.toLowerCase()) {
       case 's':
         e.preventDefault();
-        toggleSidebar();
+        toggleSidebarInternal();
         break;
       case 'm':
         e.preventDefault();
@@ -496,6 +513,24 @@ window.setupKeyboardShortcuts = function(scoreboardUrl) {
 // ============================================================================
 // INITIALIZE
 // ============================================================================
+
+// Direct event listener for sidebar toggle button
+// Script loads at end of body, so DOM is already ready - execute immediately
+(function initSidebarToggle() {
+  const sidebarToggleBtn = document.getElementById('sidebarToggle');
+  if (sidebarToggleBtn) {
+    console.log('✅ Sidebar toggle button found, attaching listener');
+    sidebarToggleBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🔄 Sidebar toggle clicked');
+      toggleSidebarInternal();
+    });
+  } else {
+    console.error('❌ Sidebar toggle button #sidebarToggle not found!');
+  }
+})();
+
 setTimeout(() => {
   lucide.createIcons();
 }, 100);
