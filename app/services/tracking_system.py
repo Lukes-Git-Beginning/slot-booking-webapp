@@ -170,24 +170,36 @@ class BookingTracker:
                 os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
                 with open(self.bookings_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
-                logger.info(f"Booking tracked to JSONL: {booking_id} ({customer_name})")
-                return booking_data
             except Exception as json_error:
-                # Both write methods failed - booking may be lost
-                logger.error(
-                    "Dual-write tracking failed for booking",
-                    extra={
-                        'booking_id': booking_id,
-                        'customer': customer_name,
-                        'date': date,
-                        'time_slot': time_slot,
-                        'user': user,
-                        'postgres_error': postgres_error or 'N/A',
-                        'jsonl_error': str(json_error)
-                    },
-                    exc_info=True
-                )
-                return None  # Signal complete failure to caller
+                if not postgres_success:
+                    # Both write methods failed - booking may be lost
+                    logger.error(
+                        "Dual-write tracking failed for booking",
+                        extra={
+                            'booking_id': booking_id,
+                            'customer': customer_name,
+                            'date': date,
+                            'time_slot': time_slot,
+                            'user': user,
+                            'postgres_error': postgres_error or 'N/A',
+                            'jsonl_error': str(json_error)
+                        },
+                        exc_info=True
+                    )
+                    return None  # Signal complete failure to caller
+                else:
+                    # PostgreSQL succeeded, JSONL failed - not critical
+                    logger.warning(
+                        f"JSONL write failed but PostgreSQL succeeded for {booking_id}: {json_error}"
+                    )
+
+            try:
+                logger.info(f"Booking tracked: {booking_id} ({customer_name})"
+                            f" [PG={'ok' if postgres_success else 'fail'}, JSONL=ok]")
+            except Exception:
+                pass
+
+            return booking_data
 
         except Exception as e:
             logger.error(

@@ -681,6 +681,14 @@ class DataPersistence:
                 except Exception as e:
                     issues.append(f"Fehler beim Lesen von {filename}.json: {e}")
             
+            # Prüfe Schreibbarkeit des Backup-Verzeichnisses
+            try:
+                test_file = self.backup_dir / ".write_test"
+                test_file.write_text("test")
+                test_file.unlink()
+            except Exception as e:
+                issues.append(f"Backup-Verzeichnis nicht beschreibbar: {self.backup_dir} ({e})")
+
             if issues:
                 logger.warning(f"Datenintegritäts-Probleme gefunden: {len(issues)}")
                 for issue in issues:
@@ -693,7 +701,72 @@ class DataPersistence:
         except Exception as e:
             logger.error(f"Fehler bei der Datenvalidierung: {e}")
             return False, [str(e)]
-    
+
+    def validate_scores_integrity(self):
+        """Startup-Check: Scores gegen Level-History cross-validieren.
+
+        Erkennt fehlende Score-Monate indem min. erwartete Punkte
+        (aus Level-History XP) mit tatsächlichen Scores verglichen werden.
+        """
+        try:
+            scores = self.load_scores()
+            if not scores:
+                return
+
+            lh_path = self.static_dir / "level_history.json"
+            if not lh_path.exists():
+                return
+            with open(lh_path, "r", encoding="utf-8") as f:
+                level_history = json.load(f)
+            if not level_history:
+                return
+
+            # Badge-XP einmal laden
+            RARITY_XP = {
+                "common": 50, "uncommon": 100, "rare": 250,
+                "epic": 500, "legendary": 1000, "mythic": 2500
+            }
+            all_badges = {}
+            try:
+                badges_path = self.data_dir / "user_badges.json"
+                if badges_path.exists():
+                    with open(badges_path, "r", encoding="utf-8") as f:
+                        all_badges = json.load(f)
+            except Exception:
+                pass
+
+            warnings = []
+            for user, lh_data in level_history.items():
+                level_ups = lh_data.get("level_ups", [])
+                peak_xp = max(
+                    [lu.get("new_xp", 0) for lu in level_ups] + [lh_data.get("current_xp", 0)]
+                )
+                if peak_xp <= 0:
+                    continue
+
+                user_badges = all_badges.get(user, {})
+                badge_xp = sum(
+                    RARITY_XP.get(b.get("rarity", "common"), 50)
+                    for b in user_badges.get("badges", [])
+                )
+
+                min_total_points = (peak_xp - badge_xp) / 10.0
+                actual_total = sum(scores.get(user, {}).values())
+
+                if actual_total < min_total_points * 0.9:
+                    warnings.append(
+                        f"{user}: Score {actual_total} < Min {min_total_points:.0f} "
+                        f"(peak_xp={peak_xp}, badge_xp={badge_xp})"
+                    )
+
+            if warnings:
+                logger.warning(f"SCORE INTEGRITY: {len(warnings)} User unter Level-History-Minimum!")
+                for w in warnings:
+                    logger.warning(f"  SCORE INTEGRITY: {w}")
+
+        except Exception as e:
+            logger.error(f"Score-Integrity-Check fehlgeschlagen: {e}")
+
     def auto_backup_all(self):
         """Automatisches Backup aller Daten"""
         try:

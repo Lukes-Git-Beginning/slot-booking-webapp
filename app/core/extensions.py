@@ -39,6 +39,8 @@ def init_extensions(app: Flask) -> None:
     try:
         data_persistence.bootstrap_from_static_if_missing()
         data_persistence.auto_cleanup_backups()
+        data_persistence.validate_data_integrity()
+        data_persistence.validate_scores_integrity()
     except Exception as e:
         logger.warning(f"Persistenz-Init Hinweis", extra={'error': str(e)})
 
