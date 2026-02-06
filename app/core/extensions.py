@@ -57,6 +57,7 @@ def init_extensions(app: Flask) -> None:
     try:
         from app.services.tracking_system import BookingTracker
         tracking_system = BookingTracker()
+        _verify_tracking_write_access(tracking_system)
     except Exception as e:
         logger.warning(f"Could not initialize tracking system", extra={'error': str(e)})
         tracking_system = None
@@ -116,6 +117,38 @@ def init_extensions(app: Flask) -> None:
     init_session_storage(app)
 
     logger.info("All extensions initialized successfully")
+
+
+def _verify_tracking_write_access(tracker) -> None:
+    """Proaktiver Startup-Check: Sind Tracking-Dateien beschreibbar?"""
+    import os
+    paths_to_check = [
+        tracker.data_dir,
+        tracker.bookings_file,
+        tracker.outcomes_file,
+    ]
+    problems = []
+    for path in paths_to_check:
+        if os.path.exists(path) and not os.access(path, os.W_OK):
+            problems.append(path)
+
+    if problems:
+        msg = f"TRACKING WRITE ACCESS DENIED: {', '.join(problems)}"
+        logger.critical(msg)
+        try:
+            from app.services.notification_service import notification_service
+            notification_service.create_notification(
+                roles=['admin'],
+                title='Tracking-Dateien nicht beschreibbar!',
+                message=f'Folgende Pfade sind nicht beschreibbar: {", ".join(problems)}. '
+                        f'Bitte Dateiberechtigungen prüfen (chown www-data:www-data).',
+                notification_type='error',
+                show_popup=True
+            )
+        except Exception:
+            pass
+    else:
+        logger.info("Tracking write access verified OK")
 
 
 def init_session_storage(app: Flask) -> None:

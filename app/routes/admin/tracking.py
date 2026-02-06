@@ -4,14 +4,17 @@ Admin tracking routes
 Show/No-Show Analytics and Appointment Tracking
 """
 
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify, request, session
 from datetime import datetime, timedelta
 import pytz
+import logging
 
 from app.config.base import slot_config
 from app.core.extensions import tracking_system
 from app.utils.decorators import require_admin
 from app.routes.admin import admin_bp
+
+logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
@@ -236,6 +239,101 @@ def api_consultant_performance():
         return jsonify({
             "success": True,
             "data": data
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== FAILED BOOKINGS RECOVERY ==========
+
+@admin_bp.route("/tracking/api/failed-bookings")
+@require_admin
+def api_failed_bookings():
+    """Liste aller unrecovered Failed Bookings"""
+    try:
+        if not tracking_system:
+            return jsonify({"success": False, "error": "Tracking-System nicht verfügbar"}), 503
+
+        failed = tracking_system.get_failed_bookings()
+        return jsonify({"success": True, "data": failed, "count": len(failed)})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/tracking/api/retry-booking", methods=["POST"])
+@require_admin
+def api_retry_booking():
+    """Einzelnes Failed Booking retrien"""
+    try:
+        if not tracking_system:
+            return jsonify({"success": False, "error": "Tracking-System nicht verfügbar"}), 503
+
+        data = request.get_json()
+        booking_id = data.get("booking_id") if data else None
+
+        if not booking_id:
+            return jsonify({"success": False, "error": "booking_id required"}), 400
+
+        success, message = tracking_system.recover_failed_booking(booking_id)
+
+        user = session.get('user', 'unknown')
+        try:
+            from app.services.audit_service import audit_service
+            audit_service.log('tracking_retry', user, {
+                'booking_id': booking_id,
+                'success': success,
+                'message': message
+            })
+        except Exception:
+            pass
+
+        if success:
+            logger.info(f"Admin {user} recovered failed booking: {booking_id}")
+            return jsonify({"success": True, "message": message})
+        else:
+            return jsonify({"success": False, "error": message}), 400
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/tracking/api/retry-all", methods=["POST"])
+@require_admin
+def api_retry_all():
+    """Alle Failed Bookings retrien"""
+    try:
+        if not tracking_system:
+            return jsonify({"success": False, "error": "Tracking-System nicht verfügbar"}), 503
+
+        failed = tracking_system.get_failed_bookings()
+        results = []
+
+        for entry in failed:
+            booking_id = entry.get("id")
+            if booking_id:
+                success, message = tracking_system.recover_failed_booking(booking_id)
+                results.append({"booking_id": booking_id, "success": success, "message": message})
+
+        recovered = sum(1 for r in results if r["success"])
+
+        user = session.get('user', 'unknown')
+        try:
+            from app.services.audit_service import audit_service
+            audit_service.log('tracking_retry_all', user, {
+                'total': len(results),
+                'recovered': recovered
+            })
+        except Exception:
+            pass
+
+        logger.info(f"Admin {user} bulk-recovered {recovered}/{len(results)} failed bookings")
+        return jsonify({
+            "success": True,
+            "total": len(results),
+            "recovered": recovered,
+            "results": results
         })
 
     except Exception as e:

@@ -13,6 +13,7 @@ import json
 import pytz
 import logging
 from datetime import datetime, timedelta, time
+from time import sleep as _sleep
 from collections import defaultdict
 from googleapiclient.discovery import build
 from app.utils.credentials import load_google_credentials
@@ -83,6 +84,9 @@ class BookingTracker:
         self.metrics_file = os.path.join(self.data_dir, "daily_metrics.json")
         self.customer_file = os.path.join(self.data_dir, "customer_profiles.json")
 
+        # Failed bookings queue (for recovery)
+        self.failed_bookings_file = os.path.join(self.data_dir, "failed_bookings.jsonl")
+
         # Persistent files (secondary storage for compatibility)
         self.persistent_metrics_file = os.path.join(self.persistent_dir, "tracking_metrics.json")
         self.persistent_customer_file = os.path.join(self.persistent_dir, "customer_tracking.json")
@@ -93,12 +97,15 @@ class BookingTracker:
     
     def track_booking(self, customer_name, date, time_slot, user, color_id, description=""):
         """
-        Tracke eine neue Buchung mit Dual-Write Pattern
+        Tracke eine neue Buchung mit Dual-Write Pattern + Auto-Retry
 
         Schreibt in:
         1. PostgreSQL (wenn USE_POSTGRES=true und verfügbar)
         2. JSONL-Datei (immer als Fallback)
+
+        Bei komplettem Failure: 3 Versuche mit Backoff, dann Failure-Queue.
         """
+        booking_data = None
         try:
             booking_date = datetime.strptime(date, "%Y-%m-%d")
             booking_id = f"{date}_{time_slot}_{customer_name}".replace(" ", "_")
@@ -121,85 +128,102 @@ class BookingTracker:
                 "booked_on_weekday": datetime.now(TZ).strftime("%A")
             }
 
-            # ========== DUAL-WRITE: PostgreSQL + JSON ==========
+            # ========== DUAL-WRITE with AUTO-RETRY ==========
+            max_retries = 3
+            retry_delays = [0.5, 1.0]  # seconds between attempt 1→2 and 2→3
 
-            postgres_error = None
-            postgres_success = False
+            for attempt in range(max_retries):
+                postgres_error = None
+                postgres_success = False
 
-            # 1. PostgreSQL schreiben (wenn aktiviert)
-            if POSTGRES_AVAILABLE and is_postgres_enabled():
+                # 1. PostgreSQL schreiben (wenn aktiviert)
+                if POSTGRES_AVAILABLE and is_postgres_enabled():
+                    try:
+                        from app.utils.db_utils import db_session_scope
+
+                        with db_session_scope() as session:
+                            existing = session.query(Booking).filter_by(booking_id=booking_id).first()
+                            if existing:
+                                existing.customer = customer_name
+                                existing.username = user
+                                existing.color_id = color_id
+                                existing.booking_timestamp = datetime.now(TZ)
+                            else:
+                                booking = Booking(
+                                    booking_id=booking_id,
+                                    customer=customer_name,
+                                    date=booking_date.date(),
+                                    time=time_slot,
+                                    weekday=booking_data["weekday"],
+                                    week_number=booking_data["week_number"],
+                                    username=user,
+                                    potential_type=booking_data["potential_type"],
+                                    color_id=color_id,
+                                    description_length=booking_data["description_length"],
+                                    has_description=booking_data["has_description"],
+                                    booking_lead_time=booking_data["booking_lead_time"],
+                                    booked_at_hour=booking_data["booked_at_hour"],
+                                    booked_on_weekday=booking_data["booked_on_weekday"],
+                                    booking_timestamp=datetime.now(TZ)
+                                )
+                                session.add(booking)
+
+                        postgres_success = True
+                        logger.info(f"Booking tracked to PostgreSQL: {booking_id} ({customer_name})")
+                    except Exception as e:
+                        postgres_error = str(e)
+                        logger.error(f"PostgreSQL write failed for {booking_id} ({customer_name}): {e}")
+
+                # 2. JSONL schreiben (immer, als Fallback)
                 try:
-                    from app.utils.db_utils import db_session_scope
-
-                    with db_session_scope() as session:
-                        existing = session.query(Booking).filter_by(booking_id=booking_id).first()
-                        if existing:
-                            existing.customer = customer_name
-                            existing.username = user
-                            existing.color_id = color_id
-                            existing.booking_timestamp = datetime.now(TZ)
-                        else:
-                            booking = Booking(
-                                booking_id=booking_id,
-                                customer=customer_name,
-                                date=booking_date.date(),
-                                time=time_slot,
-                                weekday=booking_data["weekday"],
-                                week_number=booking_data["week_number"],
-                                username=user,
-                                potential_type=booking_data["potential_type"],
-                                color_id=color_id,
-                                description_length=booking_data["description_length"],
-                                has_description=booking_data["has_description"],
-                                booking_lead_time=booking_data["booking_lead_time"],
-                                booked_at_hour=booking_data["booked_at_hour"],
-                                booked_on_weekday=booking_data["booked_on_weekday"],
-                                booking_timestamp=datetime.now(TZ)
+                    os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
+                    with open(self.bookings_file, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
+                except Exception as json_error:
+                    if not postgres_success:
+                        # Both writes failed — retry if attempts remain
+                        if attempt < max_retries - 1:
+                            delay = retry_delays[attempt]
+                            logger.warning(
+                                f"Dual-write attempt {attempt + 1}/{max_retries} failed for {booking_id}, "
+                                f"retrying in {delay}s (PG: {postgres_error}, JSONL: {json_error})"
                             )
-                            session.add(booking)
-                        # Commit happens automatically on context manager exit
+                            _sleep(delay)
+                            continue
 
-                    postgres_success = True
-                    logger.info(f"Booking tracked to PostgreSQL: {booking_id} ({customer_name})")
-                except Exception as e:
-                    postgres_error = str(e)
-                    logger.error(f"PostgreSQL write failed for {booking_id} ({customer_name}): {e}")
+                        # All retries exhausted
+                        logger.error(
+                            "Dual-write tracking failed after all retries",
+                            extra={
+                                'booking_id': booking_id,
+                                'customer': customer_name,
+                                'date': date,
+                                'time_slot': time_slot,
+                                'user': user,
+                                'postgres_error': postgres_error or 'N/A',
+                                'jsonl_error': str(json_error),
+                                'attempts': max_retries
+                            },
+                            exc_info=True
+                        )
+                        self._queue_failed_booking(booking_data)
+                        return None
+                    else:
+                        # PostgreSQL succeeded, JSONL failed - not critical
+                        logger.warning(
+                            f"JSONL write failed but PostgreSQL succeeded for {booking_id}: {json_error}"
+                        )
 
-            # 2. JSONL schreiben (immer, als Fallback)
-            try:
-                os.makedirs(os.path.dirname(self.bookings_file), exist_ok=True)
-                with open(self.bookings_file, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(booking_data, ensure_ascii=False) + "\n")
-            except Exception as json_error:
-                if not postgres_success:
-                    # Both write methods failed - booking may be lost
-                    logger.error(
-                        "Dual-write tracking failed for booking",
-                        extra={
-                            'booking_id': booking_id,
-                            'customer': customer_name,
-                            'date': date,
-                            'time_slot': time_slot,
-                            'user': user,
-                            'postgres_error': postgres_error or 'N/A',
-                            'jsonl_error': str(json_error)
-                        },
-                        exc_info=True
-                    )
-                    return None  # Signal complete failure to caller
-                else:
-                    # PostgreSQL succeeded, JSONL failed - not critical
-                    logger.warning(
-                        f"JSONL write failed but PostgreSQL succeeded for {booking_id}: {json_error}"
-                    )
+                # At least one write succeeded
+                try:
+                    msg = f"Booking tracked: {booking_id} ({customer_name}) [PG={'ok' if postgres_success else 'fail'}, JSONL=ok]"
+                    if attempt > 0:
+                        msg += f" (attempt {attempt + 1})"
+                    logger.info(msg)
+                except Exception:
+                    pass
 
-            try:
-                logger.info(f"Booking tracked: {booking_id} ({customer_name})"
-                            f" [PG={'ok' if postgres_success else 'fail'}, JSONL=ok]")
-            except Exception:
-                pass
-
-            return booking_data
+                return booking_data
 
         except Exception as e:
             logger.error(
@@ -211,7 +235,100 @@ class BookingTracker:
                 },
                 exc_info=True
             )
+            if booking_data:
+                self._queue_failed_booking(booking_data)
             return None
+
+    # ========== FAILURE QUEUE ==========
+
+    def _queue_failed_booking(self, booking_data):
+        """Speichere fehlgeschlagene Buchung in Failure-Queue für spätere Recovery"""
+        try:
+            failed_entry = {
+                **booking_data,
+                "failed_at": datetime.now(TZ).isoformat(),
+                "recovered": False
+            }
+            os.makedirs(os.path.dirname(self.failed_bookings_file), exist_ok=True)
+            with open(self.failed_bookings_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(failed_entry, ensure_ascii=False) + "\n")
+            logger.warning(f"Queued failed booking for recovery: {booking_data.get('id', 'unknown')}")
+        except Exception as e:
+            logger.error(f"Could not queue failed booking: {e} — Data: {booking_data}")
+
+    def get_failed_bookings(self):
+        """Lese alle unrecovered Failed Bookings aus der Queue"""
+        failed = []
+        if not os.path.exists(self.failed_bookings_file):
+            return failed
+        try:
+            with open(self.failed_bookings_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            entry = json.loads(line)
+                            if not entry.get("recovered", False):
+                                failed.append(entry)
+                        except json.JSONDecodeError:
+                            continue
+        except Exception as e:
+            logger.error(f"Error reading failed bookings: {e}")
+        return failed
+
+    def recover_failed_booking(self, booking_id):
+        """Versuche eine fehlgeschlagene Buchung erneut zu tracken"""
+        failed = []
+        target = None
+
+        if not os.path.exists(self.failed_bookings_file):
+            return False, "No failed bookings file found"
+
+        # Lese alle Einträge
+        try:
+            with open(self.failed_bookings_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            entry = json.loads(line)
+                            failed.append(entry)
+                            if entry.get("id") == booking_id and not entry.get("recovered", False):
+                                target = entry
+                        except json.JSONDecodeError:
+                            continue
+        except Exception as e:
+            return False, f"Error reading failed bookings: {e}"
+
+        if not target:
+            return False, f"Booking {booking_id} not found in failed queue"
+
+        # Versuche erneut zu tracken
+        result = self.track_booking(
+            customer_name=target["customer"],
+            date=target["date"],
+            time_slot=target["time"],
+            user=target["user"],
+            color_id=target["color_id"],
+            description=""
+        )
+
+        if result is None:
+            return False, f"Retry failed for {booking_id}"
+
+        # Markiere als recovered
+        for entry in failed:
+            if entry.get("id") == booking_id:
+                entry["recovered"] = True
+                entry["recovered_at"] = datetime.now(TZ).isoformat()
+
+        try:
+            with open(self.failed_bookings_file, "w", encoding="utf-8") as f:
+                for entry in failed:
+                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            logger.error(f"Could not update failed bookings file: {e}")
+
+        logger.info(f"Successfully recovered failed booking: {booking_id}")
+        return True, f"Booking {booking_id} recovered successfully"
     
     def check_daily_outcomes(self, check_date=None):
         """
