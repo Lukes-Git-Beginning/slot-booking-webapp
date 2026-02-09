@@ -178,17 +178,22 @@ class TestSlotStatus:
 
     @pytest.mark.unit
     def test_get_slot_status_9am_reduced_capacity(self, mock_calendar_service):
-        """Test that 9am slots have reduced capacity"""
+        """Test that 9am slots have reduced capacity (Mo-Do=1, Fr=2)"""
         from app.services.booking_service import get_slot_status
 
         mock_calendar_service.get_events.return_value = {'items': []}
 
-        # 9am slots use SLOTS_PER_BERATER_9AM (2) instead of 3
+        # Wednesday (Mo-Do): 1 per consultant
         slot_list, booked, total, free, overbooked = get_slot_status(
-            '2025-01-15', '09:00', 3
+            '2025-01-15', '09:00', 3  # Wednesday
         )
+        assert total == 3  # 3 consultants * 1 slot each (9am Mo-Do)
 
-        assert total == 6  # 3 consultants * 2 slots each (9am)
+        # Friday: 2 per consultant
+        slot_list, booked, total, free, overbooked = get_slot_status(
+            '2025-01-17', '09:00', 3  # Friday
+        )
+        assert total == 6  # 3 consultants * 2 slots each (9am Friday)
 
     @pytest.mark.unit
     def test_get_slot_status_t1_bereit_not_counted(self, mock_calendar_service):

@@ -67,8 +67,10 @@ class SlotConfig:
     # Slots pro Berater und Zeitslot
     SLOTS_PER_BERATER: int = int(os.getenv("SLOTS_PER_BERATER", "3"))
 
-    # Spezielle Kapazität für 9-Uhr-Slots (nur 2 Kunden pro Berater)
+    # Spezielle Kapazität für 9-Uhr-Slots
+    # Mo-Do: 1 Kunde pro Berater, Freitag: 2 Kunden pro Berater
     SLOTS_PER_BERATER_9AM: int = int(os.getenv("SLOTS_PER_BERATER_9AM", "2"))
+    SLOTS_PER_BERATER_9AM_MON_THU: int = int(os.getenv("SLOTS_PER_BERATER_9AM_MON_THU", "1"))
 
     # Spezielle Kapazität für 20-Uhr-Slots (nur 2 Kunden pro Berater)
     SLOTS_PER_BERATER_8PM: int = int(os.getenv("SLOTS_PER_BERATER_8PM", "2"))

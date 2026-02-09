@@ -236,19 +236,27 @@ class TestSlotStatus:
         assert freie_count == 7  # 9 - 2
 
     def test_get_slot_status_9am_reduced_capacity(self, mock_calendar_service):
-        """Test 9am slots use SLOTS_PER_BERATER_9AM (2 instead of 3)"""
+        """Test 9am slots: Mo-Do=1 per consultant, Fr=2 per consultant"""
         from app.services.booking_service import get_slot_status
 
         mock_calendar_service.get_events.return_value = {'items': []}
 
+        # Thursday (Mo-Do): 1 per consultant
         slot_list, booked, total, freie_count, overbooked = get_slot_status(
-            date_str='2026-01-15',
-            hour='09:00',  # 9am slot
+            date_str='2026-01-15',  # Thursday
+            hour='09:00',
             berater_count=3
         )
+        assert total == 3  # 3 × 1 (Mo-Do)
+        assert freie_count == 3
 
-        # THEN: Reduced capacity
-        assert total == 6  # 3 × 2 (not 9)
+        # Friday: 2 per consultant
+        slot_list, booked, total, freie_count, overbooked = get_slot_status(
+            date_str='2026-01-16',  # Friday
+            hour='09:00',
+            berater_count=3
+        )
+        assert total == 6  # 3 × 2 (Friday)
         assert freie_count == 6
 
     def test_get_slot_status_overbooked(self, mock_calendar_service):

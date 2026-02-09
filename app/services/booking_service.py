@@ -23,6 +23,22 @@ logger = logging.getLogger(__name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
 
+def get_slots_per_consultant(hour: str, weekday: int) -> int:
+    """Kapazität pro Berater für einen Zeitslot.
+
+    Args:
+        hour: Zeitslot z.B. "09:00", "11:00"
+        weekday: 0=Monday ... 4=Friday
+    """
+    if hour == "09:00":
+        if weekday <= 3:  # Mo-Do
+            return slot_config.SLOTS_PER_BERATER_9AM_MON_THU
+        return slot_config.SLOTS_PER_BERATER_9AM
+    elif hour == "20:00":
+        return slot_config.SLOTS_PER_BERATER_8PM
+    return slot_config.SLOTS_PER_BERATER
+
+
 def is_t1_bereit_event(summary: str) -> bool:
     """Check if an event is a T1-bereit event (should not count as booked)"""
     summary_lower = summary.lower()
@@ -232,13 +248,7 @@ def extract_weekly_summary(availability, current_date=None):
                     slot_time = f"{date_str} {hour}"
                     dt = datetime.strptime(slot_time, "%Y-%m-%d %H:%M")
 
-                    # Use different capacity for 9am and 8pm slots
-                    if hour == "09:00":
-                        slots_per_consultant = slot_config.SLOTS_PER_BERATER_9AM
-                    elif hour == "20:00":
-                        slots_per_consultant = slot_config.SLOTS_PER_BERATER_8PM
-                    else:
-                        slots_per_consultant = slot_config.SLOTS_PER_BERATER
+                    slots_per_consultant = get_slots_per_consultant(hour, date_obj.weekday())
 
                     key = week_key_from_date(dt)
                     week_possible[key] += len(consultants) * slots_per_consultant
@@ -381,13 +391,8 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
 
     9am slots have reduced capacity: SLOTS_PER_BERATER_9AM (2) instead of SLOTS_PER_BERATER (3)
     """
-    # Use different capacity for 9am and 8pm slots
-    if hour == "09:00":
-        slots_per_consultant = slot_config.SLOTS_PER_BERATER_9AM
-    elif hour == "20:00":
-        slots_per_consultant = slot_config.SLOTS_PER_BERATER_8PM
-    else:
-        slots_per_consultant = slot_config.SLOTS_PER_BERATER
+    weekday = datetime.strptime(date_str, "%Y-%m-%d").weekday()
+    slots_per_consultant = get_slots_per_consultant(hour, weekday)
 
     max_slots = berater_count * slots_per_consultant
 
