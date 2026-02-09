@@ -1314,10 +1314,9 @@ class BookingTracker:
                     rescheduled = metrics.get("rescheduled", 0)
                     overhang = metrics.get("overhang", 0)
 
-                    # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
-                    denominator = completed + no_shows + ghosts
-                    if denominator > 0:
-                        appearance_rate = round((completed / denominator) * 100, 1)
+                    # Auftauchquote = Erschienene / Alle gelegten Termine
+                    if total_slots > 0:
+                        appearance_rate = round((completed / total_slots) * 100, 1)
                     else:
                         appearance_rate = 0.0
 
@@ -1430,10 +1429,9 @@ class BookingTracker:
                         days_with_data += 1
 
                         # Für Trend-Chart
-                        # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
-                        day_denominator = completed + no_shows + ghosts
-                        if day_denominator > 0:
-                            appearance_rate = round((completed / day_denominator) * 100, 1)
+                        # Auftauchquote = Erschienene / Alle gelegten Termine
+                        if slots > 0:
+                            appearance_rate = round((completed / slots) * 100, 1)
                         else:
                             appearance_rate = 0.0
 
@@ -1452,10 +1450,9 @@ class BookingTracker:
                 current_date += timedelta(days=1)
 
             # Berechne Raten
-            # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
-            total_denominator = total_completed + total_no_shows + total_ghosts
-            if total_denominator > 0:
-                appearance_rate = round((total_completed / total_denominator) * 100, 1)
+            # Auftauchquote = Erschienene / Alle gelegten Termine
+            if total_slots > 0:
+                appearance_rate = round((total_completed / total_slots) * 100, 1)
             else:
                 appearance_rate = 0.0
 
@@ -1799,8 +1796,7 @@ class BookingTracker:
 
                         # Nur Werktage zu Charts hinzufügen
                         if current_date.weekday() < 5 and slots > 0:
-                            day_denom = completed + no_shows + ghosts
-                            appearance_rate = round((completed / day_denom) * 100, 1) if day_denom > 0 else 0.0
+                            appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
                             daily_data.append({
                                 "date": date_str,
                                 "weekday": self._get_german_weekday(current_date.weekday()),
@@ -1818,10 +1814,9 @@ class BookingTracker:
                     current_date += timedelta(days=1)
 
             # Berechne Raten
-            # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
-            period_denominator = totals["completed"] + totals["no_shows"] + totals["ghosts"]
-            if period_denominator > 0:
-                appearance_rate = round((totals["completed"] / period_denominator) * 100, 1)
+            # Auftauchquote = Erschienene / Alle gelegten Termine
+            if totals["total_slots"] > 0:
+                appearance_rate = round((totals["completed"] / totals["total_slots"]) * 100, 1)
             else:
                 appearance_rate = 0.0
 
