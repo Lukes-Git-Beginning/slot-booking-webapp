@@ -6,4 +6,5 @@
 
 cd /opt/business-hub
 source venv/bin/activate
+set -a; source .env; set +a
 python scripts/run_tracking.py >> /var/log/business-hub/tracking.log 2>&1

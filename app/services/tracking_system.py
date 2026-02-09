@@ -12,9 +12,24 @@ import re
 import json
 import pytz
 import logging
+import tempfile
 from datetime import datetime, timedelta, time
 from time import sleep as _sleep
 from collections import defaultdict
+
+
+def _atomic_json_write(filepath, data):
+    """Atomic write: schreibt in Temp-Datei, dann rename. Verhindert Datenverlust bei Crash."""
+    dir_name = os.path.dirname(filepath) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, filepath)
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
 from googleapiclient.discovery import build
 from app.utils.credentials import load_google_credentials
 
@@ -538,14 +553,12 @@ class BookingTracker:
 
             all_metrics[str(date)] = metrics
 
-            # Primary storage
-            with open(self.metrics_file, "w", encoding="utf-8") as f:
-                json.dump(all_metrics, f, ensure_ascii=False, indent=2)
+            # Primary storage (atomic write)
+            _atomic_json_write(self.metrics_file, all_metrics)
 
-            # Secondary persistent storage
+            # Secondary persistent storage (atomic write)
             try:
-                with open(self.persistent_metrics_file, "w", encoding="utf-8") as f:
-                    json.dump(all_metrics, f, ensure_ascii=False, indent=2)
+                _atomic_json_write(self.persistent_metrics_file, all_metrics)
             except Exception as e:
                 logger.warning(f"Could not write to persistent metrics: {e}")
             
@@ -617,14 +630,12 @@ class BookingTracker:
                         logger.error(f"Error processing outcome: {e}")
                         continue
         
-        # Speichere aktualisierte Profile (dual-write pattern)
-        with open(self.customer_file, "w", encoding="utf-8") as f:
-            json.dump(profiles, f, ensure_ascii=False, indent=2)
+        # Speichere aktualisierte Profile (atomic dual-write)
+        _atomic_json_write(self.customer_file, profiles)
 
-        # Secondary persistent storage
+        # Secondary persistent storage (atomic write)
         try:
-            with open(self.persistent_customer_file, "w", encoding="utf-8") as f:
-                json.dump(profiles, f, ensure_ascii=False, indent=2)
+            _atomic_json_write(self.persistent_customer_file, profiles)
         except Exception as e:
             logger.warning(f"Could not write to persistent customers: {e}")
 
@@ -1303,10 +1314,10 @@ class BookingTracker:
                     rescheduled = metrics.get("rescheduled", 0)
                     overhang = metrics.get("overhang", 0)
 
-                    # Auftauchquote = Erschienene / Alle gelegten Termine
-                    # Abgesagt und Verschoben zählen als "nicht erschienen"
-                    if total_slots > 0:
-                        appearance_rate = round((completed / total_slots) * 100, 1)
+                    # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
+                    denominator = completed + no_shows + ghosts
+                    if denominator > 0:
+                        appearance_rate = round((completed / denominator) * 100, 1)
                     else:
                         appearance_rate = 0.0
 
@@ -1419,9 +1430,10 @@ class BookingTracker:
                         days_with_data += 1
 
                         # Für Trend-Chart
-                        # Auftauchquote = Erschienene / Alle gelegten Termine
-                        if slots > 0:
-                            appearance_rate = round((completed / slots) * 100, 1)
+                        # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
+                        day_denominator = completed + no_shows + ghosts
+                        if day_denominator > 0:
+                            appearance_rate = round((completed / day_denominator) * 100, 1)
                         else:
                             appearance_rate = 0.0
 
@@ -1440,10 +1452,10 @@ class BookingTracker:
                 current_date += timedelta(days=1)
 
             # Berechne Raten
-            # Auftauchquote = Erschienene / Alle gelegten Termine
-            # Abgesagt und Verschoben zählen als "nicht erschienen"
-            if total_slots > 0:
-                appearance_rate = round((total_completed / total_slots) * 100, 1)
+            # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
+            total_denominator = total_completed + total_no_shows + total_ghosts
+            if total_denominator > 0:
+                appearance_rate = round((total_completed / total_denominator) * 100, 1)
             else:
                 appearance_rate = 0.0
 
@@ -1787,7 +1799,8 @@ class BookingTracker:
 
                         # Nur Werktage zu Charts hinzufügen
                         if current_date.weekday() < 5 and slots > 0:
-                            appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
+                            day_denom = completed + no_shows + ghosts
+                            appearance_rate = round((completed / day_denom) * 100, 1) if day_denom > 0 else 0.0
                             daily_data.append({
                                 "date": date_str,
                                 "weekday": self._get_german_weekday(current_date.weekday()),
@@ -1805,12 +1818,17 @@ class BookingTracker:
                     current_date += timedelta(days=1)
 
             # Berechne Raten
+            # Auftauchquote = Erschienene / (Erschienene + Nicht erschienen + Ghosts)
+            period_denominator = totals["completed"] + totals["no_shows"] + totals["ghosts"]
+            if period_denominator > 0:
+                appearance_rate = round((totals["completed"] / period_denominator) * 100, 1)
+            else:
+                appearance_rate = 0.0
+
             if totals["total_slots"] > 0:
-                appearance_rate = round((totals["completed"] / totals["total_slots"]) * 100, 1)
                 no_show_rate = round((totals["no_shows"] / totals["total_slots"]) * 100, 1)
                 ghost_rate = round((totals["ghosts"] / totals["total_slots"]) * 100, 1)
             else:
-                appearance_rate = 0.0
                 no_show_rate = 0.0
                 ghost_rate = 0.0
 

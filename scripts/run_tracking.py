@@ -12,6 +12,10 @@ import os
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
+# Load .env for standalone execution (cron jobs)
+from dotenv import load_dotenv
+load_dotenv(os.path.join(project_root, ".env"))
+
 # Import and run the tracking system
 if __name__ == "__main__":
     from app.services.tracking_system import run_daily_outcome_check, recalculate_all_outcomes
