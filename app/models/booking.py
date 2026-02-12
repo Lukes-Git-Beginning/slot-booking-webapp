@@ -101,6 +101,10 @@ class BookingOutcome(Base):
     # Alert-Flag (für No-Shows)
     is_alert: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Consultant (wer hat den Termin erstellt)
+    consultant: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    consultant_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
     # Checked-Timestamp (wann wurde Outcome getrackt)
     checked_at: Mapped[str] = mapped_column(String(10), nullable=False)  # "21:00"
     outcome_timestamp: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)

@@ -58,6 +58,15 @@ def init_extensions(app: Flask) -> None:
         from app.services.tracking_system import BookingTracker
         tracking_system = BookingTracker()
         _verify_tracking_write_access(tracking_system)
+
+        # Tracking-Luecken erkennen
+        try:
+            gaps = tracking_system.detect_tracking_gaps(lookback_days=14)
+            if gaps:
+                logger.warning(f"Tracking gaps on startup: {len(gaps)} missing workdays")
+        except Exception as gap_err:
+            logger.debug(f"Gap detection skipped: {gap_err}")
+
     except Exception as e:
         logger.warning(f"Could not initialize tracking system", extra={'error': str(e)})
         tracking_system = None
