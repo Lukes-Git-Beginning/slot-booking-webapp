@@ -344,6 +344,7 @@ def mock_account_lockout():
         # Default: not locked out
         mock_service.is_locked_out.return_value = (False, 0)
         mock_service.record_failed_attempt.return_value = (False, 0)
+        mock_service.check_and_record_failure.return_value = ('failed', None)
         mock_service.record_successful_login.return_value = None
 
         yield mock_service

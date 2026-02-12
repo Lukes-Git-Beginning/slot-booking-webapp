@@ -109,6 +109,64 @@ class AccountLockoutService:
         self._save_lockout_data(lockout_data)
         return False, None
 
+    def check_and_record_failure(self, username: str) -> Tuple[str, Optional[int]]:
+        """Atomarer Check + Increment in einem Load/Save-Zyklus.
+
+        Returns:
+            ('locked', minutes_remaining) - bereits gesperrt
+            ('now_locked', lockout_minutes) - gerade gesperrt worden
+            ('failed', None) - Versuch gezaehlt, noch nicht gesperrt
+        """
+        lockout_data = self._load_lockout_data()
+
+        # 1. Check ob bereits gesperrt
+        if username in lockout_data:
+            user_data = lockout_data[username]
+            locked_until = datetime.fromisoformat(user_data.get('locked_until', '')) if user_data.get('locked_until') else None
+
+            if locked_until and datetime.now() < locked_until:
+                remaining = (locked_until - datetime.now()).total_seconds() / 60
+                return 'locked', int(remaining)
+
+            # Sperre abgelaufen — Eintrag zuruecksetzen
+            if locked_until:
+                del lockout_data[username]
+
+        # 2. Increment + ggf. sperren
+        if username not in lockout_data:
+            lockout_data[username] = {
+                'failed_attempts': 0,
+                'first_attempt': datetime.now().isoformat(),
+                'last_attempt': None,
+                'locked_until': None
+            }
+
+        user_data = lockout_data[username]
+        user_data['failed_attempts'] += 1
+        user_data['last_attempt'] = datetime.now().isoformat()
+
+        failed_attempts = user_data['failed_attempts']
+        lockout_duration = 0
+
+        if failed_attempts >= self.max_attempts_tier3:
+            lockout_duration = self.lockout_duration_tier3
+            logger.warning(f"Account {username} locked for {lockout_duration} minutes (Tier 3: {failed_attempts} attempts)")
+        elif failed_attempts >= self.max_attempts_tier2:
+            lockout_duration = self.lockout_duration_tier2
+            logger.warning(f"Account {username} locked for {lockout_duration} minutes (Tier 2: {failed_attempts} attempts)")
+        elif failed_attempts >= self.max_attempts_tier1:
+            lockout_duration = self.lockout_duration_tier1
+            logger.warning(f"Account {username} locked for {lockout_duration} minutes (Tier 1: {failed_attempts} attempts)")
+
+        if lockout_duration > 0:
+            locked_until = datetime.now() + timedelta(minutes=lockout_duration)
+            user_data['locked_until'] = locked_until.isoformat()
+            self._save_lockout_data(lockout_data)
+            return 'now_locked', lockout_duration
+
+        self._save_lockout_data(lockout_data)
+        return 'failed', None
+
     def record_successful_login(self, username: str):
         """Lösche fehlgeschlagene Versuche nach erfolgreichem Login"""
         lockout_data = self._load_lockout_data()

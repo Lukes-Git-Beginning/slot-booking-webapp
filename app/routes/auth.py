@@ -145,11 +145,13 @@ def login():
             success=False
         )
 
-        # Record failed attempt (may trigger lockout)
-        is_locked, lockout_minutes = account_lockout.record_failed_attempt(username)
+        # Atomic check + record (prevents TOCTOU race condition)
+        status, minutes = account_lockout.check_and_record_failure(username)
 
-        if is_locked:
-            flash(f"Zu viele fehlgeschlagene Versuche. Account für {lockout_minutes} Minuten gesperrt.", "danger")
+        if status == 'locked':
+            flash(f"Account gesperrt. Versuche es in {minutes} Minuten erneut.", "danger")
+        elif status == 'now_locked':
+            flash(f"Zu viele fehlgeschlagene Versuche. Account für {minutes} Minuten gesperrt.", "danger")
         else:
             flash("Falscher Benutzername oder Passwort.", "danger")
 

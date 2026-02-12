@@ -29,6 +29,7 @@ def mock_auth_services():
         # Configure account lockout
         mock_lockout.is_locked_out.return_value = (False, 0)
         mock_lockout.record_failed_attempt.return_value = (False, 0)
+        mock_lockout.check_and_record_failure.return_value = ('failed', None)
 
         # Configure data persistence
         mock_dp.load_champions.return_value = {}

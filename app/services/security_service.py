@@ -59,6 +59,24 @@ class SecurityService:
         """Speichere 2FA-Daten"""
         data_persistence.save_data(self.twofa_file, data)
 
+    def migrate_userlist_passwords(self):
+        """Pre-hash alle USERLIST-Passwoerter die noch nicht in custom_passwords sind"""
+        userlist = get_userlist()
+        if not userlist:
+            return
+
+        custom_passwords = self._load_passwords()
+        migrated = 0
+
+        for username, plaintext_pw in userlist.items():
+            if username not in custom_passwords:
+                custom_passwords[username] = self.hash_password(plaintext_pw)
+                migrated += 1
+
+        if migrated > 0:
+            self._save_passwords(custom_passwords)
+            logger.info(f"Pre-migrated {migrated} USERLIST passwords to bcrypt hashes")
+
     def verify_password(self, username: str, password: str) -> bool:
         """
         Verifiziere Passwort (Hybrid: bcrypt-Hash oder Klartext)

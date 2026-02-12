@@ -57,6 +57,9 @@ def create_app(config_object: Optional[str] = None) -> Flask:
     # Sentry Error Tracking initialisieren (Production)
     init_sentry(app)
 
+    # ENV-Validierung
+    validate_environment(app)
+
     # Blueprints registrieren (neue Hub-Architektur)
     register_blueprints(app)
 
@@ -162,6 +165,31 @@ def _filter_sentry_event(event, hint):
         if '/health' in url or '/ping' in url:
             return None
     return event
+
+
+def validate_environment(app: Flask) -> None:
+    """Pruefe kritische Umgebungsvariablen beim Startup"""
+    warnings = []
+
+    if not os.getenv('USERLIST'):
+        warnings.append("USERLIST not set - no users can log in")
+
+    if not os.getenv('DATABASE_URL') and app.config.get('USE_POSTGRES'):
+        warnings.append("DATABASE_URL not set but USE_POSTGRES enabled")
+
+    google_creds = (
+        os.getenv('GOOGLE_CREDS_BASE64')
+        or os.getenv('GOOGLE_CREDS_B64')
+        or os.getenv('GOOGLE_CREDS_JSON')
+    )
+    if not google_creds and not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+        warnings.append("No Google credentials configured - Calendar features will fail")
+
+    if not os.getenv('SECRET_KEY') and not app.config.get('SECRET_KEY'):
+        warnings.append("SECRET_KEY not set - sessions will be insecure")
+
+    for w in warnings:
+        app.logger.warning(f"ENV-CHECK: {w}")
 
 
 def register_blueprints(app: Flask) -> None:

@@ -44,6 +44,13 @@ def init_extensions(app: Flask) -> None:
     except Exception as e:
         logger.warning(f"Persistenz-Init Hinweis", extra={'error': str(e)})
 
+    # Pre-hash USERLIST passwords to eliminate plaintext fallback
+    try:
+        from app.services.security_service import security_service
+        security_service.migrate_userlist_passwords()
+    except Exception as e:
+        logger.warning(f"USERLIST password migration skipped: {e}")
+
     # Import and initialize error handler
     from app.utils.error_handler import error_handler as eh
     error_handler = eh

@@ -29,6 +29,7 @@ def mock_auth_services():
         # Configure account lockout
         mock_lockout.is_locked_out.return_value = (False, 0)
         mock_lockout.record_failed_attempt.return_value = (False, 0)
+        mock_lockout.check_and_record_failure.return_value = ('failed', None)
 
         # Configure data persistence
         mock_dp.load_champions.return_value = {}
@@ -249,14 +250,14 @@ class TestAccountLockout:
                                           mock_audit_service, mock_activity_tracking):
         """Test failed login records failed attempt"""
         mock_security_service.verify_password.return_value = False
-        mock_account_lockout.record_failed_attempt.return_value = (False, 0)
+        mock_account_lockout.check_and_record_failure.return_value = ('failed', None)
 
         response = client.post('/login',
                                data={'username': 'test_user', 'password': 'wrong_pass'},
                                follow_redirects=True)
 
-        # Verify failed attempt was recorded
-        mock_account_lockout.record_failed_attempt.assert_called_once_with('test_user')
+        # Verify failed attempt was recorded atomically
+        mock_account_lockout.check_and_record_failure.assert_called_once_with('test_user')
 
     def test_successful_login_clears_failed_attempts(self, client, mock_security_service, mock_account_lockout,
                                                      mock_audit_service, mock_activity_tracking):
