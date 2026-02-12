@@ -32,7 +32,7 @@ def api_user_badges():
         user_badges = achievement_system.get_user_badges(user)
         return jsonify(user_badges)
     except Exception as e:
-        return jsonify({"error": str(e), "badges": []}), 200  # Return empty badges on error
+        return jsonify({"error": str(e), "badges": []}), 500
 
 
 @api_bp.route("/user/<username>/badges")
@@ -45,10 +45,10 @@ def api_user_badges_by_username(username):
         return jsonify(user_badges)
     except ImportError as e:
         logger.error(f"Achievement system import error: {e}")
-        return jsonify({"badges": [], "total_badges": 0, "error": "Achievement system not available"}), 200
+        return jsonify({"badges": [], "total_badges": 0, "error": "Achievement system not available"}), 503
     except Exception as e:
         logger.error(f"Badge API error for {username}: {e}")
-        return jsonify({"badges": [], "total_badges": 0, "error": str(e)}), 200
+        return jsonify({"badges": [], "total_badges": 0, "error": str(e)}), 500
 
 
 @api_bp.route("/user/<username>/avatar")

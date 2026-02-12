@@ -9,6 +9,7 @@ Validiert die Signatur des Requests und verarbeitet Events.
 import hashlib
 import hmac
 import logging
+import time
 from flask import Blueprint, request, jsonify
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,16 @@ def validate_hubspot_signature(req) -> bool:
 
     if not signature or not timestamp:
         logger.warning("Missing HubSpot signature headers")
+        return False
+
+    # Timestamp-Freshness: max 5 Minuten alt (Replay-Schutz)
+    try:
+        ts = int(timestamp)
+        if abs(time.time() * 1000 - ts) > 300_000:
+            logger.warning(f"HubSpot webhook timestamp too old: {timestamp}")
+            return False
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid HubSpot webhook timestamp: {timestamp}")
         return False
 
     # v3 Signatur: HMAC-SHA256 von (method + url + body + timestamp)
