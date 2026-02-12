@@ -65,21 +65,21 @@ class AnalyticsService:
                 # Total Bookings (current month)
                 month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
                 total_bookings = db_session.query(Booking).filter(
-                    Booking.booking_date >= month_start
+                    Booking.date >= month_start
                 ).count()
 
-                # Conversion-Rate (appeared + closed / total)
-                appeared = db_session.query(Booking).join(BookingOutcome).filter(
-                    Booking.booking_date >= month_start,
-                    BookingOutcome.status.in_(['erschienen', 'abgeschlossen'])
+                # Conversion-Rate (appeared / total)
+                appeared = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= month_start,
+                    BookingOutcome.outcome.in_(['completed'])
                 ).count()
 
                 conversion_rate = (appeared / total_bookings * 100) if total_bookings > 0 else 0
 
                 # No-Show-Rate
-                no_shows = db_session.query(Booking).join(BookingOutcome).filter(
-                    Booking.booking_date >= month_start,
-                    BookingOutcome.status == 'nicht_erschienen'
+                no_shows = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= month_start,
+                    BookingOutcome.outcome == 'no_show'
                 ).count()
 
                 no_show_rate = (no_shows / total_bookings * 100) if total_bookings > 0 else 0
@@ -339,13 +339,13 @@ class AnalyticsService:
 
                 # Count total bookings
                 total_bookings = db_session.query(Booking).filter(
-                    Booking.booking_date >= one_month_ago
+                    Booking.date >= one_month_ago
                 ).count()
 
                 # Count no-shows
-                no_shows = db_session.query(Booking).join(BookingOutcome).filter(
-                    Booking.booking_date >= one_month_ago,
-                    BookingOutcome.status == 'nicht_erschienen'
+                no_shows = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= one_month_ago,
+                    BookingOutcome.outcome == 'no_show'
                 ).count()
 
                 if total_bookings > 0:
@@ -394,7 +394,7 @@ class AnalyticsService:
 
                 # Load all bookings
                 bookings = db_session.query(Booking).filter(
-                    Booking.booking_date >= three_months_ago
+                    Booking.date >= three_months_ago
                 ).all()
 
                 # Count bookings per weekday + time slot
@@ -409,8 +409,8 @@ class AnalyticsService:
 
                 # Count real bookings
                 for booking in bookings:
-                    weekday = weekdays[booking.booking_date.weekday()] if booking.booking_date.weekday() < 5 else None
-                    hour = booking.time_slot[:2] if booking.time_slot else None
+                    weekday = weekdays[booking.date.weekday()] if booking.date.weekday() < 5 else None
+                    hour = booking.time[:2] if booking.time else None
 
                     if weekday and hour:
                         key = f"{weekday}_{hour}"

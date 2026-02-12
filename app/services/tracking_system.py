@@ -35,7 +35,7 @@ from app.utils.credentials import load_google_credentials
 
 # PostgreSQL Models
 try:
-    from app.models import Booking, is_postgres_enabled, get_db_session
+    from app.models import Booking, BookingOutcome, is_postgres_enabled, get_db_session
     POSTGRES_AVAILABLE = True
 except ImportError:
     POSTGRES_AVAILABLE = False
@@ -444,10 +444,49 @@ class BookingTracker:
                 elif outcome == "completed":
                     logger.info(f"Completed: {customer_name} at {event_time} (Color: {color_id})")
                 
-                # Speichere Outcome
+                # ========== PostgreSQL Dual-Write ==========
+                if POSTGRES_AVAILABLE and is_postgres_enabled():
+                    try:
+                        from app.utils.db_utils import db_session_scope
+                        with db_session_scope() as db_session:
+                            outcome_id = outcome_data["id"]
+                            existing = db_session.query(BookingOutcome).filter_by(
+                                outcome_id=outcome_id
+                            ).first()
+
+                            if existing:
+                                existing.outcome = outcome
+                                existing.color_id = color_id
+                                existing.potential_type = outcome_data["potential_type"]
+                                existing.checked_at = outcome_data["checked_at"]
+                                existing.description = outcome_data.get("description", "")
+                                existing.is_alert = outcome == "no_show"
+                                existing.consultant = outcome_data.get("consultant")
+                                existing.consultant_email = outcome_data.get("consultant_email")
+                            else:
+                                pg_outcome = BookingOutcome(
+                                    outcome_id=outcome_id,
+                                    customer=customer_name,
+                                    date=check_date,
+                                    time=event_time,
+                                    outcome=outcome,
+                                    color_id=color_id,
+                                    potential_type=outcome_data["potential_type"],
+                                    description=outcome_data.get("description", ""),
+                                    is_alert=outcome == "no_show",
+                                    checked_at=outcome_data["checked_at"],
+                                    outcome_timestamp=datetime.now(TZ),
+                                    consultant=outcome_data.get("consultant"),
+                                    consultant_email=outcome_data.get("consultant_email")
+                                )
+                                db_session.add(pg_outcome)
+                    except Exception as e:
+                        logger.warning(f"PostgreSQL outcome write failed for {outcome_data['id']}: {e}")
+
+                # Speichere Outcome (JSONL)
                 with open(self.outcomes_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(outcome_data, ensure_ascii=False) + "\n")
-                
+
                 outcomes_tracked += 1
             
             logger.info(f"Tracked {outcomes_tracked} outcomes for {check_date}")
@@ -1051,7 +1090,8 @@ class BookingTracker:
     def _extract_status_from_title(self, title):
         """
         Extrahiere Status-Marker aus Event-Titel.
-        Pattern: "( status )" oder "(status)"
+        1. Prioritaet: Geklammerte Marker "( status )" oder "(status)"
+        2. Fallback: Un-geklammerte Keywords (konsistent mit _get_outcome_from_title_and_color)
 
         Args:
             title: Event-Titel (Kundenname mit optionalem Status-Marker)
@@ -1060,11 +1100,25 @@ class BookingTracker:
             str: Status ('erschienen', 'nicht erschienen', 'ghost', 'verschoben', 'überhang', 'abgesagt', 'pending')
         """
         import re
+        # 1. Prioritaet: Geklammerte Marker
         pattern = r'\(\s*(erschienen|nicht erschienen|ghost|verschoben|überhang|ueberhang|abgesagt|exit|vorbehalt)\s*\)'
         match = re.search(pattern, title, re.IGNORECASE)
-
         if match:
             return match.group(1).lower().strip()
+
+        # 2. Fallback: Un-geklammerte Keywords (konsistent mit _get_outcome_from_title_and_color)
+        title_lower = title.lower() if title else ""
+        if "ghost" in title_lower:
+            return "ghost"
+        elif "nicht erschienen" in title_lower:
+            return "nicht erschienen"
+        elif "abgesagt" in title_lower:
+            return "abgesagt"
+        elif "überhang" in title_lower or "ueberhang" in title_lower:
+            return "überhang"
+        elif "verschoben" in title_lower:
+            return "verschoben"
+
         return 'pending'
 
     def _clean_customer_name(self, summary):
@@ -1078,7 +1132,7 @@ class BookingTracker:
             str: Kundenname ohne Status-Marker
         """
         import re
-        pattern = r'\s*\(\s*(erschienen|nicht erschienen|ghost|verschoben|abgesagt|exit|vorbehalt)\s*\)'
+        pattern = r'\s*\(\s*(erschienen|nicht erschienen|ghost|verschoben|abgesagt|exit|vorbehalt|überhang|ueberhang)\s*\)'
         return re.sub(pattern, '', summary, flags=re.IGNORECASE).strip()
 
     def get_user_bookings(self, user, start_date, end_date):
@@ -1265,10 +1319,80 @@ class BookingTracker:
             logger.error(f"Fehler bei der Generierung von Erkenntnissen: {e}")
             return {"trends": {}, "comparisons": {}, "recommendations": []}
 
+    def _get_last_n_workdays(self, n=5):
+        """Helper: Finde die letzten N Werktage."""
+        today = datetime.now(TZ).date()
+        workdays = []
+        current_date = today
+        while len(workdays) < n:
+            if current_date.weekday() < 5:
+                workdays.append(current_date)
+            current_date -= timedelta(days=1)
+            if (today - current_date).days > 20:
+                break
+        return workdays
+
+    def _get_last_n_workdays_stats_pg(self, n=5):
+        """PG-First: Lade letzte N Werktage aus BookingOutcome."""
+        from app.utils.db_utils import db_session_scope_no_commit
+        from sqlalchemy import func, case
+
+        workdays = self._get_last_n_workdays(n)
+        if not workdays:
+            return []
+
+        with db_session_scope_no_commit() as session:
+            results = session.query(
+                BookingOutcome.date,
+                func.count().label('total_slots'),
+                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
+                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
+                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
+                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
+                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
+                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
+            ).filter(
+                BookingOutcome.date.in_(workdays)
+            ).group_by(BookingOutcome.date).all()
+
+            pg_data = {row.date: row for row in results}
+
+            stats = []
+            for date in workdays:
+                if date in pg_data:
+                    row = pg_data[date]
+                    total_slots = row.total_slots or 0
+                    completed = row.completed or 0
+                    appearance_rate = round((completed / total_slots) * 100, 1) if total_slots > 0 else 0.0
+                    stats.append({
+                        "date": str(date),
+                        "weekday": date.strftime("%A"),
+                        "weekday_de": self._get_german_weekday(date.weekday()),
+                        "total_slots": total_slots,
+                        "completed": completed,
+                        "no_shows": row.no_shows or 0,
+                        "ghosts": row.ghosts or 0,
+                        "cancelled": row.cancelled or 0,
+                        "rescheduled": row.rescheduled or 0,
+                        "overhang": row.overhang or 0,
+                        "appearance_rate": appearance_rate
+                    })
+                else:
+                    stats.append({
+                        "date": str(date),
+                        "weekday": date.strftime("%A"),
+                        "weekday_de": self._get_german_weekday(date.weekday()),
+                        "total_slots": 0, "completed": 0, "no_shows": 0,
+                        "ghosts": 0, "cancelled": 0, "rescheduled": 0,
+                        "overhang": 0, "appearance_rate": 0.0
+                    })
+
+            return stats
+
     def get_last_n_workdays_stats(self, n=5):
         """
         Hole Statistiken für die letzten N Werktage (Mo-Fr)
-        Für Admin Tracking-Dashboard
+        Für Admin Tracking-Dashboard (PG-First, JSON-Fallback)
 
         Args:
             n: Anzahl der Werktage
@@ -1276,6 +1400,16 @@ class BookingTracker:
         Returns:
             Liste mit Tages-Statistiken (neueste zuerst)
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_last_n_workdays_stats_pg(n)
+                if result:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG load failed for workday stats, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
         try:
             if not os.path.exists(self.metrics_file):
                 return []
@@ -1283,20 +1417,7 @@ class BookingTracker:
             with open(self.metrics_file, "r", encoding="utf-8") as f:
                 all_metrics = json.load(f)
 
-            # Finde letzte N Werktage
-            today = datetime.now(TZ).date()
-            workdays = []
-            current_date = today
-
-            while len(workdays) < n:
-                # Prüfe ob Werktag (0=Montag, 6=Sonntag)
-                if current_date.weekday() < 5:  # Mo-Fr
-                    workdays.append(current_date)
-                current_date -= timedelta(days=1)
-
-                # Sicherheit: Max 20 Tage zurück
-                if (today - current_date).days > 20:
-                    break
+            workdays = self._get_last_n_workdays(n)
 
             # Hole Metriken für diese Tage
             stats = []
@@ -1355,10 +1476,94 @@ class BookingTracker:
             logger.error(f"Fehler beim Laden der Werktags-Statistiken: {e}")
             return []
 
+    def _get_stats_since_date_pg(self, start_date_str, end_date_str=None):
+        """PG-First: Lade aggregierte Stats aus BookingOutcome."""
+        from app.utils.db_utils import db_session_scope_no_commit
+        from sqlalchemy import func, case
+
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        today = datetime.now(TZ).date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date() if end_date_str else today
+
+        with db_session_scope_no_commit() as session:
+            # Aggregat-Totals
+            totals = session.query(
+                func.count().label('total_slots'),
+                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
+                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
+                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
+                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
+                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
+                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
+                func.count(func.distinct(BookingOutcome.date)).label('days_tracked')
+            ).filter(
+                BookingOutcome.date >= start_date,
+                BookingOutcome.date <= end_date
+            ).first()
+
+            # Daily-Data fuer Charts (nur Werktage)
+            daily_rows = session.query(
+                BookingOutcome.date,
+                func.count().label('total_slots'),
+                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
+                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
+                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
+            ).filter(
+                BookingOutcome.date >= start_date,
+                BookingOutcome.date <= end_date
+            ).group_by(BookingOutcome.date).order_by(BookingOutcome.date).all()
+
+            daily_data = []
+            for row in daily_rows:
+                if row.date.weekday() < 5 and (row.total_slots or 0) > 0:
+                    slots = row.total_slots or 0
+                    completed = row.completed or 0
+                    appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
+                    daily_data.append({
+                        "date": str(row.date),
+                        "total_slots": slots,
+                        "completed": completed,
+                        "no_shows": row.no_shows or 0,
+                        "ghosts": row.ghosts or 0,
+                        "appearance_rate": appearance_rate
+                    })
+
+            total_slots = totals.total_slots or 0
+            total_completed = totals.completed or 0
+            total_no_shows = totals.no_shows or 0
+            total_ghosts = totals.ghosts or 0
+
+            if total_slots > 0:
+                appearance_rate = round((total_completed / total_slots) * 100, 1)
+                no_show_rate = round((total_no_shows / total_slots) * 100, 1)
+                ghost_rate = round((total_ghosts / total_slots) * 100, 1)
+            else:
+                appearance_rate = no_show_rate = ghost_rate = 0.0
+
+            return {
+                "start_date": start_date_str,
+                "end_date": str(end_date),
+                "days_tracked": totals.days_tracked or 0,
+                "total_days": (end_date - start_date).days + 1,
+                "total_slots": total_slots,
+                "completed": total_completed,
+                "no_shows": total_no_shows,
+                "ghosts": total_ghosts,
+                "cancelled": totals.cancelled or 0,
+                "rescheduled": totals.rescheduled or 0,
+                "overhang": totals.overhang or 0,
+                "appearance_rate": appearance_rate,
+                "completion_rate": appearance_rate,
+                "no_show_rate": no_show_rate,
+                "ghost_rate": ghost_rate,
+                "daily_data": daily_data
+            }
+
     def get_stats_since_date(self, start_date_str="2025-09-01"):
         """
         Hole Gesamt-Statistiken seit einem bestimmten Datum
         Für Admin Tracking-Dashboard (seit Go-Live)
+        PG-First, JSON-Fallback
 
         Args:
             start_date_str: Start-Datum im Format YYYY-MM-DD
@@ -1366,6 +1571,16 @@ class BookingTracker:
         Returns:
             Dict mit aggregierten Statistiken
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_stats_since_date_pg(start_date_str)
+                if result and result.get("total_slots", 0) > 0:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG load failed for stats since {start_date_str}, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
         try:
             if not os.path.exists(self.metrics_file):
                 return {
@@ -1508,12 +1723,99 @@ class BookingTracker:
         weekdays_de = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
         return weekdays_de[weekday_index]
 
+    def detect_tracking_gaps(self, lookback_days=14):
+        """
+        Erkennt fehlende Tracking-Tage in JSON und PostgreSQL.
+        Prueft die letzten N Werktage auf Luecken.
+
+        Returns:
+            Liste fehlender Datums-Strings (YYYY-MM-DD)
+        """
+        today = datetime.now(TZ).date()
+        missing_dates = []
+
+        # JSON-Daten laden
+        json_dates = set()
+        if os.path.exists(self.metrics_file):
+            try:
+                with open(self.metrics_file, "r", encoding="utf-8") as f:
+                    all_metrics = json.load(f)
+                json_dates = set(all_metrics.keys())
+            except Exception:
+                pass
+
+        # PG-Daten pruefen
+        pg_dates = set()
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                from app.utils.db_utils import db_session_scope_no_commit
+                from sqlalchemy import func
+                cutoff = today - timedelta(days=lookback_days)
+                with db_session_scope_no_commit() as session:
+                    rows = session.query(
+                        func.distinct(BookingOutcome.date)
+                    ).filter(BookingOutcome.date >= cutoff).all()
+                    pg_dates = {str(row[0]) for row in rows}
+            except Exception:
+                pass
+
+        # Pruefe jeden Werktag im Lookback-Fenster
+        current_date = today - timedelta(days=lookback_days)
+        while current_date <= today - timedelta(days=1):
+            if current_date.weekday() < 5:
+                date_str = str(current_date)
+                if date_str not in json_dates and date_str not in pg_dates:
+                    missing_dates.append(date_str)
+            current_date += timedelta(days=1)
+
+        if missing_dates:
+            logger.warning(f"Tracking-Luecken: {len(missing_dates)} Werktage ohne Daten: {missing_dates}")
+            try:
+                from app.services.notification_service import notification_service
+                notification_service.create_notification(
+                    roles=['admin'],
+                    title='Tracking-Luecken erkannt',
+                    message=f'{len(missing_dates)} Werktage ohne Tracking-Daten: {", ".join(missing_dates[:5])}{"..." if len(missing_dates) > 5 else ""}',
+                    notification_type='warning',
+                    show_popup=False
+                )
+            except Exception:
+                pass
+
+        return missing_dates
+
     # ----------------- BOOKINGS BY CREATION DATE -----------------
+
+    def _get_bookings_by_creation_date_pg(self, start_date_str, end_date_str):
+        """PG-First: Zaehle T1-Buchungen nach Erstellungs-Datum aus PostgreSQL."""
+        from app.utils.db_utils import db_session_scope_no_commit
+        from sqlalchemy import func
+
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        with db_session_scope_no_commit() as session:
+            rows = session.query(
+                Booking.username,
+                func.count(Booking.id).label('booking_count')
+            ).filter(
+                func.date(Booking.booking_timestamp) >= start_date,
+                func.date(Booking.booking_timestamp) <= end_date
+            ).group_by(Booking.username).all()
+
+            total = 0
+            by_user = {}
+            for row in rows:
+                display_name = USERNAME_TO_DISPLAY.get(row.username.lower(), row.username)
+                by_user[display_name] = by_user.get(display_name, 0) + row.booking_count
+                total += row.booking_count
+
+            return {"total_bookings": total, "by_user": by_user}
 
     def get_bookings_by_creation_date(self, start_date_str, end_date_str):
         """
         Zähle T1-Buchungen nach BUCHUNGSERSTELLUNG (nicht Termin-Datum).
-        Verwendet das 'timestamp' Feld aus bookings.jsonl.
+        PG-First, JSON-Fallback.
 
         Args:
             start_date_str: Start-Datum (YYYY-MM-DD)
@@ -1525,6 +1827,16 @@ class BookingTracker:
                 "by_user": { "username": count, ... }
             }
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_bookings_by_creation_date_pg(start_date_str, end_date_str)
+                if result and result.get("total_bookings", 0) > 0:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG load failed for bookings by creation date, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
         try:
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
             end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -1552,7 +1864,7 @@ class BookingTracker:
                             booking_timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
                             booking_date = booking_timestamp.date()
                         except (ValueError, TypeError):
-                            # Fallback: try simple date format
+                            logger.debug(f"Skipped booking with bad timestamp: {timestamp_str[:50]}")
                             continue
 
                         # Check if within date range
@@ -1581,10 +1893,60 @@ class BookingTracker:
 
     # ----------------- CONSULTANT PERFORMANCE METHODS -----------------
 
+    def _get_consultant_performance_pg(self, start_date_str, end_date_str):
+        """PG-First: Berater-Performance aus BookingOutcome aggregieren."""
+        from app.utils.db_utils import db_session_scope_no_commit
+        from sqlalchemy import func, case
+
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        with db_session_scope_no_commit() as session:
+            rows = session.query(
+                BookingOutcome.consultant,
+                func.count().label('total_slots'),
+                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
+                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
+                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
+                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
+                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
+                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
+            ).filter(
+                BookingOutcome.date >= start_date,
+                BookingOutcome.date <= end_date,
+                BookingOutcome.consultant.isnot(None),
+                BookingOutcome.consultant != 'Unknown'
+            ).group_by(BookingOutcome.consultant).all()
+
+            result = {}
+            for row in rows:
+                consultant_name = row.consultant or "Unknown"
+                completed = row.completed or 0
+                no_shows = row.no_shows or 0
+                ghosts = row.ghosts or 0
+
+                appearance_rate = 0.0
+                denominator = completed + no_shows + ghosts
+                if denominator > 0:
+                    appearance_rate = round((completed / denominator) * 100, 1)
+
+                result[consultant_name] = {
+                    "total_slots": row.total_slots or 0,
+                    "completed": completed,
+                    "no_shows": no_shows,
+                    "ghosts": ghosts,
+                    "cancelled": row.cancelled or 0,
+                    "rescheduled": row.rescheduled or 0,
+                    "overhang": row.overhang or 0,
+                    "appearance_rate": appearance_rate
+                }
+
+            return result
+
     def get_consultant_performance(self, start_date_str, end_date_str):
         """
-        Berechne Berater-Performance basierend auf Google Calendar Titel-Markern.
-        Verwendet gleiche Logik wie my-calendar für konsistente Daten.
+        Berechne Berater-Performance.
+        PG-First (aus BookingOutcome), Fallback auf Google Calendar API.
 
         Args:
             start_date_str: Start-Datum (YYYY-MM-DD)
@@ -1604,6 +1966,16 @@ class BookingTracker:
                 }, ...
             }
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_consultant_performance_pg(start_date_str, end_date_str)
+                if result:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG load failed for consultant performance, falling back to Calendar API: {e}")
+
+        # 2. Google Calendar API Fallback
         try:
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
             end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -1687,6 +2059,10 @@ class BookingTracker:
                         consultant = booked_by_match.group(1).strip().lower()
                     else:
                         consultant = "Unknown"
+                        logger.info(
+                            f"Unmatched event: '{summary}' clean='{customer_name}' "
+                            f"date={event_date} key='{lookup_key}'"
+                        )
 
                 # Map username to display name for ranking
                 consultant = USERNAME_TO_DISPLAY.get(consultant.lower(), consultant)
@@ -1708,6 +2084,11 @@ class BookingTracker:
                     consultant_stats[consultant]["rescheduled"] += 1
                 else:
                     consultant_stats[consultant]["pending"] += 1
+
+            # Diagnostic: Log unmatched events count
+            unknown_slots = consultant_stats.get("Unknown", {}).get("total_slots", 0)
+            if unknown_slots > 0:
+                logger.warning(f"Consultant performance: {unknown_slots} events attributed to 'Unknown'")
 
             # 4. Berechne Erschienen-Quote pro Consultant
             result = {}
@@ -1742,6 +2123,7 @@ class BookingTracker:
     def get_stats_for_period(self, start_date_str, end_date_str):
         """
         Flexible Statistiken für beliebigen Zeitraum
+        PG-First, JSON-Fallback
 
         Args:
             start_date_str: Start-Datum (YYYY-MM-DD)
@@ -1750,6 +2132,20 @@ class BookingTracker:
         Returns:
             dict mit Aggregatstatistiken und daily_data für Charts
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_stats_since_date_pg(start_date_str, end_date_str)
+                if result and result.get("total_slots", 0) > 0:
+                    # Ergaenze bookings_created (kommt aus JSONL)
+                    bookings_created_data = self.get_bookings_by_creation_date(start_date_str, end_date_str)
+                    result["bookings_created"] = bookings_created_data.get("total_bookings", 0)
+                    result["bookings_created_by_user"] = bookings_created_data.get("by_user", {})
+                    return result
+            except Exception as e:
+                logger.warning(f"PG load failed for period stats, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
         try:
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
             end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -2032,7 +2428,15 @@ def run_daily_outcome_check():
     tracker.check_daily_outcomes(yesterday)
     
     logger.info(f"Daily outcome check completed at {datetime.now(TZ).strftime('%H:%M')}")
-    
+
+    # Tracking-Luecken pruefen
+    try:
+        gaps = tracker.detect_tracking_gaps(lookback_days=7)
+        if gaps:
+            logger.warning(f"Tracking gaps found during daily check: {gaps}")
+    except Exception as e:
+        logger.warning(f"Gap detection failed: {e}")
+
     # Generiere Dashboard
     dashboard = tracker.get_performance_dashboard()
     
