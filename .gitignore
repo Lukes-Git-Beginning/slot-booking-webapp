@@ -101,6 +101,15 @@ static/champions.json
 static/daily_user_stats.json
 static/user_levels.json
 static/level_history.json
+static/account_lockouts.json
+static/audit_log.json
+static/mvp_badges.json
+static/user_2fa.json
+static/user_notifications.json
+static/user_passwords.json
+
+# Runtime data directory
+persist/
 
 # Keep historical data for analysis
 !data/historical/*.json
