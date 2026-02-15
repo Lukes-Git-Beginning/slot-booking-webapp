@@ -19,6 +19,8 @@ jobs:
       ADMIN_USERS: admin_user
       USE_POSTGRES: "false"
       CALENDAR_DRY_RUN: "true"
+      LOG_DIR: logs
+      PERSIST_BASE: data
 
     steps:
       - uses: actions/checkout@v4
