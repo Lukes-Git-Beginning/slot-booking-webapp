@@ -1,0 +1,40 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      SECRET_KEY: ci-test-key
+      FLASK_ENV: testing
+      TESTING: "true"
+      USERLIST: test_user:test_pass,admin_user:admin_pass
+      ADMIN_USERS: admin_user
+      USE_POSTGRES: "false"
+      CALENDAR_DRY_RUN: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -x -v --tb=short
+
+      - name: Coverage report
+        if: github.ref == 'refs/heads/main'
+        run: pytest --cov=app --cov-report=term-missing
