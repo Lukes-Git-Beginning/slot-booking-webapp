@@ -444,7 +444,7 @@ def register_request_hooks(app: Flask) -> None:
         nonce = getattr(g, 'csp_nonce', '')
         csp_directives = [
             "default-src 'self'",
-            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+            f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval' https://cdn.jsdelivr.net",
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
             "img-src 'self' data: https:",
             "font-src 'self' data: https://fonts.gstatic.com",
