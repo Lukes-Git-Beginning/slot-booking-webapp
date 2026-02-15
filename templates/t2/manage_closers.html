@@ -17,7 +17,7 @@
           <p class="text-base-content/70 mt-2">Closer hinzufügen, bearbeiten und entfernen</p>
         </div>
         <div class="flex gap-2">
-          <button onclick="document.getElementById('add-modal').showModal()" class="btn btn-primary">
+          <button data-action="showModal" data-args='["add-modal"]' class="btn btn-primary">
             <i data-lucide="plus" class="w-5 h-5"></i>
             Closer hinzufügen
           </button>
@@ -61,12 +61,12 @@
         </div>
 
         <div class="flex gap-2">
-          <button onclick="openEditModal('{{ name }}', '{{ info.get('color', '') }}', '{{ info.get('full_name', '') }}')"
+          <button data-action="openEditModal" data-args='["{{ name }}", "{{ info.get('color', '') }}", "{{ info.get('full_name', '') }}"]'
                   class="btn btn-sm btn-ghost flex-1">
             <i data-lucide="edit" class="w-4 h-4"></i>
             Bearbeiten
           </button>
-          <button onclick="confirmRemove('{{ name }}')"
+          <button data-action="confirmRemove" data-args='["{{ name }}"]'
                   class="btn btn-sm btn-ghost text-error">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
@@ -108,7 +108,7 @@
         <input type="number" name="default_probability" class="input input-bordered w-full" value="1.0" step="0.1" min="0" required>
       </div>
       <div class="modal-action">
-        <button type="button" onclick="document.getElementById('add-modal').close()" class="btn btn-ghost">Abbrechen</button>
+        <button type="button" data-action="closeModal" data-args='["add-modal"]' class="btn btn-ghost">Abbrechen</button>
         <button type="submit" class="btn btn-primary">Hinzufügen</button>
       </div>
     </form>
@@ -135,7 +135,7 @@
         <input type="color" name="color" id="edit-color" class="input input-bordered w-full h-12">
       </div>
       <div class="modal-action">
-        <button type="button" onclick="document.getElementById('edit-modal').close()" class="btn btn-ghost">Abbrechen</button>
+        <button type="button" data-action="closeModal" data-args='["edit-modal"]' class="btn btn-ghost">Abbrechen</button>
         <button type="submit" class="btn btn-primary">Speichern</button>
       </div>
     </form>
@@ -144,7 +144,7 @@
 </dialog>
 
 <script nonce="{{ csp_nonce }}">
-function openEditModal(name, color, fullName) {
+function openEditModal(e, name, color, fullName) {
     document.getElementById('edit-name').value = name;
     document.getElementById('edit-name-display').value = name;
     document.getElementById('edit-full-name').value = fullName;
@@ -152,7 +152,7 @@ function openEditModal(name, color, fullName) {
     document.getElementById('edit-modal').showModal();
 }
 
-function confirmRemove(name) {
+function confirmRemove(e, name) {
     if (confirm(`Closer "${name}" wirklich entfernen?`)) {
         fetch('/t2/api/remove-closer', {
             method: 'POST',

@@ -8,30 +8,14 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 
-  <!-- Tailwind CSS + DaisyUI -->
-  <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-  <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+  <!-- Tailwind CSS + DaisyUI (Pre-compiled) -->
+  <link href="{{ url_for('static', filename='tailwind-compiled.css') }}" rel="stylesheet" />
 
   <!-- Lucide Icons -->
   <script src="{{ url_for('static', filename='lucide.js') }}"></script>
 
   <!-- Particles.js -->
   <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
-
-  <!-- Tailwind Config -->
-  <script nonce="{{ csp_nonce }}">
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#d4af6a',
-            'secondary': '#207487',
-            'accent': '#294c5d',
-          },
-        },
-      },
-    }
-  </script>
 
   <style nonce="{{ csp_nonce }}">
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');

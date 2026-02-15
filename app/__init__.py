@@ -4,10 +4,11 @@ Central Business Tool Hub - Flask Application Factory
 Zentraler Hub für alle Business-Tools mit Microservice-Architektur
 """
 
-from flask import Flask, render_template, redirect, url_for, request, session
+from flask import Flask, render_template, redirect, url_for, request, session, g
 from typing import Optional
 import os
 import logging
+import secrets
 from datetime import datetime
 
 def create_app(config_object: Optional[str] = None) -> Flask:
@@ -371,6 +372,7 @@ def register_template_context(app: Flask) -> None:
             'is_admin': session.get('user') in get_admin_users(),
             'available_tools': get_available_tools(),
             'notifications': get_user_notifications(),
+            'csp_nonce': getattr(g, 'csp_nonce', ''),
         }
 
     @app.template_filter('datetime')
@@ -415,6 +417,11 @@ def register_request_hooks(app: Flask) -> None:
     """Request-Hooks für Session-Management und Logging"""
 
     @app.before_request
+    def set_csp_nonce():
+        """Generate a unique CSP nonce for each request"""
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.before_request
     def before_request():
         """Vor jedem Request ausführen"""
         # User-Activity-Tracking
@@ -433,19 +440,18 @@ def register_request_hooks(app: Flask) -> None:
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
 
-        # Content Security Policy (CSP)
-        # NOTE: unsafe-inline/unsafe-eval required for current inline scripts
-        # TODO: Refactor to nonce-based CSP for better security
+        # Content Security Policy (CSP) - Nonce-based
+        nonce = getattr(g, 'csp_nonce', '')
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Allows inline scripts (needed for Tailwind/Alpine)
-            "style-src 'self' 'unsafe-inline'",  # Allows inline styles
-            "img-src 'self' data: https:",  # Allows base64 images and external HTTPS images
-            "font-src 'self' data:",  # Allows web fonts
-            "connect-src 'self'",  # AJAX requests to same origin only
-            "frame-ancestors 'none'",  # Prevents clickjacking (stronger than X-Frame-Options)
-            "base-uri 'self'",  # Restricts <base> tag
-            "form-action 'self'",  # Forms can only submit to same origin
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+            "img-src 'self' data: https:",
+            "font-src 'self' data: https://fonts.gstatic.com",
+            "connect-src 'self'",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
         ]
         response.headers['Content-Security-Policy'] = "; ".join(csp_directives)
 

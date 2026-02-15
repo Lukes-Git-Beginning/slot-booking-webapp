@@ -1,0 +1,29 @@
+{
+  "name": "slot_booking_webapp",
+  "version": "1.0.0",
+  "description": "**Version:** 3.3.16 | **Status:** Production | **Server:** https://berater.zfa.gmbh/",
+  "main": "tailwind.config.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "build:css": "npx tailwindcss -o static/tailwind-compiled.css --minify",
+    "watch:css": "npx tailwindcss -o static/tailwind-compiled.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lukes-Git-Beginning/slot-booking-webapp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lukes-Git-Beginning/slot-booking-webapp/issues"
+  },
+  "homepage": "https://github.com/Lukes-Git-Beginning/slot-booking-webapp#readme",
+  "dependencies": {
+    "daisyui": "^4.12.24",
+    "tailwindcss": "^3.4.19"
+  }
+}

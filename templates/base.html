@@ -9,9 +9,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 
-    <!-- Tailwind CSS + DaisyUI -->
-    <script src="{{ url_for('static', filename='tailwind.min.js') }}"></script>
-    <link href="{{ url_for('static', filename='daisyui.min.css') }}" rel="stylesheet" type="text/css" />
+    <!-- Tailwind CSS + DaisyUI (Pre-compiled) -->
+    <link href="{{ url_for('static', filename='tailwind-compiled.css') }}" rel="stylesheet" />
 
     <!-- Lucide Icons -->
     <script src="{{ url_for('static', filename='lucide.js') }}"></script>
@@ -27,49 +26,6 @@
     <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
     {% block extra_head_imports %}{% endblock %}
-
-    <!-- Custom Tailwind Config -->
-    <script nonce="{{ csp_nonce }}">
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#d4af6a',
-                        'primary-dark': '#c2ae7f',
-                        'secondary': '#207487',
-                        'accent': '#294c5d',
-                        'zfa-gray': '#77726d',
-                        {% block tailwind_config_colors %}{% endblock %}
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                    animation: {
-                        'gradient': 'gradient 15s ease infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                        'glow': 'glow 2s ease-in-out infinite',
-                        {% block tailwind_config_animations %}{% endblock %}
-                    },
-                    keyframes: {
-                        gradient: {
-                            '0%, 100%': { backgroundPosition: '0% 50%' },
-                            '50%': { backgroundPosition: '100% 50%' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        },
-                        glow: {
-                            '0%, 100%': { boxShadow: '0 0 20px rgba(212,175,106,0.3)' },
-                            '50%': { boxShadow: '0 0 40px rgba(212,175,106,0.6)' },
-                        },
-                        {% block tailwind_config_keyframes %}{% endblock %}
-                    },
-                },
-            },
-        }
-    </script>
 
     {% block theme_colors %}{% endblock %}
 

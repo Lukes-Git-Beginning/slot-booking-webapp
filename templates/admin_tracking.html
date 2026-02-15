@@ -942,7 +942,7 @@
                     <td class="text-white/80">${b.user || '-'}</td>
                     <td class="text-white/60 text-sm">${b.failed_at ? new Date(b.failed_at).toLocaleString('de-DE') : '-'}</td>
                     <td class="text-center">
-                        <button onclick="retrySingleBooking(event, '${b.id}')" class="btn btn-warning btn-xs gap-1">
+                        <button data-action="retrySingleBooking" data-args='["${b.id}"]' class="btn btn-warning btn-xs gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Retry
                         </button>
                     </td>
