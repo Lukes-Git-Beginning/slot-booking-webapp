@@ -1,6 +1,6 @@
 # Central Business Tool Hub
 
-**Version:** 3.3.16 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
+**Version:** 3.3.18 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
 
 Professional multi-tool platform combining slot booking, T2 appointment management, gamification, and business analytics.
 
@@ -93,6 +93,7 @@ SENTRY_DSN=<your-sentry-dsn>  # Error tracking
 - **Password Security:** bcrypt hashing (12 rounds)
 - **2FA:** TOTP-based (Google Authenticator)
 - **Rate Limiting:** Nginx + Flask dual-layer
+- **CSP:** Nonce-based Content-Security-Policy (script-src)
 - **Systemd Hardening:** ProtectSystem=strict, ReadWritePaths isolation
 - **Account Lockout:** 3-tier progressive (5/10/15 attempts)
 
@@ -101,7 +102,7 @@ SENTRY_DSN=<your-sentry-dsn>  # Error tracking
 ## Tech Stack
 
 **Backend:** Flask 3.1.1, Python 3.11+, PostgreSQL, Gunicorn (4 workers)
-**Frontend:** Tailwind CSS + DaisyUI (Hub/T2), Bootstrap 5.3.2 (Slots), Jinja2
+**Frontend:** Tailwind CSS + DaisyUI, Alpine.js, Jinja2
 **Infrastructure:** Hetzner VPS, Nginx, Systemd, Ubuntu 22.04 LTS
 **APIs:** Google Calendar API v3, Discord Webhooks
 **Monitoring:** Sentry error tracking
@@ -121,9 +122,15 @@ pytest --cov=app --cov-report=html
 pytest tests/test_booking_service.py -v
 ```
 
-**Test Coverage:** ~75% (200+ test cases, 26 test files)
+**Test Coverage:** 573 tests passing (34 test files)
 
 See [docs/TESTING.md](docs/TESTING.md) for comprehensive testing guide.
+
+### CI/CD
+
+- **GitHub Actions:** CI on push/PR (pytest), auto-deploy to production
+- **CodeRabbit:** AI-powered code reviews on pull requests
+- **Discord Webhooks:** Deployment notifications
 
 ---
 
@@ -318,7 +325,7 @@ See [docs/ROLES_AND_CALENDARS.md](docs/ROLES_AND_CALENDARS.md) for detailed role
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment procedures, systemd configuration |
 | [TESTING.md](docs/TESTING.md) | Testing guide, fixtures, CI/CD integration |
 | [ROLES_AND_CALENDARS.md](docs/ROLES_AND_CALENDARS.md) | User roles, permissions, calendar systems |
-| [CLAUDE.md](docs/CLAUDE.md) | Claude Code instructions, deployment workflow |
+| [CLAUDE.md](CLAUDE.md) | Claude Code instructions, deployment workflow |
 | [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Local development setup, architecture |
 | [CASE_STUDY.md](docs/CASE_STUDY.md) | PostgreSQL migration case study |
 | [ROADMAP.md](docs/ROADMAP.md) | Future features & improvement plans |
@@ -329,18 +336,13 @@ See [docs/ROLES_AND_CALENDARS.md](docs/ROLES_AND_CALENDARS.md) for detailed role
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
-### Latest (v3.3.16 - 2026-02-01)
+### Latest (v3.3.18 - 2026-02-15)
 
-**Fixed:**
-- ✅ CSRF Protection Complete: 100% coverage (30/30 endpoints)
-  - Added tokens to index.html, my_calendar.html, customization_shop.html
-- ✅ Systemd Hardening: Fixed "Read-only file system" errors
-  - Added `/opt/business-hub/static` to ReadWritePaths
-  - Restored gamification data writes after 6-day outage
-
-**Security:**
-- 3-layer CSRF architecture (Global Fetch Patching + Standalone + Traditional Forms)
-- Systemd ReadWritePaths/ReadOnlyPaths isolation
+- CSP Nonce-Migration: `unsafe-inline` aus script-src eliminiert, nonce-basierte Policy
+- Test Coverage: 200+ → 573 Tests (34 Testdateien)
+- CI/CD Pipeline: GitHub Actions (CI + Deploy), CodeRabbit AI Reviews, Discord Webhooks
+- Score Recovery & Datenintegritäts-Validierung beim Startup
+- Root-Cleanup: Archivierte Code-Artefakte entfernt
 
 ---
 
@@ -356,7 +358,7 @@ curl https://berater.zfa.gmbh/health
 ```json
 {
   "status": "healthy",
-  "version": "3.3.16",
+  "version": "3.3.18",
   "timestamp": "2026-01-05T...",
   "database": "healthy",
   "memory": "ok"
@@ -423,9 +425,9 @@ Proprietary - Internal use only
 **Development:** Luke Hoppe
 **Organization:** ZFA GmbH
 **Infrastructure:** Hetzner VPS
-**Version:** 3.3.16 (2026-02-01)
+**Version:** 3.3.18 (2026-02-15)
 
 ---
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-15
 **Next Review:** 2026-05-01

@@ -11,6 +11,8 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
     steps:
       - name: Deploy via SSH
@@ -30,15 +32,15 @@ jobs:
             curl -sf https://berater.zfa.gmbh/health || exit 1
 
       - name: Discord notification (success)
-        if: success() && secrets.DISCORD_WEBHOOK_URL != ''
+        if: success() && env.DISCORD_WEBHOOK_URL != ''
         run: |
-          curl -sf -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d "{\"content\": \"Deploy erfolgreich: \`${{ github.sha }}\` von ${{ github.actor }}\"}"
 
       - name: Discord notification (failure)
-        if: failure() && secrets.DISCORD_WEBHOOK_URL != ''
+        if: failure() && env.DISCORD_WEBHOOK_URL != ''
         run: |
-          curl -sf -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d "{\"content\": \"Deploy FEHLGESCHLAGEN: \`${{ github.sha }}\` von ${{ github.actor }} — Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
