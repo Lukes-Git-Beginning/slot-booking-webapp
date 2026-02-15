@@ -97,37 +97,41 @@ def init_extensions(app: Flask) -> None:
         csrf = None
 
     # Initialize Flask-Limiter for rate limiting (security)
-    try:
-        from flask_limiter import Limiter
-        from flask_limiter.util import get_remote_address
-        from app.utils.rate_limiting import init_rate_limiter, handle_rate_limit_error
-        import os
-
-        # Use Redis for rate limiting if available
-        redis_url = os.getenv('REDIS_URL')
-        storage_uri = redis_url if redis_url else "memory://"
-
-        limiter = Limiter(
-            app=app,
-            key_func=get_remote_address,
-            default_limits=["10000 per day", "500 per hour"],
-            storage_uri=storage_uri,
-            strategy="fixed-window"
-        )
-
-        # Register custom error handler
-        app.errorhandler(429)(handle_rate_limit_error)
-
-        # Initialize rate limiting module
-        init_rate_limiter(limiter)
-
-        if redis_url:
-            logger.info("Rate limiting initialized with Redis backend")
-        else:
-            logger.info("Rate limiting initialized with memory backend")
-    except Exception as e:
-        logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
+    import os
+    if os.getenv('TESTING', '').lower() in ('true', '1'):
         limiter = None
+        logger.info("Rate limiting disabled in test mode")
+    else:
+        try:
+            from flask_limiter import Limiter
+            from flask_limiter.util import get_remote_address
+            from app.utils.rate_limiting import init_rate_limiter, handle_rate_limit_error
+
+            # Use Redis for rate limiting if available
+            redis_url = os.getenv('REDIS_URL')
+            storage_uri = redis_url if redis_url else "memory://"
+
+            limiter = Limiter(
+                app=app,
+                key_func=get_remote_address,
+                default_limits=["10000 per day", "500 per hour"],
+                storage_uri=storage_uri,
+                strategy="fixed-window"
+            )
+
+            # Register custom error handler
+            app.errorhandler(429)(handle_rate_limit_error)
+
+            # Initialize rate limiting module
+            init_rate_limiter(limiter)
+
+            if redis_url:
+                logger.info("Rate limiting initialized with Redis backend")
+            else:
+                logger.info("Rate limiting initialized with memory backend")
+        except Exception as e:
+            logger.warning(f"Could not initialize rate limiter", extra={'error': str(e)})
+            limiter = None
 
     # Initialize Flask-Session with Redis backend (if available)
     init_session_storage(app)
