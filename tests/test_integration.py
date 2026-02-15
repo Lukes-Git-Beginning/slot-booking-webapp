@@ -90,10 +90,10 @@ def test_main_app():
     print("🌐 Testing Main App...")
     
     try:
-        from slot_booking_webapp import app, add_points_to_user
-        
+        from app.services.booking_service import award_booking_points
+
         # Test Punkte-Funktion
-        test_result = add_points_to_user("test_user", 5)
+        test_result = award_booking_points("test_user", 5)
         print(f"  Punkte-Test: {len(test_result)} neue Badges")
         
         print("✅ Main App Test erfolgreich")

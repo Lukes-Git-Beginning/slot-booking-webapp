@@ -504,3 +504,219 @@ class TestDetailedSummary:
         assert result['total_days'] == 1
         assert result['consultant_frequency']['Berater1'] == 2
         assert result['consultant_frequency']['Berater2'] == 1
+
+
+class TestAwardBookingPoints:
+    """Tests for award_booking_points service function"""
+
+    @pytest.fixture(autouse=True)
+    def mock_deps(self):
+        """Mock all dependencies for award_booking_points"""
+        with patch('app.services.booking_service.data_persistence') as mock_dp, \
+             patch('app.services.booking_service.safe_import') as mock_si, \
+             patch('app.services.booking_service.booking_logger'):
+            mock_dp.load_scores.return_value = {"test_user": {"2026-02": 10}}
+            mock_si.return_value = None  # No achievement system
+            self.mock_dp = mock_dp
+            self.mock_si = mock_si
+            yield
+
+    @pytest.mark.unit
+    def test_award_points_adds_to_scores(self):
+        """Test that points are added to user scores"""
+        from app.services.booking_service import award_booking_points
+
+        with patch('app.services.daily_quests.daily_quest_system') as mock_dq:
+            mock_dq.load_user_coins.return_value = {"test_user": 100}
+
+            result = award_booking_points("test_user", 5)
+
+            assert isinstance(result, list)
+            self.mock_dp.save_scores.assert_called_once()
+
+    @pytest.mark.unit
+    def test_award_points_adds_coins(self):
+        """Test that coins are also awarded"""
+        from app.services.booking_service import award_booking_points
+
+        with patch('app.services.booking_service.safe_import') as mock_si:
+            mock_si.return_value = None
+
+            with patch('app.services.daily_quests.daily_quest_system') as mock_dq:
+                mock_dq.load_user_coins.return_value = {"test_user": 100}
+
+                award_booking_points("test_user", 5)
+
+                mock_dq.save_user_coins.assert_called_once()
+                saved = mock_dq.save_user_coins.call_args[0][0]
+                assert saved["test_user"] == 105
+
+    @pytest.mark.unit
+    def test_award_points_returns_empty_on_error(self):
+        """Test graceful handling of errors"""
+        from app.services.booking_service import award_booking_points
+
+        self.mock_dp.load_scores.side_effect = Exception("DB error")
+
+        result = award_booking_points("test_user", 5)
+
+        assert result == []
+
+    @pytest.mark.unit
+    def test_award_points_new_user(self):
+        """Test point award for user not yet in scores"""
+        from app.services.booking_service import award_booking_points
+
+        self.mock_dp.load_scores.return_value = {}
+
+        with patch('app.services.daily_quests.daily_quest_system') as mock_dq:
+            mock_dq.load_user_coins.return_value = {}
+
+            result = award_booking_points("new_user", 3)
+
+            assert isinstance(result, list)
+            self.mock_dp.save_scores.assert_called_once()
+
+
+class TestExecutePostBookingChain:
+    """Tests for execute_post_booking_chain service function"""
+
+    @pytest.fixture(autouse=True)
+    def mock_deps(self):
+        """Mock all dependencies for execute_post_booking_chain"""
+        with patch('app.services.booking_service.tracking_system') as mock_ts, \
+             patch('app.services.booking_service.data_persistence') as mock_dp, \
+             patch('app.services.booking_service.booking_logger'), \
+             patch('app.services.booking_service.award_booking_points') as mock_abp:
+            mock_ts.track_booking.return_value = {"id": "booking-123"}
+            mock_dp.load_daily_user_stats.return_value = {}
+            mock_abp.return_value = []
+            self.mock_ts = mock_ts
+            self.mock_dp = mock_dp
+            self.mock_abp = mock_abp
+            yield
+
+    @pytest.mark.unit
+    def test_chain_returns_correct_structure(self):
+        """Test that chain returns dict with expected keys"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        result = execute_post_booking_chain(
+            user="test_user", customer_name="Müller, Hans",
+            date="2026-02-15", hour="14:00", color_id="9",
+            description="Test", points=5, calendar_event_id="evt-123"
+        )
+
+        assert "tracking_ok" in result
+        assert "new_badges" in result
+        assert "flash_messages" in result
+        assert isinstance(result["flash_messages"], list)
+
+    @pytest.mark.unit
+    def test_chain_tracking_success(self):
+        """Test chain with successful tracking"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        result = execute_post_booking_chain(
+            user="test_user", customer_name="Müller, Hans",
+            date="2026-02-15", hour="14:00", color_id="9",
+            description="Test", points=5, calendar_event_id="evt-123"
+        )
+
+        assert result["tracking_ok"] is True
+        self.mock_ts.track_booking.assert_called_once()
+        # Should have success flash with points
+        messages = [msg for msg, cat in result["flash_messages"] if cat == "success"]
+        assert any("5 Punkt(e)" in msg for msg in messages)
+
+    @pytest.mark.unit
+    def test_chain_tracking_failure(self):
+        """Test chain with tracking failure"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        self.mock_ts.track_booking.return_value = None
+
+        result = execute_post_booking_chain(
+            user="test_user", customer_name="Müller, Hans",
+            date="2026-02-15", hour="14:00", color_id="9",
+            description="Test", points=5, calendar_event_id="evt-123"
+        )
+
+        assert result["tracking_ok"] is False
+        warnings = [msg for msg, cat in result["flash_messages"] if cat == "warning"]
+        assert len(warnings) >= 1
+
+    @pytest.mark.unit
+    def test_chain_tracking_exception(self):
+        """Test chain handles tracking exception gracefully"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        self.mock_ts.track_booking.side_effect = Exception("Connection error")
+
+        result = execute_post_booking_chain(
+            user="test_user", customer_name="Müller, Hans",
+            date="2026-02-15", hour="14:00", color_id="9",
+            description="Test", points=5, calendar_event_id="evt-123"
+        )
+
+        assert result["tracking_ok"] is False
+
+    @pytest.mark.unit
+    def test_chain_with_badges(self):
+        """Test chain includes badge flash messages"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        self.mock_abp.return_value = [{"name": "Erster Termin"}]
+
+        result = execute_post_booking_chain(
+            user="test_user", customer_name="Müller, Hans",
+            date="2026-02-15", hour="14:00", color_id="9",
+            description="Test", points=5, calendar_event_id="evt-123"
+        )
+
+        assert result["new_badges"] == [{"name": "Erster Termin"}]
+        badge_msgs = [msg for msg, cat in result["flash_messages"] if "Badge" in msg]
+        assert len(badge_msgs) == 1
+
+    @pytest.mark.unit
+    def test_chain_unknown_user_skips_points(self):
+        """Test that unknown users don't get points"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        result = execute_post_booking_chain(
+            user="unknown", customer_name="Müller, Hans",
+            date="2026-02-15", hour="14:00", color_id="9",
+            description="Test", points=5, calendar_event_id="evt-123"
+        )
+
+        self.mock_abp.assert_not_called()
+
+    @pytest.mark.unit
+    def test_chain_updates_daily_stats_evening(self):
+        """Test that evening bookings update daily stats"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        execute_post_booking_chain(
+            user="test_user", customer_name="Müller, Hans",
+            date="2026-02-15", hour="20:00", color_id="9",
+            description="Test", points=3, calendar_event_id="evt-123"
+        )
+
+        self.mock_dp.save_daily_user_stats.assert_called_once()
+
+    @pytest.mark.unit
+    def test_chain_calls_audit_log(self):
+        """Test that audit log is called"""
+        from app.services.booking_service import execute_post_booking_chain
+
+        with patch('app.services.audit_service.audit_service') as mock_audit:
+            execute_post_booking_chain(
+                user="test_user", customer_name="Müller, Hans",
+                date="2026-02-15", hour="14:00", color_id="9",
+                description="Test", points=5, calendar_event_id="evt-123"
+            )
+
+            mock_audit.log_event.assert_called_once()
+            call_kwargs = mock_audit.log_event.call_args[1]
+            assert call_kwargs["event_type"] == "booking"
+            assert call_kwargs["action"] == "booking_created"

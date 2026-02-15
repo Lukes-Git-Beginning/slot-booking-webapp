@@ -12,9 +12,11 @@ from typing import Dict, List, Tuple, Any, Optional
 from collections import defaultdict
 
 from app.config.base import slot_config, consultant_config
-from app.core.extensions import cache_manager, data_persistence
+from app.core.extensions import cache_manager, data_persistence, tracking_system
 from app.core.google_calendar import get_google_calendar_service
 from app.utils.helpers import get_week_start, get_current_kw, week_key_from_date
+from app.utils.logging import booking_logger
+from app.utils.memory_guard import safe_import, force_garbage_collection
 # from color_mapping import determine_outcome_from_color  # Will be fixed later
 
 # Logger setup
@@ -614,3 +616,218 @@ def book_slot_for_user(user: str, date_str: str, time_str: str, berater: str,
     except Exception as e:
         logger.error(f"Error booking slot: {e}", exc_info=True)
         return {'success': False, 'error': str(e)}
+
+
+def award_booking_points(user, points):
+    """Add points and coins to user, process achievements.
+
+    Args:
+        user: Username
+        points: Points to award
+
+    Returns:
+        list: New badges earned (may be empty)
+    """
+    try:
+        scores = data_persistence.load_scores()
+
+        month = datetime.now(TZ).strftime("%Y-%m")
+        if user not in scores:
+            scores[user] = {}
+
+        scores[user][month] = scores[user].get(month, 0) + points
+        data_persistence.save_scores(scores)
+
+        # Add equal amount of coins for cosmetics shop
+        try:
+            from app.services.daily_quests import daily_quest_system
+            coins_data = daily_quest_system.load_user_coins()
+            current_coins = coins_data.get(user, 0)
+            coins_data[user] = current_coins + points
+            daily_quest_system.save_user_coins(coins_data)
+            booking_logger.info(f"Added {points} coins to user {user} (total: {coins_data[user]})")
+        except Exception as e:
+            booking_logger.error(f"Error adding coins to user {user}: {e}", exc_info=True)
+
+        # Achievement system integration
+        new_badges = []
+        try:
+            achievement_module = safe_import('app.services.achievement_system')
+
+            if achievement_module and hasattr(achievement_module, 'achievement_system'):
+                achievement_sys = achievement_module.achievement_system
+
+                if achievement_sys:
+                    new_badges = achievement_sys.process_user_achievements(user)
+                    if isinstance(new_badges, list) and len(new_badges) > 20:
+                        booking_logger.warning(f"Achievement system returned {len(new_badges)} badges, limiting to 20")
+                        new_badges = new_badges[:20]
+
+        except MemoryError:
+            booking_logger.error(f"Memory error in achievement system for user {user}")
+            force_garbage_collection()
+        except Exception as e:
+            booking_logger.error(f"Could not process achievements for user {user}: {e}", exc_info=True)
+
+        return new_badges if isinstance(new_badges, list) else []
+
+    except Exception as e:
+        booking_logger.error(f"Error adding points to user {user}: {e}", exc_info=True)
+        return []
+
+
+def execute_post_booking_chain(user, customer_name, date, hour, color_id,
+                                description, points, calendar_event_id):
+    """Orchestrate the post-booking chain: Tracking -> Points -> Quests -> Stats -> Audit.
+
+    Args:
+        user: Username who booked
+        customer_name: "Last, First" format
+        date: Date string YYYY-MM-DD
+        hour: Time slot e.g. "14:00"
+        color_id: Calendar color ID
+        description: Booking description
+        points: Points to award
+        calendar_event_id: Google Calendar event ID
+
+    Returns:
+        dict with keys: tracking_ok, new_badges, flash_messages
+    """
+    from app.utils.error_messages import get_error_message
+    from app.utils.error_tracking import generate_error_id
+
+    flash_messages = []
+    tracking_successful = False
+    new_badges = []
+
+    # --- 1. Tracking ---
+    try:
+        if tracking_system:
+            booking_data = tracking_system.track_booking(
+                customer_name=customer_name,
+                date=date,
+                time_slot=hour,
+                user=user or "unknown",
+                color_id=color_id,
+                description=description
+            )
+            if booking_data is None:
+                error_id = generate_error_id("TRK")
+                booking_logger.error(
+                    f"Dual-write tracking failed {error_id}: "
+                    f"customer={customer_name}, date={date}, hour={hour}, "
+                    f"calendar_event_id={calendar_event_id}",
+                    extra_fields={'error_id': error_id, 'calendar_event_id': calendar_event_id}
+                )
+
+                error_msg = get_error_message('TRACKING_FAILED')
+                flash_messages.append((f"{error_msg['message']} (Fehler-ID: {error_id})", "warning"))
+                flash_messages.append(("WICHTIG: Ihr Termin wurde erfolgreich im Kalender erstellt und ist gültig!", "success"))
+
+                try:
+                    from app.services.notification_service import notification_service
+                    notification_service.create_notification(
+                        roles=['admin'],
+                        title='Tracking Failed - Action Required',
+                        message=f'Booking created but tracking failed for {customer_name} on {date} {hour}. Error ID: {error_id}',
+                        notification_type='warning',
+                        show_popup=True
+                    )
+                except Exception:
+                    pass
+            else:
+                tracking_successful = True
+    except Exception as e:
+        error_id = generate_error_id("TRK")
+        booking_logger.error(
+            f"Tracking exception {error_id}: {e}, customer={customer_name}, date={date}, hour={hour}",
+            exc_info=True,
+            extra_fields={'error_id': error_id}
+        )
+
+        error_msg = get_error_message('TRACKING_FAILED')
+        flash_messages.append((f"{error_msg['message']} (Fehler-ID: {error_id})", "warning"))
+        flash_messages.append(("WICHTIG: Ihr Termin wurde erfolgreich im Kalender erstellt und ist gültig!", "success"))
+
+    # --- 2. Points & Achievements ---
+    if user and user != "unknown":
+        try:
+            new_badges = award_booking_points(user, points)
+            if points > 0 and tracking_successful:
+                flash_messages.append((f"Slot erfolgreich gebucht! Du hast {points} Punkt(e) und {points} Coins erhalten.", "success"))
+            elif tracking_successful:
+                flash_messages.append(("Slot erfolgreich gebucht!", "success"))
+        except Exception as e:
+            booking_logger.error(f"Critical error in achievement system for user {user}: {e}", exc_info=True)
+            if tracking_successful:
+                flash_messages.append(("Slot erfolgreich gebucht!", "success"))
+    else:
+        if tracking_successful:
+            flash_messages.append(("Slot erfolgreich gebucht!", "success"))
+
+    # --- 3. Quest Progress ---
+    if user and user != "unknown":
+        try:
+            from app.routes.gamification.legacy_routes import update_quest_progress_for_booking
+            quest_data = {
+                "has_description": bool(description),
+                "booking_time": int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0,
+                "points_earned": points,
+                "date": date,
+                "hour": hour
+            }
+            update_quest_progress_for_booking(user, quest_data)
+        except ImportError:
+            pass  # Enhanced features not available
+        except Exception as e:
+            booking_logger.warning(f"Could not update quest progress for user {user}: {e}")
+
+    # --- 4. Daily Stats ---
+    try:
+        if user and user != "unknown":
+            daily_stats = data_persistence.load_daily_user_stats()
+            today_key = datetime.now(TZ).strftime("%Y-%m-%d")
+            if user not in daily_stats:
+                daily_stats[user] = {}
+            if today_key not in daily_stats[user]:
+                daily_stats[user][today_key] = {"points": 0, "bookings": 0, "first_booking": False}
+            h_int = int(hour.split(":")[0]) if isinstance(hour, str) and ":" in hour else 0
+            if h_int >= 18:
+                daily_stats[user][today_key]["evening_bookings"] = daily_stats[user][today_key].get("evening_bookings", 0) + 1
+            elif 9 <= h_int < 12:
+                daily_stats[user][today_key]["morning_bookings"] = daily_stats[user][today_key].get("morning_bookings", 0) + 1
+            data_persistence.save_daily_user_stats(daily_stats)
+    except Exception as e:
+        booking_logger.warning(f"Could not update special badge counters for user {user}: {e}", exc_info=True)
+
+    # --- 5. Badge flash messages ---
+    if new_badges:
+        badge_names = [badge["name"] for badge in new_badges]
+        flash_messages.append((f"Neue Badges erhalten: {', '.join(badge_names)}", "success"))
+
+    # --- 6. Audit log (per CLAUDE.md requirement) ---
+    try:
+        from app.services.audit_service import audit_service
+        audit_service.log_event(
+            event_type='booking',
+            action='booking_created',
+            details={
+                'customer': customer_name,
+                'date': date,
+                'hour': hour,
+                'color_id': color_id,
+                'points': points,
+                'calendar_event_id': calendar_event_id,
+                'tracking_ok': tracking_successful,
+                'badges_earned': len(new_badges)
+            },
+            user=user
+        )
+    except Exception as e:
+        booking_logger.warning(f"Could not write audit log for booking: {e}")
+
+    return {
+        'tracking_ok': tracking_successful,
+        'new_badges': new_badges,
+        'flash_messages': flash_messages
+    }
