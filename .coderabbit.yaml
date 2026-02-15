@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "de"
+early_access: false
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  request_changes_workflow: false
+
+  path_filters:
+    - "!static/vendor/**"
+    - "!static/tailwind-compiled.css"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+
+  path_instructions:
+    - path: "app/routes/**/*.py"
+      instructions: |
+        Routes dürfen KEINE Business-Logik enthalten — nur Request-Handling und Delegation an Services.
+        Buchungs-Kette prüfen: tracking_system.record_booking + achievement_system.check_achievements + audit_service.log
+        Auth-Decorator prüfen: @require_login bzw. @require_admin
+    - path: "app/services/**/*.py"
+      instructions: |
+        Services müssen Dual-Write beachten (JSON + PostgreSQL).
+        Kein direktes JSON-File-Handling — immer über data_persistence.
+        Kein print() — immer logging.getLogger(__name__).
+    - path: "templates/**/*.html"
+      instructions: |
+        Alle Templates müssen von ihrem jeweiligen base.html erben (hub/base.html, t2/base.html, slots/base.html).
+        NUR Tailwind + DaisyUI verwenden. Kein Bootstrap, keine data-bs-* Attribute.
+        Farbpalette: Primary=#d4af6a, Secondary=#207487, Accent=#294c5d.
+    - path: "tests/**/*.py"
+      instructions: |
+        Patch-Pfade müssen dort sein wo die Funktion IMPORTIERT wird, nicht wo sie definiert ist.
+        Kein print() in Tests — assert verwenden.
+    - path: "app/core/extensions.py"
+      instructions: |
+        Kritische Datei — Extensions-Initialisierung.
+        Rate-Limiting ist in TESTING-Mode deaktiviert.
+        Änderungen hier betreffen ALLE Requests.
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+
+chat:
+  auto_reply: true
