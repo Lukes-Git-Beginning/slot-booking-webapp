@@ -79,49 +79,24 @@ class SecurityService:
 
     def verify_password(self, username: str, password: str) -> bool:
         """
-        Verifiziere Passwort (Hybrid: bcrypt-Hash oder Klartext)
-        Prüft erst überschriebene Passwörter, dann USERLIST
-
-        Unterstützt:
-        - bcrypt-Hashes ($2b$ prefix) - SICHER
-        - Klartext-Passwörter - NUR für Migration/Fallback
+        Verifiziere Passwort (nur bcrypt-Hash, kein Klartext-Fallback).
+        migrate_userlist_passwords() laeuft beim Startup und stellt sicher,
+        dass alle USERLIST-User einen bcrypt-Hash in custom_passwords haben.
         """
-        # 1. Check custom passwords (überschrieben)
         custom_passwords = self._load_passwords()
         if username in custom_passwords:
             stored_pw = custom_passwords[username]
-
-            # Gehashtes Passwort?
             if self.is_hashed_password(stored_pw):
-                is_valid = self.verify_hashed_password(password, stored_pw)
-                logger.debug(f"Verified user {username} with bcrypt hash: {is_valid}")
-                return is_valid
+                return self.verify_hashed_password(password, stored_pw)
             else:
-                # Klartext (Legacy) - Auto-Migration beim nächsten Login
-                is_valid = stored_pw == password
-                if is_valid:
-                    # AUTO-MIGRATION: Konvertiere Plaintext zu bcrypt hash
-                    hashed_password = self.hash_password(password)
-                    custom_passwords[username] = hashed_password
-                    self._save_passwords(custom_passwords)
-                    logger.info(f"Auto-migrated password for user {username} from plaintext to bcrypt hash")
-                return is_valid
+                logger.warning(f"User {username} has unhashed password in custom_passwords — login blocked")
+                return False
 
-        # 2. Fallback to USERLIST (immer Klartext)
+        # User existiert in USERLIST aber hat keinen Hash → Migration unvollstaendig
         userlist = get_userlist()
         if username in userlist:
-            is_valid = userlist[username] == password
-            if is_valid:
-                logger.info(f"User {username} logged in via USERLIST (plaintext)")
-
-                # AUTO-MIGRATION: Erstelle custom password mit Hash
-                custom_passwords = self._load_passwords()
-                if username not in custom_passwords:
-                    hashed_password = self.hash_password(password)
-                    custom_passwords[username] = hashed_password
-                    self._save_passwords(custom_passwords)
-                    logger.info(f"Auto-migrated USERLIST password for {username} to custom hashed password")
-            return is_valid
+            logger.error(f"User {username} in USERLIST but missing from custom_passwords — migration incomplete")
+            return False
 
         return False
 

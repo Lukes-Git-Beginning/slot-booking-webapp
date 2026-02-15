@@ -124,23 +124,23 @@ class TestSecurityServicePassword:
             assert result is True
 
     @pytest.mark.unit
-    def test_verify_password_with_custom_plaintext(self, mock_data_persistence):
-        """Test password verification with plaintext password (legacy)"""
+    def test_verify_password_rejects_plaintext(self, mock_data_persistence):
+        """Test that plaintext passwords in custom_passwords are rejected (no fallback)"""
         from app.services.security_service import SecurityService
 
         with patch('app.services.security_service.data_persistence', mock_data_persistence):
             service = SecurityService()
 
-            # Save a plaintext password (legacy)
+            # Save a plaintext password (legacy — should be blocked)
             mock_data_persistence.save_data('user_passwords', {'test_user': 'plaintext123'})
 
             result = service.verify_password('test_user', 'plaintext123')
 
-            assert result is True
+            assert result is False
 
     @pytest.mark.unit
-    def test_verify_password_fallback_to_userlist(self, mock_data_persistence):
-        """Test password verification falls back to USERLIST"""
+    def test_verify_password_rejects_userlist_without_hash(self, mock_data_persistence):
+        """Test that USERLIST users without hashed custom_passwords are rejected"""
         from app.services.security_service import SecurityService
 
         with patch('app.services.security_service.data_persistence', mock_data_persistence):
@@ -150,7 +150,8 @@ class TestSecurityServicePassword:
                 service = SecurityService()
                 result = service.verify_password('env_user', 'env_password')
 
-                assert result is True
+                # Should be rejected — migration should have pre-hashed this
+                assert result is False
 
     @pytest.mark.unit
     def test_verify_password_nonexistent_user(self, mock_data_persistence):
@@ -171,9 +172,14 @@ class TestSecurityServicePassword:
 
         with patch('app.services.security_service.data_persistence', mock_data_persistence):
             with patch('app.services.security_service.get_userlist') as mock_userlist:
-                mock_userlist.return_value = {'test_user': 'old_password'}
+                mock_userlist.return_value = {}
 
                 service = SecurityService()
+
+                # Pre-hash old password (simulates migrated state)
+                hashed_old = service.hash_password('old_password')
+                mock_data_persistence.save_data('user_passwords', {'test_user': hashed_old})
+
                 success, message = service.change_password(
                     'test_user', 'old_password', 'new_secure_password'
                 )
@@ -408,9 +414,13 @@ class TestSecurityService2FA:
 
         with patch('app.services.security_service.data_persistence', mock_data_persistence):
             with patch('app.services.security_service.get_userlist') as mock_userlist:
-                mock_userlist.return_value = {'test_user': 'password123'}
+                mock_userlist.return_value = {}
 
                 service = SecurityService()
+
+                # Pre-hash password (simulates migrated state)
+                hashed_pw = service.hash_password('password123')
+                mock_data_persistence.save_data('user_passwords', {'test_user': hashed_pw})
 
                 # Setup and enable 2FA
                 secret, _, _ = service.setup_2fa('test_user')
