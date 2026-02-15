@@ -85,7 +85,7 @@ def create_app(config_object: Optional[str] = None) -> Flask:
         health_status = {
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'version': '3.3.16',
+            'version': '3.3.17',
             'tools': {
                 'slots': 'healthy',
                 'analytics': 'not_ready',
