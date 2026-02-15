@@ -14,6 +14,7 @@ class Config:
     # Flask Konfiguration
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-key-change-in-production")
     DEBUG: bool = os.getenv("FLASK_DEBUG", "False").lower() in ["true", "1", "yes"]
+    LOG_DIR: str = os.getenv("LOG_DIR", "logs")
 
     # Feature Flags
     T2_MODULAR_BLUEPRINTS: bool = os.getenv("T2_MODULAR_BLUEPRINTS", "false").lower() in ["true", "1", "yes"]
