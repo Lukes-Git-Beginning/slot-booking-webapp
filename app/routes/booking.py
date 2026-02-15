@@ -395,9 +395,9 @@ def book():
         except Exception as e:
             booking_logger.warning(f"Could not update special badge counters for user {user}: {e}", exc_info=True)
 
-            # Show new badges
-            if new_badges:
-                badge_names = [badge["name"] for badge in new_badges]
-                flash(f"Neue Badges erhalten: {', '.join(badge_names)}", "success")
+        # Show new badges (outside except block so they always display)
+        if new_badges:
+            badge_names = [badge["name"] for badge in new_badges]
+            flash(f"Neue Badges erhalten: {', '.join(badge_names)}", "success")
 
         return redirect(url_for("main.day_view", date_str=date))
