@@ -236,11 +236,11 @@ class HubSpotConfig:
     # Feature-Toggle: Integration nur aktiv wenn Token vorhanden
     HUBSPOT_ENABLED: bool = bool(os.getenv("HUBSPOT_ACCESS_TOKEN", ""))
 
-    # Stage-Mapping: App Outcome → HubSpot Internal Stage Name
+    # Stage-Mapping: App Outcome → HubSpot Stage ID (aus Sales-Pipeline)
     STAGE_MAPPING: Dict[str, str] = {
-        "ghost_first": "rueckholung",
-        "ghost_repeat": "verloren_vor_t1",
-        "no_show": "verloren_vor_t1",
+        "ghost_first": "349476306",       # Rückholung
+        "ghost_repeat": "680987595",      # Verloren vor T1
+        "no_show": "680987595",           # Verloren vor T1
     }
 
     # Cache-TTL für HubSpot-Daten (Sekunden)
