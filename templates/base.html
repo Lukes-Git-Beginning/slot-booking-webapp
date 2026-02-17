@@ -53,7 +53,7 @@
 
         /* Light Theme */
         [data-theme="light"] body {
-            background: linear-gradient(to bottom right, #f5f5f4, #e7e5e4, #fafaf9);
+            background: linear-gradient(to bottom right, #f5f0e8, #ede6db, #f8f4ed);
             color: #292524;
         }
 
@@ -67,11 +67,11 @@
 
         /* Glassmorphism Utilities - Light Theme */
         [data-theme="light"] .glass {
-            background: rgba(255, 255, 255, 0.90);
+            background: rgba(255, 253, 247, 0.85);
             backdrop-filter: blur(20px) saturate(150%);
             -webkit-backdrop-filter: blur(20px) saturate(150%);
             border: 1px solid rgba(212, 175, 106, 0.25);
-            box-shadow: 0 8px 32px rgba(120, 113, 108, 0.15);
+            box-shadow: 0 8px 32px rgba(120, 113, 108, 0.12), 0 2px 8px rgba(120, 113, 108, 0.08);
         }
 
         /* Text Colors - Light Theme */
@@ -155,6 +155,28 @@
 
         [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
             background: rgba(212, 175, 106, 0.7);
+        }
+
+        /* Light Mode: Hover/Background Utility Overrides */
+        [data-theme="light"] .bg-white\/5 {
+            background: rgba(212, 175, 106, 0.06) !important;
+        }
+        [data-theme="light"] .bg-white\/10 {
+            background: rgba(212, 175, 106, 0.10) !important;
+        }
+        [data-theme="light"] .hover\:bg-white\/5:hover {
+            background: rgba(212, 175, 106, 0.06) !important;
+        }
+        [data-theme="light"] .hover\:bg-white\/10:hover {
+            background: rgba(212, 175, 106, 0.10) !important;
+        }
+
+        /* Light Mode: Primary Highlight Overrides */
+        [data-theme="light"] .bg-primary\/5 {
+            background: rgba(212, 175, 106, 0.10) !important;
+        }
+        [data-theme="light"] .bg-primary\/10 {
+            background: rgba(212, 175, 106, 0.18) !important;
         }
     </style>
 
