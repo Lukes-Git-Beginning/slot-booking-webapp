@@ -111,9 +111,9 @@
                 <i data-lucide="calendar-x" class="w-16 h-16 mx-auto mb-4"></i>
                 <h5 class="text-lg font-semibold text-white mb-2">Heute keine Berater verfügbar</h5>
                 <p class="mb-4">Schaue dir die Verfügbarkeit für andere Tage an.</p>
-                <a href="{{ url_for('slots.calendar_view') }}" class="btn btn-primary gap-2">
-                    <i data-lucide="calendar" class="w-4 h-4"></i>
-                    <span>Kalender öffnen</span>
+                <a href="{{ url_for('calendar.calendar_view') }}" class="btn btn-primary gap-2">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Opener-Übersicht</span>
                 </a>
             </div>
             {% endif %}
@@ -258,10 +258,10 @@
                     <i data-lucide="calendar-days" class="w-4 h-4"></i>
                     <span>Heutiger Tag</span>
                 </a>
-                <a href="{{ url_for('slots.calendar_view') }}"
+                <a href="{{ url_for('calendar.calendar_view') }}"
                    class="btn btn-ghost w-full gap-2 justify-start">
-                    <i data-lucide="calendar" class="w-4 h-4"></i>
-                    <span>Kalender-Ansicht</span>
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Opener-Übersicht</span>
                 </a>
                 <a href="{{ url_for('slots.profile') }}"
                    class="btn btn-ghost w-full gap-2 justify-start">

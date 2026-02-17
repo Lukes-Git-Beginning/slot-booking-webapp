@@ -1,0 +1,94 @@
+{% extends "slots/base.html" %}
+
+{% block slot_title %}Opener-Übersicht{% endblock %}
+{% block header_title %}Opener-Übersicht{% endblock %}
+{% block header_subtitle %}Wer arbeitet wann — Wochenübersicht der Opener{% endblock %}
+
+{% block content %}
+<!-- Week Navigation -->
+<div class="glass rounded-2xl p-4 mb-8 flex items-center justify-between" data-aos="fade-up">
+    <a href="{{ url_for('calendar.calendar_view', week=prev_week.strftime('%Y-%m-%d')) }}"
+       class="btn btn-ghost gap-2">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <span class="hidden md:inline">Vorherige Woche</span>
+    </a>
+    <div class="text-center">
+        <div class="font-bold text-white">{{ week_start.strftime('%d.%m.%Y') }} - {{ week_end.strftime('%d.%m.%Y') }}</div>
+        <div class="text-sm text-white/60">KW {{ calendar_week }}</div>
+    </div>
+    <a href="{{ url_for('calendar.calendar_view', week=next_week.strftime('%Y-%m-%d')) }}"
+       class="btn btn-ghost gap-2">
+        <span class="hidden md:inline">Nächste Woche</span>
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </a>
+</div>
+
+<!-- Table -->
+<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+    <div class="overflow-x-auto">
+        <table class="table w-full">
+            <thead>
+                <tr>
+                    <th class="text-white/70 text-sm w-20 bg-transparent">Zeit</th>
+                    {% for day_data in weekdays_data %}
+                    <th class="text-center {{ 'bg-primary/10' if day_data.is_today else 'bg-transparent' }}">
+                        <div class="text-xs uppercase {{ 'text-primary' if day_data.is_today else 'text-white/60' }}">{{ day_data.name[:2] }}</div>
+                        <div class="font-bold {{ 'text-primary' if day_data.is_today else 'text-white' }}">{{ day_data.date.day }}</div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% set time_slots = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'] %}
+                {% for time in time_slots %}
+                <tr class="hover:bg-white/5">
+                    <td class="text-white/60 text-sm font-mono bg-transparent">{{ time }}</td>
+                    {% for day_data in weekdays_data %}
+                    {% set ns = namespace(found=false, slot=none) %}
+                    {% for avail in day_data.availability %}
+                        {% if avail.time == time %}
+                            {% set ns.found = true %}
+                            {% set ns.slot = avail %}
+                        {% endif %}
+                    {% endfor %}
+                    <td class="text-center p-2 {{ 'bg-primary/5' if day_data.is_today else '' }}">
+                        {% if ns.found and ns.slot.slot_count > 0 %}
+                        <div class="flex flex-wrap gap-1 justify-center">
+                            {% for name in ns.slot.available_consultants %}
+                            <span class="badge badge-sm {{ 'badge-success' if ns.slot.slot_count >= 4 else 'badge-warning' }}">{{ name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-white/30 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="glass rounded-2xl p-6 mt-8" data-aos="fade-up" data-aos-delay="200">
+    <div class="flex items-center gap-3 mb-4">
+        <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+        <h3 class="text-lg font-bold text-white">Legende</h3>
+    </div>
+    <div class="flex flex-wrap gap-4">
+        <div class="flex items-center gap-2">
+            <span class="badge badge-sm badge-success">Name</span>
+            <span class="text-white/60 text-sm">4+ Opener (hohe Verfügbarkeit)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="badge badge-sm badge-warning">Name</span>
+            <span class="text-white/60 text-sm">1-3 Opener (begrenzt)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-white/30">—</span>
+            <span class="text-white/60 text-sm">Keine Opener verfügbar</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

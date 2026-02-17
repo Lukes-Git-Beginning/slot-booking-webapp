@@ -927,7 +927,7 @@ def calendar_view():
             'availability': day_availability
         })
 
-    return render_template("calendar_view.html",
+    return render_template("slots/calendar_view.html",
                          today=today,
                          availability=availability_data,
                          prev_week=prev_week,
@@ -935,7 +935,8 @@ def calendar_view():
                          current_week=current_week,
                          week_start=week_start,
                          week_end=week_end,
-                         weekdays_data=weekdays_data)
+                         weekdays_data=weekdays_data,
+                         calendar_week=current_week.isocalendar()[1])
 
 
 # ============================================================================
