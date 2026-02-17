@@ -178,12 +178,29 @@
         [data-theme="light"] .bg-primary\/10 {
             background: rgba(212, 175, 106, 0.18) !important;
         }
+
+        /* Dark Mode: Text-Farben explizit setzen */
+        [data-theme="dark"] .text-white { color: #ffffff !important; }
+        [data-theme="dark"] .text-white\/30 { color: rgba(255,255,255,0.30) !important; }
+        [data-theme="dark"] .text-white\/60 { color: rgba(255,255,255,0.60) !important; }
+        [data-theme="dark"] .text-white\/70 { color: rgba(255,255,255,0.70) !important; }
+        [data-theme="dark"] .text-white\/80 { color: rgba(255,255,255,0.80) !important; }
+        [data-theme="dark"] .text-white\/90 { color: rgba(255,255,255,0.90) !important; }
+        [data-theme="dark"] .text-gray-400 { color: #9ca3af !important; }
+
+        /* Dark Mode: Background-Utilities */
+        [data-theme="dark"] .bg-white\/5 { background: rgba(255,255,255,0.05) !important; }
+        [data-theme="dark"] .bg-white\/10 { background: rgba(255,255,255,0.10) !important; }
+        [data-theme="dark"] .hover\:bg-white\/5:hover { background: rgba(255,255,255,0.05) !important; }
+        [data-theme="dark"] .hover\:bg-white\/10:hover { background: rgba(255,255,255,0.10) !important; }
+        [data-theme="dark"] .bg-primary\/5 { background: rgba(212,175,106,0.05) !important; }
+        [data-theme="dark"] .bg-primary\/10 { background: rgba(212,175,106,0.10) !important; }
     </style>
 
     {% block area_css %}{% endblock %}
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-[#294c5d] to-slate-900 text-white min-h-screen"
+<body class="min-h-screen"
       {% block body_attrs %}x-data="{ theme: localStorage.getItem('theme') || 'dark' }" :data-theme="theme"{% endblock %}>
 
     {% block body_start %}{% endblock %}

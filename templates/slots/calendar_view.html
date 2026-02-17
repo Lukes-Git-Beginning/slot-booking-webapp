@@ -87,34 +87,34 @@
 }">
 
 <!-- Week Navigation -->
-<div class="glass rounded-2xl p-4 mb-8 flex items-center justify-between" data-aos="fade-up">
+<div class="rounded-xl border border-white/10 bg-white/5 p-3 mb-8 flex items-center justify-between" data-aos="fade-up">
     <a href="{{ url_for('calendar.calendar_view', week=prev_week.strftime('%Y-%m-%d')) }}"
-       class="btn btn-ghost gap-2">
+       class="btn btn-ghost btn-sm gap-2">
         <i data-lucide="chevron-left" class="w-4 h-4"></i>
         <span class="hidden md:inline">Vorherige Woche</span>
     </a>
     <div class="text-center">
-        <div class="font-bold text-white">{{ week_start.strftime('%d.%m.%Y') }} - {{ week_end.strftime('%d.%m.%Y') }}</div>
-        <div class="text-sm text-white/60">KW {{ calendar_week }}</div>
+        <div class="font-bold text-white text-sm">{{ week_start.strftime('%d.%m.%Y') }} - {{ week_end.strftime('%d.%m.%Y') }}</div>
+        <div class="text-xs text-white/60">KW {{ calendar_week }}</div>
     </div>
     <a href="{{ url_for('calendar.calendar_view', week=next_week.strftime('%Y-%m-%d')) }}"
-       class="btn btn-ghost gap-2">
+       class="btn btn-ghost btn-sm gap-2">
         <span class="hidden md:inline">Nächste Woche</span>
         <i data-lucide="chevron-right" class="w-4 h-4"></i>
     </a>
 </div>
 
 <!-- Table -->
-<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+<div class="rounded-xl border border-white/10 overflow-hidden" data-aos="fade-up" data-aos-delay="100">
     <div class="overflow-x-auto">
-        <table class="table w-full">
+        <table class="table table-sm w-full">
             <thead>
                 <tr>
                     <th class="text-white/70 text-sm w-20 bg-transparent">Zeit</th>
                     {% for day_data in weekdays_data %}
-                    <th class="text-center {{ 'bg-primary/10' if day_data.is_today else 'bg-transparent' }}">
-                        <div class="text-xs uppercase {{ 'text-primary' if day_data.is_today else 'text-white/60' }}">{{ day_data.name[:2] }}</div>
-                        <div class="font-bold {{ 'text-primary' if day_data.is_today else 'text-white' }}">{{ day_data.date.day }}</div>
+                    <th class="text-center {{ 'bg-secondary/10' if day_data.is_today else 'bg-transparent' }}">
+                        <div class="text-xs uppercase {{ 'text-secondary' if day_data.is_today else 'text-white/60' }}">{{ day_data.name[:2] }}</div>
+                        <div class="font-bold {{ 'text-secondary' if day_data.is_today else 'text-white' }}">{{ day_data.date.day }}</div>
                     </th>
                     {% endfor %}
                 </tr>
@@ -122,7 +122,7 @@
             <tbody>
                 {% set time_slots = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'] %}
                 {% for time in time_slots %}
-                <tr class="hover:bg-white/5">
+                <tr class="hover:bg-white/[0.03] border-b border-white/5">
                     <td class="text-white/60 text-sm font-mono bg-transparent">{{ time }}</td>
                     {% for day_data in weekdays_data %}
                     {% set ns = namespace(found=false, slot=none) %}
@@ -135,23 +135,23 @@
                     {% set day_names = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
                     {% set slot_key = day_data.date.strftime('%Y-%m-%d') ~ ' ' ~ time %}
                     {% set sb = special_bookings.get(slot_key, {}) if special_bookings else {} %}
-                    <td class="text-center p-2 {{ 'bg-primary/5' if day_data.is_today else '' }} {{ 'cursor-pointer hover:bg-white/10 transition-colors' if ns.found and ns.slot.slot_count > 0 else '' }}"
+                    <td class="text-center p-2 {{ 'bg-secondary/5' if day_data.is_today else '' }} {{ 'cursor-pointer hover:bg-white/10 transition-colors' if ns.found and ns.slot.slot_count > 0 else '' }}"
                         {% if ns.found and ns.slot.slot_count > 0 %}
                         @click="openModal('{{ day_data.date.strftime('%Y-%m-%d') }}', '{{ time }}', '{{ day_names[day_data.date.weekday()] }}')"
                         {% endif %}>
                         {% if ns.found and ns.slot.slot_count > 0 %}
                         <div class="flex flex-wrap gap-1 justify-center">
                             {% for name in ns.slot.available_consultants %}
-                            <span class="badge badge-sm {% if ns.slot.slot_count >= 4 %}badge-success{% elif ns.slot.slot_count >= 2 %}badge-warning{% else %}badge-error{% endif %}">{{ name }}</span>
+                            <span class="badge badge-xs {% if ns.slot.slot_count >= 4 %}badge-success{% elif ns.slot.slot_count >= 2 %}badge-warning{% else %}badge-error{% endif %}">{{ name }}</span>
                             {% endfor %}
                             {% for sb_name, sb_data in sb.items() %}
-                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.{% if sb_data.event_time and sb_data.event_time != time %} ({{ sb_data.event_time }}){% endif %}">{{ sb_name }} ({{ sb_data.type }}{% if sb_data.event_time and sb_data.event_time != time %} {{ sb_data.event_time }}{% endif %})</span>
+                            <span class="badge badge-xs badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.{% if sb_data.event_time and sb_data.event_time != time %} ({{ sb_data.event_time }}){% endif %}">{{ sb_name }} ({{ sb_data.type }}{% if sb_data.event_time and sb_data.event_time != time %} {{ sb_data.event_time }}{% endif %})</span>
                             {% endfor %}
                         </div>
                         {% elif sb %}
                         <div class="flex flex-wrap gap-1 justify-center">
                             {% for sb_name, sb_data in sb.items() %}
-                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.{% if sb_data.event_time and sb_data.event_time != time %} ({{ sb_data.event_time }}){% endif %}">{{ sb_name }} ({{ sb_data.type }}{% if sb_data.event_time and sb_data.event_time != time %} {{ sb_data.event_time }}{% endif %})</span>
+                            <span class="badge badge-xs badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.{% if sb_data.event_time and sb_data.event_time != time %} ({{ sb_data.event_time }}){% endif %}">{{ sb_name }} ({{ sb_data.type }}{% if sb_data.event_time and sb_data.event_time != time %} {{ sb_data.event_time }}{% endif %})</span>
                             {% endfor %}
                         </div>
                         {% else %}
@@ -167,38 +167,38 @@
 </div>
 
 <!-- Legend -->
-<div class="glass rounded-2xl p-6 mt-8" data-aos="fade-up" data-aos-delay="200">
-    <div class="flex items-center gap-3 mb-4">
-        <i data-lucide="info" class="w-5 h-5 text-primary"></i>
-        <h3 class="text-lg font-bold text-white">Legende</h3>
+<div class="rounded-xl border border-white/10 bg-white/5 p-4 mt-6" data-aos="fade-up" data-aos-delay="200">
+    <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="info" class="w-4 h-4 text-white/60"></i>
+        <h3 class="text-sm font-semibold text-white">Legende</h3>
     </div>
-    <div class="flex flex-wrap gap-4">
-        <div class="flex items-center gap-2">
-            <span class="badge badge-sm badge-success">Name</span>
-            <span class="text-white/60 text-sm">4+ Opener (hohe Verfügbarkeit)</span>
+    <div class="flex flex-wrap gap-3 text-xs">
+        <div class="flex items-center gap-1.5">
+            <span class="badge badge-xs badge-success">Name</span>
+            <span class="text-white/60">4+ Opener</span>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="badge badge-sm badge-warning">Name</span>
-            <span class="text-white/60 text-sm">2-3 Opener (begrenzt)</span>
+        <div class="flex items-center gap-1.5">
+            <span class="badge badge-xs badge-warning">Name</span>
+            <span class="text-white/60">2-3 Opener</span>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="badge badge-sm badge-error">Name</span>
-            <span class="text-white/60 text-sm">1 Opener (kritisch)</span>
+        <div class="flex items-center gap-1.5">
+            <span class="badge badge-xs badge-error">Name</span>
+            <span class="text-white/60">1 Opener</span>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="badge badge-sm badge-info">Name (T1.5)</span>
-            <span class="text-white/60 text-sm">T1.5/UL Sonderbuchung</span>
+        <div class="flex items-center gap-1.5">
+            <span class="badge badge-xs badge-info">Name (T1.5)</span>
+            <span class="text-white/60">Sonderbuchung</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
             <span class="text-white/30">—</span>
-            <span class="text-white/60 text-sm">Keine Opener verfügbar</span>
+            <span class="text-white/60">Keine Opener</span>
         </div>
     </div>
 </div>
 
 <!-- Special Booking Modal -->
 <dialog class="modal" :class="{ 'modal-open': showModal }">
-    <div class="modal-box glass max-w-lg">
+    <div class="modal-box max-w-lg">
         <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 text-white/60" @click="showModal = false">✕</button>
         <h3 class="font-bold text-lg text-white mb-1">T1.5/UL Sonderbuchung</h3>
         <p class="text-white/60 text-sm mb-4" x-text="modalDay + ', ' + modalDate + ' um ' + modalTime + ' Uhr'"></p>

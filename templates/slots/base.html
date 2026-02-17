@@ -2,6 +2,9 @@
 
 {% block title %}{% block slot_title %}Slot-Booking{% endblock %}{% endblock %}
 
+{% block particles %}{% endblock %}
+{% block particles_config %}{% endblock %}
+
 {% block area_css %}
     <style nonce="{{ csp_nonce }}">
         /* Slot Card Hover Animation */
@@ -10,8 +13,7 @@
         }
 
         .slot-card:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 20px 60px rgba(212, 175, 106, 0.3);
+            transform: translateY(-2px);
         }
     </style>
 {% endblock %}
@@ -41,16 +43,18 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-24 md:py-32 min-h-[calc(100vh-200px)]">
         <!-- Header -->
-        <header class="glass rounded-3xl p-8 md:p-12 mb-12 text-center" data-aos="fade-down">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-6">
-                <i data-lucide="calendar-check" class="w-10 h-10 text-white"></i>
+        <header class="mb-10 flex items-center gap-4" data-aos="fade-down">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-secondary/15">
+                <i data-lucide="calendar-check" class="w-5 h-5 text-secondary"></i>
             </div>
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
-                {% block header_title %}Slot Buchung{% endblock %}
-            </h1>
-            <p class="text-lg text-white/70">
-                {% block header_subtitle %}Wähle deinen bevorzugten Zeitslot{% endblock %}
-            </p>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-white">
+                    {% block header_title %}Slot Buchung{% endblock %}
+                </h1>
+                <p class="text-sm text-white/70">
+                    {% block header_subtitle %}Wähle deinen bevorzugten Zeitslot{% endblock %}
+                </p>
+            </div>
         </header>
 
         <!-- Content -->
@@ -62,10 +66,10 @@
 
 {% block footer %}
     <!-- Footer -->
-    <footer class="glass mt-24 py-8 backdrop-blur-xl" data-aos="fade-up">
+    <footer class="border-t border-white/10 mt-12 py-6" data-aos="fade-up">
         <div class="container mx-auto px-4">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-2 text-white/70">
+                <div class="flex items-center gap-2 text-white/70 text-sm">
                     <i data-lucide="shield-check" class="w-4 h-4"></i>
                     <span>Sicher & Zuverlässig</span>
                 </div>
@@ -74,7 +78,7 @@
                         <i data-lucide="activity" class="w-4 h-4"></i>
                         <span>Status</span>
                     </a>
-                    <span>Version 3.3.15</span>
+                    <span>v3.3.16</span>
                 </div>
             </div>
         </div>
