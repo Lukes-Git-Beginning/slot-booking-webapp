@@ -20,7 +20,7 @@
 
 {% block navbar %}
     <!-- Fixed Action Buttons -->
-    <div class="fixed top-6 left-6 right-6 z-50 flex items-center justify-between pointer-events-none">
+    <div class="fixed top-6 left-6 right-6 z-50 flex items-center justify-start pointer-events-none">
         <!-- Back to Hub Button -->
         <a href="{{ url_for('hub.dashboard') }}"
            class="glass px-6 py-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all group pointer-events-auto"
@@ -28,14 +28,6 @@
             <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
             <span class="hidden md:inline">Zurück zum Hub</span>
         </a>
-
-        <!-- Theme Toggle -->
-        <button @click="theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', theme);"
-                class="btn btn-circle btn-ghost hover:bg-white/10 glass pointer-events-auto"
-                data-aos="fade-left">
-            <i data-lucide="sun" class="w-6 h-6" x-show="theme === 'dark'"></i>
-            <i data-lucide="moon" class="w-6 h-6" x-show="theme === 'light'"></i>
-        </button>
     </div>
 {% endblock %}
 
