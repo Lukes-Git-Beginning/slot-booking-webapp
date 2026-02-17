@@ -10,6 +10,7 @@
     modalDate: '',
     modalTime: '',
     modalDay: '',
+    eventTime: '',
     bookingType: 'T1.5',
     duration: 60,
     customerFirst: '',
@@ -25,6 +26,7 @@
         this.modalDate = date;
         this.modalTime = time;
         this.modalDay = day;
+        this.eventTime = time;
         this.bookingType = 'T1.5';
         this.duration = 60;
         this.customerFirst = '';
@@ -62,6 +64,7 @@
                 body: JSON.stringify({
                     date: this.modalDate,
                     time: this.modalTime,
+                    event_time: this.eventTime,
                     type: this.bookingType,
                     duration: this.duration,
                     customer_first: this.customerFirst,
@@ -142,13 +145,13 @@
                             <span class="badge badge-sm {% if ns.slot.slot_count >= 4 %}badge-success{% elif ns.slot.slot_count >= 2 %}badge-warning{% else %}badge-error{% endif %}">{{ name }}</span>
                             {% endfor %}
                             {% for sb_name, sb_data in sb.items() %}
-                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.">{{ sb_name }} ({{ sb_data.type }})</span>
+                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.{% if sb_data.event_time and sb_data.event_time != time %} ({{ sb_data.event_time }}){% endif %}">{{ sb_name }} ({{ sb_data.type }}{% if sb_data.event_time and sb_data.event_time != time %} {{ sb_data.event_time }}{% endif %})</span>
                             {% endfor %}
                         </div>
                         {% elif sb %}
                         <div class="flex flex-wrap gap-1 justify-center">
                             {% for sb_name, sb_data in sb.items() %}
-                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.">{{ sb_name }} ({{ sb_data.type }})</span>
+                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.{% if sb_data.event_time and sb_data.event_time != time %} ({{ sb_data.event_time }}){% endif %}">{{ sb_name }} ({{ sb_data.type }}{% if sb_data.event_time and sb_data.event_time != time %} {{ sb_data.event_time }}{% endif %})</span>
                             {% endfor %}
                         </div>
                         {% else %}
@@ -224,6 +227,13 @@
 
         <!-- Form -->
         <div class="space-y-3">
+            <div class="form-control">
+                <label class="label py-1"><span class="label-text text-white/70">Startzeit</span></label>
+                <input type="time" class="input input-bordered input-sm w-full" x-model="eventTime">
+                <label class="label py-0" x-show="eventTime !== modalTime">
+                    <span class="label-text-alt text-warning">Kapazität wird für Slot <span x-text="modalTime"></span> Uhr geprüft</span>
+                </label>
+            </div>
             <div class="grid grid-cols-2 gap-3">
                 <div class="form-control">
                     <label class="label py-1"><span class="label-text text-white/70">Typ</span></label>

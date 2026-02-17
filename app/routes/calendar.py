@@ -1035,11 +1035,17 @@ def book_special():
     # Extract and validate fields
     date_str = data.get('date', '').strip()
     time_str = data.get('time', '').strip()
+    event_time = data.get('event_time', '').strip() or time_str
     booking_type = data.get('type', '').strip()
     duration = data.get('duration')
     customer_first = data.get('customer_first', '').strip()
     customer_last = data.get('customer_last', '').strip()
     description = data.get('description', '').strip()
+
+    # Validate event_time format (HH:MM)
+    import re
+    if not re.match(r'^\d{2}:\d{2}$', event_time):
+        return jsonify({'success': False, 'error': 'Ungültiges Zeitformat für Startzeit (HH:MM erwartet).'}), 400
 
     # Validate required fields
     if not all([date_str, time_str, booking_type, duration, customer_last]):
@@ -1097,7 +1103,7 @@ def book_special():
     try:
         from datetime import datetime as dt_mod
         slot_start = pytz.timezone(sc.TIMEZONE).localize(
-            dt_mod.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            dt_mod.strptime(f"{date_str} {event_time}", "%Y-%m-%d %H:%M")
         )
         slot_end = slot_start + timedelta(minutes=duration)
 
@@ -1137,6 +1143,7 @@ def book_special():
         'customer_first': customer_first,
         'customer_last': customer_last,
         'description': description,
+        'event_time': event_time if event_time != time_str else None,
         'created_at': datetime.now(TZ).isoformat(),
         'calendar_event_id': cal_result.get('id') if isinstance(cal_result, dict) else None
     }
@@ -1157,6 +1164,7 @@ def book_special():
                 'type': booking_type,
                 'date': date_str,
                 'time': time_str,
+                'event_time': event_time,
                 'duration': duration,
                 'customer': customer_display,
             },

@@ -106,6 +106,14 @@ def admin_dashboard():
                 'status': 'active'
             },
             {
+                'name': 'Opener-Übersicht',
+                'description': 'Wochenübersicht — wer arbeitet wann',
+                'url': '/slots/calendar-view',
+                'icon': 'calendar-range',
+                'color': 'from-teal-500/20 to-cyan-500/20',
+                'status': 'active'
+            },
+            {
                 'name': 'Refactoring Status',
                 'description': 'PostgreSQL migration & modernization progress',
                 'url': '/admin/refactoring-status',
