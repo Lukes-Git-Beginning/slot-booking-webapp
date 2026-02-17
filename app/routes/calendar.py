@@ -829,6 +829,38 @@ def my_customers():
     return render_template("my_customers.html", customers=customers, stats=stats, user=user)
 
 
+def _resolve_opener_name(session_user: str) -> str:
+    """Resolve session username to opener name as used in availability.json.
+
+    Maps e.g. "sara.mast" or "Sara" → "Sara" (matching ConsultantConfig keys).
+    """
+    from app.config.base import ConsultantConfig
+    consultants = ConsultantConfig.get_consultants()
+
+    # Direct match (already a consultant name like "Sara")
+    if session_user in consultants:
+        return session_user
+
+    # Case-insensitive match
+    for name in consultants:
+        if name.lower() == session_user.lower():
+            return name
+
+    # Dot-split: "sara.mast" → "sara" → match "Sara"
+    if '.' in session_user:
+        first_part = session_user.split('.')[0]
+        for name in consultants:
+            if name.lower() == first_part.lower():
+                return name
+
+    # Capitalize fallback
+    capitalized = session_user.capitalize()
+    if capitalized in consultants:
+        return capitalized
+
+    return session_user
+
+
 @calendar_bp.route("/calendar-view")
 @require_login
 def calendar_view():
@@ -906,8 +938,10 @@ def calendar_view():
                 slot_count = len(consultants)
                 if slot_count >= 4:
                     availability_level = 'high'
-                elif slot_count >= 1:
+                elif slot_count >= 2:
                     availability_level = 'medium'
+                elif slot_count == 1:
+                    availability_level = 'low'
                 else:
                     availability_level = 'none'
 
@@ -927,6 +961,13 @@ def calendar_view():
             'availability': day_availability
         })
 
+    # Load special bookings for display
+    from app.services.booking_service import load_special_bookings
+    special_bookings = load_special_bookings()
+
+    user = session.get('user')
+    opener_name = _resolve_opener_name(user) if user else ''
+
     return render_template("slots/calendar_view.html",
                          today=today,
                          availability=availability_data,
@@ -936,7 +977,198 @@ def calendar_view():
                          week_start=week_start,
                          week_end=week_end,
                          weekdays_data=weekdays_data,
-                         calendar_week=current_week.isocalendar()[1])
+                         calendar_week=current_week.isocalendar()[1],
+                         special_bookings=special_bookings,
+                         user=user,
+                         opener_name=opener_name)
+
+
+# ============================================================================
+# SPECIAL BOOKINGS (T1.5/UL) API ENDPOINTS
+# ============================================================================
+
+@calendar_bp.route('/check-special-capacity', methods=['GET'])
+@require_login
+def check_special_capacity():
+    """Check if opener can take a special booking without causing undercapacity"""
+    import logging
+    from app.services.booking_service import check_special_booking_capacity
+
+    log = logging.getLogger(__name__)
+
+    date_param = request.args.get('date')
+    time_param = request.args.get('time')
+
+    if not date_param or not time_param:
+        return jsonify({'allowed': False, 'reason': 'Datum und Zeit sind erforderlich.'}), 400
+
+    user = session.get('user')
+    opener_name = _resolve_opener_name(user)
+
+    try:
+        result = check_special_booking_capacity(date_param, time_param, opener_name)
+        return jsonify(result)
+    except Exception as e:
+        log.error(f"Error checking special capacity: {e}")
+        return jsonify({'allowed': False, 'reason': 'Interner Fehler bei der Kapazitätsprüfung.'}), 500
+
+
+@calendar_bp.route('/book-special', methods=['POST'])
+@require_login
+def book_special():
+    """Book a special appointment (T1.5/UL) — removes opener from availability"""
+    import logging
+    from app.services.booking_service import (
+        check_special_booking_capacity, load_special_bookings,
+        save_special_bookings, remove_opener_from_availability
+    )
+    from app.config.base import slot_config as sc, ConsultantConfig
+
+    log = logging.getLogger(__name__)
+    user = session.get('user')
+    opener_name = _resolve_opener_name(user)
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'success': False, 'error': 'Keine Daten erhalten.'}), 400
+
+    # Extract and validate fields
+    date_str = data.get('date', '').strip()
+    time_str = data.get('time', '').strip()
+    booking_type = data.get('type', '').strip()
+    duration = data.get('duration')
+    customer_first = data.get('customer_first', '').strip()
+    customer_last = data.get('customer_last', '').strip()
+    description = data.get('description', '').strip()
+
+    # Validate required fields
+    if not all([date_str, time_str, booking_type, duration, customer_last]):
+        return jsonify({'success': False, 'error': 'Pflichtfelder: Datum, Zeit, Typ, Dauer, Nachname.'}), 400
+
+    try:
+        duration = int(duration)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'Ungültige Dauer.'}), 400
+
+    if booking_type not in sc.SPECIAL_BOOKING_TYPES:
+        return jsonify({'success': False, 'error': f'Ungültiger Typ. Erlaubt: {", ".join(sc.SPECIAL_BOOKING_TYPES)}'}), 400
+
+    if duration not in sc.SPECIAL_BOOKING_DURATIONS:
+        return jsonify({'success': False, 'error': f'Ungültige Dauer. Erlaubt: {", ".join(str(d) for d in sc.SPECIAL_BOOKING_DURATIONS)} Min.'}), 400
+
+    # Validate allowed slot times for weekday
+    try:
+        from datetime import datetime as dt_mod
+        check_date = dt_mod.strptime(date_str, '%Y-%m-%d').date()
+        weekday = check_date.weekday()
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Ungültiges Datumsformat.'}), 400
+
+    allowed_hours = sc.STANDARD_AVAILABILITY_HOURS.get(weekday, [])
+    if time_str not in allowed_hours and time_str not in sc.BOOKING_HOURS:
+        return jsonify({'success': False, 'error': f'Zeitslot {time_str} ist an diesem Tag nicht verfügbar.'}), 400
+
+    # Capacity check
+    capacity = check_special_booking_capacity(date_str, time_str, opener_name)
+    if not capacity.get('allowed'):
+        return jsonify({'success': False, 'error': capacity.get('reason', 'Kapazität reicht nicht aus.')}), 400
+
+    # Duplicate check
+    slot_key = f"{date_str} {time_str}"
+    special_bookings = load_special_bookings()
+    if slot_key in special_bookings and opener_name in special_bookings[slot_key]:
+        return jsonify({'success': False, 'error': f'{opener_name} hat bereits eine Sonderbuchung in diesem Slot.'}), 400
+
+    # Get opener's calendar ID
+    consultants = ConsultantConfig.get_consultants()
+    opener_calendar = consultants.get(opener_name, '')
+    if not opener_calendar:
+        return jsonify({'success': False, 'error': f'{opener_name} hat keinen eigenen Kalender hinterlegt.'}), 400
+
+    # Create Google Calendar event in opener's personal calendar
+    customer_display = f"{customer_last}, {customer_first}" if customer_first else customer_last
+    event_summary = f"{booking_type}: {customer_display}"
+    event_description = description
+    if event_description:
+        event_description += f"\n\n[{booking_type} by: {opener_name}]"
+    else:
+        event_description = f"[{booking_type} by: {opener_name}]"
+
+    try:
+        from datetime import datetime as dt_mod
+        slot_start = pytz.timezone(sc.TIMEZONE).localize(
+            dt_mod.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        )
+        slot_end = slot_start + timedelta(minutes=duration)
+
+        event_body = {
+            "summary": event_summary,
+            "description": event_description,
+            "start": {"dateTime": slot_start.isoformat()},
+            "end": {"dateTime": slot_end.isoformat()},
+            "colorId": sc.SPECIAL_BOOKING_COLOR_ID
+        }
+
+        calendar_service = get_google_calendar_service()
+        if not calendar_service:
+            return jsonify({'success': False, 'error': 'Kalender-Service nicht verfügbar.'}), 503
+
+        cal_result = calendar_service.create_event(
+            calendar_id=opener_calendar,
+            event_data=event_body
+        )
+
+        if not cal_result:
+            return jsonify({'success': False, 'error': 'Kalender-Event konnte nicht erstellt werden.'}), 500
+
+    except Exception as e:
+        log.error(f"Error creating special booking calendar event: {e}")
+        return jsonify({'success': False, 'error': f'Kalenderfehler: {str(e)}'}), 500
+
+    # Remove opener from availability
+    remove_opener_from_availability(date_str, time_str, opener_name)
+
+    # Save special booking
+    if slot_key not in special_bookings:
+        special_bookings[slot_key] = {}
+    special_bookings[slot_key][opener_name] = {
+        'type': booking_type,
+        'duration': duration,
+        'customer_first': customer_first,
+        'customer_last': customer_last,
+        'description': description,
+        'created_at': datetime.now(TZ).isoformat(),
+        'calendar_event_id': cal_result.get('id') if isinstance(cal_result, dict) else None
+    }
+    save_special_bookings(special_bookings)
+
+    # Clear cache
+    from app.core.extensions import cache_manager
+    cache_manager.clear_all()
+
+    # Audit log
+    try:
+        from app.services.audit_service import audit_service
+        audit_service.log_event(
+            event_type='special_booking',
+            action='special_booking_created',
+            details={
+                'opener': opener_name,
+                'type': booking_type,
+                'date': date_str,
+                'time': time_str,
+                'duration': duration,
+                'customer': customer_display,
+            },
+            user=user
+        )
+    except Exception as e:
+        log.warning(f"Could not write audit log for special booking: {e}")
+
+    return jsonify({
+        'success': True,
+        'message': f'{booking_type}-Termin erfolgreich gebucht für {customer_display}.'
+    })
 
 
 # ============================================================================

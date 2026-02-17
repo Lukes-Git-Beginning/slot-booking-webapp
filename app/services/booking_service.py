@@ -25,6 +25,119 @@ logger = logging.getLogger(__name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
 
+def load_special_bookings() -> Dict[str, Dict]:
+    """Load special bookings (T1.5/UL) from persistent storage"""
+    special_file = os.path.join("data", "persistent", "special_bookings.json")
+    if os.path.exists(special_file):
+        try:
+            with open(special_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading special bookings: {e}")
+            return {}
+    return {}
+
+
+def save_special_bookings(data: Dict) -> None:
+    """Save special bookings (T1.5/UL) to persistent storage"""
+    special_file = os.path.join("data", "persistent", "special_bookings.json")
+    os.makedirs(os.path.dirname(special_file), exist_ok=True)
+    try:
+        with open(special_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving special bookings: {e}")
+        raise
+
+
+def check_special_booking_capacity(date_str: str, hour: str, opener_name: str) -> Dict[str, Any]:
+    """Check if an opener can take a special booking (T1.5/UL) without causing undercapacity.
+
+    Args:
+        date_str: Date in YYYY-MM-DD format
+        hour: Time slot e.g. "14:00"
+        opener_name: Opener name as in availability.json (e.g. "Sara")
+
+    Returns:
+        Dict with 'allowed', 'reason', and capacity details
+    """
+    consultants = get_effective_availability(date_str, hour)
+
+    if opener_name not in consultants:
+        return {
+            'allowed': False,
+            'reason': f'{opener_name} ist in diesem Slot nicht eingeteilt.',
+            'current_openers': len(consultants),
+            'remaining_openers': len(consultants)
+        }
+
+    remaining_count = len(consultants) - 1
+    weekday = datetime.strptime(date_str, '%Y-%m-%d').weekday()
+    slots_per = get_slots_per_consultant(hour, weekday)
+    remaining_capacity = remaining_count * slots_per
+
+    # Get current bookings in this slot
+    berater_count = len(consultants)
+    _, booked, _, _, _ = get_slot_status(date_str, hour, berater_count)
+
+    if remaining_capacity >= booked:
+        return {
+            'allowed': True,
+            'reason': f'Kapazität reicht aus. {remaining_count} Opener verbleiben mit {remaining_capacity} Plätzen für {booked} Buchungen.',
+            'current_openers': len(consultants),
+            'remaining_openers': remaining_count,
+            'remaining_capacity': remaining_capacity,
+            'booked': booked
+        }
+    else:
+        return {
+            'allowed': False,
+            'reason': f'Nicht genug Kapazität. {remaining_count} Opener hätten nur {remaining_capacity} Plätze für {booked} Buchungen.',
+            'current_openers': len(consultants),
+            'remaining_openers': remaining_count,
+            'remaining_capacity': remaining_capacity,
+            'booked': booked
+        }
+
+
+def remove_opener_from_availability(date_str: str, hour: str, opener_name: str) -> bool:
+    """Remove an opener from availability.json for a specific slot.
+
+    Args:
+        date_str: Date in YYYY-MM-DD format
+        hour: Time slot e.g. "14:00"
+        opener_name: Opener name to remove
+
+    Returns:
+        True if successfully removed, False otherwise
+    """
+    availability_file = os.path.join("data", "persistent", "availability.json")
+    if not os.path.exists(availability_file):
+        availability_file = os.path.join("static", "availability.json")
+
+    if not os.path.exists(availability_file):
+        logger.error("availability.json not found")
+        return False
+
+    try:
+        with open(availability_file, 'r', encoding='utf-8') as f:
+            availability = json.load(f)
+
+        slot_key = f"{date_str} {hour}"
+        if slot_key in availability and opener_name in availability[slot_key]:
+            availability[slot_key].remove(opener_name)
+            with open(availability_file, 'w', encoding='utf-8') as f:
+                json.dump(availability, f, ensure_ascii=False, indent=2)
+            logger.info(f"Removed {opener_name} from availability slot {slot_key}")
+            return True
+        else:
+            logger.warning(f"Opener {opener_name} not found in slot {slot_key}")
+            return False
+    except Exception as e:
+        logger.error(f"Error removing opener from availability: {e}")
+        return False
+
+
 def get_slots_per_consultant(hour: str, weekday: int) -> int:
     """Kapazität pro Berater für einen Zeitslot.
 

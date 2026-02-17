@@ -100,6 +100,11 @@ class SlotConfig:
         4: ["09:00", "11:00", "14:00"]  # Freitag
     }
 
+    # Sonderbuchungen (T1.5/UL)
+    SPECIAL_BOOKING_COLOR_ID: str = "8"  # Pekoe — non-blocking
+    SPECIAL_BOOKING_TYPES: List[str] = ["T1.5", "UL"]
+    SPECIAL_BOOKING_DURATIONS: List[int] = [30, 60, 90]
+
     # Wochentage (1=Montag, 7=Sonntag)
     BOOKING_WEEKDAYS: List[int] = [1, 2, 3, 4, 5, 6, 7]  # Alle Wochentage
 

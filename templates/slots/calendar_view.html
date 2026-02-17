@@ -5,6 +5,84 @@
 {% block header_subtitle %}Wer arbeitet wann — Wochenübersicht der Opener{% endblock %}
 
 {% block content %}
+<div x-data="{
+    showModal: false,
+    modalDate: '',
+    modalTime: '',
+    modalDay: '',
+    bookingType: 'T1.5',
+    duration: 60,
+    customerFirst: '',
+    customerLast: '',
+    description: '',
+    capacityOk: null,
+    capacityReason: '',
+    loading: false,
+    submitting: false,
+    submitResult: '',
+    submitError: '',
+    openModal(date, time, day) {
+        this.modalDate = date;
+        this.modalTime = time;
+        this.modalDay = day;
+        this.bookingType = 'T1.5';
+        this.duration = 60;
+        this.customerFirst = '';
+        this.customerLast = '';
+        this.description = '';
+        this.capacityOk = null;
+        this.capacityReason = '';
+        this.submitResult = '';
+        this.submitError = '';
+        this.showModal = true;
+        this.checkCapacity();
+    },
+    async checkCapacity() {
+        this.loading = true;
+        this.capacityOk = null;
+        try {
+            const resp = await fetch(`/slots/check-special-capacity?date=${this.modalDate}&time=${this.modalTime}`);
+            const data = await resp.json();
+            this.capacityOk = data.allowed;
+            this.capacityReason = data.reason || '';
+        } catch (e) {
+            this.capacityOk = false;
+            this.capacityReason = 'Fehler bei der Kapazitätsprüfung.';
+        }
+        this.loading = false;
+    },
+    async submitBooking() {
+        this.submitting = true;
+        this.submitError = '';
+        this.submitResult = '';
+        try {
+            const resp = await fetch('/slots/book-special', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    date: this.modalDate,
+                    time: this.modalTime,
+                    type: this.bookingType,
+                    duration: this.duration,
+                    customer_first: this.customerFirst,
+                    customer_last: this.customerLast,
+                    description: this.description
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                this.submitResult = data.message;
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                this.submitError = data.error || 'Buchung fehlgeschlagen.';
+            }
+        } catch (e) {
+            this.submitError = 'Netzwerkfehler bei der Buchung.';
+        }
+        this.submitting = false;
+    }
+}">
+
 <!-- Week Navigation -->
 <div class="glass rounded-2xl p-4 mb-8 flex items-center justify-between" data-aos="fade-up">
     <a href="{{ url_for('calendar.calendar_view', week=prev_week.strftime('%Y-%m-%d')) }}"
@@ -51,11 +129,26 @@
                             {% set ns.slot = avail %}
                         {% endif %}
                     {% endfor %}
-                    <td class="text-center p-2 {{ 'bg-primary/5' if day_data.is_today else '' }}">
+                    {% set day_names = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
+                    {% set slot_key = day_data.date.strftime('%Y-%m-%d') ~ ' ' ~ time %}
+                    {% set sb = special_bookings.get(slot_key, {}) if special_bookings else {} %}
+                    <td class="text-center p-2 {{ 'bg-primary/5' if day_data.is_today else '' }} {{ 'cursor-pointer hover:bg-white/10 transition-colors' if ns.found and ns.slot.slot_count > 0 else '' }}"
+                        {% if ns.found and ns.slot.slot_count > 0 %}
+                        @click="openModal('{{ day_data.date.strftime('%Y-%m-%d') }}', '{{ time }}', '{{ day_names[day_data.date.weekday()] }}')"
+                        {% endif %}>
                         {% if ns.found and ns.slot.slot_count > 0 %}
                         <div class="flex flex-wrap gap-1 justify-center">
                             {% for name in ns.slot.available_consultants %}
-                            <span class="badge badge-sm {{ 'badge-success' if ns.slot.slot_count >= 4 else 'badge-warning' }}">{{ name }}</span>
+                            <span class="badge badge-sm {% if ns.slot.slot_count >= 4 %}badge-success{% elif ns.slot.slot_count >= 2 %}badge-warning{% else %}badge-error{% endif %}">{{ name }}</span>
+                            {% endfor %}
+                            {% for sb_name, sb_data in sb.items() %}
+                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.">{{ sb_name }} ({{ sb_data.type }})</span>
+                            {% endfor %}
+                        </div>
+                        {% elif sb %}
+                        <div class="flex flex-wrap gap-1 justify-center">
+                            {% for sb_name, sb_data in sb.items() %}
+                            <span class="badge badge-sm badge-info" title="{{ sb_data.customer_last }}{% if sb_data.customer_first %}, {{ sb_data.customer_first }}{% endif %} — {{ sb_data.duration }} Min.">{{ sb_name }} ({{ sb_data.type }})</span>
                             {% endfor %}
                         </div>
                         {% else %}
@@ -83,12 +176,117 @@
         </div>
         <div class="flex items-center gap-2">
             <span class="badge badge-sm badge-warning">Name</span>
-            <span class="text-white/60 text-sm">1-3 Opener (begrenzt)</span>
+            <span class="text-white/60 text-sm">2-3 Opener (begrenzt)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="badge badge-sm badge-error">Name</span>
+            <span class="text-white/60 text-sm">1 Opener (kritisch)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="badge badge-sm badge-info">Name (T1.5)</span>
+            <span class="text-white/60 text-sm">T1.5/UL Sonderbuchung</span>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-white/30">—</span>
             <span class="text-white/60 text-sm">Keine Opener verfügbar</span>
         </div>
     </div>
+</div>
+
+<!-- Special Booking Modal -->
+<dialog class="modal" :class="{ 'modal-open': showModal }">
+    <div class="modal-box glass max-w-lg">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 text-white/60" @click="showModal = false">✕</button>
+        <h3 class="font-bold text-lg text-white mb-1">T1.5/UL Sonderbuchung</h3>
+        <p class="text-white/60 text-sm mb-4" x-text="modalDay + ', ' + modalDate + ' um ' + modalTime + ' Uhr'"></p>
+
+        <!-- Capacity Status -->
+        <div class="mb-4">
+            <template x-if="loading">
+                <div class="alert alert-info py-2">
+                    <span class="loading loading-spinner loading-sm"></span>
+                    <span>Kapazität wird geprüft...</span>
+                </div>
+            </template>
+            <template x-if="!loading && capacityOk === true">
+                <div class="alert alert-success py-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span x-text="capacityReason" class="text-sm"></span>
+                </div>
+            </template>
+            <template x-if="!loading && capacityOk === false">
+                <div class="alert alert-error py-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    <span x-text="capacityReason" class="text-sm"></span>
+                </div>
+            </template>
+        </div>
+
+        <!-- Form -->
+        <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-control">
+                    <label class="label py-1"><span class="label-text text-white/70">Typ</span></label>
+                    <select class="select select-bordered select-sm w-full" x-model="bookingType">
+                        <option value="T1.5">T1.5 (Folgeberatung)</option>
+                        <option value="UL">UL (Unterlagen)</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label py-1"><span class="label-text text-white/70">Dauer</span></label>
+                    <select class="select select-bordered select-sm w-full" x-model="duration">
+                        <option value="30">30 Min.</option>
+                        <option value="60" selected>60 Min.</option>
+                        <option value="90">90 Min.</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-control">
+                    <label class="label py-1"><span class="label-text text-white/70">Vorname</span></label>
+                    <input type="text" class="input input-bordered input-sm w-full" x-model="customerFirst" placeholder="Max">
+                </div>
+                <div class="form-control">
+                    <label class="label py-1"><span class="label-text text-white/70">Nachname *</span></label>
+                    <input type="text" class="input input-bordered input-sm w-full" x-model="customerLast" placeholder="Schmidt">
+                </div>
+            </div>
+            <div class="form-control">
+                <label class="label py-1"><span class="label-text text-white/70">Beschreibung</span></label>
+                <textarea class="textarea textarea-bordered textarea-sm w-full" rows="2" x-model="description" placeholder="Optionale Notizen..."></textarea>
+            </div>
+        </div>
+
+        <!-- Result Messages -->
+        <template x-if="submitResult">
+            <div class="alert alert-success mt-4 py-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span x-text="submitResult"></span>
+            </div>
+        </template>
+        <template x-if="submitError">
+            <div class="alert alert-error mt-4 py-2">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <span x-text="submitError"></span>
+            </div>
+        </template>
+
+        <!-- Actions -->
+        <div class="modal-action">
+            <button class="btn btn-ghost btn-sm" @click="showModal = false">Abbrechen</button>
+            <button class="btn btn-primary btn-sm"
+                    @click="submitBooking()"
+                    :disabled="!capacityOk || !customerLast.trim() || submitting || submitResult"
+                    :class="{ 'loading': submitting }">
+                <span x-show="!submitting">Buchen</span>
+                <span x-show="submitting">Wird gebucht...</span>
+            </button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button @click="showModal = false">close</button>
+    </form>
+</dialog>
+
 </div>
 {% endblock %}
