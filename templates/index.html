@@ -298,14 +298,16 @@
               </div>
               <div class="space-y-1">
                 {% for slot in day.slots %}
-                {% if slot.total > 0 %}
                 <div class="flex items-center justify-between text-xs">
                   <span class="text-white/70 font-mono">{{ slot.hour }}</span>
+                  {% if slot.total > 0 %}
                   <span class="badge badge-sm badge-{{ slot.color }} gap-1">
                     {{ slot.booked }}/{{ slot.total }}
                   </span>
+                  {% else %}
+                  <span class="badge badge-sm badge-ghost gap-1">&ndash;</span>
+                  {% endif %}
                 </div>
-                {% endif %}
                 {% endfor %}
               </div>
             </div>

@@ -475,11 +475,8 @@ def extract_monthly_overview():
     from app.utils.color_mapping import blocks_availability
 
     today = datetime.now(TZ).date()
-    week_start = get_week_start(today)
-
-    # If today is after Friday, start from next week
-    if today.weekday() >= 5:
-        week_start = week_start + timedelta(weeks=1)
+    # Always start from next Monday — current week is covered by weekly summary + day view
+    week_start = get_week_start(today) + timedelta(weeks=1)
 
     time_slots = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
     weekday_names = ["Mo", "Di", "Mi", "Do", "Fr"]
@@ -605,12 +602,11 @@ def extract_monthly_overview():
                     else:
                         slot["color"] = "error"
 
-    # Filter out days with no availability at all (skip past days in current week)
+    # Filter out days with no availability at all (e.g. holidays)
     for week in weeks_data:
         week["days"] = [
             day for day in week["days"]
-            if datetime.strptime(day["date_str"], "%Y-%m-%d").date() >= today
-            and any(s["total"] > 0 for s in day["slots"])
+            if any(s["total"] > 0 for s in day["slots"])
         ]
 
     # Remove empty weeks
