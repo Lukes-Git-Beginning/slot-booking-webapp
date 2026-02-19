@@ -962,8 +962,11 @@ def calendar_view():
         })
 
     # Load special bookings for display
-    from app.services.booking_service import load_special_bookings
+    from app.services.booking_service import load_special_bookings, extract_week_utilization
     special_bookings = load_special_bookings()
+
+    # Slot-level utilization for the selected week
+    week_utilization = extract_week_utilization(current_week)
 
     user = session.get('user')
     opener_name = _resolve_opener_name(user) if user else ''
@@ -979,6 +982,7 @@ def calendar_view():
                          weekdays_data=weekdays_data,
                          calendar_week=current_week.isocalendar()[1],
                          special_bookings=special_bookings,
+                         week_utilization=week_utilization,
                          user=user,
                          opener_name=opener_name)
 

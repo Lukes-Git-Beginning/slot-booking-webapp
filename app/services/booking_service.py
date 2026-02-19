@@ -615,6 +615,124 @@ def extract_monthly_overview():
     return weeks_data
 
 
+def extract_week_utilization(week_start):
+    """Slot-Level-Auslastung für eine einzelne Woche (Mo–Fr).
+
+    Args:
+        week_start: date object, Monday of the week to analyze
+
+    Returns list of day dicts with per-hour slot utilization.
+    Color coding: success (<60%), warning (60-90%), error (>=90%), ghost (no capacity)
+    """
+    from app.utils.color_mapping import blocks_availability
+
+    time_slots = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+    weekday_names = ["Mo", "Di", "Mi", "Do", "Fr"]
+
+    friday = week_start + timedelta(days=4)
+    days_data = []
+
+    # Phase 1: Collect capacity data
+    for day_offset in range(5):  # Mo-Fr
+        date_obj = week_start + timedelta(days=day_offset)
+        date_str = date_obj.strftime("%Y-%m-%d")
+
+        day_info = {
+            "date_str": date_str,
+            "weekday_short": weekday_names[day_offset],
+            "date_short": date_obj.strftime("%d.%m."),
+            "slots": []
+        }
+
+        for hour in time_slots:
+            consultants = get_effective_availability(date_str, hour)
+            if consultants:
+                slots_per = get_slots_per_consultant(hour, date_obj.weekday())
+                total = len(consultants) * slots_per
+            else:
+                total = 0
+
+            day_info["slots"].append({
+                "hour": hour,
+                "booked": 0,
+                "total": total,
+                "pct": 0,
+                "color": "success"
+            })
+
+        days_data.append(day_info)
+
+    # Phase 2: Single Calendar API call for the week
+    min_dt = TZ.localize(datetime.combine(week_start, datetime.min.time()))
+    max_dt = TZ.localize(datetime.combine(friday + timedelta(days=1), datetime.min.time()))
+
+    calendar_service = get_google_calendar_service()
+    events = []
+    if calendar_service:
+        try:
+            from app.config.base import config
+            events_result = calendar_service.get_events(
+                calendar_id=config.CENTRAL_CALENDAR_ID,
+                time_min=min_dt.isoformat(),
+                time_max=max_dt.isoformat(),
+                max_results=2500
+            )
+            events = events_result.get('items', []) if events_result else []
+        except Exception as e:
+            logger.error(f"Week utilization: Error fetching calendar events: {e}")
+
+    booked_lookup = defaultdict(int)
+    for event in events:
+        if "start" not in event or "dateTime" not in event["start"]:
+            continue
+        try:
+            dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+            event_date = dt.strftime("%Y-%m-%d")
+            event_hour = f"{dt.hour:02d}:00"
+
+            summary = event.get("summary", "")
+            if is_t1_bereit_event(summary):
+                continue
+
+            color_id = event.get("colorId", "2")
+            if not blocks_availability(color_id):
+                continue
+
+            booked_lookup[(event_date, event_hour)] += 1
+        except Exception:
+            continue
+
+    # Phase 3: Fill in booked counts and colors
+    for day in days_data:
+        for slot in day["slots"]:
+            booked = booked_lookup.get((day["date_str"], slot["hour"]), 0)
+            slot["booked"] = booked
+            total = slot["total"]
+
+            if total > 0:
+                pct = int(round((booked / total) * 100))
+                slot["pct"] = min(pct, 100)
+            else:
+                slot["pct"] = 0
+
+            if total == 0:
+                slot["color"] = "ghost"
+            elif slot["pct"] < 60:
+                slot["color"] = "success"
+            elif slot["pct"] < 90:
+                slot["color"] = "warning"
+            else:
+                slot["color"] = "error"
+
+    # Filter out days with no availability (holidays)
+    days_data = [
+        day for day in days_data
+        if any(s["total"] > 0 for s in day["slots"])
+    ]
+
+    return days_data
+
+
 def extract_detailed_summary(availability):
     """Extract detailed summary of availability patterns"""
     if not availability:
