@@ -389,6 +389,39 @@ if (window.innerWidth < 768) {
 }
 
 // ============================================================================
+// MONTHLY OVERVIEW TOGGLE
+// ============================================================================
+window.toggleMonthly = function(e) {
+  const content = document.getElementById('monthlyContent');
+  const icon = document.querySelector('.monthly-toggle-icon');
+  if (!content) return;
+
+  const isExpanded = content.style.maxHeight !== '0px' && content.style.maxHeight !== '';
+
+  if (isExpanded) {
+    content.style.maxHeight = '0';
+    if (icon) icon.style.transform = 'rotate(0deg)';
+    localStorage.setItem('monthly-overview-open', 'false');
+  } else {
+    content.style.maxHeight = content.scrollHeight + 'px';
+    if (icon) icon.style.transform = 'rotate(180deg)';
+    localStorage.setItem('monthly-overview-open', 'true');
+  }
+};
+
+// Restore monthly overview state from localStorage
+;(function restoreMonthlyState() {
+  if (localStorage.getItem('monthly-overview-open') === 'true') {
+    const content = document.getElementById('monthlyContent');
+    const icon = document.querySelector('.monthly-toggle-icon');
+    if (content) {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      if (icon) icon.style.transform = 'rotate(180deg)';
+    }
+  }
+})();
+
+// ============================================================================
 // BOOKING FORM HANDLING
 // ============================================================================
 function handleBookingSubmit(form) {

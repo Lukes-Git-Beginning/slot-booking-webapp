@@ -466,6 +466,159 @@ def extract_weekly_summary(availability, current_date=None):
     return summary
 
 
+def extract_monthly_overview():
+    """Slot-Level-Übersicht für die nächsten 3 Kalenderwochen.
+
+    Returns list of weeks, each with days, each day with per-hour slot utilization.
+    Color coding: success (<60%), warning (60-90%), error (>=90%)
+    """
+    from app.utils.color_mapping import blocks_availability
+
+    today = datetime.now(TZ).date()
+    week_start = get_week_start(today)
+
+    # If today is after Friday, start from next week
+    if today.weekday() >= 5:
+        week_start = week_start + timedelta(weeks=1)
+
+    time_slots = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+    weekday_names = ["Mo", "Di", "Mi", "Do", "Fr"]
+
+    # Phase 1: Collect capacity data for all slots
+    weeks_data = []
+    all_dates_min = None
+    all_dates_max = None
+
+    for w in range(3):
+        ws = week_start + timedelta(weeks=w)
+        kw = ws.isocalendar()[1]
+        friday = ws + timedelta(days=4)
+
+        week_info = {
+            "kw": kw,
+            "range": f"{ws.strftime('%d.%m.')} - {friday.strftime('%d.%m.')}",
+            "days": []
+        }
+
+        for day_offset in range(5):  # Mo-Fr
+            date_obj = ws + timedelta(days=day_offset)
+            date_str = date_obj.strftime("%Y-%m-%d")
+
+            # Track date range for calendar API call
+            if all_dates_min is None or date_obj < all_dates_min:
+                all_dates_min = date_obj
+            if all_dates_max is None or date_obj > all_dates_max:
+                all_dates_max = date_obj
+
+            day_info = {
+                "date_str": date_str,
+                "weekday_short": weekday_names[day_offset],
+                "date_short": date_obj.strftime("%d.%m."),
+                "slots": []
+            }
+
+            for hour in time_slots:
+                consultants = get_effective_availability(date_str, hour)
+                if consultants:
+                    slots_per = get_slots_per_consultant(hour, date_obj.weekday())
+                    total = len(consultants) * slots_per
+                else:
+                    total = 0
+
+                day_info["slots"].append({
+                    "hour": hour,
+                    "booked": 0,  # Filled in phase 2
+                    "total": total,
+                    "pct": 0,
+                    "color": "success"
+                })
+
+            week_info["days"].append(day_info)
+
+        weeks_data.append(week_info)
+
+    # Phase 2: Single Calendar API call for all events in the 3-week range
+    if all_dates_min and all_dates_max:
+        min_dt = TZ.localize(datetime.combine(all_dates_min, datetime.min.time()))
+        max_dt = TZ.localize(datetime.combine(all_dates_max + timedelta(days=1), datetime.min.time()))
+
+        calendar_service = get_google_calendar_service()
+        events = []
+        if calendar_service:
+            try:
+                from app.config.base import config
+                events_result = calendar_service.get_events(
+                    calendar_id=config.CENTRAL_CALENDAR_ID,
+                    time_min=min_dt.isoformat(),
+                    time_max=max_dt.isoformat(),
+                    max_results=2500
+                )
+                events = events_result.get('items', []) if events_result else []
+                logger.info(f"Monthly overview: Fetched {len(events)} events ({all_dates_min} to {all_dates_max})")
+            except Exception as e:
+                logger.error(f"Monthly overview: Error fetching calendar events: {e}")
+
+        # Build lookup: (date_str, hour_bucket) -> booked_count
+        booked_lookup = defaultdict(int)
+        for event in events:
+            if "start" not in event or "dateTime" not in event["start"]:
+                continue
+            try:
+                dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+                event_date = dt.strftime("%Y-%m-%d")
+                # Bucket to the nearest even hour slot
+                event_hour = f"{dt.hour:02d}:00"
+
+                summary = event.get("summary", "")
+                if is_t1_bereit_event(summary):
+                    continue
+
+                color_id = event.get("colorId", "2")
+                if not blocks_availability(color_id):
+                    continue
+
+                booked_lookup[(event_date, event_hour)] += 1
+            except Exception:
+                continue
+
+        # Phase 3: Fill in booked counts and calculate colors
+        for week in weeks_data:
+            for day in week["days"]:
+                for slot in day["slots"]:
+                    booked = booked_lookup.get((day["date_str"], slot["hour"]), 0)
+                    slot["booked"] = booked
+                    total = slot["total"]
+
+                    if total > 0:
+                        pct = int(round((booked / total) * 100))
+                        slot["pct"] = min(pct, 100)
+                    else:
+                        slot["pct"] = 0
+
+                    # Color logic: green <60%, yellow 60-90%, red >=90%
+                    if total == 0:
+                        slot["color"] = "ghost"
+                    elif slot["pct"] < 60:
+                        slot["color"] = "success"
+                    elif slot["pct"] < 90:
+                        slot["color"] = "warning"
+                    else:
+                        slot["color"] = "error"
+
+    # Filter out days with no availability at all (skip past days in current week)
+    for week in weeks_data:
+        week["days"] = [
+            day for day in week["days"]
+            if datetime.strptime(day["date_str"], "%Y-%m-%d").date() >= today
+            and any(s["total"] > 0 for s in day["slots"])
+        ]
+
+    # Remove empty weeks
+    weeks_data = [w for w in weeks_data if w["days"]]
+
+    return weeks_data
+
+
 def extract_detailed_summary(availability):
     """Extract detailed summary of availability patterns"""
     if not availability:

@@ -15,6 +15,7 @@ from app.services.booking_service import (
     get_slot_status,
     extract_weekly_summary,
     extract_detailed_summary,
+    extract_monthly_overview,
     get_slot_suggestions
 )
 from app.utils.helpers import get_week_days, get_week_start, get_current_kw
@@ -102,6 +103,13 @@ def day_view(date_str):
             # Cache the user level data
             cache_manager.set("user_level", level_cache_key, user_level)
 
+    # Monthly overview with caching (5 minutes)
+    monthly_cache_key = f"monthly_overview_{datetime.now(TZ).strftime('%Y-%m-%d_%H_%M')[:-1]}5"
+    monthly_overview = cache_manager.get("monthly_overview", monthly_cache_key)
+    if not monthly_overview:
+        monthly_overview = extract_monthly_overview()
+        cache_manager.set("monthly_overview", monthly_cache_key, monthly_overview)
+
     return render_template(
         "index.html",
         slots=slots,
@@ -111,6 +119,7 @@ def day_view(date_str):
         current_kw=get_current_kw(date_obj),
         weekly_summary=extract_weekly_summary(availability, current_date=date_obj),
         weekly_detailed=extract_detailed_summary(availability),
+        monthly_overview=monthly_overview,
         timedelta=timedelta,
         get_week_start=get_week_start,
         slot_suggestions=get_slot_suggestions(availability),
