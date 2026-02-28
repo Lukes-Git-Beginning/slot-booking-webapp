@@ -5,6 +5,7 @@ Booking service - Business logic for slot booking and availability
 
 import json
 import os
+import re
 import pytz
 import logging
 from datetime import datetime, timedelta
@@ -160,19 +161,21 @@ def is_t1_bereit_event(summary: str) -> bool:
     return 't1-bereit' in summary_lower or 't1 bereit' in summary_lower
 
 
+_CANCELLED_RE = re.compile(r'\(\s*(abgesagt|verschoben|exit)\s*\)', re.IGNORECASE)
+
+
 def is_cancelled_event(summary: str) -> bool:
     """Check if event is cancelled/rescheduled/exit (slot is free for rebooking)"""
-    summary_lower = summary.lower()
-    return any(m in summary_lower for m in ['( abgesagt )', '( verschoben )', '( exit )'])
+    return bool(_CANCELLED_RE.search(summary))
 
 
 def get_booking_weight(summary: str, color_id: str) -> int:
-    """Get booking weight: 0=don't count, 1=normal, 2=Überhang (Graphit)"""
+    """Get booking weight: 0=don't count, 1=normal, 2=Überhang (Graphit colorId 8)"""
     if is_t1_bereit_event(summary):
         return 0
     if is_cancelled_event(summary):
         return 0
-    if color_id == "9":
+    if color_id == "8":
         return 2
     return 1
 
