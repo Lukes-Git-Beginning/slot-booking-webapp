@@ -58,7 +58,7 @@ class DataPersistence:
 
         self.data_dir: Path = persist_base / "persistent"
         self.backup_dir: Path = persist_base / "backups"
-        self.static_dir: Path = Path("static")
+        self.static_dir: Path = persist_base / "static"
 
         # Erstelle Verzeichnisse
         self.data_dir.mkdir(parents=True, exist_ok=True)

@@ -301,6 +301,7 @@ class GoogleCalendarService:
         all_events = []
         page_token = None
         page_count = 0
+        page_ssl_retries = 0
         max_pages = 10  # Safety limit (2500 × 10 = 25,000 events max)
 
         calendar_logger.info(f"PAGINATION: Starting paginated fetch for {calendar_id} ({time_min} to {time_max})")
@@ -336,6 +337,7 @@ class GoogleCalendarService:
                 page_events = result.get('items', [])
                 all_events.extend(page_events)
                 page_count += 1
+                page_ssl_retries = 0  # Reset after successful fetch
 
                 calendar_logger.info(f"PAGINATION: Page {page_count} fetched - {len(page_events)} events (total: {len(all_events)})")
 
@@ -355,6 +357,19 @@ class GoogleCalendarService:
                     calendar_logger.error(f"PAGINATION: HTTP error on page {page_count + 1}: {e}")
                     break
             except Exception as e:
+                import ssl
+                is_ssl_error = isinstance(e, (ssl.SSLError, OSError)) or 'SSL' in str(e)
+
+                if is_ssl_error and page_ssl_retries < 2:
+                    page_ssl_retries += 1
+                    calendar_logger.warning(f"PAGINATION: SSL error on page {page_count + 1}, retrying ({page_ssl_retries}/2): {e}")
+                    try:
+                        self._initialize_service()
+                    except Exception:
+                        pass
+                    time.sleep(3 * page_ssl_retries)
+                    continue
+
                 calendar_logger.error(f"PAGINATION: Unexpected error on page {page_count + 1}: {e}")
                 break
 
