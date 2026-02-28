@@ -163,7 +163,7 @@ class TestSlotStatus:
         mock_calendar_service.get_events.return_value = {
             'items': [
                 {'summary': 'Müller, Hans', 'colorId': '2'},
-                {'summary': 'Schmidt, Anna', 'colorId': '9'}
+                {'summary': 'Schmidt, Anna', 'colorId': '7'}
             ]
         }
 

@@ -218,9 +218,9 @@ class TestSlotStatus:
         # GIVEN: 2 regular + 1 T1-bereit event
         mock_calendar_service.get_events.return_value = {
             'items': [
-                {'summary': 'Doe, John', 'colorId': '9'},
+                {'summary': 'Doe, John', 'colorId': '2'},
                 {'summary': 'T1-bereit Weber', 'colorId': '2'},  # Excluded
-                {'summary': 'Smith, Jane', 'colorId': '9'}
+                {'summary': 'Smith, Jane', 'colorId': '7'}
             ]
         }
 
@@ -264,7 +264,7 @@ class TestSlotStatus:
         from app.services.booking_service import get_slot_status
 
         # GIVEN: 10 bookings, capacity=9
-        events = [{'summary': f'Customer {i}', 'colorId': '9'} for i in range(10)]
+        events = [{'summary': f'Customer {i}', 'colorId': '2'} for i in range(10)]
         mock_calendar_service.get_events.return_value = {'items': events}
 
         slot_list, booked, total, freie_count, overbooked = get_slot_status(
@@ -306,7 +306,7 @@ class TestPointsCalculation:
         from app.services.booking_service import get_slot_points
 
         # GIVEN: 2 bookings, 9 capacity = 22% utilization
-        events = [{'summary': f'Customer {i}', 'colorId': '9'} for i in range(2)]
+        events = [{'summary': f'Customer {i}', 'colorId': '2'} for i in range(2)]
         mock_calendar_service.get_events.return_value = {'items': events}
 
         slot_date = date(2026, 1, 15)  # Wednesday
@@ -325,7 +325,7 @@ class TestPointsCalculation:
         from app.services.booking_service import get_slot_points
 
         # GIVEN: 5 bookings, 9 capacity = 55% utilization
-        events = [{'summary': f'Customer {i}', 'colorId': '9'} for i in range(5)]
+        events = [{'summary': f'Customer {i}', 'colorId': '2'} for i in range(5)]
         mock_calendar_service.get_events.return_value = {'items': events}
 
         slot_date = date(2026, 1, 15)
@@ -344,7 +344,7 @@ class TestPointsCalculation:
         from app.services.booking_service import get_slot_points
 
         # GIVEN: 7 bookings, 9 capacity = 77% utilization
-        events = [{'summary': f'Customer {i}', 'colorId': '9'} for i in range(7)]
+        events = [{'summary': f'Customer {i}', 'colorId': '2'} for i in range(7)]
         mock_calendar_service.get_events.return_value = {'items': events}
 
         slot_date = date(2026, 1, 15)

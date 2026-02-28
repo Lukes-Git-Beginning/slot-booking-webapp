@@ -160,6 +160,23 @@ def is_t1_bereit_event(summary: str) -> bool:
     return 't1-bereit' in summary_lower or 't1 bereit' in summary_lower
 
 
+def is_cancelled_event(summary: str) -> bool:
+    """Check if event is cancelled/rescheduled/exit (slot is free for rebooking)"""
+    summary_lower = summary.lower()
+    return any(m in summary_lower for m in ['( abgesagt )', '( verschoben )', '( exit )'])
+
+
+def get_booking_weight(summary: str, color_id: str) -> int:
+    """Get booking weight: 0=don't count, 1=normal, 2=Überhang (Graphit)"""
+    if is_t1_bereit_event(summary):
+        return 0
+    if is_cancelled_event(summary):
+        return 0
+    if color_id == "9":
+        return 2
+    return 1
+
+
 def load_availability() -> Dict[str, List[str]]:
     """Load availability data from persistent storage"""
     availability_file = "data/persistent/availability.json"
@@ -302,7 +319,6 @@ def get_effective_availability(date_str: str, hour: str) -> List[str]:
 def extract_weekly_summary(availability, current_date=None):
     """Extract weekly summary using old working method - matches original calculation"""
     from collections import defaultdict
-    from app.utils.color_mapping import blocks_availability
 
     week_possible = defaultdict(int)
     week_booked = defaultdict(int)
@@ -418,24 +434,15 @@ def extract_weekly_summary(availability, current_date=None):
                     events_processed += 1
                     # Only count future events
                     if dt.date() >= today:
-                        # Get event summary to check if it's T1-bereit
                         summary = event.get("summary", "")
-
-                        # Don't count T1-bereit events as booked
-                        if is_t1_bereit_event(summary):
-                            events_filtered_t1 += 1
-                            logger.debug(f"Event filtered (T1-bereit): {summary}")
+                        color_id = event.get("colorId", "")
+                        weight = get_booking_weight(summary, color_id)
+                        if weight > 0:
+                            key = week_key_from_date(dt)
+                            week_booked[key] += weight
+                            events_counted += 1
                         else:
-                            # IMPORTANT: Check if event blocks availability
-                            color_id = event.get("colorId", "2")  # Default: Green
-                            blocks = blocks_availability(color_id)
-                            logger.debug(f"Event '{summary}' has colorId={color_id}, blocks_availability={blocks}")
-                            if blocks:  # Only count blocking events
-                                key = week_key_from_date(dt)
-                                week_booked[key] += 1
-                                events_counted += 1
-                            else:
-                                events_filtered_color += 1
+                            events_filtered_t1 += 1
                 except Exception as e:
                     logger.error(f"Error parsing event time", extra={'error': str(e)})
                     continue
@@ -473,7 +480,6 @@ def extract_monthly_overview():
     Returns list of weeks, each with days, each day with per-hour slot utilization.
     Color coding: success (<60%), warning (60-90%), error (>=90%)
     """
-    from app.utils.color_mapping import blocks_availability
 
     today = datetime.now(TZ).date()
     # Always start from next Monday — current week is covered by weekly summary + day view
@@ -569,14 +575,10 @@ def extract_monthly_overview():
                 event_hour = f"{dt.hour:02d}:00"
 
                 summary = event.get("summary", "")
-                if is_t1_bereit_event(summary):
-                    continue
-
-                color_id = event.get("colorId", "2")
-                if not blocks_availability(color_id):
-                    continue
-
-                booked_lookup[(event_date, event_hour)] += 1
+                color_id = event.get("colorId", "")
+                weight = get_booking_weight(summary, color_id)
+                if weight > 0:
+                    booked_lookup[(event_date, event_hour)] += weight
             except Exception:
                 continue
 
@@ -626,7 +628,6 @@ def extract_week_utilization(week_start):
     Returns list of day dicts with per-hour slot utilization.
     Color coding: success (<60%), warning (60-90%), error (>=90%), ghost (no capacity)
     """
-    from app.utils.color_mapping import blocks_availability
 
     time_slots = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
     weekday_names = ["Mo", "Di", "Mi", "Do", "Fr"]
@@ -694,14 +695,10 @@ def extract_week_utilization(week_start):
             event_hour = f"{dt.hour:02d}:00"
 
             summary = event.get("summary", "")
-            if is_t1_bereit_event(summary):
-                continue
-
-            color_id = event.get("colorId", "2")
-            if not blocks_availability(color_id):
-                continue
-
-            booked_lookup[(event_date, event_hour)] += 1
+            color_id = event.get("colorId", "")
+            weight = get_booking_weight(summary, color_id)
+            if weight > 0:
+                booked_lookup[(event_date, event_hour)] += weight
         except Exception:
             continue
 
@@ -811,9 +808,8 @@ def get_slot_status(date_str: str, hour: str, berater_count: int) -> Tuple[List[
             'outcome': 'unknown'  # Will be enhanced later
         })
 
-        # Only count as booked if it's NOT a T1-bereit event
-        if not is_t1_bereit_event(summary):
-            booked_count += 1
+        weight = get_booking_weight(summary, color_id)
+        booked_count += weight
 
     booked = booked_count
     total = max_slots
