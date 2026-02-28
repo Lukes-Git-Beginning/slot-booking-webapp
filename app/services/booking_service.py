@@ -414,6 +414,7 @@ def extract_weekly_summary(availability, current_date=None):
             if "start" in event and "dateTime" in event["start"]:
                 try:
                     dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+                    dt = dt.astimezone(TZ)
                     events_processed += 1
                     # Only count future events
                     if dt.date() >= today:
@@ -562,6 +563,7 @@ def extract_monthly_overview():
                 continue
             try:
                 dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+                dt = dt.astimezone(TZ)
                 event_date = dt.strftime("%Y-%m-%d")
                 # Bucket to the nearest even hour slot
                 event_hour = f"{dt.hour:02d}:00"
@@ -687,6 +689,7 @@ def extract_week_utilization(week_start):
             continue
         try:
             dt = datetime.fromisoformat(event["start"]["dateTime"].replace('Z', '+00:00'))
+            dt = dt.astimezone(TZ)
             event_date = dt.strftime("%Y-%m-%d")
             event_hour = f"{dt.hour:02d}:00"
 
