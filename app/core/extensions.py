@@ -136,6 +136,16 @@ def init_extensions(app: Flask) -> None:
     # Initialize Flask-Session with Redis backend (if available)
     init_session_storage(app)
 
+    # Initialize Celery task queue (graceful degradation if Redis unavailable)
+    try:
+        from app.core.celery_init import celery_init_app
+        celery_app = celery_init_app(app)
+
+        # Auto-discover task modules
+        celery_app.autodiscover_tasks(['app.services'], related_name='finanz_tasks')
+    except Exception as e:
+        logger.info(f"Celery not initialized: {e}")
+
     logger.info("All extensions initialized successfully")
 
 

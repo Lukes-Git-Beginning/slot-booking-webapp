@@ -34,6 +34,29 @@ def create_app(config_object: Optional[str] = None) -> Flask:
         # Standard-Konfiguration für Development
         app.config.from_object('app.config.base.Config')
 
+    # Celery configuration (must be set before init_extensions)
+    _redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    # Strip trailing /N to get base URL for DB separation
+    _redis_base = _redis_url.rsplit("/", 1)[0] if _redis_url.count("/") > 2 else _redis_url
+
+    app.config["CELERY"] = {
+        "broker_url": f"{_redis_base}/1",
+        "result_backend": f"{_redis_base}/2",
+        "task_ignore_result": True,
+        "task_serializer": "json",
+        "result_serializer": "json",
+        "accept_content": ["json"],
+        "task_acks_late": True,
+        "task_reject_on_worker_lost": True,
+        "task_track_started": True,
+        "result_expires": 86400,
+        "timezone": "Europe/Berlin",
+        "enable_utc": True,
+        "task_always_eager": os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower()
+            in ["true", "1", "yes"],
+        "task_eager_propagates": True,
+    }
+
     # Extensions initialisieren (bestehende)
     from app.core.extensions import init_extensions
     init_extensions(app)
