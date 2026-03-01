@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dokumente hochladen - ZFA</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#d4af6a',
+                        secondary: '#207487',
+                        accent: '#294c5d',
+                        'zfa-gray': '#77726d',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Prevent iOS zoom on input focus */
+        input, select, textarea { font-size: 16px !important; }
+        /* Smooth card transitions */
+        .upload-card { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-100">
+        <div class="max-w-lg mx-auto px-4 py-4 text-center">
+            <div class="flex items-center justify-center gap-2 mb-1">
+                <svg class="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span class="text-xl font-bold text-accent">ZFA</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-lg mx-auto px-4 py-6">
+
+        <!-- Greeting -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-accent mb-1">Hallo {{ customer_name }}</h1>
+            <p class="text-zfa-gray">Laden Sie Ihre Unterlagen hoch</p>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="flex items-center justify-between text-sm text-zfa-gray mb-6 px-1">
+            <div id="countdown" class="flex items-center gap-1">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span id="countdown-text">Wird berechnet...</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span id="remaining-count">{{ remaining_uploads }}</span> verbleibend
+            </div>
+        </div>
+
+        <!-- Upload Buttons -->
+        <div id="upload-controls" class="space-y-3 mb-6">
+            <!-- Camera Button (Primary) -->
+            <label class="btn btn-lg w-full flex items-center justify-center gap-3 text-white border-0 shadow-md hover:shadow-lg cursor-pointer"
+                   style="min-height: 64px; background-color: #d4af6a; border-color: #d4af6a;">
+                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span class="text-lg font-semibold">Foto aufnehmen</span>
+                <input type="file" accept="image/*" capture="environment" class="hidden" id="camera-input"
+                       onchange="handleFileSelect(this)">
+            </label>
+
+            <!-- File Picker Button (Secondary) -->
+            <label class="btn btn-outline btn-lg w-full flex items-center justify-center gap-3 cursor-pointer"
+                   style="min-height: 56px; border-color: #207487; color: #207487;">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span class="text-lg font-semibold">Datei auswaehlen</span>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic,image/*,application/pdf" multiple class="hidden" id="file-input"
+                       onchange="handleFileSelect(this)">
+            </label>
+        </div>
+
+        <!-- Upload Queue -->
+        <div id="upload-queue" class="space-y-3"></div>
+
+        <!-- Expired Overlay (hidden by default) -->
+        <div id="expired-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-8 max-w-sm text-center shadow-xl">
+                <svg class="w-16 h-16 mx-auto mb-4 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <h2 class="text-xl font-bold text-accent mb-2">Link abgelaufen</h2>
+                <p class="text-zfa-gray">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
+            </div>
+        </div>
+
+        <!-- All Done Overlay (hidden by default) -->
+        <div id="done-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-8 max-w-sm text-center shadow-xl">
+                <svg class="w-16 h-16 mx-auto mb-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <h2 class="text-xl font-bold text-accent mb-2">Upload-Limit erreicht</h2>
+                <p class="text-zfa-gray">Alle Uploads wurden erfolgreich hochgeladen. Vielen Dank!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // Configuration from server
+        var TOKEN_VALUE = '{{ token_value }}';
+        var EXPIRES_AT = new Date('{{ expires_at }}');
+        var MAX_FILE_SIZE_MB = {{ max_file_size_mb }};
+        var MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+        var ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'heic'];
+        var remainingUploads = {{ remaining_uploads }};
+
+        // DOM elements
+        var uploadQueue = document.getElementById('upload-queue');
+        var countdownText = document.getElementById('countdown-text');
+        var remainingCount = document.getElementById('remaining-count');
+        var uploadControls = document.getElementById('upload-controls');
+        var expiredOverlay = document.getElementById('expired-overlay');
+        var doneOverlay = document.getElementById('done-overlay');
+
+        // ---- Countdown Timer ----
+        function updateCountdown() {
+            var now = new Date();
+            var diff = EXPIRES_AT - now;
+
+            if (diff <= 0) {
+                countdownText.textContent = 'Abgelaufen';
+                disableUploads();
+                expiredOverlay.classList.remove('hidden');
+                return;
+            }
+
+            var hours = Math.floor(diff / 3600000);
+            var minutes = Math.floor((diff % 3600000) / 60000);
+            var seconds = Math.floor((diff % 60000) / 1000);
+
+            var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+            countdownText.textContent = 'Noch ' + pad(hours) + ':' + pad(minutes) + ':' + pad(seconds) + ' gueltig';
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+
+        // ---- Helpers ----
+        function disableUploads() {
+            uploadControls.style.opacity = '0.4';
+            uploadControls.style.pointerEvents = 'none';
+            var inputs = uploadControls.querySelectorAll('input[type="file"]');
+            for (var i = 0; i < inputs.length; i++) {
+                inputs[i].disabled = true;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function getFileExtension(filename) {
+            var parts = filename.split('.');
+            return parts.length > 1 ? parts.pop().toLowerCase() : '';
+        }
+
+        function truncateFilename(name, maxLen) {
+            if (name.length <= maxLen) return name;
+            var ext = getFileExtension(name);
+            var base = name.substring(0, name.length - ext.length - 1);
+            var keep = maxLen - ext.length - 4; // 4 for "..." + "."
+            return base.substring(0, keep) + '...' + (ext ? '.' + ext : '');
+        }
+
+        function isPDF(file) {
+            return file.type === 'application/pdf' || getFileExtension(file.name) === 'pdf';
+        }
+
+        // ---- Client-side Validation ----
+        function validateFile(file) {
+            // Check extension
+            var ext = getFileExtension(file.name);
+            if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
+                return 'Dateityp nicht erlaubt: .' + ext + '. Erlaubt: PDF, JPG, PNG, TIFF, HEIC';
+            }
+
+            // Check file size
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                return 'Datei zu gross: ' + formatFileSize(file.size) + ' (max. ' + MAX_FILE_SIZE_MB + ' MB)';
+            }
+
+            return null; // Valid
+        }
+
+        // ---- Create Upload Card ----
+        function createUploadCard(file) {
+            var card = document.createElement('div');
+            card.className = 'upload-card bg-white rounded-xl shadow-sm border border-gray-100 p-4';
+
+            var iconHTML;
+            if (isPDF(file)) {
+                iconHTML = '<div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">' +
+                    '<svg class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+                    '<polyline points="14 2 14 8 20 8"/>' +
+                    '<line x1="16" y1="13" x2="8" y2="13"/>' +
+                    '<line x1="16" y1="17" x2="8" y2="17"/>' +
+                    '</svg></div>';
+            } else {
+                // Image: show thumbnail preview
+                iconHTML = '<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">' +
+                    '<img class="w-full h-full object-cover" data-preview="true" alt="Vorschau"></div>';
+            }
+
+            card.innerHTML =
+                '<div class="flex items-center gap-3 mb-3">' +
+                    iconHTML +
+                    '<div class="flex-1 min-w-0">' +
+                        '<p class="font-medium text-accent text-sm truncate">' + truncateFilename(file.name, 35) + '</p>' +
+                        '<p class="text-xs text-zfa-gray">' + formatFileSize(file.size) + '</p>' +
+                    '</div>' +
+                    '<div data-status-icon class="flex-shrink-0"></div>' +
+                '</div>' +
+                '<div data-progress-wrap>' +
+                    '<progress class="progress progress-primary w-full h-2" value="0" max="100" data-progress></progress>' +
+                    '<p class="text-xs text-zfa-gray mt-1" data-status-text>Wird hochgeladen...</p>' +
+                '</div>';
+
+            uploadQueue.appendChild(card);
+
+            // Generate image thumbnail if applicable
+            if (!isPDF(file)) {
+                var imgEl = card.querySelector('[data-preview]');
+                if (imgEl && typeof FileReader !== 'undefined') {
+                    var reader = new FileReader();
+                    reader.onload = function(e) { imgEl.src = e.target.result; };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            return card;
+        }
+
+        // ---- Upload File via XHR ----
+        function uploadFile(file, card) {
+            var progressBar = card.querySelector('[data-progress]');
+            var statusText = card.querySelector('[data-status-text]');
+            var statusIcon = card.querySelector('[data-status-icon]');
+            var progressWrap = card.querySelector('[data-progress-wrap]');
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/finanzberatung/upload/' + TOKEN_VALUE + '/submit', true);
+
+            // Progress handler
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    var pct = Math.round((e.loaded / e.total) * 100);
+                    progressBar.value = pct;
+                    statusText.textContent = pct + '% hochgeladen...';
+                }
+            };
+
+            // Success handler
+            xhr.onload = function() {
+                var response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (e) {
+                    showCardError(card, 'Serverfehler');
+                    return;
+                }
+
+                if (xhr.status >= 200 && xhr.status < 300 && response.success) {
+                    // Success
+                    progressBar.value = 100;
+                    progressBar.classList.remove('progress-primary');
+                    progressBar.classList.add('progress-success');
+                    statusText.textContent = 'Fertig';
+                    statusText.classList.remove('text-zfa-gray');
+                    statusText.classList.add('text-green-600');
+                    statusIcon.innerHTML =
+                        '<svg class="w-6 h-6 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>' +
+                        '<polyline points="22 4 12 14.01 9 11.01"/></svg>';
+
+                    // Update remaining count
+                    remainingUploads = Math.max(0, remainingUploads - 1);
+                    remainingCount.textContent = remainingUploads;
+
+                    if (remainingUploads <= 0) {
+                        disableUploads();
+                        doneOverlay.classList.remove('hidden');
+                    }
+                } else {
+                    showCardError(card, response.message || 'Upload fehlgeschlagen');
+                }
+            };
+
+            // Error handler
+            xhr.onerror = function() {
+                showCardError(card, 'Netzwerkfehler - bitte pruefen Sie Ihre Verbindung');
+            };
+
+            xhr.send(formData);
+        }
+
+        function showCardError(card, message) {
+            var progressBar = card.querySelector('[data-progress]');
+            var statusText = card.querySelector('[data-status-text]');
+            var statusIcon = card.querySelector('[data-status-icon]');
+
+            progressBar.classList.remove('progress-primary');
+            progressBar.classList.add('progress-error');
+            statusText.textContent = message;
+            statusText.classList.remove('text-zfa-gray');
+            statusText.classList.add('text-red-600');
+            statusIcon.innerHTML =
+                '<svg class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<circle cx="12" cy="12" r="10"/>' +
+                '<line x1="15" y1="9" x2="9" y2="15"/>' +
+                '<line x1="9" y1="9" x2="15" y2="15"/></svg>';
+        }
+
+        function showInlineError(message) {
+            var card = document.createElement('div');
+            card.className = 'upload-card bg-red-50 rounded-xl border border-red-200 p-4';
+            card.innerHTML =
+                '<div class="flex items-center gap-3">' +
+                    '<svg class="w-6 h-6 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<circle cx="12" cy="12" r="10"/>' +
+                    '<line x1="12" y1="8" x2="12" y2="12"/>' +
+                    '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                    '<p class="text-sm text-red-700">' + message + '</p>' +
+                '</div>';
+            uploadQueue.appendChild(card);
+
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                if (card.parentNode) {
+                    card.style.opacity = '0';
+                    setTimeout(function() { card.remove(); }, 300);
+                }
+            }, 5000);
+        }
+
+        // ---- File Select Handler ----
+        window.handleFileSelect = function(input) {
+            var files = input.files;
+            if (!files || files.length === 0) return;
+
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+
+                // Check remaining uploads
+                if (remainingUploads <= 0) {
+                    showInlineError('Upload-Limit erreicht. Keine weiteren Uploads moeglich.');
+                    break;
+                }
+
+                // Client-side validation
+                var error = validateFile(file);
+                if (error) {
+                    showInlineError(file.name + ': ' + error);
+                    continue;
+                }
+
+                // Create card and upload
+                var card = createUploadCard(file);
+                uploadFile(file, card);
+            }
+
+            // Reset file input so same file can be selected again
+            input.value = '';
+        };
+
+    })();
+    </script>
+
+</body>
+</html>
