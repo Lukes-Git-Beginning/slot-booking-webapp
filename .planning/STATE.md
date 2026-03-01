@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-03-01T14:06:52.975Z"
+last_updated: "2026-03-01T14:08:03.977Z"
 progress:
   total_phases: 2
   completed_phases: 1
@@ -49,7 +49,7 @@ Progress: [########--] 86%
 
 *Updated after each plan completion*
 | Phase 02-sessions-upload P03 | 3min | 2 tasks | 4 files |
-| Phase 02-sessions-upload P02 | 3min | 2 tasks | 5 files |
+| Phase 02-sessions-upload P02 | 4min | 2 tasks | 4 files |
 | Phase 02-sessions-upload P01 | 3min | 2 tasks | 5 files |
 | Phase 01-foundation P03 | 2min | 2 tasks | 5 files |
 | Phase 01-foundation P02 | 2min | 2 tasks | 2 files |
@@ -80,6 +80,9 @@ Recent decisions affecting current work:
 - [Phase 02-sessions-upload]: CSRF exemption applied to upload sub-blueprint inside init_app, not in register_blueprints
 - [Phase 02-sessions-upload]: Token TTL resolved at call time via lambda map for runtime config flexibility
 - [Phase 02-sessions-upload]: File deduplication by SHA-256 hash within same session
+- [Phase 02-sessions-upload]: Flask session key 'user' not 'username' -- matches existing auth pattern
+- [Phase 02-sessions-upload]: QR code regenerated on detail page load from active token for freshness
+- [Phase 02-sessions-upload]: Page reload after token/status changes for simplicity over partial DOM updates
 - [Phase 02-sessions-upload]: CDN Tailwind/DaisyUI for standalone upload template (no access to app static pipeline)
 - [Phase 02-sessions-upload]: HTTP 410 Gone for expired/invalid upload tokens
 - [Phase 02-sessions-upload]: Duplicate file upload returns 409 Conflict

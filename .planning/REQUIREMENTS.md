@@ -16,10 +16,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Sessions
 
-- [ ] **SESS-01**: Opener can create a new financial consulting session with customer name, type, and appointment date
-- [ ] **SESS-02**: Session status progresses through workflow (active -> in_analysis -> analyzed -> verified -> archived)
-- [ ] **SESS-03**: Opener can save T1 notes that transfer to Closer in T2
-- [ ] **SESS-04**: Closer can view T1 summary (opener, date, notes) and add T2 notes
+- [x] **SESS-01**: Opener can create a new financial consulting session with customer name, type, and appointment date
+- [x] **SESS-02**: Session status progresses through workflow (active -> in_analysis -> analyzed -> verified -> archived)
+- [x] **SESS-03**: Opener can save T1 notes that transfer to Closer in T2
+- [x] **SESS-04**: Closer can view T1 summary (opener, date, notes) and add T2 notes
 - [x] **SESS-05**: Session tracks assigned opener and closer
 
 ### Upload
@@ -31,7 +31,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UPLD-05**: Uploaded files are stored with UUID filenames and SHA-256 hash for deduplication
 - [ ] **UPLD-06**: Consultant receives real-time SSE notifications when customer uploads a document
 - [x] **UPLD-07**: Token enforces max upload count (20) and expiry, shows clear error when invalid/expired
-- [ ] **UPLD-08**: Opener can generate followup tokens for document resubmission after T1
+- [x] **UPLD-08**: Opener can generate followup tokens for document resubmission after T1
 
 ### Pipeline
 
@@ -120,10 +120,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-02 | Phase 1: Foundation | Complete |
 | FOUND-03 | Phase 1: Foundation | Complete |
 | FOUND-04 | Phase 1: Foundation | Complete |
-| SESS-01 | Phase 2: Sessions + Upload | Pending |
-| SESS-02 | Phase 2: Sessions + Upload | Pending |
-| SESS-03 | Phase 2: Sessions + Upload | Pending |
-| SESS-04 | Phase 2: Sessions + Upload | Pending |
+| SESS-01 | Phase 2: Sessions + Upload | Complete |
+| SESS-02 | Phase 2: Sessions + Upload | Complete |
+| SESS-03 | Phase 2: Sessions + Upload | Complete |
+| SESS-04 | Phase 2: Sessions + Upload | Complete |
 | SESS-05 | Phase 2: Sessions + Upload | Complete |
 | UPLD-01 | Phase 2: Sessions + Upload | Complete |
 | UPLD-02 | Phase 2: Sessions + Upload | Complete |
@@ -132,7 +132,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UPLD-05 | Phase 2: Sessions + Upload | Complete |
 | UPLD-06 | Phase 2: Sessions + Upload | Pending |
 | UPLD-07 | Phase 2: Sessions + Upload | Complete |
-| UPLD-08 | Phase 2: Sessions + Upload | Pending |
+| UPLD-08 | Phase 2: Sessions + Upload | Complete |
 | DASH-05 | Phase 2: Sessions + Upload | Complete |
 | DASH-01 | Phase 3: Berater Dashboards | Pending |
 | DASH-02 | Phase 3: Berater Dashboards | Pending |
