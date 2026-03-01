@@ -62,7 +62,8 @@ class ProductionConfig(Config):
     # ========================================
     # File Upload Settings
     # ========================================
-    MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB
+    # Must be >= FinanzConfig.FINANZ_MAX_FILE_SIZE_MB (50MB default)
+    MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 50 * 1024 * 1024))  # 50MB
 
     # ========================================
     # Data Persistence
