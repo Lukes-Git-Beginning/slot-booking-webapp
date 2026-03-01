@@ -87,6 +87,11 @@ Flask-Session==0.8.0
 # Task Queue
 celery[redis]>=5.4.0
 
+# Finanzberatung - Document Processing
+python-magic>=0.4.27
+# Windows dev: pip install python-magic-bin (bundles libmagic)
+pillow-heif>=0.21
+
 # Testing
 pytest==8.3.3
 pytest-cov==6.0.0

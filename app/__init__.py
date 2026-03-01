@@ -338,6 +338,17 @@ def register_blueprints(app: Flask) -> None:
     except ImportError as e:
         app.logger.warning(f"HubSpot webhook blueprint error: {e}")
 
+    # Finanzberatung Blueprint (Financial Advisory Document Analysis)
+    try:
+        from app.config.base import FinanzConfig
+        if FinanzConfig.FINANZ_ENABLED:
+            from app.routes.finanzberatung import init_app as init_finanzberatung
+            init_finanzberatung(app)
+        else:
+            app.logger.info("Finanzberatung blueprint disabled (FINANZ_ENABLED=false)")
+    except ImportError as e:
+        app.logger.warning(f"Finanzberatung blueprint error: {e}")
+
 
 def register_error_handlers(app: Flask) -> None:
     """Error-Handler für alle HTTP-Status-Codes
