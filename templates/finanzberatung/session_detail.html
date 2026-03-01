@@ -333,12 +333,27 @@
             {% endif %}
         </div>
 
-        <!-- Upload Feed Card (Placeholder for SSE - Plan 04) -->
+        <!-- Upload Feed Card (SSE Live Feed) -->
         <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
-                Upload-Feed
-            </h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
+                    Upload-Feed
+                </h2>
+                <div class="flex items-center gap-2">
+                    <!-- Connection Status -->
+                    <div id="finanz-sse-status" class="flex items-center gap-1">
+                        <span class="status-dot w-2 h-2 rounded-full bg-gray-500 inline-block"></span>
+                        <span class="status-text text-xs text-gray-500">Verbinde...</span>
+                    </div>
+                    <!-- Sound Toggle -->
+                    <button id="finanz-sound-toggle"
+                            class="btn btn-ghost btn-xs btn-circle"
+                            title="Benachrichtigungston umschalten">
+                        <i data-lucide="volume-2" data-sound-icon class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
             <div id="upload-feed">
                 {% if documents %}
                 <div class="space-y-2">
@@ -578,4 +593,45 @@
 
 })();
 </script>
+
+<!-- Toast container for SSE notifications -->
+<div id="finanz-toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"></div>
+
+<!-- SSE Notifications -->
+<script src="{{ url_for('static', filename='js/finanz_notifications.js') }}" nonce="{{ csp_nonce }}"></script>
+<script nonce="{{ csp_nonce }}">
+(function() {
+    var notifications = new FinanzNotifications({
+        sessionId: {{ session.id }},
+        username: '{{ current_user }}',
+        feedContainer: document.getElementById('upload-feed'),
+    });
+    notifications.connect();
+
+    // Sound toggle button
+    var soundBtn = document.getElementById('finanz-sound-toggle');
+    if (soundBtn) {
+        // Set initial state
+        if (localStorage.getItem('finanz_sound') === 'false') {
+            var icon = soundBtn.querySelector('[data-sound-icon]');
+            if (icon) icon.setAttribute('data-lucide', 'volume-x');
+        }
+        soundBtn.addEventListener('click', function() {
+            notifications.toggleSound();
+        });
+    }
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', function() {
+        notifications.disconnect();
+    });
+})();
+</script>
+
+<style nonce="{{ csp_nonce }}">
+@keyframes slideInFromTop {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+</style>
 {% endblock %}

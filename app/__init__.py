@@ -398,6 +398,7 @@ def register_template_context(app: Flask) -> None:
     @app.context_processor
     def inject_global_vars():
         """Globale Template-Variablen"""
+        from app.config.base import FinanzConfig
         return {
             'current_year': datetime.now().year,
             'app_name': 'Beraterwelt',
@@ -407,6 +408,7 @@ def register_template_context(app: Flask) -> None:
             'available_tools': get_available_tools(),
             'notifications': get_user_notifications(),
             'csp_nonce': getattr(g, 'csp_nonce', ''),
+            'finanz_enabled': FinanzConfig.FINANZ_ENABLED,
         }
 
     @app.template_filter('datetime')

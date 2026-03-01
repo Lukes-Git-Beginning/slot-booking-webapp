@@ -471,3 +471,25 @@
     })();
     </script>
 {% endblock %}
+
+{% block finanz_global_notifications %}
+{% if finanz_enabled %}
+<!-- Finanzberatung: Global upload toast notifications -->
+<div id="finanz-toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"></div>
+<script src="{{ url_for('static', filename='js/finanz_notifications.js') }}" nonce="{{ csp_nonce }}"></script>
+<script nonce="{{ csp_nonce }}">
+(function() {
+    // Global mode: sessionId=null triggers /sse/global endpoint (user-channel)
+    var finanzNotifications = new FinanzNotifications({
+        sessionId: null,
+        username: '{{ current_user }}',
+        feedContainer: null
+    });
+    finanzNotifications.connect();
+    window.addEventListener('beforeunload', function() {
+        finanzNotifications.disconnect();
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}
