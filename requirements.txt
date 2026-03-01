@@ -84,6 +84,9 @@ alembic==1.14.0
 redis==5.1.1
 Flask-Session==0.8.0
 
+# Task Queue
+celery[redis]>=5.4.0
+
 # Testing
 pytest==8.3.3
 pytest-cov==6.0.0

@@ -1,0 +1,19 @@
+# ML & Document Processing Dependencies
+# Install separately: pip install -r requirements-ml.txt
+# These packages are NOT required for basic app functionality.
+# Only needed when FINANZ_ENABLED=true and running document pipeline.
+
+# PDF & Document Processing
+pdfplumber>=0.11.0
+tiktoken>=0.7.0
+pytesseract>=0.3.10
+
+# Embeddings & Vector Search
+sentence-transformers>=3.0.0
+chromadb>=0.5.0
+
+# PyTorch (choose based on environment)
+# Production (CUDA): pip install torch --index-url https://download.pytorch.org/whl/cu124
+# Development (CPU): pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Default: CPU-only
+torch
