@@ -12,6 +12,7 @@ Routes:
 - POST /sessions/<id>/status   - Transition status (AJAX)
 - POST /sessions/<id>/assign-closer - Assign closer
 - GET  /sessions/<id>/documents - Get documents as JSON
+- POST /sessions/<id>/deactivate-token - Deactivate upload token (AJAX)
 """
 
 import logging
@@ -440,3 +441,50 @@ def get_documents(session_id):
             session_id, e, exc_info=True,
         )
         return jsonify({'error': 'Fehler beim Laden der Dokumente.'}), 500
+
+
+# ---------------------------------------------------------------------------
+# 10. POST /sessions/<id>/deactivate-token - Deactivate upload token (AJAX)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/deactivate-token', methods=['POST'])
+@require_login
+def deactivate_token(session_id):
+    """Deactivate an upload token. Returns JSON."""
+    try:
+        current_user = _get_current_user()
+        data = request.get_json(silent=True) or {}
+        token_id = data.get('token_id')
+
+        if not token_id:
+            return jsonify({
+                'success': False,
+                'message': 'Token-ID fehlt.',
+            }), 400
+
+        token_id = int(token_id)
+        success = upload_service.deactivate_token(token_id)
+
+        if success:
+            logger.info(
+                "Token %s deactivated by %s for session %s",
+                token_id, current_user, session_id,
+            )
+            return jsonify({
+                'success': True,
+                'message': 'Token wurde deaktiviert.',
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Token nicht gefunden oder bereits deaktiviert.',
+            }), 404
+
+    except Exception as e:
+        logger.error(
+            "Error deactivating token for session %s: %s",
+            session_id, e, exc_info=True,
+        )
+        return jsonify({
+            'success': False,
+            'message': 'Fehler beim Deaktivieren des Tokens.',
+        }), 500

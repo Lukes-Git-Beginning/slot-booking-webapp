@@ -585,9 +585,26 @@
     if (deactivateBtn) {
         deactivateBtn.addEventListener('click', function() {
             if (!confirm('Token wirklich deaktivieren?')) return;
-            // Reload page after deactivation -- full page reload is simplest
-            // since we need to update QR card state
-            window.location.reload();
+            var tokenId = this.getAttribute('data-token-id');
+            fetch(baseUrl + '/deactivate-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ token_id: parseInt(tokenId) }),
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Fehler beim Deaktivieren des Tokens.');
+                }
+            })
+            .catch(function() {
+                alert('Fehler beim Deaktivieren des Tokens.');
+            });
         });
     }
 
