@@ -7,6 +7,34 @@ Migrated from config.py with enhanced structure
 import os
 from typing import List, Dict, Any
 
+
+# ========== HILFSFUNKTIONEN ==========
+def get_env_bool(key: str, default: bool = False) -> bool:
+    """Hilfsfunktion zum Parsen von Boolean-Umgebungsvariablen"""
+    return os.getenv(key, str(default)).lower() in ["true", "1", "yes"]
+
+
+def get_env_list(key: str, default: List[str], separator: str = ",") -> List[str]:
+    """Hilfsfunktion zum Parsen von Listen aus Umgebungsvariablen"""
+    env_value = os.getenv(key)
+    if env_value:
+        return [item.strip() for item in env_value.split(separator)]
+    return default
+
+
+def get_env_dict(key: str, default: Dict[str, str], item_separator: str = ",", kv_separator: str = ":") -> Dict[str, str]:
+    """Hilfsfunktion zum Parsen von Dictionaries aus Umgebungsvariablen"""
+    env_value = os.getenv(key)
+    if env_value:
+        result = {}
+        for item in env_value.split(item_separator):
+            if kv_separator in item:
+                k, v = item.split(kv_separator, 1)
+                result[k.strip()] = v.strip()
+        return result
+    return default
+
+
 # ========== GRUNDLEGENDE KONFIGURATION ==========
 class Config:
     """Basis-Konfiguration mit Umgebungsvariablen"""
@@ -252,6 +280,44 @@ class HubSpotConfig:
     HUBSPOT_CACHE_TTL: int = int(os.getenv("HUBSPOT_CACHE_TTL", "1800"))  # 30 Minuten
 
 
+# ========== FINANZBERATUNG KONFIGURATION ==========
+class FinanzConfig:
+    """Konfiguration fuer Finanzberatungs-Modul"""
+
+    # Master toggle
+    FINANZ_ENABLED: bool = get_env_bool("FINANZ_ENABLED", False)
+
+    # LLM toggle
+    FINANZ_LLM_ENABLED: bool = get_env_bool("FINANZ_LLM_ENABLED", False)
+    FINANZ_LLM_MODEL: str = os.getenv("FINANZ_LLM_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+    FINANZ_LLM_BASE_URL: str = os.getenv("FINANZ_LLM_BASE_URL", "http://localhost:8000/v1")
+
+    # Upload limits
+    FINANZ_MAX_FILE_SIZE_MB: int = int(os.getenv("FINANZ_MAX_FILE_SIZE_MB", "50"))
+    FINANZ_MAX_UPLOADS_PER_TOKEN: int = int(os.getenv("FINANZ_MAX_UPLOADS_PER_TOKEN", "20"))
+    FINANZ_ALLOWED_EXTENSIONS: list = get_env_list(
+        "FINANZ_ALLOWED_EXTENSIONS", ["pdf", "jpg", "jpeg", "png", "tiff", "heic"]
+    )
+
+    # Token TTLs (seconds)
+    FINANZ_TOKEN_TTL_T1: int = int(os.getenv("FINANZ_TOKEN_TTL_T1", "7200"))           # 2h
+    FINANZ_TOKEN_TTL_FOLLOWUP: int = int(os.getenv("FINANZ_TOKEN_TTL_FOLLOWUP", "1209600"))  # 14d
+    FINANZ_TOKEN_TTL_T2: int = int(os.getenv("FINANZ_TOKEN_TTL_T2", "7200"))           # 2h
+
+    # Embedding / Vector
+    FINANZ_EMBEDDING_MODEL: str = os.getenv(
+        "FINANZ_EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2"
+    )
+    FINANZ_CHUNK_SIZE: int = int(os.getenv("FINANZ_CHUNK_SIZE", "4000"))
+    FINANZ_CHUNK_OVERLAP: int = int(os.getenv("FINANZ_CHUNK_OVERLAP", "200"))
+
+    # Cache
+    FINANZ_CACHE_TTL: int = int(os.getenv("FINANZ_CACHE_TTL", "1800"))  # 30 min
+
+    # Upload directory (relative to PERSIST_BASE)
+    FINANZ_UPLOAD_DIR: str = os.getenv("FINANZ_UPLOAD_DIR", "finanz_uploads")
+
+
 # ========== LOGGING KONFIGURATION ==========
 class LoggingConfig:
     """Konfiguration für Logging"""
@@ -283,33 +349,6 @@ class StorageConfig:
     JSON_COMPRESSION_THRESHOLD: int = int(os.getenv("JSON_COMPRESSION_THRESHOLD", "1048576"))  # 1MB
 
 
-# ========== HILFSFUNKTIONEN ==========
-def get_env_bool(key: str, default: bool = False) -> bool:
-    """Hilfsfunktion zum Parsen von Boolean-Umgebungsvariablen"""
-    return os.getenv(key, str(default)).lower() in ["true", "1", "yes"]
-
-
-def get_env_list(key: str, default: List[str], separator: str = ",") -> List[str]:
-    """Hilfsfunktion zum Parsen von Listen aus Umgebungsvariablen"""
-    env_value = os.getenv(key)
-    if env_value:
-        return [item.strip() for item in env_value.split(separator)]
-    return default
-
-
-def get_env_dict(key: str, default: Dict[str, str], item_separator: str = ",", kv_separator: str = ":") -> Dict[str, str]:
-    """Hilfsfunktion zum Parsen von Dictionaries aus Umgebungsvariablen"""
-    env_value = os.getenv(key)
-    if env_value:
-        result = {}
-        for item in env_value.split(item_separator):
-            if kv_separator in item:
-                k, v = item.split(kv_separator, 1)
-                result[k.strip()] = v.strip()
-        return result
-    return default
-
-
 # ========== KONFIGURATION INSTANZEN ==========
 # Singleton-Instanzen für einfachen Import
 config = Config()
@@ -320,3 +359,4 @@ consultant_config = ConsultantConfig()
 logging_config = LoggingConfig()
 storage_config = StorageConfig()
 hubspot_config = HubSpotConfig()
+finanz_config = FinanzConfig()
