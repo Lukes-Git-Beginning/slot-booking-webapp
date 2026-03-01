@@ -48,13 +48,14 @@ Plans:
   3. Customer can upload PDF/image files on the mobile page (including camera capture) with progress feedback; invalid files are rejected with clear error
   4. Consultant sees real-time SSE notification in the browser when a customer uploads a document
   5. Session workflow progresses through statuses; opener notes transfer to closer view; followup tokens can be generated after T1
-**Plans**: 4
+**Plans**: 5
 
 Plans:
-- [ ] 02-01: Blueprint + Service Layer (SESS-05, UPLD-01, UPLD-02, UPLD-04, UPLD-05, UPLD-07) [Wave 1]
-- [ ] 02-02: Session Routes + Templates (SESS-01, SESS-02, SESS-03, SESS-04, UPLD-01, UPLD-02, UPLD-08) [Wave 2, depends on 02-01]
-- [ ] 02-03: Upload Routes + Mobile Page (UPLD-03, UPLD-04, UPLD-05, UPLD-07, DASH-05) [Wave 2, depends on 02-01]
-- [ ] 02-04: SSE Notifications (UPLD-06, SESS-02) [Wave 3, depends on 02-02, 02-03]
+- [x] 02-01: Blueprint + Service Layer (SESS-05, UPLD-01, UPLD-02, UPLD-04, UPLD-05, UPLD-07) [Wave 1]
+- [x] 02-02: Session Routes + Templates (SESS-01, SESS-02, SESS-03, SESS-04, UPLD-01, UPLD-02, UPLD-08) [Wave 2, depends on 02-01]
+- [x] 02-03: Upload Routes + Mobile Page (UPLD-03, UPLD-04, UPLD-05, UPLD-07, DASH-05) [Wave 2, depends on 02-01]
+- [x] 02-04: SSE Notifications (UPLD-06, SESS-02) [Wave 3, depends on 02-02, 02-03]
+- [ ] 02-05: Wire token deactivation (gap closure) [Wave 1]
 
 ### Phase 3: Berater Dashboards
 **Goal**: Opener and Closer consultants have dedicated dashboard views to manage sessions, monitor uploads, and track document completeness
