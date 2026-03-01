@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UPLD-03**: Customer can upload documents via mobile-optimized standalone page (no login required)
 - [x] **UPLD-04**: Upload validates file type via magic bytes (not just extension) -- PDF, JPG, PNG, TIFF, HEIC
 - [x] **UPLD-05**: Uploaded files are stored with UUID filenames and SHA-256 hash for deduplication
-- [ ] **UPLD-06**: Consultant receives real-time SSE notifications when customer uploads a document
+- [x] **UPLD-06**: Consultant receives real-time SSE notifications when customer uploads a document
 - [x] **UPLD-07**: Token enforces max upload count (20) and expiry, shows clear error when invalid/expired
 - [x] **UPLD-08**: Opener can generate followup tokens for document resubmission after T1
 
@@ -130,7 +130,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UPLD-03 | Phase 2: Sessions + Upload | Complete |
 | UPLD-04 | Phase 2: Sessions + Upload | Complete |
 | UPLD-05 | Phase 2: Sessions + Upload | Complete |
-| UPLD-06 | Phase 2: Sessions + Upload | Pending |
+| UPLD-06 | Phase 2: Sessions + Upload | Complete |
 | UPLD-07 | Phase 2: Sessions + Upload | Complete |
 | UPLD-08 | Phase 2: Sessions + Upload | Complete |
 | DASH-05 | Phase 2: Sessions + Upload | Complete |
