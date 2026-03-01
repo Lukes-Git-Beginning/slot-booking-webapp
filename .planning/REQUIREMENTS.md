@@ -20,17 +20,17 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SESS-02**: Session status progresses through workflow (active -> in_analysis -> analyzed -> verified -> archived)
 - [ ] **SESS-03**: Opener can save T1 notes that transfer to Closer in T2
 - [ ] **SESS-04**: Closer can view T1 summary (opener, date, notes) and add T2 notes
-- [ ] **SESS-05**: Session tracks assigned opener and closer
+- [x] **SESS-05**: Session tracks assigned opener and closer
 
 ### Upload
 
-- [ ] **UPLD-01**: System generates crypto-secure upload tokens with configurable TTL (T1=2h, Followup=14d, T2=2h)
-- [ ] **UPLD-02**: QR code is generated from upload token URL (format: `https://upload.zfa.de/finanzberatung/upload/{token}`)
+- [x] **UPLD-01**: System generates crypto-secure upload tokens with configurable TTL (T1=2h, Followup=14d, T2=2h)
+- [x] **UPLD-02**: QR code is generated from upload token URL (format: `https://upload.zfa.de/finanzberatung/upload/{token}`)
 - [ ] **UPLD-03**: Customer can upload documents via mobile-optimized standalone page (no login required)
-- [ ] **UPLD-04**: Upload validates file type via magic bytes (not just extension) -- PDF, JPG, PNG, TIFF, HEIC
-- [ ] **UPLD-05**: Uploaded files are stored with UUID filenames and SHA-256 hash for deduplication
+- [x] **UPLD-04**: Upload validates file type via magic bytes (not just extension) -- PDF, JPG, PNG, TIFF, HEIC
+- [x] **UPLD-05**: Uploaded files are stored with UUID filenames and SHA-256 hash for deduplication
 - [ ] **UPLD-06**: Consultant receives real-time SSE notifications when customer uploads a document
-- [ ] **UPLD-07**: Token enforces max upload count (20) and expiry, shows clear error when invalid/expired
+- [x] **UPLD-07**: Token enforces max upload count (20) and expiry, shows clear error when invalid/expired
 - [ ] **UPLD-08**: Opener can generate followup tokens for document resubmission after T1
 
 ### Pipeline
@@ -124,14 +124,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-02 | Phase 2: Sessions + Upload | Pending |
 | SESS-03 | Phase 2: Sessions + Upload | Pending |
 | SESS-04 | Phase 2: Sessions + Upload | Pending |
-| SESS-05 | Phase 2: Sessions + Upload | Pending |
-| UPLD-01 | Phase 2: Sessions + Upload | Pending |
-| UPLD-02 | Phase 2: Sessions + Upload | Pending |
+| SESS-05 | Phase 2: Sessions + Upload | Complete |
+| UPLD-01 | Phase 2: Sessions + Upload | Complete |
+| UPLD-02 | Phase 2: Sessions + Upload | Complete |
 | UPLD-03 | Phase 2: Sessions + Upload | Pending |
-| UPLD-04 | Phase 2: Sessions + Upload | Pending |
-| UPLD-05 | Phase 2: Sessions + Upload | Pending |
+| UPLD-04 | Phase 2: Sessions + Upload | Complete |
+| UPLD-05 | Phase 2: Sessions + Upload | Complete |
 | UPLD-06 | Phase 2: Sessions + Upload | Pending |
-| UPLD-07 | Phase 2: Sessions + Upload | Pending |
+| UPLD-07 | Phase 2: Sessions + Upload | Complete |
 | UPLD-08 | Phase 2: Sessions + Upload | Pending |
 | DASH-05 | Phase 2: Sessions + Upload | Pending |
 | DASH-01 | Phase 3: Berater Dashboards | Pending |
