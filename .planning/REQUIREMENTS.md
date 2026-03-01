@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **UPLD-01**: System generates crypto-secure upload tokens with configurable TTL (T1=2h, Followup=14d, T2=2h)
 - [x] **UPLD-02**: QR code is generated from upload token URL (format: `https://upload.zfa.de/finanzberatung/upload/{token}`)
-- [ ] **UPLD-03**: Customer can upload documents via mobile-optimized standalone page (no login required)
+- [x] **UPLD-03**: Customer can upload documents via mobile-optimized standalone page (no login required)
 - [x] **UPLD-04**: Upload validates file type via magic bytes (not just extension) -- PDF, JPG, PNG, TIFF, HEIC
 - [x] **UPLD-05**: Uploaded files are stored with UUID filenames and SHA-256 hash for deduplication
 - [ ] **UPLD-06**: Consultant receives real-time SSE notifications when customer uploads a document
@@ -58,7 +58,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DASH-02**: Session detail page shows QR code, token countdown, upload feed (SSE), document checklist, notes
 - [ ] **DASH-03**: Document checklist shows ampel status per type (missing/uploaded/classified/verified)
 - [ ] **DASH-04**: Closer dashboard extends opener view with analysis trigger, scorecard display, and export buttons
-- [ ] **DASH-05**: Mobile upload page is standalone (no base.html), touch-optimized (48px+ buttons), with camera capture and progress indicators
+- [x] **DASH-05**: Mobile upload page is standalone (no base.html), touch-optimized (48px+ buttons), with camera capture and progress indicators
 
 ### Export
 
@@ -127,13 +127,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-05 | Phase 2: Sessions + Upload | Complete |
 | UPLD-01 | Phase 2: Sessions + Upload | Complete |
 | UPLD-02 | Phase 2: Sessions + Upload | Complete |
-| UPLD-03 | Phase 2: Sessions + Upload | Pending |
+| UPLD-03 | Phase 2: Sessions + Upload | Complete |
 | UPLD-04 | Phase 2: Sessions + Upload | Complete |
 | UPLD-05 | Phase 2: Sessions + Upload | Complete |
 | UPLD-06 | Phase 2: Sessions + Upload | Pending |
 | UPLD-07 | Phase 2: Sessions + Upload | Complete |
 | UPLD-08 | Phase 2: Sessions + Upload | Pending |
-| DASH-05 | Phase 2: Sessions + Upload | Pending |
+| DASH-05 | Phase 2: Sessions + Upload | Complete |
 | DASH-01 | Phase 3: Berater Dashboards | Pending |
 | DASH-02 | Phase 3: Berater Dashboards | Pending |
 | DASH-03 | Phase 3: Berater Dashboards | Pending |
