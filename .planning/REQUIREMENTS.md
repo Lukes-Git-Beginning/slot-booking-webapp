@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **FOUND-01**: System loads FinanzberatungConfig with feature toggle, upload limits, token TTLs, LLM settings
 - [x] **FOUND-02**: Database schema supports sessions, tokens, documents, extracted data, scorecards, and task tracking (6 models)
-- [ ] **FOUND-03**: Celery worker processes background tasks via Redis broker
+- [x] **FOUND-03**: Celery worker processes background tasks via Redis broker
 - [x] **FOUND-04**: Dependencies installed (celery, pytesseract, pdfplumber, sentence-transformers, chromadb, tiktoken)
 
 ### Sessions
@@ -118,7 +118,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | FOUND-01 | Phase 1: Foundation | Complete |
 | FOUND-02 | Phase 1: Foundation | Complete |
-| FOUND-03 | Phase 1: Foundation | Pending |
+| FOUND-03 | Phase 1: Foundation | Complete |
 | FOUND-04 | Phase 1: Foundation | Complete |
 | SESS-01 | Phase 2: Sessions + Upload | Pending |
 | SESS-02 | Phase 2: Sessions + Upload | Pending |
