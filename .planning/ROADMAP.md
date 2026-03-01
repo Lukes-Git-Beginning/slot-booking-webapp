@@ -31,11 +31,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. All 6 database models (Session, Token, Document, ExtractedData, Scorecard, TaskTracking) exist and migrate cleanly
   3. Celery worker starts, connects to Redis, and can execute a test task
   4. All new dependencies install without conflicts in the existing virtualenv
-**Plans**: TBD
+**Plans**: 3
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01: Config + Dependencies (FOUND-01, FOUND-04) [Wave 1]
+- [ ] 01-02: Database Models (FOUND-02) [Wave 1]
+- [ ] 01-03: Celery Setup (FOUND-03) [Wave 2, depends on 01-01]
 
 ### Phase 2: Sessions + Upload
 **Goal**: Consultants can create financial consulting sessions and customers can upload documents via QR code on their phone -- the complete upload vertical from session creation through document receipt with real-time notification
