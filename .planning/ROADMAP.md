@@ -34,9 +34,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3
 
 Plans:
-- [ ] 01-01: Config + Dependencies (FOUND-01, FOUND-04) [Wave 1]
-- [ ] 01-02: Database Models (FOUND-02) [Wave 1]
-- [ ] 01-03: Celery Setup (FOUND-03) [Wave 2, depends on 01-01]
+- [x] 01-01: Config + Dependencies (FOUND-01, FOUND-04) [Wave 1]
+- [x] 01-02: Database Models (FOUND-02) [Wave 1]
+- [x] 01-03: Celery Setup (FOUND-03) [Wave 2, depends on 01-01]
 
 ### Phase 2: Sessions + Upload
 **Goal**: Consultants can create financial consulting sessions and customers can upload documents via QR code on their phone -- the complete upload vertical from session creation through document receipt with real-time notification
@@ -48,12 +48,13 @@ Plans:
   3. Customer can upload PDF/image files on the mobile page (including camera capture) with progress feedback; invalid files are rejected with clear error
   4. Consultant sees real-time SSE notification in the browser when a customer uploads a document
   5. Session workflow progresses through statuses; opener notes transfer to closer view; followup tokens can be generated after T1
-**Plans**: TBD
+**Plans**: 4
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01: Blueprint + Service Layer (SESS-05, UPLD-01, UPLD-02, UPLD-04, UPLD-05, UPLD-07) [Wave 1]
+- [ ] 02-02: Session Routes + Templates (SESS-01, SESS-02, SESS-03, SESS-04, UPLD-01, UPLD-02, UPLD-08) [Wave 2, depends on 02-01]
+- [ ] 02-03: Upload Routes + Mobile Page (UPLD-03, UPLD-04, UPLD-05, UPLD-07, DASH-05) [Wave 2, depends on 02-01]
+- [ ] 02-04: SSE Notifications (UPLD-06, SESS-02) [Wave 3, depends on 02-02, 02-03]
 
 ### Phase 3: Berater Dashboards
 **Goal**: Opener and Closer consultants have dedicated dashboard views to manage sessions, monitor uploads, and track document completeness
@@ -138,8 +139,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation | 0/? | Not started | - |
-| 2. Sessions + Upload | 0/? | Not started | - |
+| 1. Foundation | 3/3 | Complete | 2026-03-01 |
+| 2. Sessions + Upload | 0/4 | Planned | - |
 | 3. Berater Dashboards | 0/? | Not started | - |
 | 4. Document Pipeline | 0/? | Not started | - |
 | 5. Scorecard + Export | 0/? | Not started | - |
