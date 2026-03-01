@@ -95,6 +95,16 @@ from app.models.t2_bucket import (
 # T2 Booking Model
 from app.models.t2_booking import T2Booking
 
+# Finanzberatung Models
+from app.models.finanzberatung import (
+    FinanzSession,
+    FinanzUploadToken,
+    FinanzDocument,
+    FinanzExtractedData,
+    FinanzScorecard,
+    FinanzTaskTracking,
+)
+
 __all__ = [
     # Base
     'Base',
@@ -136,4 +146,11 @@ __all__ = [
     'T2UserLastDraw',
     # T2 Booking
     'T2Booking',
+    # Finanzberatung
+    'FinanzSession',
+    'FinanzUploadToken',
+    'FinanzDocument',
+    'FinanzExtractedData',
+    'FinanzScorecard',
+    'FinanzTaskTracking',
 ]
