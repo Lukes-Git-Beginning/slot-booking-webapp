@@ -1,0 +1,172 @@
+{% extends "hub/base.html" %}
+
+{% block hub_title %}Finanzberatung - Sessions{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down">
+    <div>
+        <h1 class="text-3xl font-bold">Finanzberatung - Sessions</h1>
+        <p class="text-gray-400 mt-1">Verwalten Sie Ihre Beratungssessions</p>
+    </div>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_create_form') }}"
+       class="btn btn-primary gap-2">
+        <i data-lucide="plus" class="w-5 h-5"></i>
+        Neue Session
+    </a>
+</div>
+
+{% if sessions and sessions|length > 0 %}
+<!-- Session Table -->
+<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up">
+    <div class="overflow-x-auto">
+        <table class="table table-zebra w-full" id="sessions-table">
+            <thead>
+                <tr>
+                    <th class="cursor-pointer select-none hover:bg-white/10 transition-colors"
+                        data-sort="customer" onclick="sortTable(0, 'string')">
+                        <div class="flex items-center gap-1">
+                            Kunde
+                            <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
+                        </div>
+                    </th>
+                    <th class="cursor-pointer select-none hover:bg-white/10 transition-colors"
+                        data-sort="status" onclick="sortTable(1, 'string')">
+                        <div class="flex items-center gap-1">
+                            Status
+                            <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
+                        </div>
+                    </th>
+                    <th class="cursor-pointer select-none hover:bg-white/10 transition-colors"
+                        data-sort="date" onclick="sortTable(2, 'date')">
+                        <div class="flex items-center gap-1">
+                            Termin
+                            <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
+                        </div>
+                    </th>
+                    <th class="cursor-pointer select-none hover:bg-white/10 transition-colors"
+                        data-sort="type" onclick="sortTable(3, 'string')">
+                        <div class="flex items-center gap-1">
+                            Art
+                            <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
+                        </div>
+                    </th>
+                    <th class="cursor-pointer select-none hover:bg-white/10 transition-colors"
+                        data-sort="created" onclick="sortTable(4, 'date')">
+                        <div class="flex items-center gap-1">
+                            Erstellt
+                            <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr class="hover:bg-white/5 cursor-pointer transition-colors"
+                    onclick="window.location='{{ url_for('finanzberatung.finanz_sessions.session_detail', session_id=s.id) }}'">
+                    <td class="font-semibold">{{ s.customer_name }}</td>
+                    <td>
+                        {% if s.status == 'active' %}
+                            <span class="badge badge-success badge-sm">Aktiv</span>
+                        {% elif s.status == 'in_analysis' %}
+                            <span class="badge badge-warning badge-sm">In Analyse</span>
+                        {% elif s.status == 'analyzed' %}
+                            <span class="badge badge-info badge-sm">Analysiert</span>
+                        {% elif s.status == 'verified' %}
+                            <span class="badge badge-primary badge-sm">Verifiziert</span>
+                        {% elif s.status == 'archived' %}
+                            <span class="badge badge-ghost badge-sm">Archiviert</span>
+                        {% else %}
+                            <span class="badge badge-ghost badge-sm">{{ s.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.appointment_date %}
+                            {{ s.appointment_date.strftime('%d.%m.%Y') }}
+                        {% else %}
+                            <span class="text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.session_type == 'erstberatung' %}
+                            Erstberatung
+                        {% elif s.session_type == 'folgeberatung' %}
+                            Folgeberatung
+                        {% else %}
+                            {{ s.session_type }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.created_at %}
+                            {{ s.created_at.strftime('%d.%m.%Y') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div class="glass rounded-2xl p-12 text-center" data-aos="fade-up">
+    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto mb-6">
+        <i data-lucide="folder-open" class="w-10 h-10 text-primary"></i>
+    </div>
+    <h3 class="text-xl font-bold mb-2">Keine Sessions vorhanden</h3>
+    <p class="text-gray-400 mb-6">Erstellen Sie Ihre erste Beratungssession, um zu beginnen.</p>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_create_form') }}"
+       class="btn btn-primary gap-2">
+        <i data-lucide="plus" class="w-5 h-5"></i>
+        Neue Session erstellen
+    </a>
+</div>
+{% endif %}
+
+<!-- Client-side Table Sorting -->
+<script nonce="{{ csp_nonce }}">
+(function() {
+    let sortDirection = {};
+
+    window.sortTable = function(columnIndex, type) {
+        const table = document.getElementById('sessions-table');
+        if (!table) return;
+
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const key = 'col-' + columnIndex;
+
+        // Toggle direction
+        sortDirection[key] = sortDirection[key] === 'asc' ? 'desc' : 'asc';
+        const dir = sortDirection[key];
+
+        rows.sort(function(a, b) {
+            let aVal = a.cells[columnIndex].textContent.trim();
+            let bVal = b.cells[columnIndex].textContent.trim();
+
+            if (type === 'date') {
+                // Parse dd.mm.yyyy to comparable value
+                let aParts = aVal.split('.');
+                let bParts = bVal.split('.');
+                aVal = aParts.length === 3 ? aParts[2] + aParts[1] + aParts[0] : '';
+                bVal = bParts.length === 3 ? bParts[2] + bParts[1] + bParts[0] : '';
+            }
+
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+
+            if (aVal < bVal) return dir === 'asc' ? -1 : 1;
+            if (aVal > bVal) return dir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        rows.forEach(function(row) {
+            tbody.appendChild(row);
+        });
+    };
+})();
+</script>
+{% endblock %}

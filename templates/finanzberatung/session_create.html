@@ -1,0 +1,76 @@
+{% extends "hub/base.html" %}
+
+{% block hub_title %}Neue Session erstellen{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-8" data-aos="fade-down">
+    <div class="flex items-center gap-2 text-sm text-gray-400 mb-4">
+        <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}" class="hover:text-primary transition-colors">Sessions</a>
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        <span>Neue Session</span>
+    </div>
+    <h1 class="text-3xl font-bold">Neue Session erstellen</h1>
+</div>
+
+<!-- Creation Form -->
+<div class="max-w-xl mx-auto" data-aos="fade-up">
+    <div class="glass rounded-2xl p-6">
+        <form method="POST" action="{{ url_for('finanzberatung.finanz_sessions.session_create') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Customer Name -->
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Kundenname</span>
+                </label>
+                <input type="text"
+                       name="customer_name"
+                       placeholder="Name des Kunden"
+                       class="input input-bordered w-full"
+                       required
+                       autofocus>
+            </div>
+
+            <!-- Session Type -->
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Art der Beratung</span>
+                </label>
+                <select name="session_type" class="select select-bordered w-full" required>
+                    <option value="erstberatung">Erstberatung</option>
+                    <option value="folgeberatung">Folgeberatung</option>
+                </select>
+            </div>
+
+            <!-- Appointment Date -->
+            <div class="form-control w-full mb-6">
+                <label class="label">
+                    <span class="label-text font-semibold">Termin</span>
+                </label>
+                <input type="date"
+                       name="appointment_date"
+                       class="input input-bordered w-full">
+            </div>
+
+            <!-- Opener Info -->
+            <div class="flex items-center gap-2 text-sm text-gray-400 mb-6 px-1">
+                <i data-lucide="user" class="w-4 h-4"></i>
+                <span>Opener: <strong class="text-white">{{ current_user }}</strong></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between">
+                <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}"
+                   class="btn btn-ghost">
+                    Abbrechen
+                </a>
+                <button type="submit" class="btn btn-primary gap-2">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    Session erstellen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

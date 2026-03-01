@@ -1,0 +1,581 @@
+{% extends "hub/base.html" %}
+
+{% block hub_title %}Session: {{ session.customer_name }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="flex items-center gap-2 text-sm text-gray-400 mb-6" data-aos="fade-down">
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}" class="hover:text-primary transition-colors">Sessions</a>
+    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    <span class="text-white">{{ session.customer_name }}</span>
+</div>
+
+<!-- Page Title -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down" data-aos-delay="50">
+    <h1 class="text-3xl font-bold">{{ session.customer_name }}</h1>
+    <div class="flex items-center gap-2">
+        {% if session.status == 'active' %}
+            <span class="badge badge-success">Aktiv</span>
+        {% elif session.status == 'in_analysis' %}
+            <span class="badge badge-warning">In Analyse</span>
+        {% elif session.status == 'analyzed' %}
+            <span class="badge badge-info">Analysiert</span>
+        {% elif session.status == 'verified' %}
+            <span class="badge badge-primary">Verifiziert</span>
+        {% elif session.status == 'archived' %}
+            <span class="badge badge-ghost">Archiviert</span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Two Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- ======= LEFT COLUMN ======= -->
+    <div class="space-y-6">
+
+        <!-- Session Info Card -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+                Session-Details
+            </h2>
+
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Kunde</span>
+                    <span class="font-semibold">{{ session.customer_name }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Art</span>
+                    <span>
+                        {% if session.session_type == 'erstberatung' %}Erstberatung
+                        {% elif session.session_type == 'folgeberatung' %}Folgeberatung
+                        {% else %}{{ session.session_type }}{% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Termin</span>
+                    <span>
+                        {% if session.appointment_date %}
+                            {{ session.appointment_date.strftime('%d.%m.%Y') }}
+                        {% else %}
+                            <span class="text-gray-500">Nicht festgelegt</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="divider my-1"></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Opener</span>
+                    <span>{{ session.opener_username }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Closer</span>
+                    <span>
+                        {% if session.closer_username %}
+                            {{ session.closer_username }}
+                        {% else %}
+                            <span class="text-gray-500">Nicht zugewiesen</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Assign Closer Form (if opener and no closer assigned) -->
+            {% if not session.closer_username and current_user == session.opener_username %}
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <form method="POST"
+                      action="{{ url_for('finanzberatung.finanz_sessions.assign_closer', session_id=session.id) }}"
+                      class="flex gap-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="text"
+                           name="closer_username"
+                           placeholder="Closer-Username"
+                           class="input input-bordered input-sm flex-1"
+                           required>
+                    <button type="submit" class="btn btn-secondary btn-sm gap-1">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        Zuweisen
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Status Transition Buttons -->
+            {% if allowed_transitions %}
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <p class="text-sm text-gray-400 mb-2">Status aendern:</p>
+                <div class="flex flex-wrap gap-2" id="status-buttons">
+                    {% for transition in allowed_transitions %}
+                    <button class="btn btn-sm btn-outline"
+                            data-action="transitionStatus"
+                            data-status="{{ transition.value }}">
+                        {% if transition == SessionStatus.IN_ANALYSIS %}In Analyse
+                        {% elif transition == SessionStatus.ANALYZED %}Analysiert
+                        {% elif transition == SessionStatus.VERIFIED %}Verifiziert
+                        {% elif transition == SessionStatus.ARCHIVED %}Archivieren
+                        {% elif transition == SessionStatus.ACTIVE %}Reaktivieren
+                        {% else %}{{ transition.value }}{% endif %}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Notes Card -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="notebook-pen" class="w-5 h-5 text-primary"></i>
+                Notizen
+            </h2>
+
+            <!-- T1 Notes -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-semibold text-gray-300">T1 Notizen (Opener)</label>
+                    <span class="text-xs text-gray-500" id="t1-notes-status"></span>
+                </div>
+                {% if current_user == session.opener_username %}
+                <textarea id="t1-notes"
+                          class="textarea textarea-bordered w-full h-32 resize-y"
+                          placeholder="Notizen zum ersten Termin..."
+                          data-field="t1_notes">{{ session.t1_notes or '' }}</textarea>
+                {% else %}
+                <div class="bg-white/5 rounded-lg p-3 min-h-[80px] text-sm">
+                    {{ session.t1_notes or 'Keine T1-Notizen vorhanden.' }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- T2 Notes -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-semibold text-gray-300">T2 Notizen (Closer)</label>
+                    <span class="text-xs text-gray-500" id="t2-notes-status"></span>
+                </div>
+                {% if session.closer_username and current_user == session.closer_username %}
+                <textarea id="t2-notes"
+                          class="textarea textarea-bordered w-full h-32 resize-y"
+                          placeholder="Notizen zum zweiten Termin..."
+                          data-field="t2_notes">{{ session.t2_notes or '' }}</textarea>
+                {% else %}
+                <div class="bg-white/5 rounded-lg p-3 min-h-[80px] text-sm">
+                    {{ session.t2_notes or 'Keine T2-Notizen vorhanden.' }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Documents Card -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="files" class="w-5 h-5 text-primary"></i>
+                Dokumente
+                {% if documents %}
+                <span class="badge badge-sm">{{ documents|length }}</span>
+                {% endif %}
+            </h2>
+
+            <div id="documents-list">
+                {% if documents %}
+                <div class="space-y-2">
+                    {% for doc in documents %}
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
+                            {% if 'pdf' in doc.mime_type %}
+                                <i data-lucide="file-text" class="w-5 h-5 text-red-400"></i>
+                            {% elif 'image' in doc.mime_type %}
+                                <i data-lucide="image" class="w-5 h-5 text-blue-400"></i>
+                            {% else %}
+                                <i data-lucide="file" class="w-5 h-5 text-gray-400"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold truncate">{{ doc.original_filename }}</p>
+                            <p class="text-xs text-gray-400">
+                                {{ (doc.file_size / 1024)|round(1) }} KB
+                                {% if doc.created_at %}
+                                &middot; {{ doc.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            {% if doc.status == 'uploaded' %}
+                                <span class="badge badge-ghost badge-xs">Hochgeladen</span>
+                            {% elif doc.status == 'extracted' %}
+                                <span class="badge badge-info badge-xs">Extrahiert</span>
+                            {% elif doc.status == 'classified' %}
+                                <span class="badge badge-success badge-xs">Klassifiziert</span>
+                            {% elif doc.status == 'analyzed' %}
+                                <span class="badge badge-primary badge-xs">Analysiert</span>
+                            {% elif doc.status == 'error' %}
+                                <span class="badge badge-error badge-xs">Fehler</span>
+                            {% else %}
+                                <span class="badge badge-ghost badge-xs">{{ doc.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-gray-400">
+                    <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                    <p class="text-sm">Noch keine Dokumente hochgeladen</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ======= RIGHT COLUMN ======= -->
+    <div class="space-y-6">
+
+        <!-- QR Code Card -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="50" id="qr-card">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="qr-code" class="w-5 h-5 text-primary"></i>
+                Upload-Token
+            </h2>
+
+            {% if active_token and qr_code %}
+            <!-- Active Token State -->
+            <div id="token-active-state">
+                <!-- QR Code Image -->
+                <div class="flex justify-center mb-4">
+                    <img src="data:image/png;base64,{{ qr_code }}"
+                         alt="Upload QR Code"
+                         class="w-64 h-64 rounded-lg bg-white p-2"
+                         id="qr-image">
+                </div>
+
+                <!-- Token Type Badge -->
+                <div class="flex justify-center mb-3">
+                    {% if active_token.token_type == 't1' %}
+                        <span class="badge badge-success">T1 Token</span>
+                    {% elif active_token.token_type == 'followup' %}
+                        <span class="badge badge-warning">Folge-Token</span>
+                    {% elif active_token.token_type == 't2' %}
+                        <span class="badge badge-info">T2 Token</span>
+                    {% endif %}
+                </div>
+
+                <!-- Countdown Timer -->
+                <div class="text-center mb-4" id="countdown-container">
+                    <p class="text-sm text-gray-400 mb-1">Gueltig noch:</p>
+                    <p class="text-3xl font-mono font-bold" id="countdown-timer"
+                       data-expires="{{ active_token.expires_at.isoformat() }}">
+                        --:--:--
+                    </p>
+                </div>
+
+                <!-- Upload Count -->
+                <div class="text-center mb-4">
+                    <p class="text-sm text-gray-400">
+                        <span class="font-semibold text-white">{{ active_token.upload_count }}</span>
+                        / {{ active_token.max_uploads }} Uploads
+                    </p>
+                    <progress class="progress progress-primary w-full mt-1"
+                              value="{{ active_token.upload_count }}"
+                              max="{{ active_token.max_uploads }}"></progress>
+                </div>
+
+                <!-- Deactivate Button -->
+                <div class="text-center">
+                    <button class="btn btn-ghost btn-sm text-error"
+                            data-action="deactivateToken"
+                            data-token-id="{{ active_token.id }}">
+                        <i data-lucide="x-circle" class="w-4 h-4 mr-1"></i>
+                        Token deaktivieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Expired Token State (hidden initially) -->
+            <div id="token-expired-state" class="hidden">
+                <div class="flex justify-center mb-4">
+                    <img src="data:image/png;base64,{{ qr_code }}"
+                         alt="Abgelaufener QR Code"
+                         class="w-64 h-64 rounded-lg bg-white p-2 opacity-30 grayscale">
+                </div>
+                <div class="text-center mb-4">
+                    <span class="badge badge-error">Token abgelaufen</span>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-primary gap-2" data-action="generateToken" data-type="t1">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Neuen Token erstellen
+                    </button>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- No Active Token State -->
+            <div id="token-none-state" class="text-center py-6">
+                <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="qr-code" class="w-8 h-8 text-gray-500"></i>
+                </div>
+                <p class="text-gray-400 mb-4">Kein aktiver Token</p>
+                <div class="flex flex-col gap-2 items-center">
+                    <button class="btn btn-primary gap-2" data-action="generateToken" data-type="t1">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        T1 Token erstellen
+                    </button>
+                    {% if can_followup %}
+                    <button class="btn btn-secondary btn-sm gap-2" data-action="generateToken" data-type="followup">
+                        <i data-lucide="repeat" class="w-4 h-4"></i>
+                        Folge-Token erstellen
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Upload Feed Card (Placeholder for SSE - Plan 04) -->
+        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
+                Upload-Feed
+            </h2>
+            <div id="upload-feed">
+                {% if documents %}
+                <div class="space-y-2">
+                    {% for doc in documents %}
+                    <div class="flex items-center gap-2 text-sm py-1">
+                        <span class="text-gray-500">
+                            {% if doc.created_at %}{{ doc.created_at.strftime('%H:%M') }}{% endif %}
+                        </span>
+                        <span class="text-gray-300">{{ doc.original_filename }}</span>
+                        <span class="text-xs text-gray-500">{{ (doc.file_size / 1024)|round(1) }} KB</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-400 text-center py-4">Noch keine Uploads</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- JavaScript: Countdown Timer, Notes Auto-save, Token Generation, Status Transitions -->
+<script nonce="{{ csp_nonce }}">
+(function() {
+    var sessionId = {{ session.id }};
+    var csrfToken = '{{ csrf_token() }}';
+    var baseUrl = '/finanzberatung/sessions/' + sessionId;
+
+    // =========================================================================
+    // 1. COUNTDOWN TIMER
+    // =========================================================================
+    var timerEl = document.getElementById('countdown-timer');
+    var activeState = document.getElementById('token-active-state');
+    var expiredState = document.getElementById('token-expired-state');
+    var timerInterval = null;
+
+    function startCountdown() {
+        if (!timerEl || !timerEl.dataset.expires) return;
+
+        var expiresAt = new Date(timerEl.dataset.expires).getTime();
+
+        function updateTimer() {
+            var now = Date.now();
+            var remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+
+            if (remaining <= 0) {
+                // Token expired
+                clearInterval(timerInterval);
+                timerEl.textContent = '00:00:00';
+                timerEl.className = 'text-3xl font-mono font-bold text-error';
+                if (activeState) activeState.classList.add('hidden');
+                if (expiredState) expiredState.classList.remove('hidden');
+                return;
+            }
+
+            var hours = Math.floor(remaining / 3600);
+            var minutes = Math.floor((remaining % 3600) / 60);
+            var seconds = remaining % 60;
+
+            timerEl.textContent =
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+
+            // Color transitions
+            var totalMinutes = remaining / 60;
+            if (totalMinutes <= 5) {
+                timerEl.className = 'text-3xl font-mono font-bold text-error';
+            } else if (totalMinutes <= 15) {
+                timerEl.className = 'text-3xl font-mono font-bold text-warning';
+            } else {
+                timerEl.className = 'text-3xl font-mono font-bold text-success';
+            }
+        }
+
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    startCountdown();
+
+    // =========================================================================
+    // 2. NOTES AUTO-SAVE
+    // =========================================================================
+    var saveTimers = {};
+
+    function setupAutoSave(textareaId, field) {
+        var textarea = document.getElementById(textareaId);
+        if (!textarea) return;
+
+        var statusEl = document.getElementById(field.replace('_', '-').replace('notes', 'notes-status'));
+
+        function saveNotes() {
+            if (statusEl) statusEl.textContent = 'Speichert...';
+
+            fetch(baseUrl + '/notes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({
+                    field: field,
+                    content: textarea.value,
+                }),
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (statusEl) {
+                    statusEl.textContent = data.success ? 'Gespeichert' : 'Fehler';
+                    if (data.success) {
+                        statusEl.className = 'text-xs text-success';
+                    } else {
+                        statusEl.className = 'text-xs text-error';
+                    }
+                    setTimeout(function() {
+                        statusEl.textContent = '';
+                        statusEl.className = 'text-xs text-gray-500';
+                    }, 3000);
+                }
+            })
+            .catch(function() {
+                if (statusEl) {
+                    statusEl.textContent = 'Speichern fehlgeschlagen';
+                    statusEl.className = 'text-xs text-error';
+                }
+            });
+        }
+
+        // Debounce on input (1.5s)
+        textarea.addEventListener('input', function() {
+            if (saveTimers[field]) clearTimeout(saveTimers[field]);
+            if (statusEl) {
+                statusEl.textContent = 'Aenderungen...';
+                statusEl.className = 'text-xs text-gray-500';
+            }
+            saveTimers[field] = setTimeout(saveNotes, 1500);
+        });
+
+        // Save on blur
+        textarea.addEventListener('blur', function() {
+            if (saveTimers[field]) clearTimeout(saveTimers[field]);
+            saveNotes();
+        });
+    }
+
+    setupAutoSave('t1-notes', 't1_notes');
+    setupAutoSave('t2-notes', 't2_notes');
+
+    // =========================================================================
+    // 3. TOKEN GENERATION
+    // =========================================================================
+    document.querySelectorAll('[data-action="generateToken"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var tokenType = btn.dataset.type;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            fetch(baseUrl + '/generate-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ token_type: tokenType }),
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+
+                if (data.success) {
+                    // Reload the page to show new token + QR
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Token konnte nicht erstellt werden.');
+                }
+            })
+            .catch(function() {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                alert('Fehler bei der Token-Erstellung.');
+            });
+        });
+    });
+
+    // =========================================================================
+    // 4. STATUS TRANSITIONS
+    // =========================================================================
+    document.querySelectorAll('[data-action="transitionStatus"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var newStatus = btn.dataset.status;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            fetch(baseUrl + '/status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ new_status: newStatus }),
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+
+                if (data.success) {
+                    // Reload to update all status-dependent UI
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Statuswechsel fehlgeschlagen.');
+                }
+            })
+            .catch(function() {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                alert('Fehler beim Statuswechsel.');
+            });
+        });
+    });
+
+    // =========================================================================
+    // 5. TOKEN DEACTIVATION
+    // =========================================================================
+    var deactivateBtn = document.querySelector('[data-action="deactivateToken"]');
+    if (deactivateBtn) {
+        deactivateBtn.addEventListener('click', function() {
+            if (!confirm('Token wirklich deaktivieren?')) return;
+            // Reload page after deactivation -- full page reload is simplest
+            // since we need to update QR card state
+            window.location.reload();
+        });
+    }
+
+})();
+</script>
+{% endblock %}
