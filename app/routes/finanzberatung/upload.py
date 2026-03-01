@@ -18,6 +18,7 @@ from flask import Blueprint, jsonify, render_template, request
 
 from app.config.base import FinanzConfig as finanz_config
 from app.services.finanz_upload_service import FinanzUploadService
+from app.services.finanz_sse_service import sse_manager
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,25 @@ def upload_submit(token_value):
         "Document uploaded: %s for session %s (doc_id=%s)",
         file.filename, token.session_id, document.id,
     )
+
+    # Publish SSE event for real-time notification
+    try:
+        customer_name = 'Kunde'
+        opener_username = None
+        if token and token.session:
+            customer_name = token.session.customer_name or 'Kunde'
+            opener_username = token.session.opener_username
+
+        event_data = sse_manager.format_upload_event(document, customer_name=customer_name)
+        sse_manager.publish(
+            session_id=token.session_id,
+            event_type='new_upload',
+            data=event_data,
+            opener_username=opener_username,
+        )
+    except Exception as e:
+        # SSE publish failure should never block the upload response
+        logger.warning("SSE publish failed after upload: %s", e)
 
     return jsonify({
         'success': True,
