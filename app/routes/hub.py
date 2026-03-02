@@ -565,55 +565,54 @@ def get_live_stats(username):
 
 def has_tool_access(username, tool_id):
     """
-    Prüfen ob Benutzer Tool-Zugang hat
+    Prüfen ob Benutzer Tool-Zugang hat (rollenbasiert)
     """
     try:
-        # Admin-Benutzer laden
         from app.config.base import Config
         admin_users = Config.get_admin_users()
     except:
         admin_users = ['admin', 'Jose', 'Simon', 'Alex', 'David']  # Fallback
 
-    # Admins haben Zugang zu allen Tools
-    if username in admin_users:
+    is_admin = username in admin_users
+
+    # Slots + My Analytics: alle User
+    if tool_id in ['slots', 'my-analytics']:
         return True
 
-    # Service-Buchung für spezifische Benutzer (zusätzlich zu Admins)
+    # T2: Closer + Opener + Admin
+    if tool_id == 't2':
+        t2_access = [
+            'jose.torspecken', 'alexander.nehm', 'david.nehm',
+            'tim.kreisel', 'christian.mast', 'daniel.herbort',
+            'sonja.mast', 'simon.mast', 'dominik.mikic',
+            'ann-kathrin.welge', 'sara.mast',
+        ]
+        return is_admin or username in t2_access
+
+    # Onboarding: Service + Admin
+    if tool_id == 'onboarding':
+        onboarding_access = [
+            'alexandra.börner', 'vanessa.wagner', 'simon.mast',
+        ]
+        return is_admin or username in onboarding_access
+
+    # Service-Buchung für spezifische Benutzer + Admin
     if tool_id == 'service_booking':
         allowed_users = [
             'christian.mast', 'daniel.herbort',
             'tim.kreisel', 'yasmine.schumacher',
             'alexandra.börner'
         ]
-        return username in allowed_users
+        return is_admin or username in allowed_users
 
-    # Telefonisten ohne Opener/Closer-Rolle: nur Hub-Dashboard + Meine Analytics
-    telefonist_only = [
-        'yannis.maeusle',
-        'benjamin.kerstan',
-        'yasmine.schumacher',
-        'ladislav.heka',
-    ]
+    # Analytics: nur Admin-Rolle
+    if tool_id == 'analytics':
+        return is_admin
 
-    # Meine Analytics für alle
-    if tool_id == 'my-analytics':
-        return True
+    # WIP/coming_soon Tools: nur Username "Admin"
+    if tool_id in ['tool4', 'tool5', 'tool6']:
+        return username == 'Admin'
 
-    # Slots und T2 nicht für reine Telefonisten
-    if tool_id in ['slots', 't2']:
-        return username not in telefonist_only
-
-    # Onboarding nicht für reine Telefonisten + bestimmte Opener
-    if tool_id == 'onboarding':
-        blocked_users = telefonist_only + [
-            'ann-kathrin.welge',
-            'dominik.mikic',
-            'sara.mast',
-            'sonja.mast'
-        ]
-        return username not in blocked_users
-
-    # Andere Tools nur für Admins
     return False
 
 

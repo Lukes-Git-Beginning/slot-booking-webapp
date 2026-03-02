@@ -641,32 +641,39 @@ def get_tool_user_count(tool_id: str) -> int:
 
 
 def user_has_tool_access(username: str, tool_id: str) -> bool:
-    """Prüfen ob Benutzer Zugang zu Tool hat"""
-    # Basis-Implementierung - später erweitern mit Role-Based-Access
-
+    """Prüfen ob Benutzer Zugang zu Tool hat (rollenbasiert)"""
     admin_users = get_admin_users()
+    is_admin = username in admin_users
 
-    # Admins haben Zugang zu allen Tools
-    if username in admin_users:
+    # Slots + My Analytics: alle User
+    if tool_id in ['slots', 'my-analytics']:
         return True
 
-    # Telefonisten ohne Opener/Closer-Rolle
-    telefonist_only = [
-        'yannis.maeusle',
-        'benjamin.kerstan',
-        'yasmine.schumacher',
-        'ladislav.heka',
-    ]
+    # T2: Closer + Opener + Admin
+    if tool_id == 't2':
+        t2_access = [
+            'jose.torspecken', 'alexander.nehm', 'david.nehm',
+            'tim.kreisel', 'christian.mast', 'daniel.herbort',
+            'sonja.mast', 'simon.mast', 'dominik.mikic',
+            'ann-kathrin.welge', 'sara.mast',
+        ]
+        return is_admin or username in t2_access
 
-    # Slots und T2 nicht für reine Telefonisten
-    if tool_id in ['slots', 't2']:
-        return username not in telefonist_only
+    # Onboarding: Service + Admin
+    if tool_id == 'onboarding':
+        onboarding_access = [
+            'alexandra.börner', 'vanessa.wagner', 'simon.mast',
+        ]
+        return is_admin or username in onboarding_access
 
-    # Analytics nur für Admins
+    # Analytics: nur Admin-Rolle
     if tool_id == 'analytics':
-        return username in admin_users
+        return is_admin
 
-    # Andere Tools nur für Admins (vorerst)
+    # WIP/coming_soon Tools: nur Username "Admin"
+    if tool_id in ['tool4', 'tool5', 'tool6']:
+        return username == 'Admin'
+
     return False
 
 
