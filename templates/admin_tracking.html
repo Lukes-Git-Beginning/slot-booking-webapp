@@ -132,7 +132,7 @@
                     {% if last_5_workdays %}
                         {% for day in last_5_workdays %}
                         <tr class="hover:bg-white/5 transition-colors">
-                            <td class="text-white font-medium">{{ day.date }}</td>
+                            <td class="text-white font-medium whitespace-nowrap">{{ day.date }}</td>
                             <td class="text-white/80">{{ day.weekday_de }}</td>
                             <td class="text-center">
                                 <span class="badge badge-primary badge-lg">{{ day.total_slots }}</span>
@@ -473,8 +473,10 @@
                     style: { colors: 'rgba(255, 255, 255, 0.7)', fontSize: '10px' },
                     rotate: -45,
                     formatter: function(val) {
-                        const date = new Date(val);
-                        return date.getDate() + '.' + (date.getMonth() + 1);
+                        if (!val) return '';
+                        // DD.MM.YYYY → DD.MM (kurz für Chart-Achse)
+                        const parts = String(val).split('.');
+                        return parts.length >= 2 ? parts[0] + '.' + parts[1] : val;
                     }
                 }
             },
@@ -762,7 +764,7 @@
         }
         tbody.innerHTML = dailyData.map(day => `
             <tr class="hover:bg-white/5 transition-colors">
-                <td class="text-white font-medium">${day.date}</td>
+                <td class="text-white font-medium whitespace-nowrap">${day.date}</td>
                 <td class="text-white/80">${day.weekday_de || ''}</td>
                 <td class="text-center"><span class="badge badge-outline badge-info">${day.total_slots || 0}</span></td>
                 <td class="text-center"><span class="badge badge-outline badge-success">${day.completed || 0}</span></td>

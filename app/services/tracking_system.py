@@ -1366,7 +1366,7 @@ class BookingTracker:
                     completed = row.completed or 0
                     appearance_rate = round((completed / total_slots) * 100, 1) if total_slots > 0 else 0.0
                     stats.append({
-                        "date": str(date),
+                        "date": date.strftime("%d.%m.%Y"),
                         "weekday": date.strftime("%A"),
                         "weekday_de": self._get_german_weekday(date.weekday()),
                         "total_slots": total_slots,
@@ -1380,7 +1380,7 @@ class BookingTracker:
                     })
                 else:
                     stats.append({
-                        "date": str(date),
+                        "date": date.strftime("%d.%m.%Y"),
                         "weekday": date.strftime("%A"),
                         "weekday_de": self._get_german_weekday(date.weekday()),
                         "total_slots": 0, "completed": 0, "no_shows": 0,
@@ -1443,7 +1443,7 @@ class BookingTracker:
                         appearance_rate = 0.0
 
                     stats.append({
-                        "date": date_str,
+                        "date": date.strftime("%d.%m.%Y"),
                         "weekday": date.strftime("%A"),
                         "weekday_de": self._get_german_weekday(date.weekday()),
                         "total_slots": total_slots,
@@ -1458,7 +1458,7 @@ class BookingTracker:
                 else:
                     # Keine Daten für diesen Tag
                     stats.append({
-                        "date": date_str,
+                        "date": date.strftime("%d.%m.%Y"),
                         "weekday": date.strftime("%A"),
                         "weekday_de": self._get_german_weekday(date.weekday()),
                         "total_slots": 0,
@@ -1502,13 +1502,16 @@ class BookingTracker:
                 BookingOutcome.date <= end_date
             ).first()
 
-            # Daily-Data fuer Charts (nur Werktage)
+            # Daily-Data fuer Charts + Tabelle (nur Werktage)
             daily_rows = session.query(
                 BookingOutcome.date,
                 func.count().label('total_slots'),
                 func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
                 func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
                 func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
+                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
+                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
+                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
             ).filter(
                 BookingOutcome.date >= start_date,
                 BookingOutcome.date <= end_date
@@ -1521,11 +1524,16 @@ class BookingTracker:
                     completed = row.completed or 0
                     appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
                     daily_data.append({
-                        "date": str(row.date),
+                        "date": row.date.strftime("%d.%m.%Y"),
+                        "weekday": self._get_german_weekday(row.date.weekday()),
+                        "weekday_de": self._get_german_weekday(row.date.weekday()),
                         "total_slots": slots,
                         "completed": completed,
                         "no_shows": row.no_shows or 0,
                         "ghosts": row.ghosts or 0,
+                        "cancelled": row.cancelled or 0,
+                        "rescheduled": row.rescheduled or 0,
+                        "overhang": row.overhang or 0,
                         "appearance_rate": appearance_rate
                     })
 
@@ -1542,8 +1550,8 @@ class BookingTracker:
                 appearance_rate = no_show_rate = ghost_rate = 0.0
 
             return {
-                "start_date": start_date_str,
-                "end_date": str(end_date),
+                "start_date": start_date.strftime("%d.%m.%Y"),
+                "end_date": end_date.strftime("%d.%m.%Y"),
                 "days_tracked": totals.days_tracked or 0,
                 "total_days": (end_date - start_date).days + 1,
                 "total_slots": total_slots,
@@ -1655,11 +1663,16 @@ class BookingTracker:
                         # current_date.weekday(): 0=Montag, 4=Freitag, 5=Samstag, 6=Sonntag
                         if current_date.weekday() < 5:  # Nur Mo-Fr
                             daily_data.append({
-                                "date": date_str,
+                                "date": current_date.strftime("%d.%m.%Y"),
+                                "weekday": self._get_german_weekday(current_date.weekday()),
+                                "weekday_de": self._get_german_weekday(current_date.weekday()),
                                 "total_slots": slots,
                                 "completed": completed,
                                 "no_shows": no_shows,
                                 "ghosts": ghosts,
+                                "cancelled": cancelled,
+                                "rescheduled": rescheduled,
+                                "overhang": overhang,
                                 "appearance_rate": appearance_rate
                             })
 
@@ -1682,8 +1695,8 @@ class BookingTracker:
                 ghost_rate = 0.0
 
             return {
-                "start_date": start_date_str,
-                "end_date": str(today),
+                "start_date": start_date.strftime("%d.%m.%Y"),
+                "end_date": today.strftime("%d.%m.%Y"),
                 "days_tracked": days_with_data,
                 "total_days": (today - start_date).days + 1,
                 "total_slots": total_slots,
@@ -1697,7 +1710,7 @@ class BookingTracker:
                 "completion_rate": completion_rate,
                 "no_show_rate": no_show_rate,
                 "ghost_rate": ghost_rate,
-                "daily_data": daily_data  # Für Charts
+                "daily_data": daily_data  # Für Charts + Tabelle
             }
 
         except Exception as e:
@@ -2195,7 +2208,7 @@ class BookingTracker:
                         if current_date.weekday() < 5 and slots > 0:
                             appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
                             daily_data.append({
-                                "date": date_str,
+                                "date": current_date.strftime("%d.%m.%Y"),
                                 "weekday": self._get_german_weekday(current_date.weekday()),
                                 "weekday_de": self._get_german_weekday(current_date.weekday()),
                                 "total_slots": slots,
@@ -2228,8 +2241,8 @@ class BookingTracker:
             bookings_created_data = self.get_bookings_by_creation_date(start_date_str, end_date_str)
 
             return {
-                "start_date": start_date_str,
-                "end_date": end_date_str,
+                "start_date": start_date.strftime("%d.%m.%Y"),
+                "end_date": end_date.strftime("%d.%m.%Y"),
                 "days_tracked": days_with_data,
                 "total_days": (end_date - start_date).days + 1,
                 **totals,
