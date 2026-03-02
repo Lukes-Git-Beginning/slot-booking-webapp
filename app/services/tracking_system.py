@@ -81,6 +81,7 @@ USERNAME_TO_DISPLAY = {
     "ladislav.heka": "Ladislav",
     "yasmine.schumacher": "Yasmine",
     "benjamin.kerstan": "Ben",
+    "yannis.maeusle": "Yannis",
     "admin": "Admin",
 }
 

@@ -7,7 +7,7 @@ After=network.target business-hub.service
 Type=oneshot
 User=root
 WorkingDirectory=/opt/business-hub
-ExecStart=/opt/business-hub/venv/bin/python /opt/business-hub/scripts/process_daily_outcomes.py
+ExecStart=/opt/business-hub/venv/bin/python /opt/business-hub/scripts/run_tracking.py
 StandardOutput=append:/var/log/business-hub/outcome-check.log
 StandardError=append:/var/log/business-hub/outcome-check.log
 

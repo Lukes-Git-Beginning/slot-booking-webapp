@@ -46,7 +46,7 @@ STATIC_FILE = os.path.join(STATIC_DIR, "weekly_points.json")
 
 # Standard-Teilnehmer — sync mit ACTIVE_TELEFONISTS in app/config/base.py
 DEFAULT_PARTICIPANTS = [
-    "Ann-Kathrin", "Sara", "Dominik", "Sonja", "Tim", "Christian", "Yasmine", "Ben"
+    "Ann-Kathrin", "Sara", "Dominik", "Sonja", "Tim", "Christian", "Yasmine", "Ben", "Yannis"
 ]
 
 

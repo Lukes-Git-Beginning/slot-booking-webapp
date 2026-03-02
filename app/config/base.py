@@ -213,7 +213,7 @@ class ConsultantConfig:
         "Sonja": "sonjamast98@gmail.com",
         "Yasmine": "yasmine.schumacher@gmail.com",
         "Ben": "",  # Kein eigener Kalender (nur Telefonist)
-        "Yannik": "",  # Kein eigener Kalender (nur Telefonist)
+        "Yannis": "",  # Kein eigener Kalender (nur Telefonist)
     }
 
     @classmethod
@@ -240,7 +240,7 @@ class ConsultantConfig:
         "Christian",    # Teilzeit (T2 Priorität)
         "Yasmine",      # Telefonistin
         "Ben",          # Telefonist
-        "Yannik",       # Telefonist
+        "Yannis",       # Telefonist
     ]
 
     @classmethod

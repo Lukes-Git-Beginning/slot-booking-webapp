@@ -137,6 +137,7 @@ USERNAME_NORMALIZATION_MAP = {
     "ann-kathrin": "ann-kathrin.welge",
     "sonja.mast": "sonja.mast",
     "sara.mast": "sara.mast",
+    "yannis": "yannis.maeusle",
 }
 
 
