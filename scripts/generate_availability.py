@@ -216,6 +216,8 @@ def main():
 
             print(f"🔍 Slot: {slot_key}")
             for name, cal_id in consultants.items():
+                if not cal_id or not cal_id.strip():
+                    continue
                 if is_berater_available(service, cal_id, name, slot_start, slot_end):
                     available.append(name)
 

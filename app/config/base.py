@@ -211,7 +211,7 @@ class ConsultantConfig:
         "Sara": "mastsara2@gmail.com",
         "Dominik": "mikic.dom@gmail.com",
         "Sonja": "sonjamast98@gmail.com",
-        "Yasmine": "yasmine.schumacher@gmail.com",
+        "Yasmine": "",  # Kein eigener Kalender (nur Telefonistin)
         "Ben": "",  # Kein eigener Kalender (nur Telefonist)
         "Yannis": "",  # Kein eigener Kalender (nur Telefonist)
     }
