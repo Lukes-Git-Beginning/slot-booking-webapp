@@ -650,9 +650,17 @@ def user_has_tool_access(username: str, tool_id: str) -> bool:
     if username in admin_users:
         return True
 
-    # Standard-Benutzer haben Zugang zu Slots und T2
+    # Telefonisten ohne Opener/Closer-Rolle
+    telefonist_only = [
+        'yannis.maeusle',
+        'benjamin.kerstan',
+        'yasmine.schumacher',
+        'ladislav.heka',
+    ]
+
+    # Slots und T2 nicht für reine Telefonisten
     if tool_id in ['slots', 't2']:
-        return True
+        return username not in telefonist_only
 
     # Analytics nur für Admins
     if tool_id == 'analytics':

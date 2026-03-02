@@ -587,20 +587,31 @@ def has_tool_access(username, tool_id):
         ]
         return username in allowed_users
 
-    # Onboarding für alle Benutzer AUSSER Blocklist
+    # Telefonisten ohne Opener/Closer-Rolle: nur Hub-Dashboard + Meine Analytics
+    telefonist_only = [
+        'yannis.maeusle',
+        'benjamin.kerstan',
+        'yasmine.schumacher',
+        'ladislav.heka',
+    ]
+
+    # Meine Analytics für alle
+    if tool_id == 'my-analytics':
+        return True
+
+    # Slots und T2 nicht für reine Telefonisten
+    if tool_id in ['slots', 't2']:
+        return username not in telefonist_only
+
+    # Onboarding nicht für reine Telefonisten + bestimmte Opener
     if tool_id == 'onboarding':
-        blocked_users = [
+        blocked_users = telefonist_only + [
             'ann-kathrin.welge',
             'dominik.mikic',
             'sara.mast',
-            'ladislav.heka',
             'sonja.mast'
         ]
         return username not in blocked_users
-
-    # Standard-Benutzer haben Zugang zu Slots, T2 und Meine Analytics
-    if tool_id in ['slots', 't2', 'my-analytics']:
-        return True
 
     # Andere Tools nur für Admins
     return False
