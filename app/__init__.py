@@ -677,7 +677,7 @@ def user_has_tool_access(username: str, tool_id: str) -> bool:
         finanz_access = [
             'christian.mast', 'tim.kreisel', 'daniel.herbort', 'sonja.mast',
             'simon.mast', 'dominik.mikic', 'ann-kathrin.welge', 'sara.mast',
-            'jose.torspecken', 'alexander.nehm', 'david.nehm',
+            'jose.torspecken', 'alexander.nehm', 'david.nehm', 'luke.hoppe',
         ]
         return is_admin or username in finanz_access
 
