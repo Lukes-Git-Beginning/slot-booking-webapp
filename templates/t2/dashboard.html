@@ -24,6 +24,12 @@
         <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
         Meine Analytics
     </a>
+    {% if finanz_access and finanz_enabled %}
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}" class="btn btn-ghost gap-2">
+        <i data-lucide="file-search" class="w-5 h-5"></i>
+        Zur Finanzberatung
+    </a>
+    {% endif %}
     {% if is_admin %}
     <a href="{{ url_for('t2.admin_bucket_config') }}" class="btn btn-warning gap-2">
         <i data-lucide="settings" class="w-5 h-5"></i>
