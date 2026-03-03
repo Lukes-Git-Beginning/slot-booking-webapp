@@ -70,7 +70,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **ADMN-01**: Admin can view all sessions with filters (status, opener, date)
 - [x] **ADMN-02**: Admin can manage DSGVO deletion workflow (mark verified -> 30-day timer -> batch delete)
-- [ ] **ADMN-03**: Original files are deleted after retention period; extracted values and embeddings are preserved *(path bug — Phase 8)*
+- [x] **ADMN-03**: Original files are deleted after retention period; extracted values and embeddings are preserved *(path bug — Phase 8)*
 - [x] **ADMN-04**: Audit trail records every deletion action
 
 ### Hub Integration
@@ -156,7 +156,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXPO-03 | Phase 5: Scorecard + Export | Complete |
 | ADMN-01 | Phase 6: Admin + DSGVO | Complete |
 | ADMN-02 | Phase 6: Admin + DSGVO | Complete |
-| ADMN-03 | Phase 8: Config Bridge + DSGVO Fix | Pending |
+| ADMN-03 | Phase 8: Config Bridge + DSGVO Fix | Complete |
 | ADMN-04 | Phase 6: Admin + DSGVO | Complete |
 | HUBI-01 | Phase 7: Hub Integration | Complete |
 | HUBI-02 | Phase 9: Hub Integration Completion | Pending |

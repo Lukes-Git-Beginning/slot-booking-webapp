@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-03T16:35:00.862Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-03T19:32:47.317Z"
 last_activity: 2026-03-03 -- Milestone audit completed, gap closure phases created
 progress:
   total_phases: 9
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  completed_phases: 3
+  total_plans: 9
+  completed_plans: 9
 ---
 
 ---
@@ -60,6 +60,7 @@ Progress: [##############--] 78% (7 of 9 phases complete)
 | 03-berater-dashboards | 1 | Complete (2026-03-03) |
 | 04-document-pipeline | 1 | Complete (2026-03-03) |
 | 05-scorecard-export | 1 | Complete (2026-03-03) |
+| Phase 08-config-dsgvo-fix P01 | 3 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase 03-05]: Graceful degradation flags (HAS_OPENPYXL, HAS_REPORTLAB) for optional export deps
 - [Phase 03-05]: Mock classification via keyword matching when FINANZ_LLM_ENABLED=false
 - [Phase 03-05]: openpyxl.utils.get_column_letter for Excel columns beyond Z
+- [Phase 08-01]: Path helpers centralized on FinanzConfig class with get_upload_dir/get_file_path/get_chromadb_path classmethods
+- [Phase 08-01]: All finanz services use direct FinanzConfig class attribute access — never current_app.config.get() in finanz services
+- [Phase 08-01]: DSGVO path formula fixed: {PERSIST_BASE}/{FINANZ_UPLOAD_DIR}/{session_id}/{filename} — now matches store_file()
 
 ### Pending Todos
 
@@ -116,6 +120,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-03T16:35:00.859Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-config-dsgvo-fix/08-CONTEXT.md
+Last session: 2026-03-03T19:32:47.314Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None

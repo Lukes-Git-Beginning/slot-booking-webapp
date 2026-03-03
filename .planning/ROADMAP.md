@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Scorecard + Export** - Traffic-light scorecard generation, PDF and Excel export
 - [x] **Phase 6: Admin + DSGVO** - Admin session management and DSGVO-compliant deletion workflow
 - [x] **Phase 7: Hub Integration** - Tool tile, access control, and cross-tool links
-- [ ] **Phase 8: Config Bridge + DSGVO Path Fix** - Fix config reading pattern and DSGVO file deletion path bug (Gap Closure)
+- [x] **Phase 8: Config Bridge + DSGVO Path Fix** - Fix config reading pattern and DSGVO file deletion path bug (Gap Closure) (completed 2026-03-03)
 - [ ] **Phase 9: Hub Integration Completion** - Role-based access control and cross-tool links (Gap Closure)
 
 ## Phase Details
@@ -172,5 +172,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 5. Scorecard + Export | 1/1 | Complete | 2026-03-03 |
 | 6. Admin + DSGVO | 1/1 | Complete | 2026-03-03 |
 | 7. Hub Integration | 1/1 | Complete | 2026-03-03 |
-| 8. Config Bridge + DSGVO Fix | 0/1 | Not started | - |
+| 8. Config Bridge + DSGVO Fix | 1/1 | Complete   | 2026-03-03 |
 | 9. Hub Integration Completion | 0/1 | Not started | - |
