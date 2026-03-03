@@ -72,7 +72,14 @@ class TestContractTypes:
         """Test that most contract types include 'gesellschaft' as a field."""
         from app.config.finanz_checklist import CONTRACT_TYPES
 
+        # Legacy/Unterlagen types don't have gesellschaft (not insurance contracts)
+        skip_types = {
+            'renteninfo', 'steuerbescheid', 'gehaltsabrechnung',
+            'kontoauszug', 'depot', 'sonstige',
+        }
         for type_key, ct in CONTRACT_TYPES.items():
+            if type_key in skip_types:
+                continue
             field_names = [f['name'] for f in ct['fields']]
             assert 'gesellschaft' in field_names, (
                 f"{type_key} missing 'gesellschaft' field"
@@ -88,7 +95,7 @@ class TestChecklistCategories:
 
         expected = {
             'sachversicherung', 'kfz', 'altersvorsorge',
-            'absicherung', 'gesundheit', 'sonstiges',
+            'absicherung', 'gesundheit', 'sonstiges', 'unterlagen',
         }
         assert set(CHECKLIST_CATEGORIES.keys()) == expected
 

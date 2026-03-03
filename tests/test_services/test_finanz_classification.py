@@ -74,11 +74,13 @@ class TestKeywordClassification:
         assert len(result['type_label']) > 0
 
     def test_all_keyword_types_covered(self):
-        """Test that CLASSIFICATION_KEYWORDS covers all non-legacy CONTRACT_TYPES."""
+        """Test that CLASSIFICATION_KEYWORDS covers all CONTRACT_TYPES (except sonstige fallback)."""
         from app.config.finanz_checklist import CONTRACT_TYPES, CLASSIFICATION_KEYWORDS
 
-        # All types from checklist should have keywords
+        # 'sonstige' is the automatic fallback when nothing matches — no keywords needed
         for type_key in CONTRACT_TYPES:
+            if type_key == 'sonstige':
+                continue
             assert type_key in CLASSIFICATION_KEYWORDS, (
                 f"Type '{type_key}' missing from CLASSIFICATION_KEYWORDS"
             )

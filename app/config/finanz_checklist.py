@@ -85,7 +85,15 @@ CHECKLIST_CATEGORIES = {
         "icon": "folder",
         "types": [
             "gewerbeversicherung", "reisehaftpflicht", "reisegepaeck",
-            "tierkrankenversicherung",
+            "tierkrankenversicherung", "versicherung", "sonstige",
+        ],
+    },
+    "unterlagen": {
+        "label": "Persoenliche Unterlagen",
+        "icon": "file-text",
+        "types": [
+            "renteninfo", "steuerbescheid", "gehaltsabrechnung",
+            "kontoauszug", "depot",
         ],
     },
 }
@@ -643,6 +651,93 @@ CONTRACT_TYPES = {
             {**_F_TARIFNAME},
         ],
     },
+
+    # ===== PERSOENLICHE UNTERLAGEN (Legacy-Typen) =====
+    "renteninfo": {
+        "label": "Deutsche Renteninformation",
+        "icon": "landmark",
+        "category": "unterlagen",
+        "fields": [
+            {**_F_VERSICHERTE_PERSON},
+            {**_F_VERTRAGSNUMMER, "label": "Versicherungsnummer"},
+            {"name": "rentenbeginn", "label": "Rentenbeginn", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_DATE},
+            {"name": "regelaltersrente_brutto", "label": "Regelaltersrente (Brutto)", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "rente_bei_erwerbsminderung", "label": "Rente bei Erwerbsminderung", "priority": PRIORITY_SOLL, "type": FIELD_TYPE_CURRENCY},
+            {"name": "bisher_erworbene_ansprueche", "label": "Bisher erworbene Ansprueche", "priority": PRIORITY_SOLL, "type": FIELD_TYPE_CURRENCY},
+        ],
+    },
+    "steuerbescheid": {
+        "label": "Einkommensteuerbescheid",
+        "icon": "receipt",
+        "category": "unterlagen",
+        "fields": [
+            {"name": "steuerjahr", "label": "Steuerjahr", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {"name": "zu_versteuerndes_einkommen", "label": "Zu versteuerndes Einkommen", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "festgesetzte_einkommensteuer", "label": "Festgesetzte Einkommensteuer", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "solidaritaetszuschlag", "label": "Solidaritaetszuschlag", "priority": PRIORITY_SOLL, "type": FIELD_TYPE_CURRENCY},
+            {"name": "kirchensteuer", "label": "Kirchensteuer", "priority": PRIORITY_KANN, "type": FIELD_TYPE_CURRENCY},
+        ],
+    },
+    "gehaltsabrechnung": {
+        "label": "Gehalts-/Lohnabrechnung",
+        "icon": "banknote",
+        "category": "unterlagen",
+        "fields": [
+            {"name": "arbeitgeber", "label": "Arbeitgeber", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {"name": "bruttolohn", "label": "Bruttolohn", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "nettolohn", "label": "Nettolohn", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "steuerklasse", "label": "Steuerklasse", "priority": PRIORITY_SOLL, "type": FIELD_TYPE_TEXT},
+            {"name": "abrechnungsmonat", "label": "Abrechnungsmonat", "priority": PRIORITY_SOLL, "type": FIELD_TYPE_TEXT},
+        ],
+    },
+    "kontoauszug": {
+        "label": "Kontoauszug",
+        "icon": "scroll",
+        "category": "unterlagen",
+        "fields": [
+            {"name": "bank", "label": "Bank", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {"name": "iban", "label": "IBAN", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {"name": "kontostand", "label": "Kontostand", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "datum", "label": "Datum", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_DATE},
+            {"name": "kontoart", "label": "Kontoart", "priority": PRIORITY_KANN, "type": FIELD_TYPE_TEXT},
+        ],
+    },
+    "depot": {
+        "label": "Depotauszug",
+        "icon": "bar-chart-3",
+        "category": "unterlagen",
+        "fields": [
+            {"name": "depotbank", "label": "Depotbank", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {"name": "depotnummer", "label": "Depotnummer", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {"name": "gesamtwert", "label": "Gesamtwert", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_CURRENCY},
+            {"name": "datum", "label": "Datum", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_DATE},
+            {"name": "anzahl_positionen", "label": "Anzahl Positionen", "priority": PRIORITY_KANN, "type": FIELD_TYPE_NUMBER},
+        ],
+    },
+
+    # ===== SONSTIGE (Legacy) =====
+    "versicherung": {
+        "label": "Versicherungsschein (Allgemein)",
+        "icon": "file-badge",
+        "category": "sonstiges",
+        "fields": [
+            {**_F_GESELLSCHAFT},
+            {"name": "versicherungsart", "label": "Versicherungsart", "priority": PRIORITY_MUSS, "type": FIELD_TYPE_TEXT},
+            {**_F_VERTRAGSNUMMER, "label": "Versicherungsnummer"},
+            {**_F_BEITRAG},
+            {**_F_VERTRAGSBEGINN},
+            {**_F_VERTRAGSENDE},
+        ],
+    },
+    "sonstige": {
+        "label": "Sonstiges Dokument",
+        "icon": "file-question",
+        "category": "sonstiges",
+        "fields": [
+            {"name": "dokumenttyp", "label": "Dokumenttyp", "priority": PRIORITY_KANN, "type": FIELD_TYPE_TEXT},
+            {"name": "bemerkungen", "label": "Bemerkungen", "priority": PRIORITY_KANN, "type": FIELD_TYPE_TEXT},
+        ],
+    },
 }
 
 
@@ -785,4 +880,11 @@ CLASSIFICATION_KEYWORDS = {
     "reisehaftpflicht": ["reisehaftpflicht"],
     "reisegepaeck": ["reisegepaeck", "gepaeckversicherung"],
     "tierkrankenversicherung": ["tierkranken", "tier-op", "tierkrankenversicherung"],
+    # Legacy-Typen
+    "renteninfo": ["renteninformation", "renteninfo", "deutsche rentenversicherung", "regelaltersrente", "rentenauskunft", "versicherungsverlauf", "rentenbescheid"],
+    "steuerbescheid": ["steuerbescheid", "einkommensteuerbescheid", "finanzamt", "zu versteuerndes einkommen", "einkommensteuer", "steuerfestsetzung"],
+    "gehaltsabrechnung": ["gehaltsabrechnung", "lohnabrechnung", "entgeltabrechnung", "bruttolohn", "nettolohn", "lohnsteuer"],
+    "kontoauszug": ["kontoauszug", "kontoumsaetze", "kontostand", "kontofuehrung", "bankbeleg"],
+    "depot": ["depotauszug", "depotaufstellung", "wertpapierbestand", "portfoliouebersicht", "depotbewertung"],
+    "versicherung": ["versicherungsschein", "versicherungspolice", "police", "versicherungsnachtrag", "deckungsblatt"],
 }
