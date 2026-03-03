@@ -13,6 +13,7 @@ Phasen:
 """
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, List, Any
 
@@ -38,6 +39,8 @@ class HubSpotService:
         self.config = hubspot_config
         self.client = None
         self._initialized = False
+        self._cache: Dict[str, Any] = {}
+        self._cache_ts: Dict[str, float] = {}
 
     def init_app(self, app=None):
         """Initialisiere den HubSpot Client wenn Token vorhanden."""
@@ -514,6 +517,58 @@ class HubSpotService:
         )
 
     # ================================================================
+    # CACHE HELPERS
+    # ================================================================
+
+    def _cache_get(self, key: str) -> Optional[Any]:
+        """Return cached value if still valid, else None."""
+        ts = self._cache_ts.get(key)
+        if ts and (time.time() - ts) < self.config.HUBSPOT_CACHE_TTL:
+            return self._cache.get(key)
+        return None
+
+    def _cache_set(self, key: str, value: Any) -> None:
+        self._cache[key] = value
+        self._cache_ts[key] = time.time()
+
+    def _search_deals(self, filters: List[Dict] = None, properties: List[str] = None,
+                      limit: int = 100) -> List:
+        """Search deals with optional filters. Returns list of raw result objects.
+
+        Handles pagination automatically for larger result sets.
+        """
+        from hubspot.crm.deals import PublicObjectSearchRequest
+
+        all_results = []
+        after = None
+        props = properties or DEAL_PROPERTIES
+
+        while True:
+            request_kwargs = {
+                'properties': props,
+                'limit': limit,
+            }
+            if filters:
+                request_kwargs['filter_groups'] = [{"filters": filters}]
+            if after:
+                request_kwargs['after'] = after
+
+            search_request = PublicObjectSearchRequest(**request_kwargs)
+            response = self.client.crm.deals.search_api.do_search(
+                public_object_search_request=search_request
+            )
+
+            all_results.extend(response.results or [])
+
+            # HubSpot pagination
+            if response.paging and response.paging.next and response.paging.next.after:
+                after = response.paging.next.after
+            else:
+                break
+
+        return all_results
+
+    # ================================================================
     # ANALYTICS DATA
     # ================================================================
 
@@ -521,32 +576,97 @@ class HubSpotService:
         """Hole Pipeline-Statistiken aus HubSpot.
 
         Returns:
-            Dict mit Stage-Counts oder None
+            Dict mit {stage_label: count} oder None
         """
         if not self.is_available:
             return None
 
-        # TODO: Implementierung (Phase 3)
-        # GET /crm/v3/pipelines/deals/{pipelineId}
-        logger.debug("HubSpot pipeline stats requested (stub)")
-        return None
+        cached = self._cache_get('pipeline_stats')
+        if cached is not None:
+            return cached
+
+        try:
+            # Get pipeline stages
+            pipeline_response = self.client.crm.pipelines.pipeline_stages_api.get_all(
+                object_type="deals",
+                pipeline_id=self.config.HUBSPOT_PIPELINE_ID,
+            )
+
+            stats = {}
+            for stage in (pipeline_response.results or []):
+                stage_id = stage.id
+                label = stage.label
+
+                # Count deals in this stage
+                count_filters = [
+                    {"propertyName": "dealstage", "operator": "EQ", "value": stage_id},
+                    {"propertyName": "pipeline", "operator": "EQ", "value": self.config.HUBSPOT_PIPELINE_ID},
+                ]
+                from hubspot.crm.deals import PublicObjectSearchRequest
+                req = PublicObjectSearchRequest(
+                    filter_groups=[{"filters": count_filters}],
+                    limit=1,
+                    properties=["dealstage"],
+                )
+                resp = self.client.crm.deals.search_api.do_search(
+                    public_object_search_request=req
+                )
+                stats[label] = resp.total
+
+            self._cache_set('pipeline_stats', stats)
+            logger.info(f"HubSpot pipeline stats loaded: {len(stats)} stages")
+            return stats
+
+        except Exception as e:
+            logger.error(f"HubSpot pipeline stats failed: {e}")
+            return None
 
     def get_total_deals_count(self, stage: str = None) -> Optional[int]:
         """Hole Anzahl der Deals (optional gefiltert nach Stage).
 
         Args:
-            stage: Optional - nur Deals in dieser Stage zählen
+            stage: Optional - Stage-Key oder Stage-ID
 
         Returns:
-            Anzahl Deals oder None (Fallback auf Mock-Daten)
+            Anzahl Deals oder None
         """
         if not self.is_available:
             return None
 
-        # TODO: Implementierung (Phase 3)
-        # POST /crm/v3/objects/deals/search mit Stage-Filter
-        logger.debug(f"HubSpot deals count requested, stage={stage} (stub)")
-        return None
+        cache_key = f'deals_count_{stage or "all"}'
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            from hubspot.crm.deals import PublicObjectSearchRequest
+
+            filters = [
+                {"propertyName": "pipeline", "operator": "EQ",
+                 "value": self.config.HUBSPOT_PIPELINE_ID},
+            ]
+            if stage:
+                stage_id = self.config.STAGE_MAPPING.get(stage, stage)
+                filters.append(
+                    {"propertyName": "dealstage", "operator": "EQ", "value": stage_id}
+                )
+
+            req = PublicObjectSearchRequest(
+                filter_groups=[{"filters": filters}],
+                limit=1,
+                properties=["dealstage"],
+            )
+            resp = self.client.crm.deals.search_api.do_search(
+                public_object_search_request=req
+            )
+            count = resp.total
+            self._cache_set(cache_key, count)
+            logger.info(f"HubSpot deals count (stage={stage}): {count}")
+            return count
+
+        except Exception as e:
+            logger.error(f"HubSpot deals count failed: {e}")
+            return None
 
     def get_avg_deal_value(self) -> Optional[float]:
         """Hole durchschnittlichen Deal-Wert.
@@ -557,12 +677,51 @@ class HubSpotService:
         if not self.is_available:
             return None
 
-        # TODO: Implementierung (Phase 3)
-        logger.debug("HubSpot avg deal value requested (stub)")
-        return None
+        cached = self._cache_get('avg_deal_value')
+        if cached is not None:
+            return cached
+
+        try:
+            filters = [
+                {"propertyName": "pipeline", "operator": "EQ",
+                 "value": self.config.HUBSPOT_PIPELINE_ID},
+                {"propertyName": "amount", "operator": "GT", "value": "0"},
+            ]
+            results = self._search_deals(filters=filters, properties=['amount'])
+
+            if not results:
+                logger.debug("No deals with amount found")
+                return None
+
+            total = 0.0
+            count = 0
+            for deal in results:
+                amount_str = (deal.properties or {}).get('amount')
+                if amount_str:
+                    try:
+                        amount = float(amount_str)
+                        if amount > 0:
+                            total += amount
+                            count += 1
+                    except (ValueError, TypeError):
+                        continue
+
+            if count == 0:
+                return None
+
+            avg = round(total / count, 2)
+            self._cache_set('avg_deal_value', avg)
+            logger.info(f"HubSpot avg deal value: {avg} EUR ({count} deals)")
+            return avg
+
+        except Exception as e:
+            logger.error(f"HubSpot avg deal value failed: {e}")
+            return None
 
     def get_lead_source_attribution(self) -> Optional[List[Dict[str, Any]]]:
         """Hole Lead-Source Attribution aus HubSpot.
+
+        Groups contacts by hs_analytics_source, counts associated deals.
 
         Returns:
             Liste von Dicts mit channel, leads, conversion_rate oder None
@@ -570,28 +729,162 @@ class HubSpotService:
         if not self.is_available:
             return None
 
-        # TODO: Implementierung (Phase 3)
-        # Aggregation über Contact Property 'leadsource'
-        logger.debug("HubSpot lead source attribution requested (stub)")
-        return None
+        cached = self._cache_get('lead_source_attribution')
+        if cached is not None:
+            return cached
+
+        try:
+            from hubspot.crm.contacts import PublicObjectSearchRequest as ContactSearch
+
+            # Known HubSpot analytics sources
+            sources = [
+                'PAID_SEARCH', 'PAID_SOCIAL', 'ORGANIC_SEARCH',
+                'REFERRALS', 'DIRECT_TRAFFIC', 'OTHER_CAMPAIGNS',
+                'SOCIAL_MEDIA', 'EMAIL_MARKETING', 'OFFLINE',
+            ]
+
+            attribution = []
+            for source in sources:
+                req = ContactSearch(
+                    filter_groups=[{"filters": [{
+                        "propertyName": "hs_analytics_source",
+                        "operator": "EQ",
+                        "value": source,
+                    }]}],
+                    limit=1,
+                    properties=["hs_analytics_source"],
+                )
+                resp = self.client.crm.contacts.search_api.do_search(
+                    public_object_search_request=req
+                )
+                lead_count = resp.total
+                if lead_count == 0:
+                    continue
+
+                # Estimate conversion: sample up to 10 contacts, check for deals
+                sample_req = ContactSearch(
+                    filter_groups=[{"filters": [{
+                        "propertyName": "hs_analytics_source",
+                        "operator": "EQ",
+                        "value": source,
+                    }]}],
+                    limit=10,
+                    properties=["hs_analytics_source"],
+                )
+                sample_resp = self.client.crm.contacts.search_api.do_search(
+                    public_object_search_request=sample_req
+                )
+
+                contacts_with_deals = 0
+                sample_size = len(sample_resp.results or [])
+                for contact in (sample_resp.results or []):
+                    try:
+                        assocs = self.client.crm.associations.v4.basic_api.get_page(
+                            object_type="contacts",
+                            object_id=contact.id,
+                            to_object_type="deals",
+                        )
+                        if assocs.results:
+                            contacts_with_deals += 1
+                    except Exception:
+                        continue
+
+                conversion = round((contacts_with_deals / sample_size * 100), 1) if sample_size > 0 else 0
+
+                # Readable channel name
+                channel_name = source.replace('_', ' ').title()
+                attribution.append({
+                    'channel': channel_name,
+                    'leads': lead_count,
+                    'conversion_rate': conversion,
+                })
+
+            attribution.sort(key=lambda x: x['leads'], reverse=True)
+            self._cache_set('lead_source_attribution', attribution)
+            logger.info(f"HubSpot lead attribution loaded: {len(attribution)} channels")
+            return attribution if attribution else None
+
+        except Exception as e:
+            logger.error(f"HubSpot lead source attribution failed: {e}")
+            return None
 
     def get_conversion_rates(self) -> Optional[Dict[str, float]]:
         """Hole Conversion-Rates aus der Pipeline.
 
+        Uses hs_v2_date_entered_{stage_id} properties to determine
+        how many deals passed through each stage.
+
         Returns:
-            Dict mit t1_to_t2, t2_to_close, etc. oder None
+            Dict mit stage transition rates oder None
         """
         if not self.is_available:
             return None
 
-        # TODO: Implementierung (Phase 3)
-        logger.debug("HubSpot conversion rates requested (stub)")
-        return None
+        cached = self._cache_get('conversion_rates')
+        if cached is not None:
+            return cached
+
+        try:
+            # Get all pipeline stages in order
+            pipeline_response = self.client.crm.pipelines.pipeline_stages_api.get_all(
+                object_type="deals",
+                pipeline_id=self.config.HUBSPOT_PIPELINE_ID,
+            )
+            stages = sorted(pipeline_response.results or [], key=lambda s: s.display_order)
+
+            if len(stages) < 2:
+                return None
+
+            # For each stage, count deals that entered it
+            history_props = [f"hs_v2_date_entered_{s.id}" for s in stages]
+
+            # Search deals in this pipeline with history properties
+            from hubspot.crm.deals import PublicObjectSearchRequest
+            req = PublicObjectSearchRequest(
+                filter_groups=[{"filters": [{
+                    "propertyName": "pipeline", "operator": "EQ",
+                    "value": self.config.HUBSPOT_PIPELINE_ID,
+                }]}],
+                limit=100,
+                properties=history_props,
+            )
+            resp = self.client.crm.deals.search_api.do_search(
+                public_object_search_request=req
+            )
+
+            # Count deals per stage entry
+            stage_counts = {}
+            for stage in stages:
+                prop = f"hs_v2_date_entered_{stage.id}"
+                count = 0
+                for deal in (resp.results or []):
+                    val = (deal.properties or {}).get(prop)
+                    if val and val.strip():
+                        count += 1
+                stage_counts[stage.label] = count
+
+            # Compute transition rates
+            rates = {}
+            stage_labels = [s.label for s in stages]
+            for i in range(1, len(stage_labels)):
+                prev_count = stage_counts.get(stage_labels[i - 1], 0)
+                curr_count = stage_counts.get(stage_labels[i], 0)
+                key = f"{stage_labels[i-1]}_to_{stage_labels[i]}".lower().replace(' ', '_')
+                rates[key] = round((curr_count / prev_count * 100), 1) if prev_count > 0 else 0
+
+            self._cache_set('conversion_rates', rates)
+            logger.info(f"HubSpot conversion rates loaded: {rates}")
+            return rates
+
+        except Exception as e:
+            logger.error(f"HubSpot conversion rates failed: {e}")
+            return None
 
     def get_customer_segments(self) -> Optional[List[Dict[str, Any]]]:
         """Hole Kundensegmente basierend auf HubSpot Contact Properties.
 
-        Aggregiert nach: familienstand, lebenssituation, einkommen
+        Groups contacts by lifecyclestage, counts per segment,
+        and calculates avg deal value + conversion per segment.
 
         Returns:
             Liste von Segment-Dicts oder None
@@ -599,9 +892,71 @@ class HubSpotService:
         if not self.is_available:
             return None
 
-        # TODO: Implementierung (Phase 3)
-        logger.debug("HubSpot customer segments requested (stub)")
-        return None
+        cached = self._cache_get('customer_segments')
+        if cached is not None:
+            return cached
+
+        try:
+            from hubspot.crm.contacts import PublicObjectSearchRequest as ContactSearch
+
+            segment_props = {
+                'Familie': {"propertyName": "familienstand", "operator": "EQ", "value": "verheiratet"},
+                'Selbstaendige': {"propertyName": "lebenssituation", "operator": "EQ", "value": "selbstaendig"},
+                'Angestellte': {"propertyName": "lebenssituation", "operator": "EQ", "value": "angestellt"},
+                'Rentner': {"propertyName": "lebenssituation", "operator": "EQ", "value": "rentner"},
+            }
+
+            segments = []
+            for segment_name, filter_def in segment_props.items():
+                req = ContactSearch(
+                    filter_groups=[{"filters": [filter_def]}],
+                    limit=10,
+                    properties=["email", "lifecyclestage"],
+                )
+                resp = self.client.crm.contacts.search_api.do_search(
+                    public_object_search_request=req
+                )
+                contact_count = resp.total
+
+                if contact_count == 0:
+                    continue
+
+                # Sample contacts for deal stats
+                contacts_with_deals = 0
+                deal_values = []
+                for contact in (resp.results or []):
+                    try:
+                        deals = self._get_associated_deals(contact.id)
+                        if deals:
+                            contacts_with_deals += 1
+                            for d in deals:
+                                if d.get('amount'):
+                                    try:
+                                        deal_values.append(float(d['amount']))
+                                    except (ValueError, TypeError):
+                                        pass
+                    except Exception:
+                        continue
+
+                sample_size = len(resp.results or [])
+                conversion = round((contacts_with_deals / sample_size * 100), 1) if sample_size > 0 else 0
+                avg_val = round(sum(deal_values) / len(deal_values), 2) if deal_values else 0
+
+                segments.append({
+                    'segment': segment_name,
+                    'count': contact_count,
+                    'avg_value': avg_val,
+                    'conversion': conversion,
+                })
+
+            segments.sort(key=lambda x: x['count'], reverse=True)
+            self._cache_set('customer_segments', segments)
+            logger.info(f"HubSpot customer segments loaded: {len(segments)} segments")
+            return segments if segments else None
+
+        except Exception as e:
+            logger.error(f"HubSpot customer segments failed: {e}")
+            return None
 
 
 # Singleton-Instanz

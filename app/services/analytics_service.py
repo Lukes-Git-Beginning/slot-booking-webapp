@@ -6,7 +6,7 @@ Business Intelligence & Data Aggregation
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from collections import defaultdict
 from sqlalchemy import func, extract
 from app.core.extensions import data_persistence
@@ -84,15 +84,15 @@ class AnalyticsService:
 
                 no_show_rate = (no_shows / total_bookings * 100) if total_bookings > 0 else 0
 
-                # Avg Deal Value - Mock (no sales data available)
-                avg_deal_value = 1850  # EUR
+                # Avg Deal Value - HubSpot first, Mock fallback
+                avg_deal_value = self._get_hubspot_avg_deal_value() or 1850
 
             else:
                 # Fallback to scores calculation
                 total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
                 conversion_rate = 25.5  # Mock
                 no_show_rate = 12.3  # Mock
-                avg_deal_value = 1850  # Mock
+                avg_deal_value = self._get_hubspot_avg_deal_value() or 1850
 
         except Exception as e:
             logger.error(f"Error calculating executive KPIs: {e}")
@@ -100,7 +100,7 @@ class AnalyticsService:
             total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
             conversion_rate = 25.5
             no_show_rate = 12.3
-            avg_deal_value = 1850
+            avg_deal_value = self._get_hubspot_avg_deal_value() or 1850
 
         return {
             'total_bookings': total_bookings,
@@ -117,15 +117,27 @@ class AnalyticsService:
         current_month = datetime.now().strftime('%Y-%m')
 
         # Berater-Rankings
+        # HubSpot conversion rates (cached, single call)
+        hs_conversion = self._get_hubspot_conversion_rates()
+        hs_avg_value = self._get_hubspot_avg_deal_value()
+
         berater_stats = []
         for user, months in scores.items():
             month_points = months.get(current_month, 0)
+
+            # Use first available HubSpot conversion rate or mock
+            if hs_conversion:
+                first_rate = next(iter(hs_conversion.values()), None)
+                conv_rate = first_rate if first_rate is not None else 20 + (month_points % 15)
+            else:
+                conv_rate = 20 + (month_points % 15)
+
             berater_stats.append({
                 'name': user,
                 'points': month_points,
                 'bookings': month_points // 3,  # Approx
-                'conversion_rate': 20 + (month_points % 15),  # Mock variabel
-                'avg_deal_value': 1500 + (month_points % 1000)  # Mock variabel
+                'conversion_rate': conv_rate,
+                'avg_deal_value': hs_avg_value or (1500 + (month_points % 1000)),
             })
 
         # Sortieren nach Punkten
@@ -140,9 +152,9 @@ class AnalyticsService:
     def get_lead_insights(self) -> Dict[str, Any]:
         """Lead-Analytics & Attribution"""
         return {
-            'channel_attribution': self._get_channel_attribution(),
+            'channel_attribution': self._get_hubspot_channel_attribution() or self._get_channel_attribution(),
             'optimal_booking_times': self._get_optimal_booking_times(),
-            'customer_segments': self._get_customer_segments()
+            'customer_segments': self._get_hubspot_customer_segments() or self._get_customer_segments(),
         }
 
     def get_funnel_data(self) -> Dict[str, Any]:
@@ -150,8 +162,8 @@ class AnalyticsService:
         scores = data_persistence.load_scores()
         current_month = datetime.now().strftime('%Y-%m')
 
-        # Funnel-Berechnung (Mock mit realen Zahlen als Basis)
-        total_leads = 450  # Mock
+        # Funnel-Berechnung: HubSpot total deals or mock fallback
+        total_leads = self._get_hubspot_total_deals() or 450
         total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
         total_showed = int(total_bookings * 0.85)  # 85% Show-Rate
         total_closed = int(total_showed * 0.28)  # 28% Conversion
@@ -257,6 +269,61 @@ class AnalyticsService:
         berater_data.sort(key=lambda x: x['bookings'], reverse=True)
 
         return {'berater': berater_data}
+
+    # === HubSpot Integration Helpers ===
+
+    def _get_hubspot_service(self):
+        """Get HubSpot service instance (lazy import)."""
+        try:
+            from app.services.hubspot_service import hubspot_service
+            return hubspot_service
+        except Exception:
+            return None
+
+    def _get_hubspot_avg_deal_value(self) -> Optional[float]:
+        hs = self._get_hubspot_service()
+        if hs:
+            try:
+                return hs.get_avg_deal_value()
+            except Exception as e:
+                logger.debug(f"HubSpot avg deal value unavailable: {e}")
+        return None
+
+    def _get_hubspot_total_deals(self) -> Optional[int]:
+        hs = self._get_hubspot_service()
+        if hs:
+            try:
+                return hs.get_total_deals_count()
+            except Exception as e:
+                logger.debug(f"HubSpot total deals unavailable: {e}")
+        return None
+
+    def _get_hubspot_conversion_rates(self) -> Optional[Dict[str, float]]:
+        hs = self._get_hubspot_service()
+        if hs:
+            try:
+                return hs.get_conversion_rates()
+            except Exception as e:
+                logger.debug(f"HubSpot conversion rates unavailable: {e}")
+        return None
+
+    def _get_hubspot_channel_attribution(self) -> Optional[List[Dict]]:
+        hs = self._get_hubspot_service()
+        if hs:
+            try:
+                return hs.get_lead_source_attribution()
+            except Exception as e:
+                logger.debug(f"HubSpot channel attribution unavailable: {e}")
+        return None
+
+    def _get_hubspot_customer_segments(self) -> Optional[List[Dict]]:
+        hs = self._get_hubspot_service()
+        if hs:
+            try:
+                return hs.get_customer_segments()
+            except Exception as e:
+                logger.debug(f"HubSpot customer segments unavailable: {e}")
+        return None
 
     # === Private Helper Methods ===
 
