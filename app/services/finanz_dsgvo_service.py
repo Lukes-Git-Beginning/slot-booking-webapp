@@ -24,6 +24,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+from app.config.base import FinanzConfig as finanz_config
 from app.models import get_db_session
 from app.models.finanzberatung import (
     FinanzSession, FinanzDocument, SessionStatus,
@@ -193,16 +194,9 @@ class FinanzDSGVOService:
                     f"Retention period not expired. {remaining.days} days remaining."
                 )
 
-            # Get upload directory
-            try:
-                from flask import current_app
-                upload_dir = current_app.config.get('FINANZ_UPLOAD_DIR', 'finanz_uploads')
-                persist_base = current_app.config.get('PERSIST_BASE', 'data')
-            except RuntimeError:
-                upload_dir = 'finanz_uploads'
-                persist_base = 'data'
-
-            base_path = os.path.join(persist_base, 'persistent', upload_dir)
+            # NOTE: Any DSGVO deletions executed before this fix (pre-Phase 8) may have
+            # produced files_deleted=0 because the old path included an extra 'persistent'
+            # segment and was missing session_id. This is a pre-existing data issue.
 
             # Delete files for each document
             documents = db.query(FinanzDocument).filter(
@@ -212,7 +206,7 @@ class FinanzDSGVOService:
             files_deleted = 0
             for doc in documents:
                 if doc.stored_filename:
-                    file_path = os.path.join(base_path, doc.stored_filename)
+                    file_path = finanz_config.get_file_path(session_id, doc.stored_filename)
                     try:
                         if os.path.exists(file_path):
                             os.remove(file_path)

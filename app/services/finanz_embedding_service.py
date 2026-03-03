@@ -14,6 +14,7 @@ Gracefully degrades if ML dependencies are not installed.
 import logging
 from typing import Optional
 
+from app.config.base import Config, FinanzConfig as finanz_config
 from app.models import get_db_session
 from app.models.finanzberatung import FinanzDocument, DocumentStatus
 
@@ -54,14 +55,7 @@ class FinanzEmbeddingService:
     def _get_model(self):
         """Lazy-load the sentence transformer model."""
         if self._model is None and HAS_SENTENCE_TRANSFORMERS:
-            try:
-                from flask import current_app
-                model_name = current_app.config.get(
-                    'FINANZ_EMBEDDING_MODEL',
-                    'paraphrase-multilingual-MiniLM-L12-v2',
-                )
-            except RuntimeError:
-                model_name = 'paraphrase-multilingual-MiniLM-L12-v2'
+            model_name = finanz_config.FINANZ_EMBEDDING_MODEL
             self._model = SentenceTransformer(model_name)
         return self._model
 
@@ -69,12 +63,7 @@ class FinanzEmbeddingService:
         """Lazy-load ChromaDB client."""
         if self._chroma_client is None and HAS_CHROMADB:
             import os
-            try:
-                from flask import current_app
-                persist_base = current_app.config.get('PERSIST_BASE', 'data')
-            except RuntimeError:
-                persist_base = 'data'
-            chroma_path = os.path.join(persist_base, 'chroma_db')
+            chroma_path = finanz_config.get_chromadb_path()
             os.makedirs(chroma_path, exist_ok=True)
             self._chroma_client = chromadb.PersistentClient(path=chroma_path)
         return self._chroma_client
@@ -156,13 +145,8 @@ class FinanzEmbeddingService:
                 return {"chunk_count": 0, "collection_name": None, "skipped": True}
 
             # Chunk text
-            try:
-                from flask import current_app
-                chunk_size = current_app.config.get('FINANZ_CHUNK_SIZE', 4000)
-                chunk_overlap = current_app.config.get('FINANZ_CHUNK_OVERLAP', 200)
-            except RuntimeError:
-                chunk_size = 4000
-                chunk_overlap = 200
+            chunk_size = finanz_config.FINANZ_CHUNK_SIZE
+            chunk_overlap = finanz_config.FINANZ_CHUNK_OVERLAP
 
             chunks = self.chunk_text(text, chunk_size, chunk_overlap)
             if not chunks:

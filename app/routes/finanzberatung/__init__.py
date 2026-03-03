@@ -13,6 +13,8 @@ Upload sub-blueprint is CSRF-exempted (external customer uploads via QR token).
 
 from flask import Blueprint
 
+from app.config.base import FinanzConfig as finanz_config
+
 # Parent blueprint
 finanzberatung_bp = Blueprint(
     'finanzberatung', __name__, url_prefix='/finanzberatung'
@@ -68,4 +70,6 @@ def init_app(app):
     app.register_blueprint(finanzberatung_bp)
 
     app.logger.info("Finanzberatung blueprint registered")
+    mode = "live" if finanz_config.FINANZ_LLM_ENABLED else "mock"
+    app.logger.info("Finanzberatung LLM mode: %s", mode)
     return finanzberatung_bp

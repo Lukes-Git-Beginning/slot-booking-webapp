@@ -14,6 +14,7 @@ import logging
 import os
 from typing import Optional
 
+from app.config.base import FinanzConfig as finanz_config
 from app.models import get_db_session
 from app.models.finanzberatung import FinanzDocument, DocumentStatus
 
@@ -112,14 +113,7 @@ class FinanzExtractionService:
 
     def _resolve_path(self, doc: FinanzDocument) -> str:
         """Resolve the full filesystem path for a document."""
-        try:
-            from flask import current_app
-            persist_base = current_app.config.get('PERSIST_BASE', 'data')
-            upload_dir = current_app.config.get('FINANZ_UPLOAD_DIR', 'finanz_uploads')
-        except RuntimeError:
-            persist_base = 'data'
-            upload_dir = 'finanz_uploads'
-        return os.path.join(persist_base, upload_dir, str(doc.session_id), doc.stored_filename)
+        return finanz_config.get_file_path(doc.session_id, doc.stored_filename)
 
     def _extract_pdf(self, file_path: str) -> dict:
         """Extract text from a PDF file using pdfplumber."""

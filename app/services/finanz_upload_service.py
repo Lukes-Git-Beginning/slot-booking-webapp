@@ -286,10 +286,7 @@ class FinanzUploadService:
             stored_filename = f"{uuid.uuid4()}.{ext}"
 
             # Build storage path: {PERSIST_BASE}/{FINANZ_UPLOAD_DIR}/{session_id}/
-            persist_base = Config.PERSIST_BASE
-            upload_dir = os.path.join(
-                persist_base, finanz_config.FINANZ_UPLOAD_DIR, str(session_id)
-            )
+            upload_dir = finanz_config.get_upload_dir(session_id)
             os.makedirs(upload_dir, exist_ok=True)
 
             file_path = os.path.join(upload_dir, stored_filename)

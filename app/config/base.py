@@ -320,6 +320,21 @@ class FinanzConfig:
     # Upload directory (relative to PERSIST_BASE)
     FINANZ_UPLOAD_DIR: str = os.getenv("FINANZ_UPLOAD_DIR", "finanz_uploads")
 
+    @classmethod
+    def get_upload_dir(cls, session_id: int) -> str:
+        """Return the session upload directory path."""
+        return os.path.join(Config.PERSIST_BASE, cls.FINANZ_UPLOAD_DIR, str(session_id))
+
+    @classmethod
+    def get_file_path(cls, session_id: int, filename: str) -> str:
+        """Return the full filesystem path for a stored document."""
+        return os.path.join(cls.get_upload_dir(session_id), filename)
+
+    @classmethod
+    def get_chromadb_path(cls) -> str:
+        """Return the ChromaDB persistence directory path."""
+        return os.path.join(Config.PERSIST_BASE, 'chroma_db')
+
 
 # ========== LOGGING KONFIGURATION ==========
 class LoggingConfig:

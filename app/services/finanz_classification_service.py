@@ -17,6 +17,7 @@ import json
 import logging
 from typing import Optional
 
+from app.config.base import FinanzConfig as finanz_config
 from app.config.finanz_checklist import (
     CONTRACT_TYPES, CLASSIFICATION_KEYWORDS, get_all_type_keys,
 )
@@ -61,11 +62,7 @@ class FinanzClassificationService:
 
             text = doc.extracted_text or ""
 
-            try:
-                from flask import current_app
-                use_llm = current_app.config.get('FINANZ_LLM_ENABLED', False)
-            except RuntimeError:
-                use_llm = False
+            use_llm = finanz_config.FINANZ_LLM_ENABLED
 
             try:
                 if use_llm:
@@ -156,10 +153,9 @@ class FinanzClassificationService:
         and expects a structured JSON response.
         """
         import requests
-        from flask import current_app
 
-        base_url = current_app.config.get('FINANZ_LLM_BASE_URL', 'http://localhost:8000/v1')
-        model = current_app.config.get('FINANZ_LLM_MODEL', 'meta-llama/Llama-3.1-8B-Instruct')
+        base_url = finanz_config.FINANZ_LLM_BASE_URL
+        model = finanz_config.FINANZ_LLM_MODEL
 
         type_list = "\n".join(
             f"- {key}: {ct['label']}"
