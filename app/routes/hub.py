@@ -597,10 +597,11 @@ def has_tool_access(username, tool_id):
         ]
         return is_admin or username in t2_access
 
-    # Onboarding: Service + Admin
+    # Onboarding: Service + Closer + Admin
     if tool_id == 'onboarding':
         onboarding_access = [
             'alexandra.börner', 'vanessa.wagner', 'simon.mast',
+            'tim.kreisel', 'christian.mast', 'daniel.herbort',
         ]
         return is_admin or username in onboarding_access
 
