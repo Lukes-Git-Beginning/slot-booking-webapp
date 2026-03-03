@@ -1,0 +1,317 @@
+{% extends "t2/base.html" %}
+
+{% block t2_title %}HubSpot Queue{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 class="text-4xl font-bold text-primary flex items-center gap-3">
+            <i data-lucide="git-pull-request" class="w-10 h-10"></i>
+            HubSpot Queue
+          </h1>
+          <p class="text-base-content/70 mt-2">Ghost/No-Show Outcomes pruefen und nach HubSpot syncen</p>
+        </div>
+        <div class="flex gap-2">
+          {% if pending %}
+          <button onclick="approveAll()" class="btn btn-primary gap-2">
+            <i data-lucide="check-circle" class="w-5 h-5"></i>
+            Alle genehmigen ({{ stats.pending }})
+          </button>
+          {% endif %}
+          <a href="{{ url_for('t2.dashboard') }}" class="btn btn-ghost">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            Zurueck
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" data-aos="fade-up" data-aos-delay="100">
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
+            <i data-lucide="clock" class="w-6 h-6 text-warning"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold">{{ stats.pending }}</p>
+            <p class="text-sm text-base-content/60">Ausstehend</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+            <i data-lucide="check" class="w-6 h-6 text-success"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold">{{ stats.synced }}</p>
+            <p class="text-sm text-base-content/60">Synchronisiert</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-base-content/10 flex items-center justify-center">
+            <i data-lucide="skip-forward" class="w-6 h-6 text-base-content/40"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold">{{ stats.skipped }}</p>
+            <p class="text-sm text-base-content/60">Uebersprungen</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Items -->
+    {% if pending %}
+    <div class="glass rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="200">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+        <i data-lucide="inbox" class="w-5 h-5 text-warning"></i>
+        Ausstehende Items
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Kunde</th>
+              <th>Datum/Zeit</th>
+              <th>Outcome</th>
+              <th>Telefonist</th>
+              <th>Deal</th>
+              <th>Vorgeschlagene Stage</th>
+              <th class="text-right">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pending %}
+            <tr id="row-{{ item.id }}">
+              <td class="font-medium">{{ item.customer }}</td>
+              <td>{{ item.date }} {{ item.time }}</td>
+              <td>
+                {% if item.outcome == 'ghost' %}
+                  <span class="badge badge-warning badge-sm">Ghost</span>
+                {% elif item.outcome == 'no_show' %}
+                  <span class="badge badge-error badge-sm">No-Show</span>
+                {% else %}
+                  <span class="badge badge-sm">{{ item.outcome }}</span>
+                {% endif %}
+              </td>
+              <td>{{ item.consultant or '-' }}</td>
+              <td>
+                {% if item.deal_id %}
+                  <span class="text-success text-sm" title="{{ item.deal_name or item.deal_id }}">
+                    {{ item.deal_name or item.deal_id }}
+                  </span>
+                {% else %}
+                  <span class="text-base-content/40 text-sm">Kein Deal</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="text-sm">{{ item.suggested_action }}</span>
+              </td>
+              <td class="text-right">
+                <div class="flex gap-1 justify-end">
+                  {% if item.deal_id %}
+                  <button onclick="approveItem('{{ item.id }}')" class="btn btn-success btn-xs gap-1" title="Genehmigen">
+                    <i data-lucide="check" class="w-3 h-3"></i>
+                  </button>
+                  {% endif %}
+                  <button onclick="skipItem('{{ item.id }}')" class="btn btn-ghost btn-xs gap-1" title="Ueberspringen">
+                    <i data-lucide="skip-forward" class="w-3 h-3"></i>
+                  </button>
+                  {% if item.deal_id %}
+                  <button onclick="openOverride('{{ item.id }}')" class="btn btn-warning btn-xs gap-1" title="Override">
+                    <i data-lucide="edit" class="w-3 h-3"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="glass rounded-2xl p-8 mb-8 text-center" data-aos="fade-up" data-aos-delay="200">
+      <i data-lucide="check-circle" class="w-12 h-12 text-success mx-auto mb-4"></i>
+      <p class="text-lg font-medium">Keine ausstehenden Items</p>
+      <p class="text-base-content/60 mt-1">Alle Ghost/No-Show Outcomes wurden bearbeitet.</p>
+    </div>
+    {% endif %}
+
+    <!-- Completed Items -->
+    {% if completed %}
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+        <i data-lucide="history" class="w-5 h-5 text-base-content/40"></i>
+        Letzte Bearbeitungen
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Kunde</th>
+              <th>Datum/Zeit</th>
+              <th>Outcome</th>
+              <th>Status</th>
+              <th>Sync</th>
+              <th>Bearbeitet von</th>
+              <th>Zeitpunkt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in completed %}
+            <tr class="opacity-70">
+              <td>{{ item.customer }}</td>
+              <td>{{ item.date }} {{ item.time }}</td>
+              <td>
+                {% if item.outcome == 'ghost' %}
+                  <span class="badge badge-warning badge-sm">Ghost</span>
+                {% elif item.outcome == 'no_show' %}
+                  <span class="badge badge-error badge-sm">No-Show</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.status == 'approved' %}
+                  <span class="badge badge-success badge-sm">Genehmigt</span>
+                {% elif item.status == 'skipped' %}
+                  <span class="badge badge-ghost badge-sm">Uebersprungen</span>
+                {% elif item.status == 'overridden' %}
+                  <span class="badge badge-warning badge-sm">Override</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.sync_result == 'synced' %}
+                  <span class="text-success text-sm">Synced</span>
+                {% elif item.sync_result == 'sync_failed' %}
+                  <span class="text-error text-sm">Fehler</span>
+                {% else %}
+                  <span class="text-base-content/40 text-sm">-</span>
+                {% endif %}
+              </td>
+              <td>{{ item.updated_by or '-' }}</td>
+              <td class="text-sm text-base-content/50">{{ item.updated_at[:16] if item.updated_at else '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Override Modal -->
+<dialog id="override-modal" class="modal">
+  <div class="modal-box glass">
+    <h3 class="font-bold text-lg mb-4">Override Stage</h3>
+    <input type="hidden" id="override-item-id">
+    <div class="form-control mb-4">
+      <label class="label"><span class="label-text">Stage</span></label>
+      <select id="override-stage" class="select select-bordered w-full">
+        {% for key, stage_id in stage_mapping.items() %}
+        <option value="{{ stage_id }}">{{ key }} ({{ stage_id }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-control mb-4">
+      <label class="label"><span class="label-text">Notiz</span></label>
+      <textarea id="override-note" class="textarea textarea-bordered w-full" rows="3"
+                placeholder="Optionale Notiz..."></textarea>
+    </div>
+    <div class="modal-action">
+      <button onclick="submitOverride()" class="btn btn-warning">Override anwenden</button>
+      <form method="dialog"><button class="btn btn-ghost">Abbrechen</button></form>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce }}">
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+  async function apiCall(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+
+  function fadeRow(id) {
+    const row = document.getElementById('row-' + id);
+    if (row) {
+      row.style.transition = 'opacity 0.3s';
+      row.style.opacity = '0.3';
+      setTimeout(() => row.remove(), 500);
+    }
+  }
+
+  async function approveItem(itemId) {
+    const data = await apiCall('/t2/api/hubspot-queue/approve', { item_id: itemId });
+    if (data.success) {
+      fadeRow(itemId);
+    } else {
+      alert(data.message || 'Fehler beim Genehmigen');
+    }
+  }
+
+  async function skipItem(itemId) {
+    const data = await apiCall('/t2/api/hubspot-queue/skip', { item_id: itemId });
+    if (data.success) {
+      fadeRow(itemId);
+    } else {
+      alert(data.message || 'Fehler beim Ueberspringen');
+    }
+  }
+
+  function openOverride(itemId) {
+    document.getElementById('override-item-id').value = itemId;
+    document.getElementById('override-note').value = '';
+    document.getElementById('override-modal').showModal();
+  }
+
+  async function submitOverride() {
+    const itemId = document.getElementById('override-item-id').value;
+    const stage = document.getElementById('override-stage').value;
+    const note = document.getElementById('override-note').value;
+
+    const data = await apiCall('/t2/api/hubspot-queue/override', {
+      item_id: itemId, stage: stage, note: note,
+    });
+
+    if (data.success) {
+      document.getElementById('override-modal').close();
+      fadeRow(itemId);
+    } else {
+      alert(data.message || 'Fehler beim Override');
+    }
+  }
+
+  async function approveAll() {
+    if (!confirm('Alle ausstehenden Items mit Deal genehmigen?')) return;
+
+    const data = await apiCall('/t2/api/hubspot-queue/approve-all', {});
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Fehler beim Batch-Genehmigen');
+    }
+  }
+</script>
+{% endblock %}

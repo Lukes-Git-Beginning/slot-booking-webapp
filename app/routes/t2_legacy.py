@@ -2119,3 +2119,107 @@ def api_reschedule_booking():
     except Exception as e:
         logger.error(f"Error rescheduling booking: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# HUBSPOT QUEUE ROUTES
+# ============================================================================
+
+@t2_bp.route('/admin/hubspot-queue')
+@require_login
+def hubspot_queue():
+    """HubSpot Review Queue - Admin-UI fuer Ghost/No-Show Outcome Sync"""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return render_template('errors/403.html'), 403
+
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    from app.config.base import hubspot_config
+
+    queue = hubspot_queue_service.get_queue()
+    pending = [i for i in queue if i.get('status') == 'pending']
+    completed = [i for i in queue if i.get('status') != 'pending']
+    completed.sort(key=lambda x: x.get('updated_at') or '', reverse=True)
+
+    return render_template('t2/hubspot_queue.html',
+                         active_page='t2',
+                         pending=pending,
+                         completed=completed[:20],
+                         stage_mapping=hubspot_config.STAGE_MAPPING,
+                         is_admin=True,
+                         stats={
+                             'pending': len(pending),
+                             'synced': len([i for i in completed if i.get('sync_result') == 'synced']),
+                             'skipped': len([i for i in completed if i.get('sync_result') == 'skipped']),
+                         })
+
+
+@t2_bp.route('/api/hubspot-queue/approve', methods=['POST'])
+@require_login
+def hubspot_queue_approve():
+    """Approve a single queue item."""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'message': 'Keine Berechtigung'}), 403
+
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    data = request.get_json() or {}
+    item_id = data.get('item_id', '').strip()
+    if not item_id:
+        return jsonify({'success': False, 'message': 'item_id erforderlich'}), 400
+
+    result = hubspot_queue_service.approve_item(item_id, user)
+    return jsonify(result), 200 if result['success'] else 400
+
+
+@t2_bp.route('/api/hubspot-queue/skip', methods=['POST'])
+@require_login
+def hubspot_queue_skip():
+    """Skip a single queue item."""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'message': 'Keine Berechtigung'}), 403
+
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    data = request.get_json() or {}
+    item_id = data.get('item_id', '').strip()
+    reason = data.get('reason', '').strip()
+    if not item_id:
+        return jsonify({'success': False, 'message': 'item_id erforderlich'}), 400
+
+    result = hubspot_queue_service.skip_item(item_id, user, reason)
+    return jsonify(result), 200 if result['success'] else 400
+
+
+@t2_bp.route('/api/hubspot-queue/override', methods=['POST'])
+@require_login
+def hubspot_queue_override():
+    """Override a queue item with different stage."""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'message': 'Keine Berechtigung'}), 403
+
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    data = request.get_json() or {}
+    item_id = data.get('item_id', '').strip()
+    stage = data.get('stage', '').strip()
+    note = data.get('note', '').strip()
+
+    if not item_id or not stage:
+        return jsonify({'success': False, 'message': 'item_id und stage erforderlich'}), 400
+
+    result = hubspot_queue_service.override_item(item_id, user, stage, note)
+    return jsonify(result), 200 if result['success'] else 400
+
+
+@t2_bp.route('/api/hubspot-queue/approve-all', methods=['POST'])
+@require_login
+def hubspot_queue_approve_all():
+    """Approve all pending items with deals."""
+    user = session.get('user')
+    if not is_admin_user(user):
+        return jsonify({'success': False, 'message': 'Keine Berechtigung'}), 403
+
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    result = hubspot_queue_service.approve_all(user)
+    return jsonify(result)

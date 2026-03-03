@@ -488,6 +488,13 @@ class BookingTracker:
                 with open(self.outcomes_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(outcome_data, ensure_ascii=False) + "\n")
 
+                # HubSpot Queue Hook: Ghost/No-Show → Review-Queue
+                if outcome in ("ghost", "no_show"):
+                    try:
+                        self._queue_hubspot_outcome(outcome_data)
+                    except Exception as hs_err:
+                        logger.warning(f"HubSpot queue hook failed: {hs_err}")
+
                 outcomes_tracked += 1
             
             logger.info(f"Tracked {outcomes_tracked} outcomes for {check_date}")
@@ -504,6 +511,76 @@ class BookingTracker:
             logger.error(f"Error checking outcomes: {e}")
             return 0
     
+    def _queue_hubspot_outcome(self, outcome_data):
+        """Erstelle ein HubSpot Review-Queue Item fuer Ghost/No-Show Outcomes."""
+        from app.services.hubspot_service import hubspot_service
+        from app.services.hubspot_queue_service import hubspot_queue_service
+
+        if not hubspot_service.is_available:
+            return
+
+        # Deal suchen
+        booking_data = {
+            'customer_name': outcome_data.get('customer', ''),
+            'date': outcome_data.get('date', ''),
+            'time': outcome_data.get('time', ''),
+        }
+
+        # Email aus Description extrahieren falls vorhanden
+        description = outcome_data.get('description', '')
+        email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', description)
+        if email_match:
+            booking_data['email'] = email_match.group(0)
+
+        deal_info = hubspot_service.find_deal_for_booking(booking_data)
+        outcome = outcome_data.get('outcome', '')
+
+        # Bestimme suggested action + stage + note
+        if outcome == 'ghost' and deal_info:
+            was_in_rueckholung = hubspot_service.was_deal_in_stage(
+                deal_info['id'], 'rueckholung'
+            )
+            if was_in_rueckholung:
+                suggested_action = 'ghost_repeat'
+                stage = hubspot_service.config.STAGE_MAPPING['ghost_repeat']
+                note = '2x Ghost - automatisch verschoben'
+            else:
+                suggested_action = 'ghost_first'
+                stage = hubspot_service.config.STAGE_MAPPING['ghost_first']
+                note = 'Ghost - automatisch zur Rueckholung'
+        elif outcome == 'no_show':
+            suggested_action = 'no_show'
+            stage = hubspot_service.config.STAGE_MAPPING['no_show']
+            note = 'Nicht erschienen - automatisch verschoben'
+        else:
+            # Ghost ohne Deal
+            suggested_action = 'ghost_first'
+            stage = hubspot_service.config.STAGE_MAPPING.get('ghost_first', '')
+            note = 'Ghost - kein Deal gefunden'
+
+        hubspot_queue_service.add_to_queue(
+            outcome_data=outcome_data,
+            deal_info=deal_info,
+            suggested_action=suggested_action,
+            stage=stage,
+            note=note,
+        )
+
+        # Notification an Admins bei erstem Item des Batches
+        pending_count = hubspot_queue_service.get_pending_count()
+        if pending_count == 1:
+            try:
+                from app.services.notification_service import notification_service
+                notification_service.create_notification(
+                    roles=['admin'],
+                    title='HubSpot Queue',
+                    message='Neue Ghost/No-Show Outcomes warten auf Review.',
+                    notification_type='info',
+                    show_popup=False,
+                )
+            except Exception:
+                pass
+
     def _calculate_daily_metrics(self, date, events):
         """Berechne und speichere Tagesstatistiken"""
         metrics = {

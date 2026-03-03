@@ -313,7 +313,7 @@ class HubSpotService:
 
         Args:
             deal_id: HubSpot Deal ID
-            stage: Internal Name der Ziel-Stage (z.B. 'rueckholung')
+            stage: Stage-ID (numerisch) oder Key aus STAGE_MAPPING
             note: Optionale Notiz zum Hinzufügen
 
         Returns:
@@ -323,24 +323,38 @@ class HubSpotService:
             logger.debug(f"HubSpot not available, skipping stage update for deal {deal_id}")
             return False
 
-        # TODO: Implementierung mit echtem API-Call (Phase 2)
-        # PATCH /crm/v3/objects/deals/{dealId}
-        # Body: {"properties": {"dealstage": stage}}
-        logger.info(f"HubSpot deal stage update: {deal_id} → {stage} (stub)")
+        try:
+            from hubspot.crm.deals import SimplePublicObjectInput
 
-        if note:
-            self.add_deal_note(deal_id, note)
+            # Resolve stage name to ID if needed
+            stage_id = self.config.STAGE_MAPPING.get(stage, stage)
 
-        return False
+            self.client.crm.deals.basic_api.update(
+                deal_id=deal_id,
+                simple_public_object_input=SimplePublicObjectInput(
+                    properties={"dealstage": stage_id}
+                ),
+            )
+            logger.info(f"HubSpot deal {deal_id} stage updated to {stage_id}")
+
+            if note:
+                self.add_deal_note(deal_id, note)
+
+            return True
+
+        except Exception as e:
+            logger.error(f"HubSpot stage update failed for deal {deal_id}: {e}")
+            return False
 
     def was_deal_in_stage(self, deal_id: str, stage: str) -> bool:
         """Prüfe ob ein Deal jemals in einer bestimmten Stage war.
 
-        Wichtig für Ghost-Logik: War Deal schon in 'Rückholung'?
+        Nutzt HubSpot's hs_v2_date_entered_{stage_id} Properties.
+        Wenn dieses Property einen Wert hat, war der Deal in der Stage.
 
         Args:
             deal_id: HubSpot Deal ID
-            stage: Internal Name der Stage
+            stage: Stage-Key (z.B. 'rueckholung') oder numerische Stage-ID
 
         Returns:
             True wenn Deal jemals in dieser Stage war
@@ -348,14 +362,28 @@ class HubSpotService:
         if not self.is_available:
             return False
 
-        # TODO: Implementierung (Phase 2)
-        # HubSpot API bietet keine direkte Stage-History
-        # Lösung: Lokale Tracking-Tabelle oder Deal-Notes parsen
-        logger.info(f"HubSpot stage history check: {deal_id} in {stage}? (stub)")
-        return False
+        try:
+            stage_id = self.config.STAGE_MAPPING.get(stage, stage)
+            history_prop = f"hs_v2_date_entered_{stage_id}"
+
+            deal = self.client.crm.deals.basic_api.get_by_id(
+                deal_id=deal_id,
+                properties=[history_prop],
+            )
+
+            value = (deal.properties or {}).get(history_prop)
+            was_in = bool(value and value.strip())
+            logger.info(f"HubSpot stage history: deal {deal_id} in {stage} ({stage_id})? {was_in}")
+            return was_in
+
+        except Exception as e:
+            logger.error(f"HubSpot stage history check failed for deal {deal_id}: {e}")
+            return False
 
     def add_deal_note(self, deal_id: str, note: str) -> bool:
         """Füge eine Notiz zu einem Deal hinzu.
+
+        Erstellt ein Note-Objekt und assoziiert es mit dem Deal.
 
         Args:
             deal_id: HubSpot Deal ID
@@ -367,11 +395,38 @@ class HubSpotService:
         if not self.is_available:
             return False
 
-        # TODO: Implementierung (Phase 2)
-        # POST /crm/v3/objects/notes
-        # + Association mit Deal
-        logger.info(f"HubSpot add note to deal {deal_id}: {note[:50]}... (stub)")
-        return False
+        try:
+            from hubspot.crm.objects.notes import SimplePublicObjectInput as NoteInput
+
+            now_ms = str(int(datetime.now(timezone.utc).timestamp() * 1000))
+
+            note_obj = self.client.crm.objects.notes.basic_api.create(
+                simple_public_object_input=NoteInput(
+                    properties={
+                        "hs_timestamp": now_ms,
+                        "hs_note_body": note,
+                    }
+                )
+            )
+
+            # Associate note with deal (type 214 = note_to_deal)
+            self.client.crm.associations.v4.basic_api.create(
+                object_type="notes",
+                object_id=note_obj.id,
+                to_object_type="deals",
+                to_object_id=deal_id,
+                association_spec=[{
+                    "associationCategory": "HUBSPOT_DEFINED",
+                    "associationTypeId": 214,
+                }],
+            )
+
+            logger.info(f"HubSpot note {note_obj.id} added to deal {deal_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"HubSpot add note failed for deal {deal_id}: {e}")
+            return False
 
     # ================================================================
     # OUTCOME SYNC

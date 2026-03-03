@@ -696,3 +696,100 @@ def system_health():
     return render_template('t2/system_health.html',
                          active_page='t2',
                          health=health)
+
+
+# ============================================================================
+# HUBSPOT QUEUE ROUTES
+# ============================================================================
+
+@admin_bp.route('/admin/hubspot-queue')
+@admin_required
+def hubspot_queue():
+    """
+    HubSpot Review Queue - Admin-UI fuer Ghost/No-Show Outcome Sync
+
+    TEMPLATE: templates/t2/hubspot_queue.html
+    """
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    from app.config.base import hubspot_config
+
+    queue = hubspot_queue_service.get_queue()
+    pending = [i for i in queue if i.get('status') == 'pending']
+    completed = [i for i in queue if i.get('status') != 'pending']
+    # Most recent first
+    completed.sort(key=lambda x: x.get('updated_at') or '', reverse=True)
+
+    stage_mapping = hubspot_config.STAGE_MAPPING
+
+    return render_template('t2/hubspot_queue.html',
+                         active_page='t2',
+                         pending=pending,
+                         completed=completed[:20],
+                         stage_mapping=stage_mapping,
+                         stats={
+                             'pending': len(pending),
+                             'synced': len([i for i in completed if i.get('sync_result') == 'synced']),
+                             'skipped': len([i for i in completed if i.get('sync_result') == 'skipped']),
+                         })
+
+
+@admin_bp.route('/api/hubspot-queue/approve', methods=['POST'])
+@admin_required
+def hubspot_queue_approve():
+    """Approve a single queue item."""
+    from app.services.hubspot_queue_service import hubspot_queue_service
+
+    data = request.get_json() or {}
+    item_id = data.get('item_id', '').strip()
+    if not item_id:
+        return jsonify({'success': False, 'message': 'item_id erforderlich'}), 400
+
+    result = hubspot_queue_service.approve_item(item_id, session.get('user'))
+    status_code = 200 if result['success'] else 400
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/api/hubspot-queue/skip', methods=['POST'])
+@admin_required
+def hubspot_queue_skip():
+    """Skip a single queue item."""
+    from app.services.hubspot_queue_service import hubspot_queue_service
+
+    data = request.get_json() or {}
+    item_id = data.get('item_id', '').strip()
+    reason = data.get('reason', '').strip()
+    if not item_id:
+        return jsonify({'success': False, 'message': 'item_id erforderlich'}), 400
+
+    result = hubspot_queue_service.skip_item(item_id, session.get('user'), reason)
+    status_code = 200 if result['success'] else 400
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/api/hubspot-queue/override', methods=['POST'])
+@admin_required
+def hubspot_queue_override():
+    """Override a queue item with different stage."""
+    from app.services.hubspot_queue_service import hubspot_queue_service
+
+    data = request.get_json() or {}
+    item_id = data.get('item_id', '').strip()
+    stage = data.get('stage', '').strip()
+    note = data.get('note', '').strip()
+
+    if not item_id or not stage:
+        return jsonify({'success': False, 'message': 'item_id und stage erforderlich'}), 400
+
+    result = hubspot_queue_service.override_item(item_id, session.get('user'), stage, note)
+    status_code = 200 if result['success'] else 400
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/api/hubspot-queue/approve-all', methods=['POST'])
+@admin_required
+def hubspot_queue_approve_all():
+    """Approve all pending items with deals."""
+    from app.services.hubspot_queue_service import hubspot_queue_service
+
+    result = hubspot_queue_service.approve_all(session.get('user'))
+    return jsonify(result)
