@@ -409,6 +409,7 @@ def register_template_context(app: Flask) -> None:
             'notifications': get_user_notifications(),
             'csp_nonce': getattr(g, 'csp_nonce', ''),
             'finanz_enabled': FinanzConfig.FINANZ_ENABLED,
+            'finanz_access': user_has_tool_access(session.get('user', ''), 'finanzberatung') if session.get('user') else False,
         }
 
     @app.template_filter('datetime')
@@ -670,6 +671,15 @@ def user_has_tool_access(username: str, tool_id: str) -> bool:
     # Analytics: nur Admin-Rolle
     if tool_id == 'analytics':
         return is_admin
+
+    # Finanzberatung: Opener + Closer + Admin
+    if tool_id == 'finanzberatung':
+        finanz_access = [
+            'christian.mast', 'tim.kreisel', 'daniel.herbort', 'sonja.mast',
+            'simon.mast', 'dominik.mikic', 'ann-kathrin.welge', 'sara.mast',
+            'jose.torspecken', 'alexander.nehm', 'david.nehm',
+        ]
+        return is_admin or username in finanz_access
 
     # WIP/coming_soon Tools: nur Username "Admin"
     if tool_id in ['tool4', 'tool5', 'tool6']:

@@ -11,7 +11,7 @@ All sub-blueprints register under /finanzberatung prefix.
 Upload sub-blueprint is CSRF-exempted (external customer uploads via QR token).
 """
 
-from flask import Blueprint
+from flask import Blueprint, flash, redirect, request, session, url_for
 
 from app.config.base import FinanzConfig as finanz_config
 
@@ -19,6 +19,35 @@ from app.config.base import FinanzConfig as finanz_config
 finanzberatung_bp = Blueprint(
     'finanzberatung', __name__, url_prefix='/finanzberatung'
 )
+
+
+@finanzberatung_bp.before_request
+def require_finanz_access():
+    """Restrict finanzberatung to openers, closers, and admins.
+
+    Upload routes are excluded -- customers access those via token without
+    login. SSE is for logged-in consultants only and is NOT excluded.
+    """
+    # Feature flag check
+    if not finanz_config.FINANZ_ENABLED:
+        flash("Finanzberatung ist nicht aktiviert", "warning")
+        return redirect(url_for('hub.dashboard'))
+
+    # Skip upload routes (customer-facing, token-based, no login required)
+    endpoint = request.endpoint or ''
+    if 'upload' in endpoint:
+        return None
+
+    # Require login for all other routes
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    # Role check
+    from app.routes.hub import has_tool_access
+    if not has_tool_access(user, 'finanzberatung'):
+        flash("Kein Zugriff auf Finanzberatung", "error")
+        return redirect(url_for('hub.dashboard'))
 
 
 def init_app(app):

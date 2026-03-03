@@ -618,9 +618,18 @@ def has_tool_access(username, tool_id):
     if tool_id == 'analytics':
         return is_admin
 
-    # Finanzberatung: nur Admin + luke.hoppe (vor Go-Live erweitern)
+    # Finanzberatung: Opener + Closer + Admin
     if tool_id == 'finanzberatung':
-        return username in ('Admin', 'luke.hoppe')
+        finanz_access = [
+            # Openers
+            'christian.mast', 'tim.kreisel', 'daniel.herbort', 'sonja.mast',
+            'simon.mast', 'dominik.mikic', 'ann-kathrin.welge', 'sara.mast',
+            # Closers (overlap with openers is fine)
+            'jose.torspecken', 'alexander.nehm', 'david.nehm',
+            # Admins not covered by opener/closer lists
+            'luke.hoppe',
+        ]
+        return is_admin or username in finanz_access
 
     # WIP/coming_soon Tools: nur Username "Admin"
     if tool_id in ['tool5', 'tool6']:
