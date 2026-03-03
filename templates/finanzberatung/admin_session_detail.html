@@ -1,0 +1,159 @@
+{% extends "hub/base.html" %}
+
+{% block hub_title %}Admin - Session #{{ session.id }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down">
+    <div>
+        <h1 class="text-3xl font-bold">Session #{{ session.id }} - {{ session.customer_name }}</h1>
+        <p class="text-gray-400 mt-1">Admin-Ansicht (Readonly)</p>
+    </div>
+    <a href="{{ url_for('finanzberatung.finanz_admin.admin_session_list') }}"
+       class="btn btn-ghost gap-2">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        Zurueck
+    </a>
+</div>
+
+<!-- Session Info -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="glass rounded-2xl p-6" data-aos="fade-up">
+        <h2 class="text-lg font-semibold mb-4">Session-Details</h2>
+        <div class="space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Kunde</span>
+                <span class="font-semibold">{{ session.customer_name }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Opener</span>
+                <span>{{ session.opener_username }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Closer</span>
+                <span>{{ session.closer_username or '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Status</span>
+                <span>
+                    {% if session.status == 'active' %}
+                        <span class="badge badge-success">Aktiv</span>
+                    {% elif session.status == 'in_analysis' %}
+                        <span class="badge badge-warning">In Analyse</span>
+                    {% elif session.status == 'analyzed' %}
+                        <span class="badge badge-info">Analysiert</span>
+                    {% elif session.status == 'verified' %}
+                        <span class="badge badge-primary">Verifiziert</span>
+                    {% elif session.status == 'deletion_pending' %}
+                        <span class="badge badge-error">Loeschung ausstehend</span>
+                    {% elif session.status == 'archived' %}
+                        <span class="badge badge-ghost">Archiviert</span>
+                    {% else %}
+                        <span class="badge badge-ghost">{{ session.status }}</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Typ</span>
+                <span>{{ session.session_type }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Erstellt</span>
+                <span>{{ session.created_at.strftime('%d.%m.%Y %H:%M') if session.created_at else '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Termin</span>
+                <span>{{ session.appointment_date.strftime('%d.%m.%Y %H:%M') if session.appointment_date else '-' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+        <h2 class="text-lg font-semibold mb-4">DSGVO-Status</h2>
+        <div class="space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Loeschung markiert</span>
+                <span>
+                    {% if session.deletion_requested_at %}
+                        {{ session.deletion_requested_at.strftime('%d.%m.%Y %H:%M') }}
+                    {% else %}
+                        <span class="text-gray-500">Nein</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Markiert von</span>
+                <span>{{ session.deletion_requested_by or '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Dateien geloescht</span>
+                <span>
+                    {% if session.files_deleted_at %}
+                        {{ session.files_deleted_at.strftime('%d.%m.%Y %H:%M') }}
+                    {% else %}
+                        <span class="text-gray-500">Nein</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Documents -->
+<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="200">
+    <div class="p-4 border-b border-white/10">
+        <h2 class="text-lg font-semibold">Dokumente ({{ documents|length }})</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Dateiname</th>
+                    <th>Typ</th>
+                    <th>Status</th>
+                    <th>MIME</th>
+                    <th>Groesse</th>
+                    <th>Hochgeladen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td class="font-mono text-sm">{{ doc.id }}</td>
+                    <td>{{ doc.original_filename }}</td>
+                    <td>
+                        {% if doc.document_type %}
+                            <span class="badge badge-sm">{{ doc.document_type }}</span>
+                        {% else %}
+                            <span class="text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if doc.status == 'analyzed' %}
+                            <span class="badge badge-success badge-sm">{{ doc.status }}</span>
+                        {% elif doc.status == 'error' %}
+                            <span class="badge badge-error badge-sm">{{ doc.status }}</span>
+                        {% elif doc.status == 'uploaded' %}
+                            <span class="badge badge-info badge-sm">{{ doc.status }}</span>
+                        {% else %}
+                            <span class="badge badge-warning badge-sm">{{ doc.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-sm">{{ doc.mime_type }}</td>
+                    <td class="text-sm">{{ (doc.file_size / 1024) | round(1) }} KB</td>
+                    <td class="text-sm">{{ doc.created_at.strftime('%d.%m.%Y %H:%M') if doc.created_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+                {% if not documents %}
+                <tr>
+                    <td colspan="7" class="text-center text-gray-400 py-8">
+                        Keine Dokumente vorhanden.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

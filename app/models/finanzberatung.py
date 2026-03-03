@@ -33,6 +33,7 @@ class SessionStatus(enum.Enum):
     IN_ANALYSIS = 'in_analysis'
     ANALYZED = 'analyzed'
     VERIFIED = 'verified'
+    DELETION_PENDING = 'deletion_pending'
     ARCHIVED = 'archived'
 
 
@@ -172,6 +173,17 @@ class FinanzSession(Base):
     t1_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     t2_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # DSGVO deletion tracking
+    deletion_requested_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    deletion_requested_by: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )
+    files_deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+
     # Relationships (cascade from root aggregate)
     tokens = relationship(
         'FinanzUploadToken', back_populates='session',
@@ -192,10 +204,11 @@ class FinanzSession(Base):
 
     # Valid status transitions
     VALID_TRANSITIONS = {
-        SessionStatus.ACTIVE: [SessionStatus.IN_ANALYSIS, SessionStatus.ARCHIVED],
-        SessionStatus.IN_ANALYSIS: [SessionStatus.ANALYZED, SessionStatus.ACTIVE, SessionStatus.ARCHIVED],
-        SessionStatus.ANALYZED: [SessionStatus.VERIFIED, SessionStatus.IN_ANALYSIS, SessionStatus.ARCHIVED],
-        SessionStatus.VERIFIED: [SessionStatus.ARCHIVED],
+        SessionStatus.ACTIVE: [SessionStatus.IN_ANALYSIS, SessionStatus.DELETION_PENDING, SessionStatus.ARCHIVED],
+        SessionStatus.IN_ANALYSIS: [SessionStatus.ANALYZED, SessionStatus.ACTIVE, SessionStatus.DELETION_PENDING, SessionStatus.ARCHIVED],
+        SessionStatus.ANALYZED: [SessionStatus.VERIFIED, SessionStatus.IN_ANALYSIS, SessionStatus.DELETION_PENDING, SessionStatus.ARCHIVED],
+        SessionStatus.VERIFIED: [SessionStatus.DELETION_PENDING, SessionStatus.ARCHIVED],
+        SessionStatus.DELETION_PENDING: [SessionStatus.ARCHIVED],
         SessionStatus.ARCHIVED: [SessionStatus.ACTIVE],
     }
 

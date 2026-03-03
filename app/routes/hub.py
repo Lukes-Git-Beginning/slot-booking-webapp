@@ -154,7 +154,7 @@ def tool_redirect(tool_id):
         'slots': '/slots/',
         't2': '/t2/',
         'analytics': '/analytics/',
-        'tool4': '#',
+        'finanzberatung': '/finanzberatung/sessions',
         'tool5': '#',
         'tool6': '#'
     }
@@ -347,16 +347,16 @@ def get_user_tools(username):
             'last_used': None
         },
         {
-            'id': 'tool4',
-            'name': 'Tool #4',
-            'description': 'Coming Soon',
-            'icon': '🔧',
-            'url': '#',
-            'status': 'coming_soon',
+            'id': 'finanzberatung',
+            'name': 'Finanzberatung',
+            'description': 'Dokumentenanalyse & Scoring',
+            'lucide_icon': 'file-search',
+            'url': '/finanzberatung/sessions',
+            'status': 'beta',
             'users': 0,
-            'color': '#9E9E9E',
-            'features': ['TBD'],
-            'last_used': None
+            'color': '#d4af6a',
+            'features': ['Dokumenten-Upload', 'KI-Analyse', 'Ampel-Scorecard'],
+            'last_used': get_tool_last_used(username, 'finanzberatung')
         },
         {
             'id': 'tool5',
@@ -383,6 +383,14 @@ def get_user_tools(username):
             'last_used': None
         }
     ]
+
+    # Feature-Flag Guard: Finanzberatung nur einblenden wenn FINANZ_ENABLED
+    try:
+        from app.config.base import FinanzConfig
+        if not FinanzConfig.FINANZ_ENABLED:
+            all_tools = [t for t in all_tools if t['id'] != 'finanzberatung']
+    except ImportError:
+        all_tools = [t for t in all_tools if t['id'] != 'finanzberatung']
 
     # Berechtigungen prüfen
     user_tools = [tool for tool in all_tools if has_tool_access(username, tool['id'])]
@@ -609,8 +617,12 @@ def has_tool_access(username, tool_id):
     if tool_id == 'analytics':
         return is_admin
 
+    # Finanzberatung: nur Admin + luke.hoppe (vor Go-Live erweitern)
+    if tool_id == 'finanzberatung':
+        return username in ('Admin', 'luke.hoppe')
+
     # WIP/coming_soon Tools: nur Username "Admin"
-    if tool_id in ['tool4', 'tool5', 'tool6']:
+    if tool_id in ['tool5', 'tool6']:
         return username == 'Admin'
 
     return False

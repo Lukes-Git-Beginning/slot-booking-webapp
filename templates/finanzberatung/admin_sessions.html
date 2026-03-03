@@ -1,0 +1,288 @@
+{% extends "hub/base.html" %}
+
+{% block hub_title %}Finanzberatung - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down">
+    <div>
+        <h1 class="text-3xl font-bold">Finanzberatung - Administration</h1>
+        <p class="text-gray-400 mt-1">Session-Verwaltung & DSGVO</p>
+    </div>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}"
+       class="btn btn-ghost gap-2">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        Zurueck zu Sessions
+    </a>
+</div>
+
+<!-- Stats Header -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up">
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-bold text-primary">{{ stats.total }}</div>
+        <div class="text-sm text-gray-400">Gesamt</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-bold text-success">{{ stats.active }}</div>
+        <div class="text-sm text-gray-400">Aktiv</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-bold text-warning">{{ stats.in_analysis }}</div>
+        <div class="text-sm text-gray-400">In Analyse</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-bold text-error">{{ stats.deletion_queue }}</div>
+        <div class="text-sm text-gray-400">Loesch-Queue</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="glass rounded-2xl p-4 mb-6" data-aos="fade-up" data-aos-delay="100">
+    <form method="GET" class="flex flex-wrap items-end gap-4">
+        <div class="form-control w-full max-w-xs">
+            <label class="label"><span class="label-text">Status</span></label>
+            <select name="status" class="select select-bordered select-sm w-full">
+                <option value="">Alle Status</option>
+                {% for s in statuses %}
+                <option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s | replace('_', ' ') | title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-control w-full max-w-xs">
+            <label class="label"><span class="label-text">Opener</span></label>
+            <select name="opener" class="select select-bordered select-sm w-full">
+                <option value="">Alle Opener</option>
+                {% for o in openers %}
+                <option value="{{ o }}" {{ 'selected' if filters.opener == o }}>{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-control w-full max-w-xs">
+            <label class="label"><span class="label-text">Von</span></label>
+            <input type="date" name="date_from" value="{{ filters.date_from }}" class="input input-bordered input-sm w-full">
+        </div>
+        <div class="form-control w-full max-w-xs">
+            <label class="label"><span class="label-text">Bis</span></label>
+            <input type="date" name="date_to" value="{{ filters.date_to }}" class="input input-bordered input-sm w-full">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm gap-1">
+            <i data-lucide="filter" class="w-4 h-4"></i>
+            Filtern
+        </button>
+        <a href="{{ url_for('finanzberatung.finanz_admin.admin_session_list') }}" class="btn btn-ghost btn-sm">
+            Zuruecksetzen
+        </a>
+    </form>
+</div>
+
+<!-- Session Table -->
+<div class="glass rounded-2xl overflow-hidden mb-8" data-aos="fade-up" data-aos-delay="200">
+    <div class="p-4 border-b border-white/10">
+        <h2 class="text-lg font-semibold">Sessions ({{ sessions|length }})</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Kunde</th>
+                    <th>Opener</th>
+                    <th>Closer</th>
+                    <th>Status</th>
+                    <th>Dokumente</th>
+                    <th>Erstellt</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr class="hover:bg-white/5">
+                    <td class="font-mono text-sm">{{ s.id }}</td>
+                    <td class="font-semibold">{{ s.customer_name }}</td>
+                    <td>{{ s.opener_username }}</td>
+                    <td>{{ s.closer_username or '-' }}</td>
+                    <td>
+                        {% if s.status == 'active' %}
+                            <span class="badge badge-success badge-sm">Aktiv</span>
+                        {% elif s.status == 'in_analysis' %}
+                            <span class="badge badge-warning badge-sm">In Analyse</span>
+                        {% elif s.status == 'analyzed' %}
+                            <span class="badge badge-info badge-sm">Analysiert</span>
+                        {% elif s.status == 'verified' %}
+                            <span class="badge badge-primary badge-sm">Verifiziert</span>
+                        {% elif s.status == 'deletion_pending' %}
+                            <span class="badge badge-error badge-sm">Loeschung</span>
+                        {% elif s.status == 'archived' %}
+                            <span class="badge badge-ghost badge-sm">Archiviert</span>
+                        {% else %}
+                            <span class="badge badge-ghost badge-sm">{{ s.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ s.document_count }}</td>
+                    <td class="text-sm">
+                        {% if s.created_at %}
+                            {{ s.created_at.strftime('%d.%m.%Y') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="flex gap-1">
+                        <a href="{{ url_for('finanzberatung.finanz_admin.admin_session_detail', session_id=s.id) }}"
+                           class="btn btn-ghost btn-xs gap-1" title="Details">
+                            <i data-lucide="eye" class="w-3 h-3"></i>
+                        </a>
+                        {% if s.status != 'deletion_pending' and s.status != 'archived' %}
+                        <button class="btn btn-error btn-xs gap-1"
+                                title="DSGVO-Loeschung markieren"
+                                onclick="confirmMarkDeletion({{ s.id }}, '{{ s.customer_name }}')">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not sessions %}
+                <tr>
+                    <td colspan="8" class="text-center text-gray-400 py-8">
+                        Keine Sessions gefunden.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Deletion Queue -->
+{% if deletion_queue %}
+<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="300">
+    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-error">
+            <i data-lucide="alert-triangle" class="w-5 h-5 inline mr-2"></i>
+            Loesch-Queue ({{ deletion_queue|length }})
+        </h2>
+        {% set expired_count = deletion_queue | selectattr('can_delete') | list | length %}
+        {% if expired_count > 0 %}
+        <button class="btn btn-error btn-sm gap-1" onclick="confirmBatchDelete({{ expired_count }})">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            {{ expired_count }} faellige loeschen
+        </button>
+        {% endif %}
+    </div>
+    <div class="overflow-x-auto">
+        <table class="table w-full">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Kunde</th>
+                    <th>Opener</th>
+                    <th>Markiert von</th>
+                    <th>Markiert am</th>
+                    <th>Verbleibend</th>
+                    <th>Dokumente</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in deletion_queue %}
+                <tr class="hover:bg-white/5">
+                    <td class="font-mono text-sm">{{ item.session_id }}</td>
+                    <td class="font-semibold">{{ item.customer_name }}</td>
+                    <td>{{ item.opener_username }}</td>
+                    <td>{{ item.deletion_requested_by }}</td>
+                    <td class="text-sm">{{ item.deletion_requested_at[:10] }}</td>
+                    <td>
+                        {% if item.can_delete %}
+                            <span class="badge badge-error badge-sm">Faellig</span>
+                        {% else %}
+                            <span class="badge badge-warning badge-sm">{{ item.days_remaining }} Tage</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ item.document_count }}</td>
+                    <td>
+                        {% if item.can_delete %}
+                        <button class="btn btn-error btn-xs gap-1"
+                                onclick="confirmExecuteDeletion({{ item.session_id }}, '{{ item.customer_name }}')">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            Jetzt loeschen
+                        </button>
+                        {% else %}
+                        <span class="text-xs text-gray-500">Warten...</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Confirm Dialogs (JS) -->
+<script nonce="{{ csp_nonce }}">
+function confirmMarkDeletion(sessionId, customerName) {
+    if (confirm('DSGVO-Loeschung fuer "' + customerName + '" markieren?\n\nDateien werden nach 30 Tagen geloescht.')) {
+        fetch('/finanzberatung/admin/sessions/' + sessionId + '/mark-deletion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+            }
+        })
+        .catch(() => alert('Netzwerkfehler'));
+    }
+}
+
+function confirmExecuteDeletion(sessionId, customerName) {
+    if (confirm('Dateien fuer "' + customerName + '" ENDGUELTIG loeschen?\n\nDiese Aktion kann nicht rueckgaengig gemacht werden!')) {
+        fetch('/finanzberatung/admin/sessions/' + sessionId + '/execute-deletion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.files_deleted + ' Dateien geloescht.');
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+            }
+        })
+        .catch(() => alert('Netzwerkfehler'));
+    }
+}
+
+function confirmBatchDelete(count) {
+    if (confirm(count + ' faellige Sessions loeschen?\n\nAlle Dateien werden endgueltig entfernt.')) {
+        fetch('/finanzberatung/admin/batch-delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.successful + '/' + data.total_expired + ' Sessions verarbeitet.');
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+            }
+        })
+        .catch(() => alert('Netzwerkfehler'));
+    }
+}
+</script>
+{% endblock %}
