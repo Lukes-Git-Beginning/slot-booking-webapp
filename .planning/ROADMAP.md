@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Scorecard + Export** - Traffic-light scorecard generation, PDF and Excel export
 - [x] **Phase 6: Admin + DSGVO** - Admin session management and DSGVO-compliant deletion workflow
 - [x] **Phase 7: Hub Integration** - Tool tile, access control, and cross-tool links
-- [x] **Phase 8: Config Bridge + DSGVO Path Fix** - Fix config reading pattern and DSGVO file deletion path bug (Gap Closure) (completed 2026-03-03)
+- [x] **Phase 8: Config Bridge + DSGVO Path Fix** - Fix config reading pattern and DSGVO file deletion path bug (Gap Closure) (completed 2026-03-03)
 - [ ] **Phase 9: Hub Integration Completion** - Role-based access control and cross-tool links (Gap Closure)
 
 ## Phase Details
@@ -142,7 +142,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 08-01: Fix config bridge pattern + DSGVO path alignment [Wave 1]
+- [x] 08-01: Fix config bridge pattern + DSGVO path alignment [Wave 1]
 
 ### Phase 9: Hub Integration Completion
 **Goal**: Finanzberatung is accessible to all openers/closers via role-based access and discoverable from Slots and T2 pages via cross-tool links
@@ -156,7 +156,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 09-01: Role-based access + cross-tool links in Slots/T2 templates [Wave 1]
+- [ ] 09-01: Expand access control (opener+closer+admin union) + blueprint guard + cross-tool links in index.html/T2 [Wave 1]
 
 ## Progress
 
