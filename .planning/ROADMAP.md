@@ -12,11 +12,11 @@ Build a complete financial consulting module for the ZFA Business Hub. The journ
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Config, database models, Celery setup, and dependencies
-- [ ] **Phase 2: Sessions + Upload** - Session CRUD, token-based upload, QR codes, mobile upload page, SSE notifications
-- [ ] **Phase 3: Berater Dashboards** - Opener and Closer dashboard views with document checklist and live feed
-- [ ] **Phase 4: Document Pipeline** - Extraction, OCR, chunking, embeddings, classification, and LLM integration
-- [ ] **Phase 5: Scorecard + Export** - Traffic-light scorecard generation, PDF and Excel export
+- [x] **Phase 1: Foundation** - Config, database models, Celery setup, and dependencies
+- [x] **Phase 2: Sessions + Upload** - Session CRUD, token-based upload, QR codes, mobile upload page, SSE notifications
+- [x] **Phase 3: Berater Dashboards** - Opener and Closer dashboard views with document checklist and live feed
+- [x] **Phase 4: Document Pipeline** - Extraction, OCR, chunking, embeddings, classification, and LLM integration
+- [x] **Phase 5: Scorecard + Export** - Traffic-light scorecard generation, PDF and Excel export
 - [ ] **Phase 6: Admin + DSGVO** - Admin session management and DSGVO-compliant deletion workflow
 - [ ] **Phase 7: Hub Integration** - Tool tile, access control, and cross-tool links
 
@@ -55,7 +55,7 @@ Plans:
 - [x] 02-02: Session Routes + Templates (SESS-01, SESS-02, SESS-03, SESS-04, UPLD-01, UPLD-02, UPLD-08) [Wave 2, depends on 02-01]
 - [x] 02-03: Upload Routes + Mobile Page (UPLD-03, UPLD-04, UPLD-05, UPLD-07, DASH-05) [Wave 2, depends on 02-01]
 - [x] 02-04: SSE Notifications (UPLD-06, SESS-02) [Wave 3, depends on 02-02, 02-03]
-- [ ] 02-05: Wire token deactivation (gap closure) [Wave 1]
+- [x] 02-05: Wire token deactivation (gap closure) [Wave 1]
 
 ### Phase 3: Berater Dashboards
 **Goal**: Opener and Closer consultants have dedicated dashboard views to manage sessions, monitor uploads, and track document completeness
@@ -66,11 +66,10 @@ Plans:
   2. Session detail page shows QR code, token countdown timer, SSE upload feed, document checklist, and notes editor
   3. Document checklist shows ampel status per document type (missing / uploaded / classified / verified)
   4. Closer dashboard extends opener view with analysis trigger button, scorecard display area, and export buttons
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [x] 03-01: Session detail with document checklist, manual contract creation, field verification, contract card component
 
 ### Phase 4: Document Pipeline
 **Goal**: Uploaded documents are automatically processed -- text extracted, images OCR'd, content chunked and embedded, documents classified, and financial data extracted -- all running as background Celery tasks
@@ -82,12 +81,10 @@ Plans:
   3. With FINANZ_LLM_ENABLED=false, the full pipeline works end-to-end using keyword-based mock classification -- no GPU required
   4. Structured financial data (values, costs, returns) is extracted from documents with confidence scores
   5. Vector similarity search finds related documents across sessions
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [x] 04-01: Extraction, classification, field extraction, embedding services + Celery task chains
 
 ### Phase 5: Scorecard + Export
 **Goal**: Consultants get an automated traffic-light financial scorecard per session and can export analysis results as branded PDF or structured Excel
@@ -99,11 +96,10 @@ Plans:
   3. Consultant can export session analysis as branded PDF with cover page, overview, detail sections, potential, and next steps
   4. Consultant can export session data as Excel workbook with 6 sheets (overview, documents, costs, provision, optimization, raw data)
   5. Every export action is recorded in the audit log
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [x] 05-01: Scorecard service + Excel/PDF export services with audit logging
 
 ### Phase 6: Admin + DSGVO
 **Goal**: Admins can oversee all financial consulting sessions and manage DSGVO-compliant document deletion with full audit trail
@@ -141,9 +137,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-03-01 |
-| 2. Sessions + Upload | 0/4 | Planned | - |
-| 3. Berater Dashboards | 0/? | Not started | - |
-| 4. Document Pipeline | 0/? | Not started | - |
-| 5. Scorecard + Export | 0/? | Not started | - |
+| 2. Sessions + Upload | 5/5 | Complete | 2026-03-01 |
+| 3. Berater Dashboards | 1/1 | Complete | 2026-03-03 |
+| 4. Document Pipeline | 1/1 | Complete | 2026-03-03 |
+| 5. Scorecard + Export | 1/1 | Complete | 2026-03-03 |
 | 6. Admin + DSGVO | 0/? | Not started | - |
 | 7. Hub Integration | 0/? | Not started | - |

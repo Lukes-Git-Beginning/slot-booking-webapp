@@ -2,26 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-01T14:34:42.473Z"
-progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
----
-
----
-gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
 status: executing
-last_updated: "2026-03-01T14:29:41.000Z"
+last_updated: "2026-03-03T12:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 11
+  completed_plans: 11
 ---
 
 # Project State
@@ -31,44 +18,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Consultants can walk customers through structured financial document analysis -- from QR upload to automated scorecard.
-**Current focus:** Phase 2 - Sessions & Upload
+**Current focus:** Phase 6 - Admin + DSGVO (next up)
 
 ## Current Position
 
-Phase: 2 of 7 (Sessions & Upload) -- COMPLETE
-Plan: 5 of 5 in current phase
-Status: Phase Complete
-Last activity: 2026-03-01 -- Completed 02-05-PLAN.md (Token Deactivation Wiring)
+Phase: 5 of 7 (Scorecard + Export) -- COMPLETE
+Plan: All plans in phases 1-5 complete
+Status: Ready for Phase 6
+Last activity: 2026-03-03 -- Phase 3-5 implemented + 14-fix audit completed
 
-Progress: [##########] 100% (Phase 02 complete, incl. gap closure)
+Progress: [##########] 71% (5 of 7 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 2.6min
-- Total execution time: 0.35 hours
+- Total plans completed: 11
+- Phase 1-2: via GSD (8 plans, 0.35 hours)
+- Phase 3-5: implemented directly (3 plans, ~2 hours)
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-foundation | 3 | 7min | 2.3min |
-| 02-sessions-upload | 5 | 15min | 3.0min |
-
-**Recent Trend:**
-- Last 5 plans: 1min, 5min, 3min, 3min, 3min
-- Trend: stable
-
-*Updated after each plan completion*
-| Phase 02-sessions-upload P05 | 1min | 1 tasks | 2 files |
-| Phase 02-sessions-upload P04 | 5min | 2 tasks | 8 files |
-| Phase 02-sessions-upload P03 | 3min | 2 tasks | 4 files |
-| Phase 02-sessions-upload P02 | 4min | 2 tasks | 4 files |
-| Phase 02-sessions-upload P01 | 3min | 2 tasks | 5 files |
-| Phase 01-foundation P03 | 2min | 2 tasks | 5 files |
-| Phase 01-foundation P02 | 2min | 2 tasks | 2 files |
-| Phase 01-foundation P01 | 3min | 2 tasks | 3 files |
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 01-foundation | 3 | Complete (2026-03-01) |
+| 02-sessions-upload | 5 | Complete (2026-03-01) |
+| 03-berater-dashboards | 1 | Complete (2026-03-03) |
+| 04-document-pipeline | 1 | Complete (2026-03-03) |
+| 05-scorecard-export | 1 | Complete (2026-03-03) |
 
 ## Accumulated Context
 
@@ -105,18 +81,26 @@ Recent decisions affecting current work:
 - [Phase 02-sessions-upload]: Web Audio API for notification sound instead of audio file
 - [Phase 02-sessions-upload]: Double-connect guard via window._finanzNotificationsActive for template inheritance
 - [Phase 02-sessions-upload]: finanz_enabled template context variable for FINANZ_ENABLED feature flag
+- [Phase 03-05]: 40 contract types across 6 categories (Altersvorsorge, Absicherung, Kranken, Sach, Vermögen, Steuer)
+- [Phase 03-05]: Muss/Soll/Kann priority system for field completeness tracking
+- [Phase 03-05]: DOM API instead of innerHTML for XSS prevention in dynamic contract creation
+- [Phase 03-05]: Graceful degradation flags (HAS_OPENPYXL, HAS_REPORTLAB) for optional export deps
+- [Phase 03-05]: Mock classification via keyword matching when FINANZ_LLM_ENABLED=false
+- [Phase 03-05]: openpyxl.utils.get_column_letter for Excel columns beyond Z
 
 ### Pending Todos
 
-None yet.
+- Alembic migration for verified/verified_by/verified_at fields + expanded DocumentType enum
+- CSS rebuild (npm run build:css)
+- Tests: test_finanz_checklist, test_finanz_classification, test_finanz_extraction, test_finanz_export
 
 ### Blockers/Concerns
 
-- 5 prototype services to port from FastAPI (async->sync): extraction, ocr, chunking, embedding, classification
 - No GPU on current VPS -- mock mode required for development; live LLM deferred until VPS upgrade
+- Alembic migration needed before deployment
 
 ## Session Continuity
 
-Last session: 2026-03-01
-Stopped at: Completed 02-05-PLAN.md (Gap closure -- Phase 02 fully complete)
+Last session: 2026-03-03
+Stopped at: Phase 3-5 complete + 14-fix audit done. Ready for Phase 6 (Admin + DSGVO)
 Resume file: None
