@@ -76,8 +76,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Hub Integration
 
 - [x] **HUBI-01**: Tool tile "Finanzberatung" appears on hub dashboard (lucide: file-scan, primary gold)
-- [ ] **HUBI-02**: Access control: all openers and closers can access the tool *(scope too narrow — Phase 9)*
-- [ ] **HUBI-03**: Cross-tool links: Slots -> "Finanzberatung starten", T2 -> "Zur Finanzberatung" *(missing — Phase 9)*
+- [x] **HUBI-02**: Access control: all openers and closers can access the tool *(scope too narrow — Phase 9)*
+- [x] **HUBI-03**: Cross-tool links: Slots -> "Finanzberatung starten", T2 -> "Zur Finanzberatung" *(missing — Phase 9)*
 
 ## v2 Requirements
 
@@ -159,8 +159,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADMN-03 | Phase 8: Config Bridge + DSGVO Fix | Complete |
 | ADMN-04 | Phase 6: Admin + DSGVO | Complete |
 | HUBI-01 | Phase 7: Hub Integration | Complete |
-| HUBI-02 | Phase 9: Hub Integration Completion | Pending |
-| HUBI-03 | Phase 9: Hub Integration Completion | Pending |
+| HUBI-02 | Phase 9: Hub Integration Completion | Complete |
+| HUBI-03 | Phase 9: Hub Integration Completion | Complete |
 
 **Coverage:**
 - v1 requirements: 45 total

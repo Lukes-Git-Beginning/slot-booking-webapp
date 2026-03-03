@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 9 context gathered
-last_updated: "2026-03-03T21:26:55.072Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-03T21:45:09.206Z"
 last_activity: 2026-03-03 -- Milestone audit completed, gap closure phases created
 progress:
   total_phases: 9
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 4
+  total_plans: 10
+  completed_plans: 10
 ---
 
 ---
@@ -61,6 +61,7 @@ Progress: [##############--] 78% (7 of 9 phases complete)
 | 04-document-pipeline | 1 | Complete (2026-03-03) |
 | 05-scorecard-export | 1 | Complete (2026-03-03) |
 | Phase 08-config-dsgvo-fix P01 | 3 | 2 tasks | 9 files |
+| Phase 09-hub-completion P01 | 2 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,9 @@ Recent decisions affecting current work:
 - [Phase 08-01]: Path helpers centralized on FinanzConfig class with get_upload_dir/get_file_path/get_chromadb_path classmethods
 - [Phase 08-01]: All finanz services use direct FinanzConfig class attribute access — never current_app.config.get() in finanz services
 - [Phase 08-01]: DSGVO path formula fixed: {PERSIST_BASE}/{FINANZ_UPLOAD_DIR}/{session_id}/{filename} — now matches store_file()
+- [Phase 09-hub-completion]: luke.hoppe added explicitly to finanz_access list because Config.get_admin_users() uses legacy names, not dot-notation usernames
+- [Phase 09-hub-completion]: finanz_access injected as global context variable via inject_global_vars() context processor — no route-level changes needed in Slots or T2 views
+- [Phase 09-hub-completion]: before_request guard uses upload substring check on endpoint name to exclude all upload routes (customer QR flow)
 
 ### Pending Todos
 
@@ -120,6 +124,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-03T21:26:55.069Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-hub-completion/09-CONTEXT.md
+Last session: 2026-03-03T21:45:09.202Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
