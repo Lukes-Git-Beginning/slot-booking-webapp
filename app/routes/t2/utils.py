@@ -82,6 +82,59 @@ T2_CLOSERS = {
 
 
 # ============================================================================
+# CLOSERS WITH OVERRIDES
+# ============================================================================
+
+def get_closers() -> Dict:
+    """
+    Return T2_CLOSERS merged with admin overrides from JSON.
+
+    Override file: data/t2_calendar_overrides.json
+    Structure: {"David": {"color": "#FF0000"}, ...}
+    Override values win over hardcoded T2_CLOSERS values.
+    """
+    import copy
+    merged = copy.deepcopy(T2_CLOSERS)
+
+    try:
+        from app.services.data_persistence import data_persistence
+        overrides = data_persistence.load_data('t2_calendar_overrides', {})
+
+        for name, fields in overrides.items():
+            if name in merged and isinstance(fields, dict):
+                merged[name].update(fields)
+    except Exception as e:
+        logger.warning(f"Could not load calendar overrides: {e}")
+
+    return merged
+
+
+def save_calendar_override(name: str, field: str, value) -> bool:
+    """
+    Save a single field override for a closer's calendar config.
+
+    Only allows overriding safe fields (color, email, can_write, role).
+    """
+    ALLOWED_FIELDS = {'color', 'email', 'can_write', 'role'}
+    if field not in ALLOWED_FIELDS:
+        return False
+
+    try:
+        from app.services.data_persistence import data_persistence
+        overrides = data_persistence.load_data('t2_calendar_overrides', {})
+
+        if name not in overrides:
+            overrides[name] = {}
+
+        overrides[name][field] = value
+        data_persistence.save_data('t2_calendar_overrides', overrides)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving calendar override: {e}")
+        return False
+
+
+# ============================================================================
 # ADMIN & USER CHECKS (from t2_legacy.py line 795-821)
 # ============================================================================
 

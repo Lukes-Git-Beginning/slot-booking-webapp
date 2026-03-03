@@ -6,16 +6,24 @@ Verwaltet die bidirektionale Synchronisation zwischen der Booking-App und HubSpo
 Graceful Degradation: Wenn kein API-Token konfiguriert ist, werden Fallback-Werte verwendet.
 
 Phasen:
-  Phase 1: Grundstruktur + Deal-Suche (aktuell: Stub)
+  Phase 1: Grundstruktur + Deal-Suche (implementiert)
   Phase 2: Outcome-Sync (Ghost/No-Show → Deal Stage)
   Phase 3: Analytics-Daten aus HubSpot
   Phase 4: Webhook für bidirektionalen Sync
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Optional, Dict, List, Any
 
 logger = logging.getLogger(__name__)
+
+# Properties to fetch from HubSpot deals
+DEAL_PROPERTIES = [
+    'dealname', 'dealstage', 'pipeline', 'amount',
+    'datum_t1_neu', 'uhrzeit_t1', 'telefonist_neu',
+    'closedate', 'createdate',
+]
 
 
 class HubSpotService:
@@ -56,6 +64,97 @@ class HubSpotService:
         return self._initialized and self.client is not None
 
     # ================================================================
+    # INTERNAL HELPERS
+    # ================================================================
+
+    def _normalize_deal(self, deal) -> Dict[str, Any]:
+        """Convert a HubSpot SimplePublicObject to a standardized dict."""
+        props = deal.properties or {}
+        return {
+            'id': deal.id,
+            'dealname': props.get('dealname', ''),
+            'dealstage': props.get('dealstage', ''),
+            'pipeline': props.get('pipeline', ''),
+            'amount': props.get('amount'),
+            'datum_t1': props.get('datum_t1_neu'),
+            'uhrzeit_t1': props.get('uhrzeit_t1'),
+            'telefonist': props.get('telefonist_neu'),
+            'createdate': props.get('createdate'),
+            'closedate': props.get('closedate'),
+        }
+
+    def _search_contacts(self, property_name: str, value: str) -> List:
+        """Search HubSpot contacts by a single property filter.
+
+        Returns list of SimplePublicObject results.
+        """
+        from hubspot.crm.contacts import PublicObjectSearchRequest
+
+        search_request = PublicObjectSearchRequest(
+            filter_groups=[{
+                "filters": [{
+                    "propertyName": property_name,
+                    "operator": "EQ",
+                    "value": value,
+                }]
+            }],
+            properties=["email", "firstname", "lastname", "phone"],
+        )
+        response = self.client.crm.contacts.search_api.do_search(
+            public_object_search_request=search_request
+        )
+        return response.results or []
+
+    def _get_associated_deals(self, contact_id: str) -> List[Dict[str, Any]]:
+        """Get all deals associated with a contact, return as normalized dicts."""
+        # Get association IDs
+        assoc_response = self.client.crm.associations.v4.basic_api.get_page(
+            object_type="contacts",
+            object_id=contact_id,
+            to_object_type="deals",
+        )
+
+        deal_ids = []
+        for assoc in (assoc_response.results or []):
+            deal_ids.append(assoc.to_object_id)
+
+        if not deal_ids:
+            return []
+
+        # Fetch full deal objects
+        deals = []
+        for deal_id in deal_ids:
+            try:
+                deal = self.client.crm.deals.basic_api.get_by_id(
+                    deal_id=deal_id,
+                    properties=DEAL_PROPERTIES,
+                )
+                deals.append(self._normalize_deal(deal))
+            except Exception as e:
+                logger.warning(f"Could not fetch deal {deal_id}: {e}")
+
+        return deals
+
+    def _find_deals_for_contact(self, property_name: str, value: str) -> Optional[Dict[str, Any]]:
+        """Search a contact by property, return the first associated deal (or None)."""
+        contacts = self._search_contacts(property_name, value)
+        if not contacts:
+            return None
+
+        # Check associated deals for each matching contact
+        for contact in contacts:
+            deals = self._get_associated_deals(contact.id)
+            if deals:
+                # Prefer deals in the configured pipeline
+                pipeline_id = self.config.HUBSPOT_PIPELINE_ID
+                pipeline_deals = [d for d in deals if d.get('pipeline') == pipeline_id]
+                if pipeline_deals:
+                    return pipeline_deals[0]
+                return deals[0]
+
+        return None
+
+    # ================================================================
     # DEAL OPERATIONS
     # ================================================================
 
@@ -74,12 +173,16 @@ class HubSpotService:
             logger.debug("HubSpot not available, skipping deal search by email")
             return None
 
-        # TODO: Implementierung mit echtem API-Call (Phase 1)
-        # 1. Contact über Email suchen
-        # 2. Assoziierte Deals des Contacts laden
-        # 3. Aktiven T1-Deal zurückgeben
-        logger.info(f"HubSpot deal search by email: {email} (stub - not implemented)")
-        return None
+        try:
+            deal = self._find_deals_for_contact("email", email)
+            if deal:
+                logger.info(f"HubSpot deal found by email {email}: {deal['id']}")
+            else:
+                logger.debug(f"No HubSpot deal found for email: {email}")
+            return deal
+        except Exception as e:
+            logger.error(f"HubSpot deal search by email failed: {e}")
+            return None
 
     def find_deal_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
         """Suche einen HubSpot-Deal über die Telefonnummer des Kontakts.
@@ -95,14 +198,22 @@ class HubSpotService:
         if not self.is_available:
             return None
 
-        # TODO: Implementierung mit echtem API-Call (Phase 1)
-        logger.info(f"HubSpot deal search by phone: {phone} (stub)")
-        return None
+        try:
+            deal = self._find_deals_for_contact("phone", phone)
+            if deal:
+                logger.info(f"HubSpot deal found by phone {phone}: {deal['id']}")
+            else:
+                logger.debug(f"No HubSpot deal found for phone: {phone}")
+            return deal
+        except Exception as e:
+            logger.error(f"HubSpot deal search by phone failed: {e}")
+            return None
 
     def find_deal_by_date_time(self, date: str, time: str) -> Optional[Dict[str, Any]]:
         """Suche einen HubSpot-Deal über T1 Datum + Uhrzeit.
 
         Priorität 3 der Deal-Identifikation (~95% Trefferquote).
+        Sucht über Deal-Properties: datum_t1_neu + uhrzeit_t1
 
         Args:
             date: Datum im Format YYYY-MM-DD
@@ -114,10 +225,46 @@ class HubSpotService:
         if not self.is_available:
             return None
 
-        # TODO: Implementierung mit echtem API-Call (Phase 1)
-        # Suche über Deal-Properties: datum_t1 + uhrzeit_t1
-        logger.info(f"HubSpot deal search by date/time: {date} {time} (stub)")
-        return None
+        try:
+            from hubspot.crm.deals import PublicObjectSearchRequest
+
+            # HubSpot date properties use midnight UTC epoch milliseconds
+            dt = datetime.strptime(date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            date_epoch_ms = str(int(dt.timestamp() * 1000))
+
+            search_request = PublicObjectSearchRequest(
+                filter_groups=[{
+                    "filters": [
+                        {
+                            "propertyName": "datum_t1_neu",
+                            "operator": "EQ",
+                            "value": date_epoch_ms,
+                        },
+                        {
+                            "propertyName": "uhrzeit_t1",
+                            "operator": "EQ",
+                            "value": time,
+                        },
+                    ]
+                }],
+                properties=DEAL_PROPERTIES,
+            )
+
+            response = self.client.crm.deals.search_api.do_search(
+                public_object_search_request=search_request
+            )
+
+            if response.results:
+                deal = self._normalize_deal(response.results[0])
+                logger.info(f"HubSpot deal found by date/time {date} {time}: {deal['id']}")
+                return deal
+
+            logger.debug(f"No HubSpot deal found for date/time: {date} {time}")
+            return None
+
+        except Exception as e:
+            logger.error(f"HubSpot deal search by date/time failed: {e}")
+            return None
 
     def find_deal_for_booking(self, booking_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Mehrstufige Deal-Suche mit Fallback-Kette.

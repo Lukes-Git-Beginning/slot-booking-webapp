@@ -42,7 +42,7 @@ from app.services.t2_bucket_system import (
     remove_closer as bucket_remove_closer,
     update_closer_info as bucket_update_closer_info
 )
-from .utils import is_admin_user, T2_CLOSERS
+from .utils import is_admin_user, T2_CLOSERS, get_closers, save_calendar_override
 from datetime import date, timedelta
 from functools import wraps
 import logging
@@ -287,27 +287,163 @@ def weekly_report():
     """
     Weekly statistics report API (ADMIN ONLY)
 
-    TODO: Implement weekly aggregation when reporting requirements are defined
+    Query params: week (int), year (int)
+    Defaults to current ISO week/year.
     """
-    return jsonify({
-        'success': False,
-        'report': {},
-        'message': 'Weekly report not yet implemented'
-    }), 501
+    try:
+        from app.core.extensions import tracking_system
+        from datetime import datetime
+
+        year = request.args.get('year', type=int)
+        week = request.args.get('week', type=int)
+
+        if not week:
+            today = datetime.now()
+            week = today.isocalendar()[1]
+            year = year or today.year
+
+        year = year or datetime.now().year
+
+        if not tracking_system:
+            return jsonify({'success': False, 'error': 'Tracking-System nicht verfügbar'}), 503
+
+        report = tracking_system.get_weekly_stats(year, week)
+        return jsonify({'success': True, 'report': report})
+
+    except Exception as e:
+        logger.error(f"Error generating weekly report: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/admin/generate-pdf', methods=['POST'])
 @admin_required
 def generate_pdf():
     """
-    PDF report generation (ADMIN ONLY)
+    PDF weekly report generation (ADMIN ONLY)
 
-    TODO: Implement PDF generation when reporting requirements are defined
+    POST JSON: {week (int), year (int)}
+    Returns PDF file as attachment.
     """
-    return jsonify({
-        'success': False,
-        'message': 'PDF generation not yet implemented'
-    }), 501
+    try:
+        from app.core.extensions import tracking_system
+        from datetime import datetime
+        from io import BytesIO
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import mm
+
+        data = request.get_json() or {}
+        year = data.get('year', datetime.now().year)
+        week = data.get('week', datetime.now().isocalendar()[1])
+
+        if not tracking_system:
+            return jsonify({'success': False, 'error': 'Tracking-System nicht verfügbar'}), 503
+
+        stats = tracking_system.get_weekly_stats(year, week)
+
+        # Build PDF in memory
+        buf = BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                topMargin=20*mm, bottomMargin=15*mm,
+                                leftMargin=15*mm, rightMargin=15*mm)
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Title'],
+                                     fontSize=18, textColor=colors.HexColor('#294c5d'))
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'],
+                                        fontSize=12, textColor=colors.HexColor('#77726d'),
+                                        spaceAfter=12)
+
+        elements = []
+
+        # Header
+        elements.append(Paragraph('ZFA Business Hub — Wochenbericht', title_style))
+        elements.append(Paragraph(f'{stats.get("week_label", f"KW {week}/{year}")}', subtitle_style))
+        elements.append(Spacer(1, 8*mm))
+
+        # KPI summary table
+        total_slots = stats.get('total_slots', 0)
+        completed = stats.get('completed', 0)
+        no_shows = stats.get('no_shows', 0)
+        appearance_rate = stats.get('appearance_rate', 0)
+
+        kpi_data = [
+            ['Kennzahl', 'Wert'],
+            ['Termine gesamt', str(total_slots)],
+            ['Erschienen', str(completed)],
+            ['No-Shows', str(no_shows)],
+            ['Erscheinungsrate', f'{appearance_rate}%'],
+            ['Geister', str(stats.get('ghosts', 0))],
+            ['Storniert', str(stats.get('cancelled', 0))],
+            ['Verschoben', str(stats.get('rescheduled', 0))],
+        ]
+
+        kpi_table = Table(kpi_data, colWidths=[120*mm, 50*mm])
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#294c5d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(kpi_table)
+        elements.append(Spacer(1, 8*mm))
+
+        # Daily breakdown
+        daily_data = stats.get('daily_data', [])
+        if daily_data:
+            elements.append(Paragraph('Tagesübersicht', styles['Heading2']))
+            day_rows = [['Tag', 'Datum', 'Termine', 'Erschienen', 'No-Shows', 'Rate']]
+            for day in daily_data:
+                rate = f"{day.get('appearance_rate', 0)}%"
+                day_rows.append([
+                    day.get('weekday_de', day.get('weekday', '')),
+                    day.get('date', ''),
+                    str(day.get('total_slots', 0)),
+                    str(day.get('completed', 0)),
+                    str(day.get('no_shows', 0)),
+                    rate
+                ])
+
+            day_table = Table(day_rows, colWidths=[25*mm, 28*mm, 25*mm, 28*mm, 25*mm, 25*mm])
+            day_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#207487')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            elements.append(day_table)
+
+        # Footer
+        elements.append(Spacer(1, 10*mm))
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'],
+                                      fontSize=8, textColor=colors.HexColor('#999999'))
+        elements.append(Paragraph(
+            f'Erstellt am {datetime.now().strftime("%d.%m.%Y %H:%M")} — ZFA Business Hub',
+            footer_style
+        ))
+
+        doc.build(elements)
+        buf.seek(0)
+
+        filename = f'wochenbericht_kw{week}_{year}.pdf'
+        return send_file(buf, mimetype='application/pdf',
+                        as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Error generating PDF report: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
@@ -429,7 +565,7 @@ def calendar_config():
     """
     return render_template('t2/calendar_config.html',
                          active_page='t2',
-                         closers=T2_CLOSERS)
+                         closers=get_closers())
 
 
 @admin_bp.route('/api/update-calendar', methods=['POST'])
@@ -438,12 +574,48 @@ def update_calendar():
     """
     Update calendar configuration API (ADMIN ONLY)
 
-    TODO: Implement when calendar config editing is needed
+    POST JSON: {name: str, field: str, value: any}
+    Allowed fields: color, email, can_write, role
     """
-    return jsonify({
-        'success': False,
-        'message': 'Calendar configuration updates not yet implemented'
-    }), 501
+    try:
+        from app.services.audit_service import audit_service
+
+        data = request.get_json() or {}
+        name = data.get('name', '').strip()
+        field = data.get('field', '').strip()
+        value = data.get('value')
+
+        if not name or not field:
+            return jsonify({
+                'success': False,
+                'message': 'Name und Feld sind erforderlich'
+            }), 400
+
+        if name not in T2_CLOSERS:
+            return jsonify({
+                'success': False,
+                'message': f'Unbekannter Closer: {name}'
+            }), 404
+
+        if not save_calendar_override(name, field, value):
+            return jsonify({
+                'success': False,
+                'message': f'Feld "{field}" ist nicht erlaubt (nur: color, email, can_write, role)'
+            }), 400
+
+        audit_service.log_event('admin', 'calendar_config_updated', {
+            'closer': name, 'field': field, 'value': value
+        })
+
+        return jsonify({
+            'success': True,
+            'message': f'{field} für {name} aktualisiert',
+            'closers': get_closers()
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating calendar config: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/admin/notification-test', methods=['POST'])
@@ -452,12 +624,37 @@ def notification_test():
     """
     Test notification system (ADMIN ONLY)
 
-    TODO: Implement when notification system is ready
+    POST JSON: {roles, title, message, type, show_popup}
     """
-    return jsonify({
-        'success': False,
-        'message': 'Notification testing not yet implemented'
-    }), 501
+    try:
+        from app.services.notification_service import notification_service
+        from app.services.audit_service import audit_service
+
+        data = request.get_json() or {}
+        roles = data.get('roles', ['admin'])
+        title = data.get('title', 'Testbenachrichtigung')
+        message = data.get('message', 'Dies ist eine Testbenachrichtigung vom Admin.')
+        notif_type = data.get('type', 'info')
+        show_popup = data.get('show_popup', True)
+
+        result = notification_service.create_notification(
+            roles=roles, title=title, message=message,
+            notification_type=notif_type, show_popup=show_popup
+        )
+
+        audit_service.log_event('admin', 'notification_test_sent', {
+            'roles': roles, 'count': sum(result.values())
+        })
+
+        return jsonify({
+            'success': True,
+            'delivered_to': result,
+            'count': sum(result.values())
+        })
+
+    except Exception as e:
+        logger.error(f"Error sending test notification: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/admin/system-health')
