@@ -35,49 +35,49 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Pipeline
 
-- [ ] **PIPE-01**: Text is extracted from PDFs (pdfplumber) with OCR fallback for scanned documents (pytesseract)
-- [ ] **PIPE-02**: Images are preprocessed (grayscale, contrast, sharpen) before OCR for better accuracy
-- [ ] **PIPE-03**: Extracted text is chunked (tiktoken, 4000 tokens, 200 overlap) preserving paragraph boundaries
-- [ ] **PIPE-04**: Document chunks are embedded (sentence-transformers paraphrase-multilingual-MiniLM-L12-v2) and stored in ChromaDB
-- [ ] **PIPE-05**: Documents are classified into financial types (Renteninfo, Depot, Versicherung, etc.) via LLM or mock
-- [ ] **PIPE-06**: Mock mode (FINANZ_LLM_ENABLED=false) classifies via keyword matching -- no GPU required
-- [ ] **PIPE-07**: Live mode calls local vLLM (OpenAI-compatible API) -- 8B for classification, 70B for extraction
-- [ ] **PIPE-08**: Structured financial data is extracted from documents (values, costs, returns) with confidence scores
-- [ ] **PIPE-09**: Similar documents can be found across sessions via vector similarity search
-- [ ] **PIPE-10**: Full pipeline runs as Celery task chain (extract -> classify -> embed -> analyze -> scorecard)
+- [x] **PIPE-01**: Text is extracted from PDFs (pdfplumber) with OCR fallback for scanned documents (pytesseract)
+- [x] **PIPE-02**: Images are preprocessed (grayscale, contrast, sharpen) before OCR for better accuracy
+- [x] **PIPE-03**: Extracted text is chunked (tiktoken, 4000 tokens, 200 overlap) preserving paragraph boundaries
+- [x] **PIPE-04**: Document chunks are embedded (sentence-transformers paraphrase-multilingual-MiniLM-L12-v2) and stored in ChromaDB
+- [x] **PIPE-05**: Documents are classified into financial types (Renteninfo, Depot, Versicherung, etc.) via LLM or mock
+- [x] **PIPE-06**: Mock mode (FINANZ_LLM_ENABLED=false) classifies via keyword matching -- no GPU required
+- [x] **PIPE-07**: Live mode calls local vLLM (OpenAI-compatible API) -- 8B for classification, 70B for extraction
+- [x] **PIPE-08**: Structured financial data is extracted from documents (values, costs, returns) with confidence scores
+- [ ] **PIPE-09**: Similar documents can be found across sessions via vector similarity search *(deferred to v1.1)*
+- [x] **PIPE-10**: Full pipeline runs as Celery task chain (extract -> classify -> embed -> analyze -> scorecard)
 
 ### Scorecard
 
-- [ ] **SCRD-01**: Traffic-light scorecard is generated per session with categories: Altersvorsorge, Absicherung, Vermögen & Kosten, Steueroptimierung
-- [ ] **SCRD-02**: Each category gets red/yellow/green rating with qualitative assessment (no euro promises)
-- [ ] **SCRD-03**: Overall score aggregates category ratings
+- [x] **SCRD-01**: Traffic-light scorecard is generated per session with categories: Altersvorsorge, Absicherung, Vermögen & Kosten, Steueroptimierung
+- [x] **SCRD-02**: Each category gets red/yellow/green rating with qualitative assessment (no euro promises)
+- [x] **SCRD-03**: Overall score aggregates category ratings
 
 ### Dashboards
 
-- [ ] **DASH-01**: Opener dashboard shows active sessions with QR-code generator and live upload feed
-- [ ] **DASH-02**: Session detail page shows QR code, token countdown, upload feed (SSE), document checklist, notes
-- [ ] **DASH-03**: Document checklist shows ampel status per type (missing/uploaded/classified/verified)
-- [ ] **DASH-04**: Closer dashboard extends opener view with analysis trigger, scorecard display, and export buttons
+- [x] **DASH-01**: Opener dashboard shows active sessions with QR-code generator and live upload feed
+- [x] **DASH-02**: Session detail page shows QR code, token countdown, upload feed (SSE), document checklist, notes
+- [x] **DASH-03**: Document checklist shows ampel status per type (missing/uploaded/classified/verified)
+- [x] **DASH-04**: Closer dashboard extends opener view with analysis trigger, scorecard display, and export buttons
 - [x] **DASH-05**: Mobile upload page is standalone (no base.html), touch-optimized (48px+ buttons), with camera capture and progress indicators
 
 ### Export
 
-- [ ] **EXPO-01**: Consultant can export session analysis as branded PDF (cover, overview, detail, potential, next steps)
-- [ ] **EXPO-02**: Consultant can export session data as Excel (6 sheets: overview, documents, costs, provision, optimization, raw data)
-- [ ] **EXPO-03**: Every export is audit-logged
+- [x] **EXPO-01**: Consultant can export session analysis as branded PDF (cover, overview, detail, potential, next steps)
+- [x] **EXPO-02**: Consultant can export session data as Excel (6 sheets: overview, documents, costs, provision, optimization, raw data)
+- [x] **EXPO-03**: Every export is audit-logged
 
 ### Admin
 
-- [ ] **ADMN-01**: Admin can view all sessions with filters (status, opener, date)
-- [ ] **ADMN-02**: Admin can manage DSGVO deletion workflow (mark verified -> 30-day timer -> batch delete)
-- [ ] **ADMN-03**: Original files are deleted after retention period; extracted values and embeddings are preserved
-- [ ] **ADMN-04**: Audit trail records every deletion action
+- [x] **ADMN-01**: Admin can view all sessions with filters (status, opener, date)
+- [x] **ADMN-02**: Admin can manage DSGVO deletion workflow (mark verified -> 30-day timer -> batch delete)
+- [ ] **ADMN-03**: Original files are deleted after retention period; extracted values and embeddings are preserved *(path bug — Phase 8)*
+- [x] **ADMN-04**: Audit trail records every deletion action
 
 ### Hub Integration
 
-- [ ] **HUBI-01**: Tool tile "Finanzberatung" appears on hub dashboard (lucide: file-scan, primary gold)
-- [ ] **HUBI-02**: Access control: all openers and closers can access the tool
-- [ ] **HUBI-03**: Cross-tool links: Slots -> "Finanzberatung starten", T2 -> "Zur Finanzberatung"
+- [x] **HUBI-01**: Tool tile "Finanzberatung" appears on hub dashboard (lucide: file-scan, primary gold)
+- [ ] **HUBI-02**: Access control: all openers and closers can access the tool *(scope too narrow — Phase 9)*
+- [ ] **HUBI-03**: Cross-tool links: Slots -> "Finanzberatung starten", T2 -> "Zur Finanzberatung" *(missing — Phase 9)*
 
 ## v2 Requirements
 
@@ -134,39 +134,41 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UPLD-07 | Phase 2: Sessions + Upload | Complete |
 | UPLD-08 | Phase 2: Sessions + Upload | Complete |
 | DASH-05 | Phase 2: Sessions + Upload | Complete |
-| DASH-01 | Phase 3: Berater Dashboards | Pending |
-| DASH-02 | Phase 3: Berater Dashboards | Pending |
-| DASH-03 | Phase 3: Berater Dashboards | Pending |
-| DASH-04 | Phase 3: Berater Dashboards | Pending |
-| PIPE-01 | Phase 4: Document Pipeline | Pending |
-| PIPE-02 | Phase 4: Document Pipeline | Pending |
-| PIPE-03 | Phase 4: Document Pipeline | Pending |
-| PIPE-04 | Phase 4: Document Pipeline | Pending |
-| PIPE-05 | Phase 4: Document Pipeline | Pending |
-| PIPE-06 | Phase 4: Document Pipeline | Pending |
-| PIPE-07 | Phase 4: Document Pipeline | Pending |
-| PIPE-08 | Phase 4: Document Pipeline | Pending |
-| PIPE-09 | Phase 4: Document Pipeline | Pending |
-| PIPE-10 | Phase 4: Document Pipeline | Pending |
-| SCRD-01 | Phase 5: Scorecard + Export | Pending |
-| SCRD-02 | Phase 5: Scorecard + Export | Pending |
-| SCRD-03 | Phase 5: Scorecard + Export | Pending |
-| EXPO-01 | Phase 5: Scorecard + Export | Pending |
-| EXPO-02 | Phase 5: Scorecard + Export | Pending |
-| EXPO-03 | Phase 5: Scorecard + Export | Pending |
-| ADMN-01 | Phase 6: Admin + DSGVO | Pending |
-| ADMN-02 | Phase 6: Admin + DSGVO | Pending |
-| ADMN-03 | Phase 6: Admin + DSGVO | Pending |
-| ADMN-04 | Phase 6: Admin + DSGVO | Pending |
-| HUBI-01 | Phase 7: Hub Integration | Pending |
-| HUBI-02 | Phase 7: Hub Integration | Pending |
-| HUBI-03 | Phase 7: Hub Integration | Pending |
+| DASH-01 | Phase 3: Berater Dashboards | Complete |
+| DASH-02 | Phase 3: Berater Dashboards | Complete |
+| DASH-03 | Phase 3: Berater Dashboards | Complete |
+| DASH-04 | Phase 3: Berater Dashboards | Complete |
+| PIPE-01 | Phase 4: Document Pipeline | Complete |
+| PIPE-02 | Phase 4: Document Pipeline | Complete |
+| PIPE-03 | Phase 4: Document Pipeline | Complete |
+| PIPE-04 | Phase 4: Document Pipeline | Complete |
+| PIPE-05 | Phase 4: Document Pipeline | Complete |
+| PIPE-06 | Phase 4: Document Pipeline | Complete |
+| PIPE-07 | Phase 4: Document Pipeline | Complete |
+| PIPE-08 | Phase 4: Document Pipeline | Complete |
+| PIPE-09 | Phase 4: Document Pipeline | Deferred to v1.1 |
+| PIPE-10 | Phase 4: Document Pipeline | Complete |
+| SCRD-01 | Phase 5: Scorecard + Export | Complete |
+| SCRD-02 | Phase 5: Scorecard + Export | Complete |
+| SCRD-03 | Phase 5: Scorecard + Export | Complete |
+| EXPO-01 | Phase 5: Scorecard + Export | Complete |
+| EXPO-02 | Phase 5: Scorecard + Export | Complete |
+| EXPO-03 | Phase 5: Scorecard + Export | Complete |
+| ADMN-01 | Phase 6: Admin + DSGVO | Complete |
+| ADMN-02 | Phase 6: Admin + DSGVO | Complete |
+| ADMN-03 | Phase 8: Config Bridge + DSGVO Fix | Pending |
+| ADMN-04 | Phase 6: Admin + DSGVO | Complete |
+| HUBI-01 | Phase 7: Hub Integration | Complete |
+| HUBI-02 | Phase 9: Hub Integration Completion | Pending |
+| HUBI-03 | Phase 9: Hub Integration Completion | Pending |
 
 **Coverage:**
 - v1 requirements: 45 total
 - Mapped to phases: 45
-- Unmapped: 0
+- Complete: 42
+- Pending (gap closure): 2 (ADMN-03 → Phase 8, HUBI-02/03 → Phase 9)
+- Deferred to v1.1: 1 (PIPE-09)
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after roadmap creation*
+*Last updated: 2026-03-03 after gap closure planning*

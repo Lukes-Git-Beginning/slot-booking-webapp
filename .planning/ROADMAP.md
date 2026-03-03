@@ -17,8 +17,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Berater Dashboards** - Opener and Closer dashboard views with document checklist and live feed
 - [x] **Phase 4: Document Pipeline** - Extraction, OCR, chunking, embeddings, classification, and LLM integration
 - [x] **Phase 5: Scorecard + Export** - Traffic-light scorecard generation, PDF and Excel export
-- [ ] **Phase 6: Admin + DSGVO** - Admin session management and DSGVO-compliant deletion workflow
-- [ ] **Phase 7: Hub Integration** - Tool tile, access control, and cross-tool links
+- [x] **Phase 6: Admin + DSGVO** - Admin session management and DSGVO-compliant deletion workflow
+- [x] **Phase 7: Hub Integration** - Tool tile, access control, and cross-tool links
+- [ ] **Phase 8: Config Bridge + DSGVO Path Fix** - Fix config reading pattern and DSGVO file deletion path bug (Gap Closure)
+- [ ] **Phase 9: Hub Integration Completion** - Role-based access control and cross-tool links (Gap Closure)
 
 ## Phase Details
 
@@ -110,11 +112,10 @@ Plans:
   2. Admin can execute DSGVO deletion workflow: mark session as verified, 30-day countdown starts, batch delete runs after expiry
   3. After deletion, original files are gone but extracted values and embeddings are preserved for analytics
   4. Every deletion action (mark, execute, batch) is recorded in the audit trail
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [x] 06-01: Admin routes, DSGVO service, deletion workflow (implemented directly)
 
 ### Phase 7: Hub Integration
 **Goal**: The Finanzberatung module is fully integrated into the ZFA Hub -- discoverable via tool tile, accessible with correct permissions, and cross-linked from related tools
@@ -124,15 +125,43 @@ Plans:
   1. "Finanzberatung" tool tile appears on the Hub dashboard with file-scan icon in primary gold color
   2. All openers and closers can access the Finanzberatung tool; other roles cannot
   3. Cross-tool links work: Slots page shows "Finanzberatung starten" link, T2 page shows "Zur Finanzberatung" link
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 07-01: TBD
+- [x] 07-01: Tool tile, feature flag access control (implemented directly)
+
+### Phase 8: Config Bridge + DSGVO Path Fix
+**Goal**: All Finanzberatung services read configuration consistently from FinanzConfig/Config classes, and DSGVO file deletion correctly locates and removes physical files
+**Depends on**: Phase 6
+**Requirements**: ADMN-03
+**Gap Closure**: Closes gaps from v1.0 audit — config bridge integration gap, DSGVO path bug, FINANZ_LLM_ENABLED config gap
+**Success Criteria** (what must be TRUE):
+  1. All services that need FINANZ_UPLOAD_DIR, FINANZ_LLM_ENABLED, or PERSIST_BASE read from finanz_config/Config directly — no current_app.config.get() for FinanzConfig values
+  2. DSGVO execute_deletion() constructs the same file path as upload service store_file() — files are actually deleted from disk
+  3. FINANZ_LLM_ENABLED env var is respected — setting it to true enables LLM classification/extraction mode
+**Plans**: 1
+
+Plans:
+- [ ] 08-01: Fix config bridge pattern + DSGVO path alignment [Wave 1]
+
+### Phase 9: Hub Integration Completion
+**Goal**: Finanzberatung is accessible to all openers/closers via role-based access and discoverable from Slots and T2 pages via cross-tool links
+**Depends on**: Phase 7
+**Requirements**: HUBI-02, HUBI-03
+**Gap Closure**: Closes gaps from v1.0 audit — access control scope, cross-tool links
+**Success Criteria** (what must be TRUE):
+  1. All users with opener or closer role can access the Finanzberatung tool tile; other roles cannot
+  2. Slots page shows "Finanzberatung starten" link for eligible users
+  3. T2 page shows "Zur Finanzberatung" link for eligible users
+**Plans**: 1
+
+Plans:
+- [ ] 09-01: Role-based access + cross-tool links in Slots/T2 templates [Wave 1]
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
@@ -141,5 +170,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Berater Dashboards | 1/1 | Complete | 2026-03-03 |
 | 4. Document Pipeline | 1/1 | Complete | 2026-03-03 |
 | 5. Scorecard + Export | 1/1 | Complete | 2026-03-03 |
-| 6. Admin + DSGVO | 0/? | Not started | - |
-| 7. Hub Integration | 0/? | Not started | - |
+| 6. Admin + DSGVO | 1/1 | Complete | 2026-03-03 |
+| 7. Hub Integration | 1/1 | Complete | 2026-03-03 |
+| 8. Config Bridge + DSGVO Fix | 0/1 | Not started | - |
+| 9. Hub Integration Completion | 0/1 | Not started | - |
