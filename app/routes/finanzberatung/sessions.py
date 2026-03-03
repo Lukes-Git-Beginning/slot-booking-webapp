@@ -13,6 +13,13 @@ Routes:
 - POST /sessions/<id>/assign-closer - Assign closer
 - GET  /sessions/<id>/documents - Get documents as JSON
 - POST /sessions/<id>/deactivate-token - Deactivate upload token (AJAX)
+- GET  /sessions/<id>/checklist - Checklist data as JSON (AJAX)
+- POST /sessions/<id>/verify-field - Verify/update a field (AJAX)
+- POST /sessions/<id>/manual-contract - Add manual contract (AJAX)
+- POST /sessions/<id>/start-analysis - Trigger pipeline (AJAX)
+- POST /sessions/<id>/generate-scorecard - Generate scorecard (AJAX)
+- GET  /sessions/<id>/export/excel - Excel export
+- GET  /sessions/<id>/export/pdf - PDF export
 """
 
 import logging
@@ -20,7 +27,7 @@ from datetime import datetime
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, jsonify, session as flask_session, abort,
+    flash, jsonify, session as flask_session, abort, send_file,
 )
 
 from app.utils.decorators import require_login
@@ -103,7 +110,7 @@ def session_create():
             return redirect(url_for('finanzberatung.finanz_sessions.session_create_form'))
 
         if session_type not in ('erstberatung', 'folgeberatung'):
-            flash('Bitte waehlen Sie eine gueltige Beratungsart.', 'error')
+            flash('Bitte wählen Sie eine gültige Beratungsart.', 'error')
             return redirect(url_for('finanzberatung.finanz_sessions.session_create_form'))
 
         # Parse appointment date
@@ -112,7 +119,7 @@ def session_create():
             try:
                 appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d')
             except ValueError:
-                flash('Ungueltiges Datumsformat.', 'error')
+                flash('Ungültiges Datumsformat.', 'error')
                 return redirect(url_for('finanzberatung.finanz_sessions.session_create_form'))
 
         # Create session
@@ -200,6 +207,35 @@ def session_detail(session_id):
         current_status = SessionStatus(finanz_session.status)
         allowed_transitions = finanz_session.VALID_TRANSITIONS.get(current_status, [])
 
+        # Build checklist data for the UI
+        checklist_data = _build_checklist_data(session_id)
+
+        # Get scorecards
+        from app.models.finanzberatung import FinanzScorecard
+        from app.models import get_db_session as _get_db
+        db = _get_db()
+        try:
+            scorecards = db.query(FinanzScorecard).filter(
+                FinanzScorecard.session_id == session_id
+            ).all()
+            scorecard_data = [
+                {
+                    'category': sc.category,
+                    'rating': sc.rating,
+                    'assessment': sc.assessment,
+                    'details': sc.details,
+                    'is_overall': sc.is_overall,
+                }
+                for sc in scorecards
+            ]
+        except Exception:
+            scorecard_data = []
+        finally:
+            db.close()
+
+        # Determine if user is closer
+        is_closer = (current_user == finanz_session.closer_username)
+
         return render_template(
             'finanzberatung/session_detail.html',
             session=finanz_session,
@@ -209,6 +245,9 @@ def session_detail(session_id):
             can_followup=can_followup,
             allowed_transitions=allowed_transitions,
             SessionStatus=SessionStatus,
+            checklist_data=checklist_data,
+            scorecard_data=scorecard_data,
+            is_closer=is_closer,
         )
 
     except Exception as e:
@@ -234,7 +273,7 @@ def generate_token(session_id):
         except ValueError:
             return jsonify({
                 'success': False,
-                'message': f'Ungueltiger Token-Typ: {token_type_str}',
+                'message': f'Ungültiger Token-Typ: {token_type_str}',
             }), 400
 
         # For followup: check eligibility
@@ -284,7 +323,7 @@ def save_notes(session_id):
         if field not in ('t1_notes', 't2_notes'):
             return jsonify({
                 'success': False,
-                'message': 'Ungueltiges Notizfeld.',
+                'message': 'Ungültiges Notizfeld.',
             }), 400
 
         success = session_service.update_notes(
@@ -334,7 +373,7 @@ def transition_status(session_id):
         except ValueError:
             return jsonify({
                 'success': False,
-                'message': f'Ungueltiger Status: {new_status_str}',
+                'message': f'Ungültiger Status: {new_status_str}',
             }), 400
 
         updated_session = session_service.transition_status(
@@ -381,7 +420,7 @@ def assign_closer(session_id):
         closer_username = (request.form.get('closer_username', '') or '').strip()
 
         if not closer_username:
-            flash('Bitte waehlen Sie einen Closer aus.', 'error')
+            flash('Bitte wählen Sie einen Closer aus.', 'error')
             return redirect(
                 url_for('finanzberatung.finanz_sessions.session_detail', session_id=session_id)
             )
@@ -488,3 +527,444 @@ def deactivate_token(session_id):
             'success': False,
             'message': 'Fehler beim Deaktivieren des Tokens.',
         }), 500
+
+
+# ---------------------------------------------------------------------------
+# Helper: Build checklist data from extracted documents
+# ---------------------------------------------------------------------------
+def _build_checklist_data(session_id: int) -> list:
+    """
+    Build checklist data for the session detail UI.
+
+    Returns a list of contract dicts, each with:
+    - type_key, type_label, icon, document_id, document_name
+    - fields: list of {name, label, priority, type, value, confidence,
+               source_page, source_text, status (green/yellow/red/gray), verified}
+    - completeness: {muss_total, muss_filled, percent_muss, ...}
+    """
+    from app.config.finanz_checklist import (
+        CONTRACT_TYPES, get_fields_for_type, get_field_status,
+        compute_completeness, PRIORITY_LABELS,
+    )
+    from app.models.finanzberatung import FinanzDocument, FinanzExtractedData, DocumentStatus
+    from app.models import get_db_session as _get_db
+
+    db = _get_db()
+    try:
+        docs = db.query(FinanzDocument).filter(
+            FinanzDocument.session_id == session_id,
+            FinanzDocument.status == DocumentStatus.ANALYZED.value,
+        ).all()
+
+        result = []
+        for doc in docs:
+            type_key = doc.document_type or "sonstige"
+            ct = CONTRACT_TYPES.get(type_key)
+            if not ct:
+                continue
+
+            # Get extracted data for this document
+            extracted = db.query(FinanzExtractedData).filter(
+                FinanzExtractedData.document_id == doc.id
+            ).all()
+            extracted_map = {}
+            for ed in extracted:
+                extracted_map[ed.field_name] = {
+                    "value": ed.field_value,
+                    "confidence": ed.confidence,
+                    "source_page": ed.source_page,
+                    "source_text": ed.source_text,
+                    "verified": ed.verified,
+                    "verified_by": ed.verified_by,
+                    "id": ed.id,
+                }
+
+            # Build field list with status
+            field_defs = get_fields_for_type(type_key)
+            fields = []
+            for fdef in field_defs:
+                ed = extracted_map.get(fdef["name"])
+                fields.append({
+                    "name": fdef["name"],
+                    "label": fdef["label"],
+                    "priority": fdef["priority"],
+                    "priority_label": PRIORITY_LABELS.get(fdef["priority"], ""),
+                    "type": fdef["type"],
+                    "value": ed["value"] if ed else None,
+                    "confidence": ed["confidence"] if ed else None,
+                    "source_page": ed["source_page"] if ed else None,
+                    "source_text": ed["source_text"] if ed else None,
+                    "verified": ed["verified"] if ed else False,
+                    "verified_by": ed.get("verified_by") if ed else None,
+                    "extracted_data_id": ed["id"] if ed else None,
+                    "status": get_field_status(fdef, ed),
+                })
+
+            completeness = compute_completeness(type_key, extracted_map)
+
+            result.append({
+                "type_key": type_key,
+                "type_label": ct["label"],
+                "icon": ct.get("icon", "file"),
+                "category": ct.get("category", "sonstiges"),
+                "document_id": doc.id,
+                "document_name": doc.original_filename,
+                "classification_confidence": doc.classification_confidence,
+                "fields": fields,
+                "completeness": completeness,
+            })
+
+        return result
+    except Exception as e:
+        logger.error("Error building checklist data for session %s: %s", session_id, e, exc_info=True)
+        return []
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# 11. GET /sessions/<id>/checklist - Checklist data as JSON (AJAX)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/checklist')
+@require_login
+def get_checklist(session_id):
+    """Get checklist data as JSON for dynamic updates."""
+    try:
+        checklist = _build_checklist_data(session_id)
+        return jsonify(checklist)
+    except Exception as e:
+        logger.error("Error loading checklist for session %s: %s", session_id, e, exc_info=True)
+        return jsonify({'error': 'Fehler beim Laden der Checkliste.'}), 500
+
+
+# ---------------------------------------------------------------------------
+# 12. POST /sessions/<id>/verify-field - Verify or update a field (AJAX)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/verify-field', methods=['POST'])
+@require_login
+def verify_field(session_id):
+    """Verify or update an extracted data field."""
+    try:
+        current_user = _get_current_user()
+        data = request.get_json(silent=True) or {}
+        extracted_data_id = data.get('extracted_data_id')
+        new_value = data.get('value')
+        action = data.get('action', 'verify')  # 'verify' or 'update'
+
+        if not extracted_data_id:
+            return jsonify({'success': False, 'message': 'Feld-ID fehlt.'}), 400
+
+        from app.models.finanzberatung import FinanzExtractedData
+        from app.models import get_db_session as _get_db
+        db = _get_db()
+        try:
+            ed = db.query(FinanzExtractedData).filter(
+                FinanzExtractedData.id == int(extracted_data_id)
+            ).first()
+            if ed is None:
+                return jsonify({'success': False, 'message': 'Feld nicht gefunden.'}), 404
+
+            if action == 'verify':
+                ed.verified = True
+                ed.verified_by = current_user
+                ed.verified_at = datetime.utcnow()
+                ed.confidence = 1.0
+            elif action == 'update':
+                if new_value is not None:
+                    ed.field_value = str(new_value)
+                ed.verified = True
+                ed.verified_by = current_user
+                ed.verified_at = datetime.utcnow()
+                ed.confidence = 1.0
+
+            db.commit()
+            logger.info(
+                "Field %s %s by %s (session %s)",
+                extracted_data_id, action, current_user, session_id,
+            )
+            return jsonify({
+                'success': True,
+                'message': 'Feld aktualisiert.',
+                'value': ed.field_value,
+                'verified': ed.verified,
+            })
+        except Exception as e:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error("Error verifying field in session %s: %s", session_id, e, exc_info=True)
+        return jsonify({'success': False, 'message': 'Fehler beim Aktualisieren.'}), 500
+
+
+# ---------------------------------------------------------------------------
+# 13. POST /sessions/<id>/manual-contract - Add manual contract (AJAX)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/manual-contract', methods=['POST'])
+@require_login
+def add_manual_contract(session_id):
+    """Add a manually entered contract with fields."""
+    try:
+        current_user = _get_current_user()
+        data = request.get_json(silent=True) or {}
+        type_key = data.get('type_key', '')
+        fields = data.get('fields', {})
+
+        from app.config.finanz_checklist import CONTRACT_TYPES, get_fields_for_type
+
+        if type_key not in CONTRACT_TYPES:
+            return jsonify({'success': False, 'message': 'Unbekannte Vertragsart.'}), 400
+
+        from app.models.finanzberatung import (
+            FinanzDocument, FinanzExtractedData, DocumentType, DocumentStatus,
+        )
+        from app.models import get_db_session as _get_db
+        db = _get_db()
+        try:
+            # Create a virtual document for manual entry
+            try:
+                doc_type = DocumentType(type_key).value
+            except ValueError:
+                doc_type = DocumentType.SONSTIGE.value
+
+            ct = CONTRACT_TYPES[type_key]
+            doc = FinanzDocument(
+                session_id=session_id,
+                original_filename=f"Manuell: {ct['label']}",
+                stored_filename=f"manual_{session_id}_{type_key}_{datetime.utcnow().timestamp():.0f}",
+                file_hash=f"manual_{session_id}_{type_key}",
+                file_size=0,
+                mime_type="application/manual",
+                document_type=doc_type,
+                status=DocumentStatus.ANALYZED.value,
+                classification_confidence=1.0,
+                extracted_text="Manuell erfasst",
+                page_count=0,
+            )
+            db.add(doc)
+            db.flush()  # Get doc.id
+
+            # Add fields
+            field_defs = get_fields_for_type(type_key)
+            field_map = {f["name"]: f for f in field_defs}
+            count = 0
+            for fname, fvalue in fields.items():
+                if not fvalue or fname not in field_map:
+                    continue
+                fdef = field_map[fname]
+                ed = FinanzExtractedData(
+                    document_id=doc.id,
+                    field_name=fname,
+                    field_value=str(fvalue),
+                    field_type=fdef["type"],
+                    confidence=1.0,
+                    source_text="Manuell erfasst",
+                    verified=True,
+                    verified_by=current_user,
+                    verified_at=datetime.utcnow(),
+                )
+                db.add(ed)
+                count += 1
+
+            db.commit()
+            logger.info(
+                "Manual contract added: type=%s, fields=%d, user=%s, session=%s",
+                type_key, count, current_user, session_id,
+            )
+            return jsonify({
+                'success': True,
+                'message': f'{ct["label"]} manuell hinzugefuegt ({count} Felder).',
+                'document_id': doc.id,
+            })
+
+        except Exception as e:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error("Error adding manual contract to session %s: %s", session_id, e, exc_info=True)
+        return jsonify({'success': False, 'message': 'Fehler beim Hinzufuegen.'}), 500
+
+
+# ---------------------------------------------------------------------------
+# 14. POST /sessions/<id>/start-analysis - Trigger pipeline (AJAX)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/start-analysis', methods=['POST'])
+@require_login
+def start_analysis(session_id):
+    """Trigger the document processing pipeline for unprocessed documents."""
+    try:
+        from app.models.finanzberatung import FinanzDocument, DocumentStatus
+        from app.models import get_db_session as _get_db
+
+        db = _get_db()
+        try:
+            # Find documents that need processing
+            docs = db.query(FinanzDocument).filter(
+                FinanzDocument.session_id == session_id,
+                FinanzDocument.status == DocumentStatus.UPLOADED.value,
+            ).all()
+
+            if not docs:
+                return jsonify({
+                    'success': True,
+                    'message': 'Keine unverarbeiteten Dokumente vorhanden.',
+                    'queued': 0,
+                })
+
+            # Launch pipelines
+            from app.services.finanz_tasks import process_document_pipeline
+            queued = 0
+            for doc in docs:
+                try:
+                    process_document_pipeline(doc.id, session_id)
+                    queued += 1
+                except Exception as e:
+                    logger.error("Failed to queue pipeline for doc %s: %s", doc.id, e)
+
+            return jsonify({
+                'success': True,
+                'message': f'{queued} Dokument(e) in Analyse-Queue.',
+                'queued': queued,
+            })
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error("Error starting analysis for session %s: %s", session_id, e, exc_info=True)
+        return jsonify({'success': False, 'message': 'Fehler beim Starten der Analyse.'}), 500
+
+
+# ---------------------------------------------------------------------------
+# 15. POST /sessions/<id>/generate-scorecard - Generate scorecard (AJAX)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/generate-scorecard', methods=['POST'])
+@require_login
+def generate_scorecard(session_id):
+    """Generate scorecards for the session."""
+    try:
+        from app.services.finanz_scorecard_service import FinanzScorecardService
+        service = FinanzScorecardService()
+        results = service.generate_scorecard(session_id)
+        return jsonify({
+            'success': True,
+            'message': f'{len(results)} Bewertungen erstellt.',
+            'scorecards': results,
+        })
+    except Exception as e:
+        logger.error("Error generating scorecard for session %s: %s", session_id, e, exc_info=True)
+        return jsonify({'success': False, 'message': 'Fehler bei der Bewertung.'}), 500
+
+
+# ---------------------------------------------------------------------------
+# 16. GET /sessions/<id>/export/excel - Excel export
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/export/excel')
+@require_login
+def export_excel(session_id):
+    """Download Excel export for the session."""
+    try:
+        current_user = _get_current_user()
+        from app.services.finanz_export_service import FinanzExportService
+
+        service = FinanzExportService()
+        buffer = service.export_excel(session_id)
+
+        # Audit log
+        try:
+            finanz_session = session_service.get_session(session_id, username=None)
+            customer = finanz_session.customer_name if finanz_session else 'Unbekannt'
+            from app.services.audit_service import audit_service
+            audit_service.log('finanz_export', current_user, {
+                'session_id': session_id,
+                'format': 'excel',
+                'customer_name': customer,
+            })
+        except Exception:
+            pass
+
+        filename = f"Finanzberatung_{session_id}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        return send_file(
+            buffer,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename,
+        )
+    except Exception as e:
+        logger.error("Error exporting Excel for session %s: %s", session_id, e, exc_info=True)
+        flash('Fehler beim Excel-Export.', 'error')
+        return redirect(url_for('finanzberatung.finanz_sessions.session_detail', session_id=session_id))
+
+
+# ---------------------------------------------------------------------------
+# 17. GET /sessions/<id>/export/pdf - PDF export
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/export/pdf')
+@require_login
+def export_pdf(session_id):
+    """Download PDF export for the session."""
+    try:
+        current_user = _get_current_user()
+        from app.services.finanz_export_service import FinanzExportService
+
+        service = FinanzExportService()
+        buffer = service.export_pdf(session_id)
+
+        # Audit log
+        try:
+            finanz_session = session_service.get_session(session_id, username=None)
+            customer = finanz_session.customer_name if finanz_session else 'Unbekannt'
+            from app.services.audit_service import audit_service
+            audit_service.log('finanz_export', current_user, {
+                'session_id': session_id,
+                'format': 'pdf',
+                'customer_name': customer,
+            })
+        except Exception:
+            pass
+
+        filename = f"Finanzberatung_{session_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename,
+        )
+    except Exception as e:
+        logger.error("Error exporting PDF for session %s: %s", session_id, e, exc_info=True)
+        flash('Fehler beim PDF-Export.', 'error')
+        return redirect(url_for('finanzberatung.finanz_sessions.session_detail', session_id=session_id))
+
+
+# ---------------------------------------------------------------------------
+# 18. GET /sessions/<id>/contract-types - Available contract types for manual add
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/contract-types')
+@require_login
+def get_contract_types(session_id):
+    """Get all available contract types with their fields for the manual add modal."""
+    from app.config.finanz_checklist import (
+        CONTRACT_TYPES, CHECKLIST_CATEGORIES, get_fields_for_type,
+    )
+    categories = []
+    for cat_key, cat_def in CHECKLIST_CATEGORIES.items():
+        types = []
+        for type_key in cat_def["types"]:
+            ct = CONTRACT_TYPES.get(type_key)
+            if ct:
+                types.append({
+                    "key": type_key,
+                    "label": ct["label"],
+                    "icon": ct.get("icon", "file"),
+                    "fields": get_fields_for_type(type_key),
+                })
+        categories.append({
+            "key": cat_key,
+            "label": cat_def["label"],
+            "types": types,
+        })
+    return jsonify(categories)

@@ -43,6 +43,7 @@ class TokenType(enum.Enum):
 
 
 class DocumentType(enum.Enum):
+    # Legacy types (Phase 1-2)
     RENTENINFO = 'renteninfo'
     DEPOT = 'depot'
     VERSICHERUNG = 'versicherung'
@@ -50,6 +51,52 @@ class DocumentType(enum.Enum):
     GEHALTSABRECHNUNG = 'gehaltsabrechnung'
     KONTOAUSZUG = 'kontoauszug'
     SONSTIGE = 'sonstige'
+    # Sachversicherungen
+    PRIVATHAFTPFLICHT = 'privathaftpflicht'
+    HAUSRAT = 'hausrat'
+    GLASBRUCH = 'glasbruch'
+    WOHNGEBAEUDE = 'wohngebaeude'
+    RECHTSSCHUTZ = 'rechtsschutz'
+    HAUSBESITZERHAFTPFLICHT = 'hausbesitzerhaftpflicht'
+    TIERHALTERHAFTPFLICHT = 'tierhalterhaftpflicht'
+    # KFZ
+    KFZ_AUTO = 'kfz_auto'
+    KFZ_MOTORRAD = 'kfz_motorrad'
+    KFZ_ANHAENGER = 'kfz_anhaenger'
+    # Altersvorsorge
+    RIESTER = 'riester'
+    BASISRENTE = 'basisrente'
+    FONDSGEBUNDENE_RV = 'fondsgebundene_rv'
+    INDEX_RV = 'index_rv'
+    KAPITALLEBENSVERSICHERUNG = 'kapitallebensversicherung'
+    BAV = 'bav'
+    BAUSPARVERTRAG = 'bausparvertrag'
+    SPARKONTO = 'sparkonto'
+    DEPOTANLAGEN = 'depotanlagen'
+    WOHN_RIESTER_BSV = 'wohn_riester_bsv'
+    WOHN_RIESTER_DEPOT = 'wohn_riester_depot'
+    # Absicherung
+    BU = 'bu'
+    GRUNDFAEHIGKEITEN = 'grundfaehigkeiten'
+    DREAD_DISEASE = 'dread_disease'
+    SCHULUNFAEHIGKEIT = 'schulunfaehigkeit'
+    EXISTENZSCHUTZ = 'existenzschutz'
+    ERWERBSUNFAEHIGKEIT = 'erwerbsunfaehigkeit'
+    RLV = 'rlv'
+    STERBEGELD = 'sterbegeld'
+    UNFALLVERSICHERUNG = 'unfallversicherung'
+    # Gesundheit & Zusatz
+    ZZV = 'zzv'
+    KTG = 'ktg'
+    AKZ = 'akz'
+    SKZ = 'skz'
+    PTG = 'ptg'
+    ARKV = 'arkv'
+    # Sonstiges
+    GEWERBEVERSICHERUNG = 'gewerbeversicherung'
+    REISEHAFTPFLICHT = 'reisehaftpflicht'
+    REISEGEPAECK = 'reisegepaeck'
+    TIERKRANKENVERSICHERUNG = 'tierkrankenversicherung'
 
 
 class DocumentStatus(enum.Enum):
@@ -347,6 +394,15 @@ class FinanzExtractedData(Base):
     )
     source_text: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
+    )
+    verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    verified_by: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
     )
 
     # Relationship

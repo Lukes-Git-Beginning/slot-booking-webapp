@@ -1,0 +1,188 @@
+{#
+  Contract Card Component - Reusable accordion card for a single contract type
+
+  Expected variables:
+    contract: dict with type_key, type_label, icon, document_name, fields, completeness, document_id
+    is_closer: bool - whether current user is the closer (enables verification)
+#}
+
+{% set comp = contract.completeness %}
+{% set card_id = 'contract-' ~ contract.document_id %}
+
+<div class="collapse collapse-arrow bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
+     id="{{ card_id }}">
+    <input type="checkbox" class="peer" />
+
+    {# Header #}
+    <div class="collapse-title pr-12">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="{{ contract.icon }}" class="w-5 h-5 text-primary"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-sm">{{ contract.type_label }}</h3>
+                    <p class="text-xs text-gray-400">{{ contract.document_name }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                {# Completeness badge #}
+                {% if comp.percent_muss == 100 %}
+                    <span class="badge badge-success badge-sm gap-1">
+                        <i data-lucide="check-circle" class="w-3 h-3"></i>
+                        {{ comp.muss_filled }}/{{ comp.muss_total }} Pflicht
+                    </span>
+                {% elif comp.percent_muss >= 50 %}
+                    <span class="badge badge-warning badge-sm gap-1">
+                        <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                        {{ comp.muss_filled }}/{{ comp.muss_total }} Pflicht
+                    </span>
+                {% else %}
+                    <span class="badge badge-error badge-sm gap-1">
+                        <i data-lucide="x-circle" class="w-3 h-3"></i>
+                        {{ comp.muss_filled }}/{{ comp.muss_total }} Pflicht
+                    </span>
+                {% endif %}
+
+                {# Progress bar #}
+                <div class="w-20 hidden sm:block">
+                    <progress class="progress progress-sm
+                        {% if comp.percent_muss == 100 %}progress-success
+                        {% elif comp.percent_muss >= 50 %}progress-warning
+                        {% else %}progress-error{% endif %}"
+                        value="{{ comp.percent_muss }}" max="100"></progress>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Body - Field List #}
+    <div class="collapse-content">
+        <div class="pt-2">
+            {# Confidence badge #}
+            {% if contract.classification_confidence %}
+            <div class="flex items-center gap-2 mb-3 text-xs text-gray-400">
+                <i data-lucide="brain" class="w-3 h-3"></i>
+                Erkennungs-Confidence: {{ (contract.classification_confidence * 100)|round|int }}%
+            </div>
+            {% endif %}
+
+            {# Fields table #}
+            <div class="overflow-x-auto">
+                <table class="table table-xs w-full">
+                    <thead>
+                        <tr class="text-gray-400">
+                            <th class="w-8"></th>
+                            <th>Feld</th>
+                            <th>Wert</th>
+                            <th class="hidden md:table-cell">Quelle</th>
+                            <th class="w-24">Status</th>
+                            {% if is_closer %}
+                            <th class="w-20">Aktion</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in contract.fields %}
+                        <tr class="hover:bg-white/5" id="field-row-{{ field.extracted_data_id or (card_id ~ '-' ~ field.name) }}">
+                            {# Ampel dot #}
+                            <td>
+                                <span class="inline-block w-3 h-3 rounded-full
+                                    {% if field.status == 'green' %}bg-success
+                                    {% elif field.status == 'yellow' %}bg-warning
+                                    {% elif field.status == 'red' %}bg-error
+                                    {% else %}bg-gray-600{% endif %}">
+                                </span>
+                            </td>
+
+                            {# Field label + priority badge #}
+                            <td>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm">{{ field.label }}</span>
+                                    {% if field.priority == 'muss' %}
+                                        <span class="badge badge-error badge-xs">Pflicht</span>
+                                    {% elif field.priority == 'soll' %}
+                                        <span class="badge badge-warning badge-xs">Empf.</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            {# Value (editable in closer mode) #}
+                            <td>
+                                {% if field.value %}
+                                    <span class="field-value text-sm font-mono"
+                                          data-field-id="{{ field.extracted_data_id }}"
+                                          data-field-name="{{ field.name }}">
+                                        {{ field.value }}
+                                    </span>
+                                    {% if field.confidence and field.confidence < 0.8 %}
+                                        <span class="badge badge-ghost badge-xs ml-1" title="Confidence: {{ (field.confidence * 100)|round|int }}%">
+                                            {{ (field.confidence * 100)|round|int }}%
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-gray-500 text-sm italic">Nicht erkannt</span>
+                                {% endif %}
+                            </td>
+
+                            {# Source reference #}
+                            <td class="hidden md:table-cell">
+                                {% if field.source_page %}
+                                    <span class="text-xs text-gray-400" title="{{ field.source_text or '' }}">
+                                        S. {{ field.source_page }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            {# Status #}
+                            <td>
+                                {% if field.verified %}
+                                    <span class="badge badge-success badge-xs gap-1">
+                                        <i data-lucide="check" class="w-3 h-3"></i> OK
+                                    </span>
+                                {% elif field.value %}
+                                    <span class="badge badge-ghost badge-xs">Offen</span>
+                                {% endif %}
+                            </td>
+
+                            {# Actions (closer only) #}
+                            {% if is_closer %}
+                            <td>
+                                {% if field.extracted_data_id and not field.verified %}
+                                <div class="flex gap-1">
+                                    <button class="btn btn-ghost btn-xs"
+                                            title="Bestätigen"
+                                            data-action="verifyField"
+                                            data-field-id="{{ field.extracted_data_id }}">
+                                        <i data-lucide="check" class="w-3 h-3 text-success"></i>
+                                    </button>
+                                    <button class="btn btn-ghost btn-xs"
+                                            title="Bearbeiten"
+                                            data-action="editField"
+                                            data-field-id="{{ field.extracted_data_id }}"
+                                            data-field-name="{{ field.name }}"
+                                            data-field-value="{{ field.value or '' }}">
+                                        <i data-lucide="pencil" class="w-3 h-3 text-primary"></i>
+                                    </button>
+                                </div>
+                                {% elif field.extracted_data_id and field.verified %}
+                                    <span class="text-xs text-gray-500">{{ field.verified_by or '' }}</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# Completeness summary #}
+            <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/10 text-xs text-gray-400">
+                <span>Pflicht: {{ comp.muss_filled }}/{{ comp.muss_total }}</span>
+                <span>Empfohlen: {{ comp.soll_filled }}/{{ comp.soll_total }}</span>
+                <span>Optional: {{ comp.kann_filled }}/{{ comp.kann_total }}</span>
+                <span class="ml-auto">Gesamt: {{ comp.percent_total }}%</span>
+            </div>
+        </div>
+    </div>
+</div>

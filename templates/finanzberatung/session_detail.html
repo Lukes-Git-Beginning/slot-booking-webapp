@@ -104,7 +104,7 @@
             <!-- Status Transition Buttons -->
             {% if allowed_transitions %}
             <div class="mt-4 pt-4 border-t border-white/10">
-                <p class="text-sm text-gray-400 mb-2">Status aendern:</p>
+                <p class="text-sm text-gray-400 mb-2">Status ändern:</p>
                 <div class="flex flex-wrap gap-2" id="status-buttons">
                     {% for transition in allowed_transitions %}
                     <button class="btn btn-sm btn-outline"
@@ -376,6 +376,216 @@
     </div>
 </div>
 
+<!-- ======= FULL-WIDTH SECTION: Scorecard + Checklist + Actions ======= -->
+
+{% if scorecard_data %}
+<!-- Scorecard Overview -->
+<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+            <i data-lucide="gauge" class="w-5 h-5 text-primary"></i>
+            Scorecard
+        </h2>
+        <button class="btn btn-ghost btn-sm gap-1" data-action="regenerateScorecard">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            Neu berechnen
+        </button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% for sc in scorecard_data %}
+        {% if not sc.is_overall %}
+        <div class="rounded-xl p-4
+            {% if sc.rating == 'green' %}bg-success/10 border border-success/30
+            {% elif sc.rating == 'yellow' %}bg-warning/10 border border-warning/30
+            {% elif sc.rating == 'red' %}bg-error/10 border border-error/30
+            {% else %}bg-white/5 border border-white/10{% endif %}">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="w-3 h-3 rounded-full
+                    {% if sc.rating == 'green' %}bg-success
+                    {% elif sc.rating == 'yellow' %}bg-warning
+                    {% elif sc.rating == 'red' %}bg-error
+                    {% else %}bg-gray-500{% endif %}">
+                </span>
+                <span class="text-sm font-semibold">
+                    {% if sc.category == 'altersvorsorge' %}Altersvorsorge
+                    {% elif sc.category == 'absicherung' %}Absicherung
+                    {% elif sc.category == 'vermoegen_kosten' %}Kosten
+                    {% elif sc.category == 'steueroptimierung' %}Steuer
+                    {% else %}{{ sc.category }}{% endif %}
+                </span>
+            </div>
+            <p class="text-xs text-gray-400 line-clamp-2">{{ sc.assessment or '' }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% for sc in scorecard_data %}
+    {% if sc.is_overall %}
+    <div class="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
+        <span class="w-4 h-4 rounded-full
+            {% if sc.rating == 'green' %}bg-success
+            {% elif sc.rating == 'yellow' %}bg-warning
+            {% elif sc.rating == 'red' %}bg-error{% endif %}">
+        </span>
+        <span class="text-sm font-semibold">Gesamt:</span>
+        <span class="text-sm text-gray-300">{{ sc.assessment or '' }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if checklist_data %}
+<!-- Completeness Overview -->
+<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-5 h-5 text-primary"></i>
+            Vertrags-Checkliste
+            <span class="badge badge-sm">{{ checklist_data|length }}</span>
+        </h2>
+        <div class="flex items-center gap-2">
+            {% if is_closer %}
+            <button class="btn btn-secondary btn-sm gap-1" data-action="openManualAdd">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Vertrag hinzufügen
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Overall completeness bar #}
+    {% set total_muss = checklist_data|sum(attribute='completeness.muss_total') %}
+    {% set filled_muss = checklist_data|sum(attribute='completeness.muss_filled') %}
+    {% set pct = ((filled_muss / total_muss * 100)|round|int) if total_muss > 0 else 100 %}
+    <div class="mb-4">
+        <div class="flex items-center justify-between text-sm mb-1">
+            <span class="text-gray-400">Pflichtfelder gesamt</span>
+            <span class="font-semibold
+                {% if pct == 100 %}text-success{% elif pct >= 50 %}text-warning{% else %}text-error{% endif %}">
+                {{ filled_muss }}/{{ total_muss }} ({{ pct }}%)
+            </span>
+        </div>
+        <progress class="progress w-full
+            {% if pct == 100 %}progress-success{% elif pct >= 50 %}progress-warning{% else %}progress-error{% endif %}"
+            value="{{ pct }}" max="100"></progress>
+    </div>
+
+    {# Contract cards #}
+    <div class="space-y-3" id="checklist-cards">
+        {% for contract in checklist_data %}
+            {% include 'finanzberatung/components/contract_card.html' %}
+        {% endfor %}
+    </div>
+</div>
+{% elif documents %}
+<!-- No analyzed documents yet — show analysis trigger -->
+<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-5 h-5 text-primary"></i>
+            Vertrags-Checkliste
+        </h2>
+    </div>
+    <div class="text-center py-8">
+        <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="scan-search" class="w-8 h-8 text-gray-500"></i>
+        </div>
+        <p class="text-gray-400 mb-4">Dokumente noch nicht analysiert</p>
+        <button class="btn btn-primary gap-2" data-action="startAnalysis" id="start-analysis-btn">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            Analyse starten
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Bar: Export + Scorecard -->
+{% if checklist_data %}
+<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+    <div class="flex flex-wrap items-center gap-3">
+        {% if is_closer %}
+        <button class="btn btn-primary btn-sm gap-1" data-action="regenerateScorecard">
+            <i data-lucide="gauge" class="w-4 h-4"></i>
+            Scorecard generieren
+        </button>
+        {% endif %}
+        <a href="{{ url_for('finanzberatung.finanz_sessions.export_excel', session_id=session.id) }}"
+           class="btn btn-secondary btn-sm gap-1">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            Excel Export
+        </a>
+        <a href="{{ url_for('finanzberatung.finanz_sessions.export_pdf', session_id=session.id) }}"
+           class="btn btn-secondary btn-sm gap-1">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            PDF Export
+        </a>
+        {% if is_closer %}
+        <button class="btn btn-ghost btn-sm gap-1" data-action="openManualAdd">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Vertrag manuell
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Manual Contract Add Modal -->
+<dialog id="manual-contract-modal" class="modal">
+    <div class="modal-box max-w-2xl bg-base-200">
+        <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
+            Vertrag manuell hinzufügen
+        </h3>
+
+        <div id="manual-step-1">
+            <p class="text-sm text-gray-400 mb-3">Vertragsart waehlen:</p>
+            <div id="contract-type-list" class="space-y-2 max-h-96 overflow-y-auto">
+                <p class="text-gray-500 text-sm">Lade Vertragsarten...</p>
+            </div>
+        </div>
+
+        <div id="manual-step-2" class="hidden">
+            <div class="flex items-center gap-2 mb-4">
+                <button class="btn btn-ghost btn-xs" data-action="backToStep1">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                </button>
+                <span class="font-semibold" id="selected-type-label"></span>
+            </div>
+            <div id="manual-fields-form" class="space-y-3"></div>
+            <div class="modal-action">
+                <button class="btn btn-primary gap-1" data-action="submitManualContract">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    Speichern
+                </button>
+                <form method="dialog"><button class="btn">Abbrechen</button></form>
+            </div>
+        </div>
+
+        <div class="modal-action" id="manual-step-1-actions">
+            <form method="dialog"><button class="btn">Abbrechen</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>Schliessen</button></form>
+</dialog>
+
+<!-- Edit Field Modal -->
+<dialog id="edit-field-modal" class="modal">
+    <div class="modal-box bg-base-200">
+        <h3 class="font-bold text-lg mb-4">Feld bearbeiten</h3>
+        <input type="hidden" id="edit-field-id">
+        <div class="form-control">
+            <label class="label"><span class="label-text" id="edit-field-label"></span></label>
+            <input type="text" id="edit-field-value" class="input input-bordered w-full">
+        </div>
+        <div class="modal-action">
+            <button class="btn btn-primary" data-action="saveFieldEdit">Speichern</button>
+            <form method="dialog"><button class="btn">Abbrechen</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>Schliessen</button></form>
+</dialog>
+
 <!-- JavaScript: Countdown Timer, Notes Auto-save, Token Generation, Status Transitions -->
 <script nonce="{{ csp_nonce }}">
 (function() {
@@ -605,6 +815,227 @@
             .catch(function() {
                 alert('Fehler beim Deaktivieren des Tokens.');
             });
+        });
+    }
+
+    // =========================================================================
+    // 6. FIELD VERIFICATION (Closer only)
+    // =========================================================================
+    document.querySelectorAll('[data-action="verifyField"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var fieldId = btn.dataset.fieldId;
+            btn.classList.add('loading');
+            fetch(baseUrl + '/verify-field', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ extracted_data_id: fieldId, action: 'verify' }),
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) window.location.reload();
+                else alert(data.message || 'Fehler');
+            })
+            .catch(function() { alert('Fehler beim Bestätigen.'); })
+            .finally(function() { btn.classList.remove('loading'); });
+        });
+    });
+
+    // =========================================================================
+    // 7. FIELD EDIT (Closer only)
+    // =========================================================================
+    document.querySelectorAll('[data-action="editField"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var modal = document.getElementById('edit-field-modal');
+            if (!modal || typeof modal.showModal !== 'function') return;
+            document.getElementById('edit-field-id').value = btn.dataset.fieldId;
+            document.getElementById('edit-field-label').textContent = btn.dataset.fieldName;
+            document.getElementById('edit-field-value').value = btn.dataset.fieldValue || '';
+            modal.showModal();
+        });
+    });
+
+    var saveEditBtn = document.querySelector('[data-action="saveFieldEdit"]');
+    if (saveEditBtn) {
+        saveEditBtn.addEventListener('click', function() {
+            var fieldId = document.getElementById('edit-field-id').value;
+            var newValue = document.getElementById('edit-field-value').value;
+            fetch(baseUrl + '/verify-field', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ extracted_data_id: fieldId, action: 'update', value: newValue }),
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) window.location.reload();
+                else alert(data.message || 'Fehler');
+            })
+            .catch(function() { alert('Fehler beim Speichern.'); });
+        });
+    }
+
+    // =========================================================================
+    // 8. START ANALYSIS
+    // =========================================================================
+    var analysisBtn = document.getElementById('start-analysis-btn');
+    if (analysisBtn) {
+        analysisBtn.addEventListener('click', function() {
+            analysisBtn.classList.add('loading');
+            analysisBtn.disabled = true;
+            fetch(baseUrl + '/start-analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                analysisBtn.classList.remove('loading');
+                analysisBtn.disabled = false;
+                if (data.success) {
+                    analysisBtn.textContent = data.message;
+                    analysisBtn.classList.remove('btn-primary');
+                    analysisBtn.classList.add('btn-success');
+                } else {
+                    alert(data.message || 'Fehler');
+                }
+            })
+            .catch(function() {
+                analysisBtn.classList.remove('loading');
+                analysisBtn.disabled = false;
+                alert('Fehler beim Starten der Analyse.');
+            });
+        });
+    }
+
+    // =========================================================================
+    // 9. SCORECARD GENERATION
+    // =========================================================================
+    document.querySelectorAll('[data-action="regenerateScorecard"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            btn.classList.add('loading');
+            fetch(baseUrl + '/generate-scorecard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.classList.remove('loading');
+                if (data.success) window.location.reload();
+                else alert(data.message || 'Fehler');
+            })
+            .catch(function() { btn.classList.remove('loading'); alert('Fehler.'); });
+        });
+    });
+
+    // =========================================================================
+    // 10. MANUAL CONTRACT ADD
+    // =========================================================================
+    var manualModal = document.getElementById('manual-contract-modal');
+    var selectedTypeKey = null;
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    document.querySelectorAll('[data-action="openManualAdd"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (manualModal && typeof manualModal.showModal === 'function') manualModal.showModal();
+            // Load contract types
+            fetch(baseUrl + '/contract-types')
+            .then(function(r) { return r.json(); })
+            .then(function(categories) {
+                var container = document.getElementById('contract-type-list');
+                container.innerHTML = '';
+                categories.forEach(function(cat) {
+                    var catDiv = document.createElement('div');
+                    catDiv.className = 'mb-3';
+                    var catLabel = document.createElement('p');
+                    catLabel.className = 'text-xs font-semibold text-gray-400 mb-1';
+                    catLabel.textContent = cat.label;
+                    catDiv.appendChild(catLabel);
+                    var grid = document.createElement('div');
+                    grid.className = 'grid grid-cols-2 gap-1';
+                    cat.types.forEach(function(t) {
+                        var typeBtn = document.createElement('button');
+                        typeBtn.className = 'btn btn-ghost btn-sm justify-start text-left';
+                        typeBtn.dataset.action = 'selectContractType';
+                        typeBtn.dataset.typeKey = t.key;
+                        typeBtn.dataset.typeLabel = t.label;
+                        typeBtn.dataset.fields = JSON.stringify(t.fields);
+                        typeBtn.textContent = t.label;
+                        grid.appendChild(typeBtn);
+                    });
+                    catDiv.appendChild(grid);
+                    container.appendChild(catDiv);
+                });
+                // Bind events
+                document.querySelectorAll('[data-action="selectContractType"]').forEach(function(typeBtn) {
+                    typeBtn.addEventListener('click', function() {
+                        selectedTypeKey = typeBtn.dataset.typeKey;
+                        document.getElementById('selected-type-label').textContent = typeBtn.dataset.typeLabel;
+                        var fields;
+                        try { fields = JSON.parse(typeBtn.dataset.fields); }
+                        catch(e) { alert('Fehler beim Laden der Felder.'); return; }
+                        var formContainer = document.getElementById('manual-fields-form');
+                        formContainer.innerHTML = '';
+                        fields.forEach(function(f) {
+                            var ctrl = document.createElement('div');
+                            ctrl.className = 'form-control';
+                            var lbl = document.createElement('label');
+                            lbl.className = 'label';
+                            var lblSpan = document.createElement('span');
+                            lblSpan.className = 'label-text';
+                            lblSpan.textContent = f.label;
+                            if (f.priority === 'muss') {
+                                lblSpan.innerHTML = escapeHtml(f.label) + ' <span class="badge badge-error badge-xs">Pflicht</span>';
+                            }
+                            lbl.appendChild(lblSpan);
+                            ctrl.appendChild(lbl);
+                            var inp = document.createElement('input');
+                            inp.type = 'text';
+                            inp.name = f.name;
+                            inp.className = 'input input-bordered input-sm';
+                            inp.placeholder = f.label;
+                            ctrl.appendChild(inp);
+                            formContainer.appendChild(ctrl);
+                        });
+                        document.getElementById('manual-step-1').classList.add('hidden');
+                        document.getElementById('manual-step-1-actions').classList.add('hidden');
+                        document.getElementById('manual-step-2').classList.remove('hidden');
+                    });
+                });
+            });
+        });
+    });
+
+    var backBtn = document.querySelector('[data-action="backToStep1"]');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            document.getElementById('manual-step-1').classList.remove('hidden');
+            document.getElementById('manual-step-1-actions').classList.remove('hidden');
+            document.getElementById('manual-step-2').classList.add('hidden');
+        });
+    }
+
+    var submitManualBtn = document.querySelector('[data-action="submitManualContract"]');
+    if (submitManualBtn) {
+        submitManualBtn.addEventListener('click', function() {
+            var inputs = document.querySelectorAll('#manual-fields-form input');
+            var fields = {};
+            inputs.forEach(function(inp) { if (inp.value.trim()) fields[inp.name] = inp.value.trim(); });
+            submitManualBtn.classList.add('loading');
+            fetch(baseUrl + '/manual-contract', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ type_key: selectedTypeKey, fields: fields }),
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                submitManualBtn.classList.remove('loading');
+                if (data.success) { if (manualModal) manualModal.close(); window.location.reload(); }
+                else alert(data.message || 'Fehler');
+            })
+            .catch(function() { submitManualBtn.classList.remove('loading'); alert('Fehler.'); });
         });
     }
 
