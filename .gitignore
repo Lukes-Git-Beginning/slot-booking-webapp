@@ -118,8 +118,13 @@ persist/
 # Documentation (local only, except README.md)
 *.md
 !README.md
+!docs/*.md
+!docs/**/*.md
 !.planning/*.md
 !.planning/**/*.md
+
+# Knowledge Base (Obsidian Vault, local only)
+.knowledge/
 
 # Build artifacts
 /build/
