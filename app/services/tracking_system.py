@@ -35,7 +35,7 @@ from app.utils.credentials import load_google_credentials
 
 # PostgreSQL Models
 try:
-    from app.models import Booking, BookingOutcome, is_postgres_enabled, get_db_session
+    from app.models import Booking, BookingOutcome, DailyMetrics, CustomerProfile, is_postgres_enabled, get_db_session
     POSTGRES_AVAILABLE = True
 except ImportError:
     POSTGRES_AVAILABLE = False
@@ -660,7 +660,54 @@ class BookingTracker:
             metrics["completion_rate"] = 0
             metrics["cancellation_rate"] = 0
         
-        # Speichere Metriken (dual-write pattern)
+        # PG Write (upsert by date)
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                from app.utils.db_utils import db_session_scope
+                with db_session_scope() as session:
+                    from datetime import date as date_type
+                    metric_date = datetime.strptime(str(date), "%Y-%m-%d").date() if not isinstance(date, date_type) else date
+                    existing = session.query(DailyMetrics).filter_by(date=metric_date).first()
+                    if existing:
+                        existing.total_slots = metrics["total_slots"]
+                        existing.no_shows = metrics["no_shows"]
+                        existing.ghosts = metrics["ghosts"]
+                        existing.completed = metrics["completed"]
+                        existing.cancelled = metrics["cancelled"]
+                        existing.rescheduled = metrics["rescheduled"]
+                        existing.overhang = metrics["overhang"]
+                        existing.no_show_rate = metrics.get("no_show_rate", 0)
+                        existing.ghost_rate = metrics.get("ghost_rate", 0)
+                        existing.completion_rate = metrics.get("completion_rate", 0)
+                        existing.cancellation_rate = metrics.get("cancellation_rate", 0)
+                        existing.by_hour = json.dumps(dict(metrics["by_hour"]))
+                        existing.by_user = json.dumps(dict(metrics["by_user"]))
+                        existing.by_potential = json.dumps(dict(metrics["by_potential"]))
+                        existing.calculated_at = datetime.fromisoformat(metrics["calculated_at"])
+                    else:
+                        session.add(DailyMetrics(
+                            date=metric_date,
+                            total_slots=metrics["total_slots"],
+                            no_shows=metrics["no_shows"],
+                            ghosts=metrics["ghosts"],
+                            completed=metrics["completed"],
+                            cancelled=metrics["cancelled"],
+                            rescheduled=metrics["rescheduled"],
+                            overhang=metrics["overhang"],
+                            no_show_rate=metrics.get("no_show_rate", 0),
+                            ghost_rate=metrics.get("ghost_rate", 0),
+                            completion_rate=metrics.get("completion_rate", 0),
+                            cancellation_rate=metrics.get("cancellation_rate", 0),
+                            by_hour=json.dumps(dict(metrics["by_hour"])),
+                            by_user=json.dumps(dict(metrics["by_user"])),
+                            by_potential=json.dumps(dict(metrics["by_potential"])),
+                            calculated_at=datetime.fromisoformat(metrics["calculated_at"])
+                        ))
+                logger.debug("Daily metrics written to PG")
+            except Exception as e:
+                logger.warning(f"PG daily metrics write failed: {e}")
+
+        # Speichere Metriken (JSON dual-write pattern)
         try:
             if os.path.exists(self.metrics_file):
                 with open(self.metrics_file, "r", encoding="utf-8") as f:
@@ -690,64 +737,135 @@ class BookingTracker:
     def _update_customer_profiles(self):
         """Aktualisiere Kundenprofile mit aggregierten Daten"""
         profiles = {}
-        
-        # Lade bestehende Profile
-        if os.path.exists(self.customer_file):
+
+        # PG-first: Aggregiere aus BookingOutcome Tabelle
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
             try:
-                with open(self.customer_file, "r", encoding="utf-8") as f:
-                    profiles = json.load(f)
-            except:
-                profiles = {}
-        
-        # Analysiere alle Outcomes
-        if os.path.exists(self.outcomes_file):
-            with open(self.outcomes_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    try:
-                        outcome = json.loads(line)
-                        customer = outcome["customer"]
-                        
-                        if customer not in profiles:
-                            profiles[customer] = {
-                                "first_seen": outcome["date"],
-                                "last_seen": outcome["date"],
-                                "total_appointments": 0,
-                                "completed": 0,
-                                "no_shows": 0,
-                                "cancelled": 0,
-                                "reliability_score": 100.0
-                            }
-                        
-                        profile = profiles[customer]
-                        profile["total_appointments"] += 1
-                        profile["last_seen"] = outcome["date"]
-                        
-                        if outcome["outcome"] == "completed":
-                            profile["completed"] += 1
-                        elif outcome["outcome"] == "no_show":
-                            profile["no_shows"] += 1
-                        elif outcome["outcome"] == "cancelled":
-                            profile["cancelled"] += 1
-                        
-                        # Berechne Zuverlässigkeits-Score
-                        if profile["total_appointments"] > 0:
-                            profile["reliability_score"] = round(
-                                (profile["completed"] / profile["total_appointments"]) * 100, 2
-                            )
-                        
-                        # Klassifiziere Kunde
-                        if profile["no_shows"] >= 3:
-                            profile["risk_level"] = "high"
-                        elif profile["no_shows"] >= 1:
-                            profile["risk_level"] = "medium"
+                from app.utils.db_utils import db_session_scope
+                from sqlalchemy import func, case
+                with db_session_scope() as session:
+                    results = session.query(
+                        BookingOutcome.customer,
+                        func.min(BookingOutcome.date).label('first_seen'),
+                        func.max(BookingOutcome.date).label('last_seen'),
+                        func.count().label('total_appointments'),
+                        func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed_count'),
+                        func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_show_count'),
+                        func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled_count'),
+                    ).group_by(BookingOutcome.customer).all()
+
+                    for row in results:
+                        total = row.total_appointments or 0
+                        completed = row.completed_count or 0
+                        no_shows = row.no_show_count or 0
+                        cancelled = row.cancelled_count or 0
+
+                        reliability = round((completed / total) * 100, 2) if total > 0 else 100.0
+
+                        if no_shows >= 3:
+                            risk = "high"
+                        elif no_shows >= 1:
+                            risk = "medium"
                         else:
-                            profile["risk_level"] = "low"
-                    
-                    except Exception as e:
-                        logger.error(f"Error processing outcome: {e}")
-                        continue
-        
-        # Speichere aktualisierte Profile (atomic dual-write)
+                            risk = "low"
+
+                        # Upsert CustomerProfile
+                        existing = session.query(CustomerProfile).filter_by(customer=row.customer).first()
+                        if existing:
+                            existing.first_seen = str(row.first_seen)
+                            existing.last_seen = str(row.last_seen)
+                            existing.total_appointments = total
+                            existing.completed = completed
+                            existing.no_shows = no_shows
+                            existing.cancelled = cancelled
+                            existing.reliability_score = reliability
+                            existing.risk_level = risk
+                        else:
+                            session.add(CustomerProfile(
+                                customer=row.customer,
+                                first_seen=str(row.first_seen),
+                                last_seen=str(row.last_seen),
+                                total_appointments=total,
+                                completed=completed,
+                                no_shows=no_shows,
+                                cancelled=cancelled,
+                                reliability_score=reliability,
+                                risk_level=risk
+                            ))
+
+                        profiles[row.customer] = {
+                            "first_seen": str(row.first_seen),
+                            "last_seen": str(row.last_seen),
+                            "total_appointments": total,
+                            "completed": completed,
+                            "no_shows": no_shows,
+                            "cancelled": cancelled,
+                            "reliability_score": reliability,
+                            "risk_level": risk
+                        }
+
+                logger.debug("Customer profiles written to PG")
+            except Exception as e:
+                logger.warning(f"PG customer profiles write failed, falling back to JSON: {e}")
+                profiles = {}
+
+        # JSON-Fallback: Analysiere alle Outcomes aus JSONL
+        if not profiles:
+            if os.path.exists(self.customer_file):
+                try:
+                    with open(self.customer_file, "r", encoding="utf-8") as f:
+                        profiles = json.load(f)
+                except:
+                    profiles = {}
+
+            if os.path.exists(self.outcomes_file):
+                # Reset profiles for fresh calculation from JSONL
+                profiles = {}
+                with open(self.outcomes_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            outcome = json.loads(line)
+                            customer = outcome["customer"]
+
+                            if customer not in profiles:
+                                profiles[customer] = {
+                                    "first_seen": outcome["date"],
+                                    "last_seen": outcome["date"],
+                                    "total_appointments": 0,
+                                    "completed": 0,
+                                    "no_shows": 0,
+                                    "cancelled": 0,
+                                    "reliability_score": 100.0
+                                }
+
+                            profile = profiles[customer]
+                            profile["total_appointments"] += 1
+                            profile["last_seen"] = outcome["date"]
+
+                            if outcome["outcome"] == "completed":
+                                profile["completed"] += 1
+                            elif outcome["outcome"] == "no_show":
+                                profile["no_shows"] += 1
+                            elif outcome["outcome"] == "cancelled":
+                                profile["cancelled"] += 1
+
+                            if profile["total_appointments"] > 0:
+                                profile["reliability_score"] = round(
+                                    (profile["completed"] / profile["total_appointments"]) * 100, 2
+                                )
+
+                            if profile["no_shows"] >= 3:
+                                profile["risk_level"] = "high"
+                            elif profile["no_shows"] >= 1:
+                                profile["risk_level"] = "medium"
+                            else:
+                                profile["risk_level"] = "low"
+
+                        except Exception as e:
+                            logger.error(f"Error processing outcome: {e}")
+                            continue
+
+        # Speichere aktualisierte Profile (atomic dual-write to JSON)
         _atomic_json_write(self.customer_file, profiles)
 
         # Secondary persistent storage (atomic write)
@@ -759,7 +877,114 @@ class BookingTracker:
         logger.info(f"Updated {len(profiles)} customer profiles")
     
     def get_customer_history(self, customer_name):
-        """Hole die komplette Historie eines Kunden"""
+        """Hole die komplette Historie eines Kunden (PG-First, JSON-Fallback)"""
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_customer_history_pg(customer_name)
+                if result is not None:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG get_customer_history failed, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
+        return self._get_customer_history_json(customer_name)
+
+    def _get_customer_history_pg(self, customer_name):
+        """PG: Lade Kundenhistorie aus Booking + BookingOutcome + CustomerProfile"""
+        from app.utils.db_utils import db_session_scope_no_commit
+        with db_session_scope_no_commit() as session:
+            # Bookings
+            booking_rows = session.query(Booking).filter(
+                Booking.customer.ilike(f"%{customer_name}%")
+            ).order_by(Booking.date).all()
+
+            # Outcomes
+            outcome_rows = session.query(BookingOutcome).filter(
+                BookingOutcome.customer.ilike(f"%{customer_name}%")
+            ).order_by(BookingOutcome.date).all()
+
+            if not booking_rows and not outcome_rows:
+                return None
+
+            history = {
+                "customer": customer_name,
+                "bookings": [],
+                "outcomes": [],
+                "stats": {
+                    "total_bookings": 0,
+                    "no_shows": 0,
+                    "completed": 0,
+                    "cancelled": 0,
+                    "no_show_rate": 0,
+                    "reliability_score": 0
+                },
+                "timeline": []
+            }
+
+            for b in booking_rows:
+                history["bookings"].append({
+                    "booking_id": b.booking_id,
+                    "customer": b.customer,
+                    "date": str(b.date),
+                    "time": b.time,
+                    "user": b.username,
+                    "color_id": b.color_id,
+                    "potential_type": b.potential_type
+                })
+                history["stats"]["total_bookings"] += 1
+
+            for o in outcome_rows:
+                history["outcomes"].append({
+                    "outcome_id": o.outcome_id,
+                    "customer": o.customer,
+                    "date": str(o.date),
+                    "time": o.time,
+                    "outcome": o.outcome,
+                    "color_id": o.color_id
+                })
+                history["timeline"].append({
+                    "date": str(o.date),
+                    "time": o.time,
+                    "outcome": o.outcome,
+                    "color_id": o.color_id
+                })
+                if o.outcome == "no_show":
+                    history["stats"]["no_shows"] += 1
+                elif o.outcome == "completed":
+                    history["stats"]["completed"] += 1
+                elif o.outcome == "cancelled":
+                    history["stats"]["cancelled"] += 1
+
+            history["timeline"].sort(key=lambda x: (x["date"], x["time"]))
+
+            total_outcomes = history["stats"]["completed"] + history["stats"]["no_shows"] + history["stats"]["cancelled"]
+            if total_outcomes > 0:
+                history["stats"]["no_show_rate"] = round(
+                    history["stats"]["no_shows"] / total_outcomes * 100, 2
+                )
+                history["stats"]["reliability_score"] = round(
+                    history["stats"]["completed"] / total_outcomes * 100, 2
+                )
+
+            # Lade CustomerProfile
+            profile = session.query(CustomerProfile).filter_by(customer=customer_name).first()
+            if profile:
+                history["profile"] = {
+                    "first_seen": profile.first_seen,
+                    "last_seen": profile.last_seen,
+                    "total_appointments": profile.total_appointments,
+                    "completed": profile.completed,
+                    "no_shows": profile.no_shows,
+                    "cancelled": profile.cancelled,
+                    "reliability_score": profile.reliability_score,
+                    "risk_level": profile.risk_level
+                }
+
+            return history
+
+    def _get_customer_history_json(self, customer_name):
+        """JSON-Fallback: Lade Kundenhistorie aus JSONL-Dateien"""
         history = {
             "customer": customer_name,
             "bookings": [],
@@ -774,8 +999,7 @@ class BookingTracker:
             },
             "timeline": []
         }
-        
-        # Lade Buchungen
+
         if os.path.exists(self.bookings_file):
             with open(self.bookings_file, "r", encoding="utf-8") as f:
                 for line in f:
@@ -783,16 +1007,13 @@ class BookingTracker:
                     if customer_name.lower() in booking["customer"].lower():
                         history["bookings"].append(booking)
                         history["stats"]["total_bookings"] += 1
-        
-        # Lade Outcomes
+
         if os.path.exists(self.outcomes_file):
             with open(self.outcomes_file, "r", encoding="utf-8") as f:
                 for line in f:
                     outcome = json.loads(line)
                     if customer_name.lower() in outcome["customer"].lower():
                         history["outcomes"].append(outcome)
-                        
-                        # Erstelle Timeline-Eintrag
                         timeline_entry = {
                             "date": outcome["date"],
                             "time": outcome["time"],
@@ -800,19 +1021,15 @@ class BookingTracker:
                             "color_id": outcome.get("color_id", "9")
                         }
                         history["timeline"].append(timeline_entry)
-                        
-                        # Update Stats
                         if outcome["outcome"] == "no_show":
                             history["stats"]["no_shows"] += 1
                         elif outcome["outcome"] == "completed":
                             history["stats"]["completed"] += 1
                         elif outcome["outcome"] == "cancelled":
                             history["stats"]["cancelled"] += 1
-        
-        # Sortiere Timeline
+
         history["timeline"].sort(key=lambda x: (x["date"], x["time"]))
-        
-        # Berechne Raten
+
         total_outcomes = history["stats"]["completed"] + history["stats"]["no_shows"] + history["stats"]["cancelled"]
         if total_outcomes > 0:
             history["stats"]["no_show_rate"] = round(
@@ -821,21 +1038,139 @@ class BookingTracker:
             history["stats"]["reliability_score"] = round(
                 history["stats"]["completed"] / total_outcomes * 100, 2
             )
-        
-        # Lade Kundenprofil wenn vorhanden
+
         if os.path.exists(self.customer_file):
             with open(self.customer_file, "r", encoding="utf-8") as f:
                 profiles = json.load(f)
                 if customer_name in profiles:
                     history["profile"] = profiles[customer_name]
-        
+
         return history
     
     def get_weekly_report(self, week_number=None):
-        """Generiere erweiterten Wochenbericht"""
+        """Generiere erweiterten Wochenbericht (PG-First, JSON-Fallback)"""
         if week_number is None:
             week_number = datetime.now(TZ).isocalendar()[1]
-        
+
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_weekly_report_pg(week_number)
+                if result is not None:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG get_weekly_report failed, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
+        return self._get_weekly_report_json(week_number)
+
+    def _get_weekly_report_pg(self, week_number):
+        """PG: Generiere Wochenbericht aus Booking + BookingOutcome"""
+        from app.utils.db_utils import db_session_scope_no_commit
+        with db_session_scope_no_commit() as session:
+            year = datetime.now(TZ).year
+
+            report = {
+                "week": week_number,
+                "year": year,
+                "metrics": {
+                    "total_bookings": 0,
+                    "total_outcomes": 0,
+                    "no_shows": 0,
+                    "completed": 0,
+                    "cancelled": 0,
+                    "by_day": defaultdict(lambda: {"bookings": 0, "no_shows": 0, "completed": 0, "cancelled": 0}),
+                    "by_user": defaultdict(lambda: {"bookings": 0, "no_shows": 0, "completed": 0, "success_rate": 0}),
+                    "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0}),
+                    "top_no_show_times": [],
+                    "top_success_times": [],
+                    "high_risk_customers": []
+                }
+            }
+
+            # Bookings for this week
+            booking_rows = session.query(Booking).filter(
+                Booking.week_number == week_number
+            ).all()
+
+            for b in booking_rows:
+                report["metrics"]["total_bookings"] += 1
+                report["metrics"]["by_day"][b.weekday]["bookings"] += 1
+                if b.username:
+                    report["metrics"]["by_user"][b.username]["bookings"] += 1
+
+            # Outcomes: filter by ISO week from date
+            # Get date range for the ISO week
+            from datetime import date as date_type
+            jan4 = date_type(year, 1, 4)
+            start_of_week = jan4 + timedelta(weeks=week_number - 1, days=-jan4.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+
+            outcome_rows = session.query(BookingOutcome).filter(
+                BookingOutcome.date >= start_of_week,
+                BookingOutcome.date <= end_of_week
+            ).all()
+
+            if not booking_rows and not outcome_rows:
+                return None
+
+            for o in outcome_rows:
+                report["metrics"]["total_outcomes"] += 1
+                weekday = o.date.strftime("%A")
+                hour = o.time[:2] + ":00" if o.time else "00:00"
+
+                if o.outcome == "no_show":
+                    report["metrics"]["no_shows"] += 1
+                    report["metrics"]["by_day"][weekday]["no_shows"] += 1
+                    report["metrics"]["by_hour"][hour]["no_shows"] += 1
+                elif o.outcome == "completed":
+                    report["metrics"]["completed"] += 1
+                    report["metrics"]["by_day"][weekday]["completed"] += 1
+                    report["metrics"]["by_hour"][hour]["completed"] += 1
+                elif o.outcome == "cancelled":
+                    report["metrics"]["cancelled"] += 1
+                    report["metrics"]["by_day"][weekday]["cancelled"] += 1
+
+                report["metrics"]["by_hour"][hour]["total"] += 1
+
+            # Success rates per user
+            for user, data in report["metrics"]["by_user"].items():
+                if data["bookings"] > 0:
+                    data["success_rate"] = round(
+                        (data.get("completed", 0) / data["bookings"]) * 100, 2
+                    )
+
+            # Hour stats
+            hour_stats = []
+            for hour, data in report["metrics"]["by_hour"].items():
+                if data["total"] > 0:
+                    hour_stats.append({
+                        "hour": hour,
+                        "no_show_rate": round((data["no_shows"] / data["total"]) * 100, 2),
+                        "success_rate": round((data["completed"] / data["total"]) * 100, 2),
+                        "total": data["total"]
+                    })
+
+            hour_stats.sort(key=lambda x: x["no_show_rate"], reverse=True)
+            report["metrics"]["top_no_show_times"] = hour_stats[:3]
+            hour_stats.sort(key=lambda x: x["success_rate"], reverse=True)
+            report["metrics"]["top_success_times"] = hour_stats[:3]
+
+            if report["metrics"]["total_outcomes"] > 0:
+                report["metrics"]["overall_no_show_rate"] = round(
+                    (report["metrics"]["no_shows"] / report["metrics"]["total_outcomes"]) * 100, 2
+                )
+                report["metrics"]["overall_completion_rate"] = round(
+                    (report["metrics"]["completed"] / report["metrics"]["total_outcomes"]) * 100, 2
+                )
+                report["metrics"]["overall_cancellation_rate"] = round(
+                    (report["metrics"]["cancelled"] / report["metrics"]["total_outcomes"]) * 100, 2
+                )
+
+            return report
+
+    def _get_weekly_report_json(self, week_number):
+        """JSON-Fallback: Generiere Wochenbericht aus JSONL-Dateien"""
         report = {
             "week": week_number,
             "year": datetime.now(TZ).year,
@@ -845,30 +1180,15 @@ class BookingTracker:
                 "no_shows": 0,
                 "completed": 0,
                 "cancelled": 0,
-                "by_day": defaultdict(lambda: {
-                    "bookings": 0, 
-                    "no_shows": 0, 
-                    "completed": 0,
-                    "cancelled": 0
-                }),
-                "by_user": defaultdict(lambda: {
-                    "bookings": 0, 
-                    "no_shows": 0,
-                    "completed": 0,
-                    "success_rate": 0
-                }),
-                "by_hour": defaultdict(lambda: {
-                    "total": 0,
-                    "no_shows": 0,
-                    "completed": 0
-                }),
+                "by_day": defaultdict(lambda: {"bookings": 0, "no_shows": 0, "completed": 0, "cancelled": 0}),
+                "by_user": defaultdict(lambda: {"bookings": 0, "no_shows": 0, "completed": 0, "success_rate": 0}),
+                "by_hour": defaultdict(lambda: {"total": 0, "no_shows": 0, "completed": 0}),
                 "top_no_show_times": [],
                 "top_success_times": [],
                 "high_risk_customers": []
             }
         }
-        
-        # Analysiere Buchungen
+
         if os.path.exists(self.bookings_file):
             with open(self.bookings_file, "r", encoding="utf-8") as f:
                 for line in f:
@@ -879,20 +1199,16 @@ class BookingTracker:
                         report["metrics"]["by_day"][weekday]["bookings"] += 1
                         if booking.get("user"):
                             report["metrics"]["by_user"][booking["user"]]["bookings"] += 1
-        
-        # Analysiere Outcomes
+
         if os.path.exists(self.outcomes_file):
             with open(self.outcomes_file, "r", encoding="utf-8") as f:
                 for line in f:
                     outcome = json.loads(line)
                     outcome_date = datetime.strptime(outcome["date"], "%Y-%m-%d")
-                    
                     if outcome_date.isocalendar()[1] == week_number:
                         report["metrics"]["total_outcomes"] += 1
                         weekday = outcome_date.strftime("%A")
                         hour = outcome["time"][:2] + ":00"
-                        
-                        # Nach Outcome-Typ
                         if outcome["outcome"] == "no_show":
                             report["metrics"]["no_shows"] += 1
                             report["metrics"]["by_day"][weekday]["no_shows"] += 1
@@ -904,17 +1220,14 @@ class BookingTracker:
                         elif outcome["outcome"] == "cancelled":
                             report["metrics"]["cancelled"] += 1
                             report["metrics"]["by_day"][weekday]["cancelled"] += 1
-                        
                         report["metrics"]["by_hour"][hour]["total"] += 1
-        
-        # Berechne Success-Raten nach User
+
         for user, data in report["metrics"]["by_user"].items():
             if data["bookings"] > 0:
                 data["success_rate"] = round(
                     (data.get("completed", 0) / data["bookings"]) * 100, 2
                 )
-        
-        # Finde beste/schlechteste Zeiten
+
         hour_stats = []
         for hour, data in report["metrics"]["by_hour"].items():
             if data["total"] > 0:
@@ -926,16 +1239,12 @@ class BookingTracker:
                     "success_rate": round(success_rate, 2),
                     "total": data["total"]
                 })
-        
-        # Top No-Show Zeiten
+
         hour_stats.sort(key=lambda x: x["no_show_rate"], reverse=True)
         report["metrics"]["top_no_show_times"] = hour_stats[:3]
-        
-        # Top Success Zeiten
         hour_stats.sort(key=lambda x: x["success_rate"], reverse=True)
         report["metrics"]["top_success_times"] = hour_stats[:3]
-        
-        # Berechne Gesamt-Raten
+
         if report["metrics"]["total_outcomes"] > 0:
             report["metrics"]["overall_no_show_rate"] = round(
                 (report["metrics"]["no_shows"] / report["metrics"]["total_outcomes"]) * 100, 2
@@ -946,48 +1255,154 @@ class BookingTracker:
             report["metrics"]["overall_cancellation_rate"] = round(
                 (report["metrics"]["cancelled"] / report["metrics"]["total_outcomes"]) * 100, 2
             )
-        
+
         return report
     
     def get_performance_dashboard(self):
-        """Generiere Dashboard-Daten für Visualisierung"""
+        """Generiere Dashboard-Daten fuer Visualisierung (PG-First, JSON-Fallback)"""
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_performance_dashboard_pg()
+                if result is not None:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG get_performance_dashboard failed, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
+        return self._get_performance_dashboard_json()
+
+    def _get_performance_dashboard_pg(self):
+        """PG: Generiere Dashboard aus DailyMetrics Tabelle"""
+        from app.utils.db_utils import db_session_scope_no_commit
+        from sqlalchemy import func
+
+        with db_session_scope_no_commit() as session:
+            today = datetime.now(TZ).date()
+
+            dashboard = {
+                "generated_at": datetime.now(TZ).isoformat(),
+                "current_week": {
+                    "number": datetime.now(TZ).isocalendar()[1],
+                    "year": datetime.now(TZ).year
+                },
+                "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0, "no_show_rate": 0},
+                "last_30_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0, "no_show_rate": 0},
+                "current_totals": {"total_slots": 0, "total_appeared": 0, "total_not_appeared": 0, "total_cancelled": 0, "appearance_rate": 0, "days_tracked": 0},
+                "trends": {},
+                "alerts": []
+            }
+
+            # Check if we have any DailyMetrics data
+            count = session.query(func.count(DailyMetrics.id)).scalar()
+            if not count:
+                return None
+
+            # Last 7 days
+            last_7_start = today - timedelta(days=6)
+            rows_7 = session.query(
+                func.sum(DailyMetrics.total_slots),
+                func.sum(DailyMetrics.completed),
+                func.sum(DailyMetrics.no_shows),
+                func.sum(DailyMetrics.cancelled)
+            ).filter(DailyMetrics.date >= last_7_start, DailyMetrics.date <= today).first()
+
+            if rows_7 and rows_7[0]:
+                ts = rows_7[0] or 0
+                tc = rows_7[1] or 0
+                tns = rows_7[2] or 0
+                if ts > 0:
+                    dashboard["last_7_days"] = {
+                        "total_bookings": ts,
+                        "appearance_rate": min(100, round((tc / ts) * 100, 2)),
+                        "success_rate": min(100, round((tc / ts) * 100, 2)),
+                        "no_show_rate": min(100, round((tns / ts) * 100, 2))
+                    }
+
+            # Since September 2025
+            start_date = datetime(2025, 9, 1).date()
+            rows_all = session.query(
+                func.sum(DailyMetrics.total_slots),
+                func.sum(DailyMetrics.completed),
+                func.sum(DailyMetrics.no_shows),
+                func.sum(DailyMetrics.cancelled),
+                func.count(DailyMetrics.id)
+            ).filter(DailyMetrics.date >= start_date, DailyMetrics.date <= today).first()
+
+            if rows_all and rows_all[0]:
+                ts = rows_all[0] or 0
+                tc = rows_all[1] or 0
+                tns = rows_all[2] or 0
+                tca = rows_all[3] or 0
+                days = rows_all[4] or 0
+                if ts > 0:
+                    ar = min(100, round((tc / ts) * 100, 2))
+                    dashboard["since_september"] = {
+                        "total_bookings": ts,
+                        "appearance_rate": ar,
+                        "success_rate": ar,
+                        "no_show_rate": min(100, round((tns / ts) * 100, 2))
+                    }
+                    dashboard["current_totals"] = {
+                        "total_slots": ts,
+                        "total_appeared": tc,
+                        "total_not_appeared": tns,
+                        "total_cancelled": tca,
+                        "appearance_rate": round((tc / ts) * 100, 2),
+                        "days_tracked": days
+                    }
+
+            # Trend: compare last 7 vs previous 7 days
+            prev_7_start = today - timedelta(days=13)
+            prev_7_end = today - timedelta(days=7)
+            rows_prev = session.query(
+                func.avg(DailyMetrics.no_show_rate)
+            ).filter(
+                DailyMetrics.date >= prev_7_start,
+                DailyMetrics.date <= prev_7_end,
+                DailyMetrics.total_slots > 0
+            ).scalar()
+
+            if rows_prev is not None:
+                current_nsr = dashboard["last_7_days"].get("no_show_rate", 0)
+                prev_nsr = round(rows_prev, 2)
+                dashboard["trends"]["no_show_trend"] = {
+                    "current": current_nsr,
+                    "previous": prev_nsr,
+                    "change": round(current_nsr - prev_nsr, 2),
+                    "direction": "up" if current_nsr > prev_nsr else "down"
+                }
+
+            # Alerts
+            if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
+                dashboard["alerts"].append({
+                    "type": "warning",
+                    "message": f"Hohe No-Show Rate: {dashboard['last_7_days']['no_show_rate']}%",
+                    "severity": "high"
+                })
+
+            return dashboard
+
+    def _get_performance_dashboard_json(self):
+        """JSON-Fallback: Generiere Dashboard aus daily_metrics.json"""
         dashboard = {
             "generated_at": datetime.now(TZ).isoformat(),
             "current_week": {
                 "number": datetime.now(TZ).isocalendar()[1],
                 "year": datetime.now(TZ).year
             },
-            "last_7_days": {
-                "total_bookings": 0,
-                "appearance_rate": 0,
-                "success_rate": 0,
-                "no_show_rate": 0
-            },
-            "last_30_days": {
-                "total_bookings": 0,
-                "appearance_rate": 0,
-                "success_rate": 0,
-                "no_show_rate": 0
-            },
-            "current_totals": {
-                "total_slots": 0,
-                "total_appeared": 0,
-                "total_not_appeared": 0,
-                "total_cancelled": 0,
-                "appearance_rate": 0,
-                "days_tracked": 0
-            },
+            "last_7_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0, "no_show_rate": 0},
+            "last_30_days": {"total_bookings": 0, "appearance_rate": 0, "success_rate": 0, "no_show_rate": 0},
+            "current_totals": {"total_slots": 0, "total_appeared": 0, "total_not_appeared": 0, "total_cancelled": 0, "appearance_rate": 0, "days_tracked": 0},
             "trends": {},
             "alerts": []
         }
-        
+
         try:
-            # Lade Metriken
             if os.path.exists(self.metrics_file):
                 with open(self.metrics_file, "r", encoding="utf-8") as f:
                     all_metrics = json.load(f)
-                    
-                    # Berechne 7-Tage Statistik
+
                     today = datetime.now(TZ).date()
                     last_7_days_list = [str(today - timedelta(days=i)) for i in range(7)]
 
@@ -1005,37 +1420,26 @@ class BookingTracker:
                             total_cancelled += metrics.get("cancelled", 0)
 
                     if total_slots > 0:
-                        # Auftauchquote = Erschienene / Alle gelegten Termine
-                        # Abgesagt und Verschoben zählen als "nicht erschienen"
                         appearance_rate = min(100, round((total_completed / total_slots) * 100, 2))
                         success_rate = min(100, round((total_completed / total_slots) * 100, 2))
                         no_show_rate = min(100, round((total_no_shows / total_slots) * 100, 2))
-
                         dashboard["last_7_days"] = {
                             "total_bookings": total_slots,
                             "appearance_rate": appearance_rate,
                             "success_rate": success_rate,
                             "no_show_rate": no_show_rate
                         }
-                    else:
-                        # Fallback wenn keine Daten vorhanden
-                        dashboard["last_7_days"] = {
-                            "total_bookings": 0,
-                            "appearance_rate": 0,
-                            "success_rate": 0,
-                            "no_show_rate": 0
-                        }
-                    
-                    # Berechne Statistik ab 01.09.2025
+
+                    # Since September 2025
                     start_date = datetime(2025, 9, 1).date()
                     days_since_start = (today - start_date).days + 1
                     date_range = [str(start_date + timedelta(days=i)) for i in range(days_since_start) if start_date + timedelta(days=i) <= today]
-                    
+
                     total_slots_30 = 0
                     total_no_shows_30 = 0
                     total_completed_30 = 0
                     total_cancelled_30 = 0
-                    
+
                     for date_str in date_range:
                         if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
                             metrics = all_metrics[date_str]
@@ -1043,14 +1447,11 @@ class BookingTracker:
                             total_no_shows_30 += metrics.get("no_shows", 0)
                             total_completed_30 += metrics.get("completed", 0)
                             total_cancelled_30 += metrics.get("cancelled", 0)
-                    
+
                     if total_slots_30 > 0:
-                        # Auftauchquote = Erschienene / Alle gelegten Termine
-                        # Abgesagt und Verschoben zählen als "nicht erschienen"
                         appearance_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
                         success_rate_30 = min(100, round((total_completed_30 / total_slots_30) * 100, 2))
                         no_show_rate_30 = min(100, round((total_no_shows_30 / total_slots_30) * 100, 2))
-
                         dashboard["since_september"] = {
                             "total_bookings": total_slots_30,
                             "appearance_rate": appearance_rate_30,
@@ -1058,7 +1459,7 @@ class BookingTracker:
                             "no_show_rate": no_show_rate_30
                         }
 
-                    # Calculate current totals from data since 01.09.2025
+                    # Current totals
                     tracking_start_date = datetime(2025, 9, 1).date()
                     all_total_slots = 0
                     all_total_completed = 0
@@ -1068,7 +1469,6 @@ class BookingTracker:
 
                     for date_str, metrics in all_metrics.items():
                         try:
-                            # Only count data from 01.09.2025 onwards
                             metric_date = datetime.strptime(date_str, "%Y-%m-%d").date()
                             if metric_date >= tracking_start_date and isinstance(metrics, dict) and 'total_slots' in metrics:
                                 all_total_slots += metrics.get("total_slots", 0)
@@ -1080,10 +1480,7 @@ class BookingTracker:
                             pass
 
                     if all_total_slots > 0:
-                        # Auftauchquote = Erschienene / Alle gelegten Termine
-                        # Abgesagt und Verschoben zählen als "nicht erschienen"
                         all_appearance_rate = round((all_total_completed / all_total_slots) * 100, 2)
-
                         dashboard["current_totals"] = {
                             "total_slots": all_total_slots,
                             "total_appeared": all_total_completed,
@@ -1092,33 +1489,28 @@ class BookingTracker:
                             "appearance_rate": all_appearance_rate,
                             "days_tracked": days_tracked
                         }
-                    
-                    # Trend-Analyse
+
+                    # Trend
                     if len(all_metrics) >= 14:
-                        # Vergleiche letzte 7 Tage mit vorherigen 7 Tagen
                         prev_7_days = [str(today - timedelta(days=i)) for i in range(7, 14)]
-                        
                         prev_no_show_rate = 0
                         prev_count = 0
-                        
                         for date_str in prev_7_days:
                             if date_str in all_metrics and isinstance(all_metrics[date_str], dict):
                                 metrics = all_metrics[date_str]
                                 if metrics.get("total_slots", 0) > 0:
                                     prev_no_show_rate += metrics.get("no_show_rate", 0)
                                     prev_count += 1
-                        
                         if prev_count > 0:
                             prev_no_show_rate = prev_no_show_rate / prev_count
                             current_no_show_rate = dashboard["last_7_days"].get("no_show_rate", 0)
-                            
                             dashboard["trends"]["no_show_trend"] = {
                                 "current": current_no_show_rate,
                                 "previous": round(prev_no_show_rate, 2),
                                 "change": round(current_no_show_rate - prev_no_show_rate, 2),
                                 "direction": "up" if current_no_show_rate > prev_no_show_rate else "down"
                             }
-                    
+
                     # Alerts
                     if dashboard["last_7_days"].get("no_show_rate", 0) > 20:
                         dashboard["alerts"].append({
@@ -1126,11 +1518,10 @@ class BookingTracker:
                             "message": f"Hohe No-Show Rate: {dashboard['last_7_days']['no_show_rate']}%",
                             "severity": "high"
                         })
-                        
+
         except Exception as e:
             logger.error(f"Fehler beim Laden der Dashboard-Daten: {e}")
-            # Fallback-Werte beibehalten
-        
+
         return dashboard
     
     def _get_potential_type(self, color_id):
@@ -1215,14 +1606,24 @@ class BookingTracker:
 
     def get_user_bookings(self, user, start_date, end_date):
         """
-        Hole alle Buchungen eines Users für einen bestimmten Zeitraum
+        Hole alle Buchungen eines Users fuer einen bestimmten Zeitraum (PG-First, JSON-Fallback)
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._get_user_bookings_pg(user, start_date, end_date)
+                if result is not None:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG get_user_bookings failed, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
         try:
             bookings = []
-            
+
             if not os.path.exists(self.bookings_file):
                 return bookings
-            
+
             with open(self.bookings_file, "r", encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
@@ -1241,23 +1642,58 @@ class BookingTracker:
                                     })
                         except json.JSONDecodeError:
                             continue
-            
+
             return bookings
-            
+
         except Exception as e:
             logger.error(f"Fehler beim Laden der User-Buchungen: {e}")
             return []
+
+    def _get_user_bookings_pg(self, user, start_date, end_date):
+        """PG: Lade Buchungen eines Users fuer Zeitraum"""
+        from app.utils.db_utils import db_session_scope_no_commit
+        with db_session_scope_no_commit() as session:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d").date() if isinstance(start_date, str) else start_date
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").date() if isinstance(end_date, str) else end_date
+            rows = session.query(Booking).filter(
+                Booking.username == user,
+                Booking.date >= start_dt,
+                Booking.date <= end_dt
+            ).order_by(Booking.date).all()
+            if not rows:
+                return []
+            bookings = []
+            for b in rows:
+                bookings.append({
+                    "date": str(b.date),
+                    "time_slot": b.time,
+                    "customer_name": b.customer,
+                    "color_id": b.color_id,
+                    "description": "",
+                    "potential_type": b.potential_type or "unknown"
+                })
+            return bookings
     
     def load_all_bookings(self):
         """
-        Lade alle Buchungen aus der JSONL-Datei
+        Lade alle Buchungen (PG-First, JSON-Fallback)
         """
+        # 1. PostgreSQL-First
+        if POSTGRES_AVAILABLE and is_postgres_enabled():
+            try:
+                result = self._load_all_bookings_pg()
+                if result is not None:
+                    return result
+            except Exception as e:
+                logger.warning(f"PG load_all_bookings failed, falling back to JSON: {e}")
+
+        # 2. JSON-Fallback
         try:
             bookings = []
-            
+
             if not os.path.exists(self.bookings_file):
                 return bookings
-            
+
             with open(self.bookings_file, "r", encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
@@ -1266,12 +1702,40 @@ class BookingTracker:
                             bookings.append(booking)
                         except json.JSONDecodeError:
                             continue
-            
+
             return bookings
-            
+
         except Exception as e:
             logger.error(f"Fehler beim Laden aller Buchungen: {e}")
             return []
+
+    def _load_all_bookings_pg(self):
+        """PG: Lade alle Buchungen aus Booking-Tabelle"""
+        from app.utils.db_utils import db_session_scope_no_commit
+        with db_session_scope_no_commit() as session:
+            rows = session.query(Booking).order_by(Booking.date.desc()).all()
+            if not rows:
+                return None
+            bookings = []
+            for b in rows:
+                bookings.append({
+                    "booking_id": b.booking_id,
+                    "customer": b.customer,
+                    "date": str(b.date),
+                    "time": b.time,
+                    "weekday": b.weekday,
+                    "week_number": b.week_number,
+                    "user": b.username,
+                    "potential_type": b.potential_type,
+                    "color_id": b.color_id,
+                    "description_length": b.description_length,
+                    "has_description": b.has_description,
+                    "booking_lead_time": b.booking_lead_time,
+                    "booked_at_hour": b.booked_at_hour,
+                    "booked_on_weekday": b.booked_on_weekday,
+                    "booking_timestamp": b.booking_timestamp.isoformat() if b.booking_timestamp else None
+                })
+            return bookings
     
     def load_historical_data(self):
         """Lädt historische Daten für erweiterte Analysen"""

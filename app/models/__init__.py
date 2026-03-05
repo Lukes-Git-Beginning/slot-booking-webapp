@@ -9,8 +9,9 @@ Architektur:
 - cosmetics.py: UserCosmetic, CustomizationAchievement
 - weekly.py: WeeklyPointsParticipant, WeeklyPoints, WeeklyActivity, PrestigeData, MinigameData, PersistentData
 - booking.py: Booking, BookingOutcome
+- tracking.py: DailyMetrics, CustomerProfile
 
-JSON-Mapping (22 Dateien → 25 Models):
+JSON-Mapping (24 Dateien → 27 Models):
 1. scores.json → Score
 2. user_badges.json → UserBadge
 3. user_profiles.json → User
@@ -84,6 +85,12 @@ from app.models.booking import (
     BookingOutcome
 )
 
+# Tracking Models
+from app.models.tracking import (
+    DailyMetrics,
+    CustomerProfile
+)
+
 # T2 Bucket Models
 from app.models.t2_bucket import (
     T2CloserConfig,
@@ -139,6 +146,9 @@ __all__ = [
     # Booking
     'Booking',
     'BookingOutcome',
+    # Tracking
+    'DailyMetrics',
+    'CustomerProfile',
     # T2 Bucket
     'T2CloserConfig',
     'T2BucketState',
