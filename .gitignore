@@ -115,11 +115,18 @@ persist/
 !data/historical/*.json
 !data/historical/*.jsonl
 
-# Documentation (local only, except README.md)
+# Local tool config
+.claude/
+.mcp.json
+.gsdignore
+
+# Runtime data
+data/static/
+static/login_history.json
+
+# Documentation & Markdown (local only)
 *.md
 !README.md
-!docs/*.md
-!docs/**/*.md
 !.planning/*.md
 !.planning/**/*.md
 
