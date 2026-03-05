@@ -614,9 +614,12 @@ def has_tool_access(username, tool_id):
         ]
         return is_admin or username in allowed_users
 
-    # Analytics: nur Admin-Rolle
+    # Analytics: Admin + Marketing/Analytics-Zugang
     if tool_id == 'analytics':
-        return is_admin
+        analytics_access = [
+            'moritz.schimanko',
+        ]
+        return is_admin or username in analytics_access
 
     # Finanzberatung: Opener + Closer + Admin
     if tool_id == 'finanzberatung':

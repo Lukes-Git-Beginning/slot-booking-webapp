@@ -13,10 +13,16 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 
 
 @analytics_bp.before_request
-def require_admin():
-    """Analytics nur für Admins"""
+def require_analytics_access():
+    """Analytics für Admins und berechtigte User"""
     user = session.get('user')
-    if not user or not is_admin(user):
+    if not user:
+        from flask import abort
+        abort(403)
+    analytics_access = [
+        'moritz.schimanko',
+    ]
+    if not is_admin(user) and user not in analytics_access:
         from flask import abort
         abort(403)
 
