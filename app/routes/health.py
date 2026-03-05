@@ -78,7 +78,7 @@ def health_check():
     # 4. Cache Manager Check
     try:
         from app.core.extensions import cache_manager
-        cache_stats = cache_manager.get_stats()
+        cache_stats = cache_manager.get_cache_stats()
         checks['cache_manager'] = {
             'status': 'healthy',
             'message': 'Cache manager operational',
