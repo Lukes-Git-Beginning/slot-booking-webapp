@@ -9,12 +9,14 @@ Generates traffic-light scorecards for 4 categories based on extracted data:
 - Steueroptimierung: Riester/Ruerup/bAV usage, subsidies
 
 Mock mode: Rule-based decision tree
-Live mode: LLM generates qualitative assessments (stub)
+Live mode: LLM generates qualitative assessments per category
 """
 
+import json
 import logging
 from typing import Optional
 
+from app.config.base import FinanzConfig as finanz_config
 from app.config.finanz_checklist import (
     CONTRACT_TYPES, CHECKLIST_CATEGORIES, get_fields_for_type,
     compute_completeness, PRIORITY_MUSS,
@@ -134,7 +136,21 @@ class FinanzScorecardService:
         return contracts
 
     def _evaluate_category(self, category: ScorecardCategory, contracts: dict) -> dict:
-        """Evaluate a single scorecard category."""
+        """Evaluate a single scorecard category (rule-based, with optional LLM enhancement)."""
+        # Always compute rule-based result as baseline + fallback
+        rule_result = self._eval_rule_based(category, contracts)
+
+        if not finanz_config.FINANZ_LLM_ENABLED:
+            return rule_result
+
+        try:
+            return self._assess_llm(category, contracts, rule_result)
+        except Exception as e:
+            logger.warning("LLM scoring failed for %s, using rules: %s", category.value, e)
+            return rule_result
+
+    def _eval_rule_based(self, category: ScorecardCategory, contracts: dict) -> dict:
+        """Dispatch to the rule-based evaluator for a category."""
         if category == ScorecardCategory.ALTERSVORSORGE:
             return self._eval_altersvorsorge(contracts)
         elif category == ScorecardCategory.ABSICHERUNG:
@@ -342,6 +358,127 @@ class FinanzScorecardService:
             "rating": rating,
             "assessment": assessment,
             "details": " | ".join(details_parts) if details_parts else None,
+        }
+
+    # ------------------------------------------------------------------
+    # LLM-based qualitative assessment
+    # ------------------------------------------------------------------
+
+    CATEGORY_LABELS = {
+        ScorecardCategory.ALTERSVORSORGE: "Altersvorsorge",
+        ScorecardCategory.ABSICHERUNG: "Absicherung",
+        ScorecardCategory.VERMOEGEN_KOSTEN: "Vermoegen & Kosten",
+        ScorecardCategory.STEUEROPTIMIERUNG: "Steueroptimierung",
+    }
+
+    CATEGORY_INSTRUCTIONS = {
+        ScorecardCategory.ALTERSVORSORGE: (
+            "Bewerte die Altersvorsorge-Situation: Diversifikation, staatliche Foerderung, "
+            "betriebliche Vorsorge, Kapitalmarkt-Beteiligung. Identifiziere Luecken."
+        ),
+        ScorecardCategory.ABSICHERUNG: (
+            "Bewerte die Risikoabsicherung: BU, Risikolebensversicherung, Unfallversicherung, "
+            "Privathaftpflicht. Identifiziere kritische Luecken."
+        ),
+        ScorecardCategory.VERMOEGEN_KOSTEN: (
+            "Bewerte Vermoegen und Kosten: Gesamtbeitraege, Kosten-Nutzen-Verhaeltnis, "
+            "moegliche Doppelversicherungen, Optimierungspotenzial."
+        ),
+        ScorecardCategory.STEUEROPTIMIERUNG: (
+            "Bewerte die steuerliche Optimierung: Riester, Basisrente (Ruerup), bAV, "
+            "genutzte und ungenutzte Foerderwege."
+        ),
+    }
+
+    def _build_contract_summary(self, contracts: dict) -> str:
+        """Build a concise text summary of all contracts for the LLM prompt."""
+        lines = []
+        for type_key, contract_list in contracts.items():
+            ct = CONTRACT_TYPES.get(type_key, {})
+            label = ct.get("label", type_key)
+            for i, contract in enumerate(contract_list, 1):
+                fields = contract["fields"]
+                if len(contract_list) > 1:
+                    lines.append(f"- {label} (#{i}):")
+                else:
+                    lines.append(f"- {label}:")
+                for fname, fdata in fields.items():
+                    val = fdata.get("value", "")
+                    if val:
+                        lines.append(f"  {fname}: {val}")
+        return "\n".join(lines) if lines else "Keine Vertraege vorhanden."
+
+    def _assess_llm(
+        self,
+        category: ScorecardCategory,
+        contracts: dict,
+        rule_result: dict,
+    ) -> dict:
+        """
+        Generate a qualitative LLM assessment for one scorecard category.
+
+        Uses the rule-based rating as anchor and asks the LLM for a richer,
+        personalised assessment text.  Falls back to rule_result on any error.
+        """
+        import requests
+
+        base_url = finanz_config.FINANZ_LLM_BASE_URL
+        model = finanz_config.FINANZ_LLM_MODEL
+
+        contract_summary = self._build_contract_summary(contracts)
+        cat_label = self.CATEGORY_LABELS.get(category, category.value)
+        cat_instruction = self.CATEGORY_INSTRUCTIONS.get(category, "")
+        rule_rating = rule_result["rating"].value if hasattr(rule_result["rating"], "value") else rule_result["rating"]
+
+        prompt = f"""Du bist ein Finanzberater-Assistent. Bewerte die Kategorie "{cat_label}" eines Kunden.
+
+Aufgabe: {cat_instruction}
+
+Erkannte Vertraege des Kunden:
+{contract_summary}
+
+Die regelbasierte Voranalyse ergab: {rule_rating.upper()}
+
+Erstelle eine qualitative Bewertung. Antworte NUR mit JSON:
+{{"rating": "red" oder "yellow" oder "green", "assessment": "Kurztext max 200 Zeichen", "details": "Punkt 1 | Punkt 2 | Punkt 3"}}
+
+Regeln:
+- rating: red = kritischer Handlungsbedarf, yellow = Optimierungspotenzial, green = gut aufgestellt
+- assessment: Sachlich, praegnant, max 200 Zeichen, KEINE Beratungsempfehlung
+- details: Konkrete Beobachtungen, pipe-separiert, max 3-5 Punkte
+- Beruecksichtige die Voranalyse, aber korrigiere wenn noetig"""
+
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+                "max_tokens": 500,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+
+        result = json.loads(content.strip())
+
+        # Validate rating
+        rating_str = result.get("rating", "").lower()
+        rating_map = {"red": TrafficLight.RED, "yellow": TrafficLight.YELLOW, "green": TrafficLight.GREEN}
+        if rating_str not in rating_map:
+            logger.warning("LLM returned invalid rating '%s' for %s, using rule-based", rating_str, category.value)
+            return rule_result
+
+        assessment = result.get("assessment", "")
+        if not assessment:
+            return rule_result
+
+        return {
+            "category": category,
+            "rating": rating_map[rating_str],
+            "assessment": assessment[:200],
+            "details": result.get("details"),
         }
 
     def _compute_overall(self, category_results: list[dict]) -> dict:
