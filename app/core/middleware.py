@@ -39,12 +39,9 @@ def init_middleware(app: Flask) -> None:
         if request.path.startswith('/health'):
             return
 
-        # Check if user is logged in (compatible with old and new session format)
+        # Check if user is logged in
         if 'user' not in session or not session.get('user'):
-            return redirect('/login')
-
-        # Also check logged_in flag for backward compatibility
-        if not session.get("logged_in"):
+            logger.warning(f"Session invalid - no user key. Path: {request.path}, IP: {request.remote_addr}, Session keys: {list(session.keys())}")
             return redirect('/login')
 
     logger.info("Middleware initialized successfully")
