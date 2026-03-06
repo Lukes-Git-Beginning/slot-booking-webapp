@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dokumente hochladen - ZFA</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,22 +23,27 @@
     <style>
         /* Prevent iOS zoom on input focus */
         input, select, textarea { font-size: 16px !important; }
+        /* Safe area for notch devices */
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         /* Smooth card transitions */
         .upload-card { transition: all 0.3s ease; }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .upload-card { animation: fadeSlideIn 0.3s ease-out; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
     <!-- Header -->
     <div class="bg-white shadow-sm border-b border-gray-100">
-        <div class="max-w-lg mx-auto px-4 py-4 text-center">
-            <div class="flex items-center justify-center gap-2 mb-1">
-                <svg class="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                    <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-                <span class="text-xl font-bold text-accent">ZFA</span>
-            </div>
+        <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-center gap-2">
+            <svg class="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span class="text-lg font-bold text-accent">ZFA</span>
         </div>
     </div>
 
@@ -46,36 +51,36 @@
     <div class="max-w-lg mx-auto px-4 py-6">
 
         <!-- Greeting -->
-        <div class="text-center mb-6">
+        <div class="text-center mb-5">
             <h1 class="text-2xl font-bold text-accent mb-1">Hallo {{ customer_name }}</h1>
-            <p class="text-zfa-gray">Laden Sie Ihre Unterlagen hoch</p>
+            <p class="text-zfa-gray text-sm">Laden Sie Ihre Unterlagen hoch</p>
         </div>
 
-        <!-- Status Bar -->
-        <div class="flex items-center justify-between text-sm text-zfa-gray mb-6 px-1">
-            <div id="countdown" class="flex items-center gap-1">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Status Pills -->
+        <div class="flex items-center justify-center gap-3 mb-6">
+            <div id="countdown" class="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-sm text-zfa-gray shadow-sm">
+                <svg class="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
                 <span id="countdown-text">Wird berechnet...</span>
             </div>
-            <div class="flex items-center gap-1">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-sm text-zfa-gray shadow-sm">
+                <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
                     <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <span id="remaining-count">{{ remaining_uploads }}</span> verbleibend
+                <span><span id="remaining-count">{{ remaining_uploads }}</span> verbleibend</span>
             </div>
         </div>
 
         <!-- Upload Buttons -->
         <div id="upload-controls" class="space-y-3 mb-6">
-            <!-- Camera Button (Primary) -->
-            <label class="btn btn-lg w-full flex items-center justify-center gap-3 text-white border-0 shadow-md hover:shadow-lg cursor-pointer"
-                   style="min-height: 64px; background-color: #d4af6a; border-color: #d4af6a;">
-                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Camera Button (Primary / Hero) -->
+            <label class="btn w-full flex items-center justify-center gap-3 text-white border-0 shadow-lg active:scale-[0.98] transition-transform cursor-pointer rounded-2xl"
+                   style="min-height: 72px; background: linear-gradient(135deg, #d4af6a 0%, #c9a050 100%);">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                 </svg>
@@ -85,41 +90,44 @@
             </label>
 
             <!-- File Picker Button (Secondary) -->
-            <label class="btn btn-outline btn-lg w-full flex items-center justify-center gap-3 cursor-pointer"
+            <label class="btn btn-outline w-full flex items-center justify-center gap-3 cursor-pointer rounded-2xl active:scale-[0.98] transition-transform"
                    style="min-height: 56px; border-color: #207487; color: #207487;">
                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
-                <span class="text-lg font-semibold">Datei auswaehlen</span>
+                <span class="text-base font-semibold">Datei auswaehlen</span>
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic,image/*,application/pdf" multiple class="hidden" id="file-input"
                        onchange="handleFileSelect(this)">
             </label>
+
+            <!-- Format Hint -->
+            <p class="text-center text-xs text-zfa-gray/70 pt-1">PDF, JPG, PNG, TIFF, HEIC &mdash; max. {{ max_file_size_mb }} MB</p>
         </div>
 
         <!-- Upload Queue -->
         <div id="upload-queue" class="space-y-3"></div>
 
         <!-- Expired Overlay (hidden by default) -->
-        <div id="expired-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl p-8 max-w-sm text-center shadow-xl">
+        <div id="expired-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+            <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
                 <svg class="w-16 h-16 mx-auto mb-4 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
                 <h2 class="text-xl font-bold text-accent mb-2">Link abgelaufen</h2>
-                <p class="text-zfa-gray">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
+                <p class="text-zfa-gray text-sm">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
             </div>
         </div>
 
         <!-- All Done Overlay (hidden by default) -->
-        <div id="done-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl p-8 max-w-sm text-center shadow-xl">
+        <div id="done-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+            <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
                 <svg class="w-16 h-16 mx-auto mb-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                     <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
-                <h2 class="text-xl font-bold text-accent mb-2">Upload-Limit erreicht</h2>
-                <p class="text-zfa-gray">Alle Uploads wurden erfolgreich hochgeladen. Vielen Dank!</p>
+                <h2 class="text-xl font-bold text-accent mb-2">Alles hochgeladen</h2>
+                <p class="text-zfa-gray text-sm">Ihre Dokumente wurden erfolgreich uebermittelt. Vielen Dank!</p>
             </div>
         </div>
 
@@ -162,7 +170,7 @@
             var seconds = Math.floor((diff % 60000) / 1000);
 
             var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
-            countdownText.textContent = 'Noch ' + pad(hours) + ':' + pad(minutes) + ':' + pad(seconds) + ' gueltig';
+            countdownText.textContent = pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
         }
 
         updateCountdown();
@@ -220,12 +228,12 @@
         // ---- Create Upload Card ----
         function createUploadCard(file) {
             var card = document.createElement('div');
-            card.className = 'upload-card bg-white rounded-xl shadow-sm border border-gray-100 p-4';
+            card.className = 'upload-card bg-white rounded-2xl shadow-sm border border-gray-100 p-4';
 
             var iconHTML;
             if (isPDF(file)) {
-                iconHTML = '<div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">' +
-                    '<svg class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                iconHTML = '<div class="w-14 h-14 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">' +
+                    '<svg class="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                     '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
                     '<polyline points="14 2 14 8 20 8"/>' +
                     '<line x1="16" y1="13" x2="8" y2="13"/>' +
@@ -233,7 +241,7 @@
                     '</svg></div>';
             } else {
                 // Image: show thumbnail preview
-                iconHTML = '<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">' +
+                iconHTML = '<div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">' +
                     '<img class="w-full h-full object-cover" data-preview="true" alt="Vorschau"></div>';
             }
 
@@ -242,7 +250,7 @@
                     iconHTML +
                     '<div class="flex-1 min-w-0">' +
                         '<p class="font-medium text-accent text-sm truncate">' + truncateFilename(file.name, 35) + '</p>' +
-                        '<p class="text-xs text-zfa-gray">' + formatFileSize(file.size) + '</p>' +
+                        '<p class="text-xs text-zfa-gray mt-0.5">' + formatFileSize(file.size) + '</p>' +
                     '</div>' +
                     '<div data-status-icon class="flex-shrink-0"></div>' +
                 '</div>' +
@@ -303,7 +311,7 @@
                     progressBar.value = 100;
                     progressBar.classList.remove('progress-primary');
                     progressBar.classList.add('progress-success');
-                    statusText.textContent = 'Fertig';
+                    statusText.textContent = 'Erfolgreich hochgeladen';
                     statusText.classList.remove('text-zfa-gray');
                     statusText.classList.add('text-green-600');
                     statusIcon.innerHTML =
@@ -351,7 +359,7 @@
 
         function showInlineError(message) {
             var card = document.createElement('div');
-            card.className = 'upload-card bg-red-50 rounded-xl border border-red-200 p-4';
+            card.className = 'upload-card bg-red-50 rounded-2xl border border-red-200 p-4';
             card.innerHTML =
                 '<div class="flex items-center gap-3">' +
                     '<svg class="w-6 h-6 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
