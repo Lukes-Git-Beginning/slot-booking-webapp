@@ -473,7 +473,7 @@
 {% endblock %}
 
 {% block finanz_global_notifications %}
-{% if finanz_enabled %}
+{% if finanz_enabled and finanz_access %}
 <!-- Finanzberatung: Global upload toast notifications -->
 <div id="finanz-toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"></div>
 <script src="{{ url_for('static', filename='js/finanz_notifications.js') }}" nonce="{{ csp_nonce }}"></script>

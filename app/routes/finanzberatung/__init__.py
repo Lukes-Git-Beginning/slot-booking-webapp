@@ -46,6 +46,10 @@ def require_finanz_access():
     # Role check
     from app.routes.hub import has_tool_access
     if not has_tool_access(user, 'finanzberatung'):
+        # SSE endpoints: silent 403 instead of flash+redirect (avoids flash spam)
+        if 'sse' in endpoint:
+            from flask import abort
+            abort(403)
         flash("Kein Zugriff auf Finanzberatung", "error")
         return redirect(url_for('hub.dashboard'))
 
