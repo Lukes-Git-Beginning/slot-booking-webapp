@@ -102,11 +102,11 @@ class FinanzExportService:
                     cell.border = thin_border
 
             def rating_fill(rating):
-                if rating == TrafficLight.GREEN.value:
+                if rating == TrafficLight.GREEN:
                     return green_fill
-                elif rating == TrafficLight.YELLOW.value:
+                elif rating == TrafficLight.YELLOW:
                     return yellow_fill
-                elif rating == TrafficLight.RED.value:
+                elif rating == TrafficLight.RED:
                     return red_fill
                 return None
 
@@ -130,15 +130,15 @@ class FinanzExportService:
             ws1.append(["Kategorie", "Bewertung", "Zusammenfassung"])
             style_header(ws1, ws1.max_row)
             cat_labels = {
-                ScorecardCategory.ALTERSVORSORGE.value: "Altersvorsorge",
-                ScorecardCategory.ABSICHERUNG.value: "Absicherung",
-                ScorecardCategory.VERMOEGEN_KOSTEN.value: "Vermoegen & Kosten",
-                ScorecardCategory.STEUEROPTIMIERUNG.value: "Steueroptimierung",
+                ScorecardCategory.ALTERSVORSORGE: "Altersvorsorge",
+                ScorecardCategory.ABSICHERUNG: "Absicherung",
+                ScorecardCategory.VERMOEGEN_KOSTEN: "Vermoegen & Kosten",
+                ScorecardCategory.STEUEROPTIMIERUNG: "Steueroptimierung",
             }
             rating_labels = {
-                TrafficLight.GREEN.value: "Gruen",
-                TrafficLight.YELLOW.value: "Gelb",
-                TrafficLight.RED.value: "Rot",
+                TrafficLight.GREEN: "Gruen",
+                TrafficLight.YELLOW: "Gelb",
+                TrafficLight.RED: "Rot",
             }
             for sc in scorecards:
                 if sc.is_overall:
@@ -167,7 +167,7 @@ class FinanzExportService:
             style_header(ws2)
 
             for doc in docs:
-                if not doc.document_type or doc.status != DocumentStatus.ANALYZED.value:
+                if not doc.document_type or doc.status != DocumentStatus.ANALYZED:
                     continue
                 ct = CONTRACT_TYPES.get(doc.document_type, {})
                 extracted = db.query(FinanzExtractedData).filter(
@@ -195,7 +195,7 @@ class FinanzExportService:
             style_header(ws3)
 
             for doc in docs:
-                if not doc.document_type or doc.status != DocumentStatus.ANALYZED.value:
+                if not doc.document_type or doc.status != DocumentStatus.ANALYZED:
                     continue
                 ct = CONTRACT_TYPES.get(doc.document_type, {})
                 extracted = db.query(FinanzExtractedData).filter(
@@ -286,7 +286,7 @@ class FinanzExportService:
             ws5['A' + str(ws5.max_row)].font = Font(bold=True)
 
             for doc in docs:
-                if not doc.document_type or doc.status != DocumentStatus.ANALYZED.value:
+                if not doc.document_type or doc.status != DocumentStatus.ANALYZED:
                     continue
                 ct = CONTRACT_TYPES.get(doc.document_type, {})
                 extracted = db.query(FinanzExtractedData).filter(
@@ -446,15 +446,15 @@ class FinanzExportService:
             elements.append(Spacer(1, 5*mm))
 
             cat_labels = {
-                ScorecardCategory.ALTERSVORSORGE.value: "Altersvorsorge",
-                ScorecardCategory.ABSICHERUNG.value: "Absicherung",
-                ScorecardCategory.VERMOEGEN_KOSTEN.value: "Vermoegen & Kosten",
-                ScorecardCategory.STEUEROPTIMIERUNG.value: "Steueroptimierung",
+                ScorecardCategory.ALTERSVORSORGE: "Altersvorsorge",
+                ScorecardCategory.ABSICHERUNG: "Absicherung",
+                ScorecardCategory.VERMOEGEN_KOSTEN: "Vermoegen & Kosten",
+                ScorecardCategory.STEUEROPTIMIERUNG: "Steueroptimierung",
             }
             rating_colors = {
-                TrafficLight.GREEN.value: colors.HexColor('#22c55e'),
-                TrafficLight.YELLOW.value: colors.HexColor('#eab308'),
-                TrafficLight.RED.value: colors.HexColor('#ef4444'),
+                TrafficLight.GREEN: colors.HexColor('#22c55e'),
+                TrafficLight.YELLOW: colors.HexColor('#eab308'),
+                TrafficLight.RED: colors.HexColor('#ef4444'),
             }
 
             sc_data = [["Kategorie", "Bewertung", "Zusammenfassung"]]
@@ -463,9 +463,9 @@ class FinanzExportService:
                     continue
                 label = cat_labels.get(sc.category, sc.category)
                 rating_text = {
-                    TrafficLight.GREEN.value: "GRUEN",
-                    TrafficLight.YELLOW.value: "GELB",
-                    TrafficLight.RED.value: "ROT",
+                    TrafficLight.GREEN: "GRUEN",
+                    TrafficLight.YELLOW: "GELB",
+                    TrafficLight.RED: "ROT",
                 }.get(sc.rating, sc.rating)
                 sc_data.append([label, rating_text, sc.assessment or ""])
 
@@ -511,7 +511,7 @@ class FinanzExportService:
             elements.append(Spacer(1, 5*mm))
 
             for doc_obj in docs:
-                if not doc_obj.document_type or doc_obj.status != DocumentStatus.ANALYZED.value:
+                if not doc_obj.document_type or doc_obj.status != DocumentStatus.ANALYZED:
                     continue
 
                 ct = CONTRACT_TYPES.get(doc_obj.document_type, {})
@@ -564,7 +564,7 @@ class FinanzExportService:
             elements.append(Spacer(1, 5*mm))
 
             for doc_obj in docs:
-                if not doc_obj.document_type or doc_obj.status != DocumentStatus.ANALYZED.value:
+                if not doc_obj.document_type or doc_obj.status != DocumentStatus.ANALYZED:
                     continue
                 ct = CONTRACT_TYPES.get(doc_obj.document_type, {})
                 extracted = db.query(FinanzExtractedData).filter(

@@ -63,13 +63,13 @@ class FinanzExtractionService:
                 raise ValueError(f"Document {document_id} not found")
 
             # Update status to EXTRACTING
-            doc.status = DocumentStatus.EXTRACTING.value
+            doc.status = DocumentStatus.EXTRACTING
             db.commit()
 
             # Resolve file path
             file_path = self._resolve_path(doc)
             if not os.path.exists(file_path):
-                doc.status = DocumentStatus.ERROR.value
+                doc.status = DocumentStatus.ERROR
                 db.commit()
                 raise ValueError(f"File not found: {file_path}")
 
@@ -86,14 +86,14 @@ class FinanzExtractionService:
                         doc.mime_type, document_id,
                     )
             except Exception as e:
-                doc.status = DocumentStatus.ERROR.value
+                doc.status = DocumentStatus.ERROR
                 db.commit()
                 raise RuntimeError(f"Extraction failed for doc {document_id}: {e}") from e
 
             # Save extracted text + page count
             doc.extracted_text = result["text"]
             doc.page_count = result["page_count"]
-            doc.status = DocumentStatus.EXTRACTED.value
+            doc.status = DocumentStatus.EXTRACTED
             db.commit()
 
             logger.info(

@@ -80,7 +80,7 @@ class FinanzDSGVOService:
                 session.transition_to(SessionStatus.DELETION_PENDING)
             except ValueError:
                 # If current status doesn't allow transition, force it
-                session.status = SessionStatus.DELETION_PENDING.value
+                session.status = SessionStatus.DELETION_PENDING
 
             db.commit()
 

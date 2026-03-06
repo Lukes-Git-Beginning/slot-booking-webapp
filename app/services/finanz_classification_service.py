@@ -51,13 +51,13 @@ class FinanzClassificationService:
             if doc is None:
                 raise ValueError(f"Document {document_id} not found")
 
-            if doc.status != DocumentStatus.EXTRACTED.value:
+            if doc.status != DocumentStatus.EXTRACTED:
                 raise ValueError(
                     f"Document {document_id} not in EXTRACTED status (current: {doc.status})"
                 )
 
             # Update status
-            doc.status = DocumentStatus.CLASSIFYING.value
+            doc.status = DocumentStatus.CLASSIFYING
             db.commit()
 
             text = doc.extracted_text or ""
@@ -70,7 +70,7 @@ class FinanzClassificationService:
                 else:
                     result = self._classify_keywords(text)
             except Exception as e:
-                doc.status = DocumentStatus.ERROR.value
+                doc.status = DocumentStatus.ERROR
                 db.commit()
                 raise RuntimeError(f"Classification failed for doc {document_id}: {e}") from e
 
@@ -78,14 +78,14 @@ class FinanzClassificationService:
             type_key = result["type_key"]
             if type_key and type_key != "sonstige":
                 try:
-                    doc.document_type = DocumentType(type_key).value
+                    doc.document_type = DocumentType(type_key)
                 except ValueError:
-                    doc.document_type = DocumentType.SONSTIGE.value
+                    doc.document_type = DocumentType.SONSTIGE
             else:
-                doc.document_type = DocumentType.SONSTIGE.value
+                doc.document_type = DocumentType.SONSTIGE
 
             doc.classification_confidence = result["confidence"]
-            doc.status = DocumentStatus.CLASSIFIED.value
+            doc.status = DocumentStatus.CLASSIFIED
             db.commit()
 
             logger.info(

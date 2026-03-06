@@ -52,7 +52,7 @@ class FinanzScorecardService:
             # Gather all extracted data for this session
             docs = db.query(FinanzDocument).filter(
                 FinanzDocument.session_id == session_id,
-                FinanzDocument.status == DocumentStatus.ANALYZED.value,
+                FinanzDocument.status == DocumentStatus.ANALYZED,
             ).all()
 
             contracts = self._gather_contracts(db, docs)
@@ -145,7 +145,7 @@ class FinanzScorecardService:
             return self._eval_steueroptimierung(contracts)
         return {
             "category": category.value,
-            "rating": TrafficLight.YELLOW.value,
+            "rating": TrafficLight.YELLOW,
             "assessment": "Bewertung nicht verfuegbar.",
         }
 
@@ -158,8 +158,8 @@ class FinanzScorecardService:
 
         if not found:
             return {
-                "category": ScorecardCategory.ALTERSVORSORGE.value,
-                "rating": TrafficLight.RED.value,
+                "category": ScorecardCategory.ALTERSVORSORGE,
+                "rating": TrafficLight.RED,
                 "assessment": "Keine Altersvorsorge-Produkte erkannt.",
                 "details": "Es wurden keine Vertraege zur Altersvorsorge gefunden. "
                            "Eine umfassende Altersvorsorge-Beratung wird empfohlen.",
@@ -193,15 +193,15 @@ class FinanzScorecardService:
 
         # Rating
         if issues and not positives:
-            rating = TrafficLight.RED.value
+            rating = TrafficLight.RED
         elif issues:
-            rating = TrafficLight.YELLOW.value
+            rating = TrafficLight.YELLOW
         else:
-            rating = TrafficLight.GREEN.value
+            rating = TrafficLight.GREEN
 
         assessment_parts = positives + [f"Achtung: {i}" for i in issues]
         return {
-            "category": ScorecardCategory.ALTERSVORSORGE.value,
+            "category": ScorecardCategory.ALTERSVORSORGE,
             "rating": rating,
             "assessment": f"{len(found)} Altersvorsorge-Produkte erkannt.",
             "details": " | ".join(assessment_parts) if assessment_parts else None,
@@ -238,18 +238,18 @@ class FinanzScorecardService:
 
         # Rating
         if len(critical_missing) >= 2:
-            rating = TrafficLight.RED.value
+            rating = TrafficLight.RED
         elif critical_missing:
-            rating = TrafficLight.YELLOW.value
+            rating = TrafficLight.YELLOW
         else:
-            rating = TrafficLight.GREEN.value
+            rating = TrafficLight.GREEN
 
         assessment = f"{len(found)} Absicherungs-Produkte erkannt."
         if critical_missing:
             assessment += f" Fehlend: {', '.join(critical_missing)}."
 
         return {
-            "category": ScorecardCategory.ABSICHERUNG.value,
+            "category": ScorecardCategory.ABSICHERUNG,
             "rating": rating,
             "assessment": assessment,
             "details": " | ".join(positives) if positives else None,
@@ -283,8 +283,8 @@ class FinanzScorecardService:
 
         if contract_count == 0:
             return {
-                "category": ScorecardCategory.VERMOEGEN_KOSTEN.value,
-                "rating": TrafficLight.YELLOW.value,
+                "category": ScorecardCategory.VERMOEGEN_KOSTEN,
+                "rating": TrafficLight.YELLOW,
                 "assessment": "Keine Vertraege zur Bewertung vorhanden.",
             }
 
@@ -295,12 +295,12 @@ class FinanzScorecardService:
             assessment = f"{contract_count} Vertraege erkannt. Beitraege konnten nicht ermittelt werden."
 
         if issues:
-            rating = TrafficLight.YELLOW.value
+            rating = TrafficLight.YELLOW
         else:
-            rating = TrafficLight.GREEN.value
+            rating = TrafficLight.GREEN
 
         return {
-            "category": ScorecardCategory.VERMOEGEN_KOSTEN.value,
+            "category": ScorecardCategory.VERMOEGEN_KOSTEN,
             "rating": rating,
             "assessment": assessment,
             "details": " | ".join(issues) if issues else None,
@@ -327,18 +327,18 @@ class FinanzScorecardService:
             suggestions.append("Betriebliche Altersvorsorge pruefen")
 
         if len(positives) >= 2:
-            rating = TrafficLight.GREEN.value
+            rating = TrafficLight.GREEN
             assessment = "Gute steuerliche Optimierung."
         elif positives:
-            rating = TrafficLight.YELLOW.value
+            rating = TrafficLight.YELLOW
             assessment = "Teilweise steuerlich optimiert."
         else:
-            rating = TrafficLight.RED.value
+            rating = TrafficLight.RED
             assessment = "Keine steuerlich gefoerderten Produkte erkannt."
 
         details_parts = positives + [f"Empfehlung: {s}" for s in suggestions]
         return {
-            "category": ScorecardCategory.STEUEROPTIMIERUNG.value,
+            "category": ScorecardCategory.STEUEROPTIMIERUNG,
             "rating": rating,
             "assessment": assessment,
             "details": " | ".join(details_parts) if details_parts else None,
@@ -347,31 +347,31 @@ class FinanzScorecardService:
     def _compute_overall(self, category_results: list[dict]) -> dict:
         """Compute overall score from category results."""
         rating_scores = {
-            TrafficLight.GREEN.value: 3,
-            TrafficLight.YELLOW.value: 2,
-            TrafficLight.RED.value: 1,
+            TrafficLight.GREEN: 3,
+            TrafficLight.YELLOW: 2,
+            TrafficLight.RED: 1,
         }
 
         total = sum(rating_scores.get(r["rating"], 2) for r in category_results)
         avg = total / len(category_results) if category_results else 2
 
         if avg >= 2.5:
-            overall_rating = TrafficLight.GREEN.value
+            overall_rating = TrafficLight.GREEN
             assessment = "Gute finanzielle Gesamtaufstellung."
         elif avg >= 1.5:
-            overall_rating = TrafficLight.YELLOW.value
+            overall_rating = TrafficLight.YELLOW
             assessment = "Finanzielle Aufstellung mit Optimierungspotenzial."
         else:
-            overall_rating = TrafficLight.RED.value
+            overall_rating = TrafficLight.RED
             assessment = "Deutlicher Handlungsbedarf bei der finanziellen Absicherung."
 
-        red_cats = [r for r in category_results if r["rating"] == TrafficLight.RED.value]
+        red_cats = [r for r in category_results if r["rating"] == TrafficLight.RED]
         if red_cats:
             cat_labels = {
-                ScorecardCategory.ALTERSVORSORGE.value: "Altersvorsorge",
-                ScorecardCategory.ABSICHERUNG.value: "Absicherung",
-                ScorecardCategory.VERMOEGEN_KOSTEN.value: "Vermoegen & Kosten",
-                ScorecardCategory.STEUEROPTIMIERUNG.value: "Steueroptimierung",
+                ScorecardCategory.ALTERSVORSORGE: "Altersvorsorge",
+                ScorecardCategory.ABSICHERUNG: "Absicherung",
+                ScorecardCategory.VERMOEGEN_KOSTEN: "Vermoegen & Kosten",
+                ScorecardCategory.STEUEROPTIMIERUNG: "Steueroptimierung",
             }
             names = [cat_labels.get(r["category"], r["category"]) for r in red_cats]
             assessment += f" Kritisch: {', '.join(names)}."

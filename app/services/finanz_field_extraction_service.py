@@ -78,13 +78,13 @@ class FinanzFieldExtractionService:
             if doc is None:
                 raise ValueError(f"Document {document_id} not found")
 
-            if doc.status != DocumentStatus.CLASSIFIED.value:
+            if doc.status != DocumentStatus.CLASSIFIED:
                 raise ValueError(
                     f"Document {document_id} not in CLASSIFIED status (current: {doc.status})"
                 )
 
             # Update status
-            doc.status = DocumentStatus.ANALYZING.value
+            doc.status = DocumentStatus.ANALYZING
             db.commit()
 
             type_key = doc.document_type or "sonstige"
@@ -99,7 +99,7 @@ class FinanzFieldExtractionService:
                 else:
                     results = self._extract_patterns(type_key, text, pages)
             except Exception as e:
-                doc.status = DocumentStatus.ERROR.value
+                doc.status = DocumentStatus.ERROR
                 db.commit()
                 raise RuntimeError(
                     f"Field extraction failed for doc {document_id}: {e}"
@@ -123,7 +123,7 @@ class FinanzFieldExtractionService:
                 )
                 db.add(extracted)
 
-            doc.status = DocumentStatus.ANALYZED.value
+            doc.status = DocumentStatus.ANALYZED
             db.commit()
 
             logger.info(

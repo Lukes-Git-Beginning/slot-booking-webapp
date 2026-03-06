@@ -167,7 +167,7 @@ class FinanzSession(Base):
     )
     status: Mapped[str] = mapped_column(
         SAEnum(SessionStatus, native_enum=False, name='finanz_session_status'),
-        default=SessionStatus.ACTIVE.value,
+        default=SessionStatus.ACTIVE,
         nullable=False
     )
     t1_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -222,14 +222,20 @@ class FinanzSession(Base):
         Raises:
             ValueError: If the transition is not allowed
         """
-        current = SessionStatus(self.status)
+        if isinstance(self.status, SessionStatus):
+            current = self.status
+        else:
+            try:
+                current = SessionStatus[self.status]
+            except KeyError:
+                current = SessionStatus(self.status)
         allowed = self.VALID_TRANSITIONS.get(current, [])
         if new_status not in allowed:
             raise ValueError(
-                f"Invalid transition from {current.value} to {new_status.value}. "
-                f"Allowed: {[s.value for s in allowed]}"
+                f"Invalid transition from {current.name} to {new_status.name}. "
+                f"Allowed: {[s.name for s in allowed]}"
             )
-        self.status = new_status.value
+        self.status = new_status
 
     __table_args__ = (
         Index('idx_finanz_sessions_opener', 'opener_username'),
@@ -344,7 +350,7 @@ class FinanzDocument(Base):
     )
     status: Mapped[str] = mapped_column(
         SAEnum(DocumentStatus, native_enum=False, name='finanz_document_status'),
-        default=DocumentStatus.UPLOADED.value,
+        default=DocumentStatus.UPLOADED,
         nullable=False
     )
     classification_confidence: Mapped[Optional[float]] = mapped_column(
@@ -499,7 +505,7 @@ class FinanzTaskTracking(Base):
     )
     status: Mapped[str] = mapped_column(
         SAEnum(TaskStatus, native_enum=False, name='finanz_task_status'),
-        default=TaskStatus.PENDING.value,
+        default=TaskStatus.PENDING,
         nullable=False
     )
     result: Mapped[Optional[str]] = mapped_column(

@@ -95,10 +95,10 @@ class TestFinanzSessionModel:
         session = FinanzSession(
             opener_username='test.opener',
             customer_name='Test',
-            status=SessionStatus.ACTIVE.value,
+            status=SessionStatus.ACTIVE,
         )
         session.transition_to(SessionStatus.IN_ANALYSIS)
-        assert session.status == SessionStatus.IN_ANALYSIS.value
+        assert session.status == SessionStatus.IN_ANALYSIS
 
     def test_transition_to_deletion_pending(self):
         """Test transition to DELETION_PENDING (no DB needed)."""
@@ -107,10 +107,10 @@ class TestFinanzSessionModel:
         session = FinanzSession(
             opener_username='test.opener',
             customer_name='Test',
-            status=SessionStatus.ACTIVE.value,
+            status=SessionStatus.ACTIVE,
         )
         session.transition_to(SessionStatus.DELETION_PENDING)
-        assert session.status == SessionStatus.DELETION_PENDING.value
+        assert session.status == SessionStatus.DELETION_PENDING
 
     def test_invalid_transition_raises(self):
         """Test that invalid transitions raise ValueError (no DB needed)."""
@@ -119,7 +119,7 @@ class TestFinanzSessionModel:
         session = FinanzSession(
             opener_username='test.opener',
             customer_name='Test',
-            status=SessionStatus.ACTIVE.value,
+            status=SessionStatus.ACTIVE,
         )
         with pytest.raises(ValueError, match="Invalid transition"):
             session.transition_to(SessionStatus.VERIFIED)

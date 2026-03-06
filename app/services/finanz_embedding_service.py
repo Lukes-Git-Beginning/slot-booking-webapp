@@ -134,13 +134,13 @@ class FinanzEmbeddingService:
                 raise ValueError(f"Document {document_id} not found")
 
             # Update status to EMBEDDING
-            doc.status = DocumentStatus.EMBEDDING.value
+            doc.status = DocumentStatus.EMBEDDING
             db.commit()
 
             text = doc.extracted_text or ""
             if not text.strip():
                 logger.warning("Document %s has no extracted text — skipping embedding", document_id)
-                doc.status = DocumentStatus.EMBEDDED.value
+                doc.status = DocumentStatus.EMBEDDED
                 db.commit()
                 return {"chunk_count": 0, "collection_name": None, "skipped": True}
 
@@ -181,7 +181,7 @@ class FinanzEmbeddingService:
             )
 
             # Update status to EMBEDDED
-            doc.status = DocumentStatus.EMBEDDED.value
+            doc.status = DocumentStatus.EMBEDDED
             db.commit()
 
             collection_name = f"finanz_session_{doc.session_id}"

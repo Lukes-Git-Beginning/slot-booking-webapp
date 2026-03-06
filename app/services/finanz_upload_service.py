@@ -95,7 +95,7 @@ class FinanzUploadService:
             token = FinanzUploadToken(
                 session_id=session_id,
                 token=token_value,
-                token_type=token_type.value,
+                token_type=token_type,
                 expires_at=expires_at,
                 upload_count=0,
                 max_uploads=finanz_config.FINANZ_MAX_UPLOADS_PER_TOKEN,
@@ -304,7 +304,7 @@ class FinanzUploadService:
                 file_hash=file_hash,
                 file_size=file_size,
                 mime_type=mime_type,
-                status=DocumentStatus.UPLOADED.value,
+                status=DocumentStatus.UPLOADED,
             )
             db.add(document)
 
@@ -395,7 +395,7 @@ class FinanzUploadService:
                 db.query(FinanzUploadToken)
                 .filter(
                     FinanzUploadToken.session_id == session_id,
-                    FinanzUploadToken.token_type == TokenType.T1.value,
+                    FinanzUploadToken.token_type == TokenType.T1,
                     FinanzUploadToken.is_active == True,
                 )
                 .all()

@@ -216,7 +216,13 @@ def session_detail(session_id):
         can_followup = upload_service.can_generate_followup(session_id)
 
         # Determine allowed status transitions
-        current_status = SessionStatus(finanz_session.status)
+        if isinstance(finanz_session.status, SessionStatus):
+            current_status = finanz_session.status
+        else:
+            try:
+                current_status = SessionStatus[finanz_session.status]
+            except KeyError:
+                current_status = SessionStatus(finanz_session.status)
         allowed_transitions = finanz_session.VALID_TRANSITIONS.get(current_status, [])
 
         # Build checklist data for the UI
@@ -565,7 +571,7 @@ def _build_checklist_data(session_id: int) -> list:
     try:
         docs = db.query(FinanzDocument).filter(
             FinanzDocument.session_id == session_id,
-            FinanzDocument.status == DocumentStatus.ANALYZED.value,
+            FinanzDocument.status == DocumentStatus.ANALYZED,
         ).all()
 
         result = []
@@ -737,9 +743,9 @@ def add_manual_contract(session_id):
         try:
             # Create a virtual document for manual entry
             try:
-                doc_type = DocumentType(type_key).value
+                doc_type = DocumentType(type_key)
             except ValueError:
-                doc_type = DocumentType.SONSTIGE.value
+                doc_type = DocumentType.SONSTIGE
 
             ct = CONTRACT_TYPES[type_key]
             doc = FinanzDocument(
@@ -750,7 +756,7 @@ def add_manual_contract(session_id):
                 file_size=0,
                 mime_type="application/manual",
                 document_type=doc_type,
-                status=DocumentStatus.ANALYZED.value,
+                status=DocumentStatus.ANALYZED,
                 classification_confidence=1.0,
                 extracted_text="Manuell erfasst",
                 page_count=0,
@@ -819,7 +825,7 @@ def start_analysis(session_id):
             # Find documents that need processing
             docs = db.query(FinanzDocument).filter(
                 FinanzDocument.session_id == session_id,
-                FinanzDocument.status == DocumentStatus.UPLOADED.value,
+                FinanzDocument.status == DocumentStatus.UPLOADED,
             ).all()
 
             if not docs:

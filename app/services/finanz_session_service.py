@@ -59,7 +59,7 @@ class FinanzSessionService:
                 customer_name=customer_name,
                 session_type=session_type,
                 appointment_date=appointment_date,
-                status=SessionStatus.ACTIVE.value,
+                status=SessionStatus.ACTIVE,
             )
             db.add(session)
             db.commit()
@@ -135,7 +135,7 @@ class FinanzSessionService:
                     )
                 )
             if status is not None:
-                query = query.filter(FinanzSession.status == status.value)
+                query = query.filter(FinanzSession.status == status)
             return query.order_by(FinanzSession.appointment_date.desc()).all()
         except Exception as e:
             logger.error("Failed to list sessions: %s", e, exc_info=True)
