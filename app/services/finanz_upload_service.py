@@ -25,6 +25,7 @@ from typing import Optional, Tuple
 
 import magic
 import qrcode
+from sqlalchemy.orm import joinedload
 
 from app.config.base import Config, FinanzConfig as finanz_config
 from app.models import get_db_session
@@ -154,7 +155,9 @@ class FinanzUploadService:
         """
         db = get_db_session()
         try:
-            token = db.query(FinanzUploadToken).filter(
+            token = db.query(FinanzUploadToken).options(
+                joinedload(FinanzUploadToken.session)
+            ).filter(
                 FinanzUploadToken.token == token_value
             ).first()
 
@@ -162,14 +165,18 @@ class FinanzUploadService:
                 return False, None, 'Token nicht gefunden'
 
             if not token.is_active:
+                db.expunge(token)
                 return False, token, 'Token deaktiviert'
 
             if token.is_expired:
+                db.expunge(token)
                 return False, token, 'Token abgelaufen'
 
             if token.is_exhausted:
+                db.expunge(token)
                 return False, token, 'Upload-Limit erreicht'
 
+            db.expunge(token)
             return True, token, ''
 
         except Exception as e:
