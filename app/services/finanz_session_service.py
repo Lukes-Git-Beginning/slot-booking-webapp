@@ -16,6 +16,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import or_
+
 from app.models import get_db_session
 from app.models.finanzberatung import (
     FinanzSession,
@@ -94,7 +96,12 @@ class FinanzSessionService:
         try:
             query = db.query(FinanzSession).filter(FinanzSession.id == session_id)
             if username is not None:
-                query = query.filter(FinanzSession.opener_username == username)
+                query = query.filter(
+                    or_(
+                        FinanzSession.opener_username == username,
+                        FinanzSession.closer_username == username,
+                    )
+                )
             return query.first()
         except Exception as e:
             logger.error("Failed to get session %s: %s", session_id, e, exc_info=True)
@@ -121,7 +128,12 @@ class FinanzSessionService:
         try:
             query = db.query(FinanzSession)
             if username is not None:
-                query = query.filter(FinanzSession.opener_username == username)
+                query = query.filter(
+                    or_(
+                        FinanzSession.opener_username == username,
+                        FinanzSession.closer_username == username,
+                    )
+                )
             if status is not None:
                 query = query.filter(FinanzSession.status == status.value)
             return query.order_by(FinanzSession.appointment_date.desc()).all()

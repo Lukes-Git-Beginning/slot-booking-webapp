@@ -56,6 +56,18 @@ def _is_admin():
     return user and user in config.get_admin_users()
 
 
+def _check_session_access(session_id):
+    """Verify current user owns the session (opener/closer/admin). Aborts 404 otherwise."""
+    current_user = _get_current_user()
+    if _is_admin():
+        s = session_service.get_session(session_id, username=None)
+    else:
+        s = session_service.get_session(session_id, username=current_user)
+    if s is None:
+        abort(404)
+    return s, current_user
+
+
 # ---------------------------------------------------------------------------
 # 1. GET /sessions - Session list page
 # ---------------------------------------------------------------------------
@@ -645,7 +657,7 @@ def get_checklist(session_id):
 def verify_field(session_id):
     """Verify or update an extracted data field."""
     try:
-        current_user = _get_current_user()
+        _session, current_user = _check_session_access(session_id)
         data = request.get_json(silent=True) or {}
         extracted_data_id = data.get('extracted_data_id')
         new_value = data.get('value')
@@ -707,7 +719,7 @@ def verify_field(session_id):
 def add_manual_contract(session_id):
     """Add a manually entered contract with fields."""
     try:
-        current_user = _get_current_user()
+        _session, current_user = _check_session_access(session_id)
         data = request.get_json(silent=True) or {}
         type_key = data.get('type_key', '')
         fields = data.get('fields', {})
@@ -734,7 +746,7 @@ def add_manual_contract(session_id):
                 session_id=session_id,
                 original_filename=f"Manuell: {ct['label']}",
                 stored_filename=f"manual_{session_id}_{type_key}_{datetime.utcnow().timestamp():.0f}",
-                file_hash=f"manual_{session_id}_{type_key}",
+                file_hash=f"manual_{session_id}_{type_key}_{datetime.utcnow().timestamp():.0f}",
                 file_size=0,
                 mime_type="application/manual",
                 document_type=doc_type,
@@ -798,6 +810,7 @@ def add_manual_contract(session_id):
 def start_analysis(session_id):
     """Trigger the document processing pipeline for unprocessed documents."""
     try:
+        _check_session_access(session_id)
         from app.models.finanzberatung import FinanzDocument, DocumentStatus
         from app.models import get_db_session as _get_db
 
@@ -847,6 +860,7 @@ def start_analysis(session_id):
 def generate_scorecard(session_id):
     """Generate scorecards for the session."""
     try:
+        _check_session_access(session_id)
         from app.services.finanz_scorecard_service import FinanzScorecardService
         service = FinanzScorecardService()
         results = service.generate_scorecard(session_id)

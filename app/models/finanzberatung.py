@@ -326,8 +326,8 @@ class FinanzDocument(Base):
     original_filename: Mapped[str] = mapped_column(
         String(255), nullable=False
     )
-    stored_filename: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False
+    stored_filename: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, nullable=True
     )
     file_hash: Mapped[str] = mapped_column(
         String(64), nullable=False
