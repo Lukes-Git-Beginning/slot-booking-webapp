@@ -82,9 +82,21 @@ def session_list():
         else:
             sessions = session_service.list_sessions(username=current_user)
 
+        # Tab-based status filtering
+        active_tab = request.args.get('tab', 'alle')
+        tab_filters = {
+            'aktiv': {'active'},
+            'bearbeitung': {'in_analysis', 'analyzed'},
+            'abgeschlossen': {'verified', 'archived'},
+        }
+        if active_tab in tab_filters:
+            allowed = tab_filters[active_tab]
+            sessions = [s for s in sessions if s.status in allowed]
+
         return render_template(
             'finanzberatung/session_list.html',
             sessions=sessions,
+            active_tab=active_tab,
         )
     except Exception as e:
         logger.error("Error loading session list: %s", e, exc_info=True)

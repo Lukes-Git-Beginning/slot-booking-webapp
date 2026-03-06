@@ -16,6 +16,18 @@
     </a>
 </div>
 
+<!-- Tab Filter -->
+<div class="tabs tabs-boxed bg-base-200/50 mb-6 inline-flex" data-aos="fade-up">
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}"
+       class="tab {{ 'tab-active' if active_tab == 'alle' }}">Alle</a>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list', tab='aktiv') }}"
+       class="tab {{ 'tab-active' if active_tab == 'aktiv' }}">Aktiv</a>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list', tab='bearbeitung') }}"
+       class="tab {{ 'tab-active' if active_tab == 'bearbeitung' }}">In Bearbeitung</a>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list', tab='abgeschlossen') }}"
+       class="tab {{ 'tab-active' if active_tab == 'abgeschlossen' }}">Abgeschlossen</a>
+</div>
+
 {% if sessions and sessions|length > 0 %}
 <!-- Session Table -->
 <div class="glass rounded-2xl overflow-hidden" data-aos="fade-up">
@@ -116,6 +128,14 @@
     <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto mb-6">
         <i data-lucide="folder-open" class="w-10 h-10 text-primary"></i>
     </div>
+    {% if active_tab != 'alle' %}
+    <h3 class="text-xl font-bold mb-2">Keine Sessions mit diesem Status</h3>
+    <p class="text-gray-400 mb-6">Es gibt keine Sessions im Status "{{ active_tab|capitalize }}".</p>
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}"
+       class="btn btn-outline btn-primary gap-2">
+        Alle Sessions anzeigen
+    </a>
+    {% else %}
     <h3 class="text-xl font-bold mb-2">Keine Sessions vorhanden</h3>
     <p class="text-gray-400 mb-6">Erstellen Sie Ihre erste Beratungssession, um zu beginnen.</p>
     <a href="{{ url_for('finanzberatung.finanz_sessions.session_create_form') }}"
@@ -123,6 +143,7 @@
         <i data-lucide="plus" class="w-5 h-5"></i>
         Neue Session erstellen
     </a>
+    {% endif %}
 </div>
 {% endif %}
 

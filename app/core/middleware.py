@@ -39,6 +39,10 @@ def init_middleware(app: Flask) -> None:
         if request.path.startswith('/health'):
             return
 
+        # Allow public finanzberatung upload routes (token-based auth, no login)
+        if request.path.startswith('/finanzberatung/upload/'):
+            return
+
         # Check if user is logged in
         if 'user' not in session or not session.get('user'):
             logger.warning(f"Session invalid - no user key. Path: {request.path}, IP: {request.remote_addr}, Session keys: {list(session.keys())}")
