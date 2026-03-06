@@ -65,6 +65,13 @@
                         <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
                         <span class="hidden md:inline">Zurück zum Hub</span>
                     </a>
+                    {% if finanz_access %}
+                    <a href="/finanzberatung/sessions"
+                       class="flex items-center gap-3 glass px-4 py-2 rounded-xl hover:bg-white/10 transition-all group">
+                        <i data-lucide="file-search" class="w-5 h-5"></i>
+                        <span class="hidden md:inline">Finanzberatung</span>
+                    </a>
+                    {% endif %}
 
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
@@ -163,7 +170,7 @@
                         <i data-lucide="activity" class="w-4 h-4"></i>
                         <span>Status</span>
                     </a>
-                    <span>Version 3.3.15</span>
+                    <span>Version 3.3.16</span>
                 </div>
             </div>
         </div>
@@ -175,7 +182,7 @@
     <script nonce="{{ csp_nonce }}">
         particlesJS('particles-js', {
             particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
+                number: { value: 30, density: { enable: true, value_area: 800 } },
                 color: { value: '#d4af6a' },
                 shape: { type: 'circle' },
                 opacity: {
@@ -197,7 +204,7 @@
                 },
                 move: {
                     enable: true,
-                    speed: 1,
+                    speed: 0.5,
                     direction: 'none',
                     random: false,
                     straight: false,
@@ -208,8 +215,8 @@
             interactivity: {
                 detect_on: 'canvas',
                 events: {
-                    onhover: { enable: true, mode: 'grab' },
-                    onclick: { enable: true, mode: 'push' },
+                    onhover: { enable: false, mode: 'grab' },
+                    onclick: { enable: false, mode: 'push' },
                     resize: true
                 },
                 modes: {
