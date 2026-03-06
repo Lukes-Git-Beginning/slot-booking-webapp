@@ -40,9 +40,8 @@ def admin_dashboard():
             try:
                 import os
                 import json
-                metrics_file = os.path.join("data/tracking", "daily_metrics.json")
-                if os.path.exists(metrics_file):
-                    with open(metrics_file, "r", encoding="utf-8") as f:
+                if os.path.exists(tracking_system.metrics_file):
+                    with open(tracking_system.metrics_file, "r", encoding="utf-8") as f:
                         all_metrics = json.load(f)
                         if today_str in all_metrics:
                             today_metrics = all_metrics[today_str]

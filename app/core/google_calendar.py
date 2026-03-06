@@ -205,9 +205,10 @@ class GoogleCalendarService:
                     calendar_logger.error(f"Calendar API call failed permanently: {e}")
                     return None
             except Exception as e:
-                # Check if it's an SSL error (needs longer retry delay)
+                # Check if it's a network/SSL error (needs longer retry delay)
                 import ssl
-                is_ssl_error = isinstance(e, (ssl.SSLError, OSError)) or 'SSL' in str(e)
+                from http.client import IncompleteRead
+                is_ssl_error = isinstance(e, (ssl.SSLError, OSError, IncompleteRead)) or 'SSL' in str(e)
 
                 if is_ssl_error:
                     wait_time = retry_delay * (2 ** attempt) * 3  # Longer wait for SSL errors
