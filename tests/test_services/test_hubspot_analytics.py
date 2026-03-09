@@ -332,7 +332,7 @@ class TestAnalyticsServiceIntegration:
 
     @patch('app.services.analytics_service.data_persistence')
     def test_avg_deal_value_fallback(self, mock_dp):
-        """When HubSpot returns None, mock fallback (1850) is used."""
+        """When HubSpot returns None, avg_deal_value is None (no mock fallback)."""
         from app.services.analytics_service import AnalyticsService
         svc = AnalyticsService()
 
@@ -343,7 +343,7 @@ class TestAnalyticsServiceIntegration:
                 with patch('app.services.analytics_service._get_db_session', return_value=None):
                     kpis = svc.get_executive_kpis()
 
-        assert kpis['avg_deal_value'] == 1850
+        assert kpis['avg_deal_value'] is None
 
     @patch('app.services.analytics_service.data_persistence')
     def test_avg_deal_value_hubspot(self, mock_dp):
@@ -361,26 +361,30 @@ class TestAnalyticsServiceIntegration:
 
     @patch('app.services.analytics_service.data_persistence')
     def test_funnel_leads_fallback(self, mock_dp):
-        """When HubSpot returns None, mock fallback (450) is used."""
+        """When HubSpot returns None, no Leads stage is prepended."""
         from app.services.analytics_service import AnalyticsService
         svc = AnalyticsService()
 
         with patch.object(svc, '_get_hubspot_total_deals', return_value=None):
             mock_dp.load_scores.return_value = {'user1': {'2026-03': 12}}
-            funnel = svc.get_funnel_data()
+            with patch('app.services.analytics_service._get_db_session', return_value=None):
+                funnel = svc.get_funnel_data()
 
-        assert funnel['stages'][0]['count'] == 450
+        # First stage should be Buchungen (no Leads without HubSpot)
+        assert funnel['stages'][0]['name'] == 'Buchungen'
 
     @patch('app.services.analytics_service.data_persistence')
     def test_funnel_leads_hubspot(self, mock_dp):
-        """When HubSpot returns deal count, it replaces mock."""
+        """When HubSpot returns deal count, Leads stage is prepended."""
         from app.services.analytics_service import AnalyticsService
         svc = AnalyticsService()
 
         with patch.object(svc, '_get_hubspot_total_deals', return_value=600):
             mock_dp.load_scores.return_value = {'user1': {'2026-03': 12}}
-            funnel = svc.get_funnel_data()
+            with patch('app.services.analytics_service._get_db_session', return_value=None):
+                funnel = svc.get_funnel_data()
 
+        assert funnel['stages'][0]['name'] == 'Leads'
         assert funnel['stages'][0]['count'] == 600
 
     @patch('app.services.analytics_service.data_persistence')

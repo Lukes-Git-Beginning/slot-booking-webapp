@@ -71,7 +71,7 @@
                     <tr>
                         <td class="font-bold">{{ time }}</td>
                         {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] %}
-                        {% set key = day + '_' + time.replace(':', '') %}
+                        {% set key = day + '_' + time[:2] %}
                         {% set value = optimal_booking_times.get(key, 0) %}
                         <td>
                             <div class="badge {% if value > 50 %}badge-success{% elif value > 35 %}badge-warning{% else %}badge-ghost{% endif %}">

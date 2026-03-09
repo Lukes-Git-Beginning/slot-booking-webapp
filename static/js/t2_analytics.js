@@ -231,9 +231,17 @@ const T2Analytics = (function() {
     controls.innerHTML = html;
   }
 
-  // Go to Page
+  // Go to Page (sync filters from DOM before loading)
   function goToPage(page) {
     if (page < 0) return;
+
+    // Sync current filter state from DOM before pagination
+    const searchInput = document.querySelector('[x-model="searchQuery"]');
+    const closerSelect = document.querySelector('[x-model="closerFilter"]');
+
+    if (searchInput) currentFilters.search = searchInput.value.trim();
+    if (closerSelect) currentFilters.closer = closerSelect.value;
+
     loadDrawHistory(page);
   }
 

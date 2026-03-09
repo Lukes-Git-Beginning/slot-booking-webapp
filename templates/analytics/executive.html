@@ -27,28 +27,28 @@
         <!-- Conversion Rate -->
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-2">Conversion Rate</div>
-            <div class="text-4xl font-bold text-success mb-1">{{ "%.1f"|format(conversion_rate) }}%</div>
+            <div class="text-4xl font-bold text-success mb-1">{% if conversion_rate is not none %}{{ "%.1f"|format(conversion_rate) }}%{% else %}&mdash;{% endif %}</div>
             <div class="text-xs text-white/50">Von Buchung zu Abschluss</div>
         </div>
 
         <!-- No-Show Rate -->
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-2">No-Show Rate</div>
-            <div class="text-4xl font-bold text-warning mb-1">{{ "%.1f"|format(no_show_rate) }}%</div>
+            <div class="text-4xl font-bold text-warning mb-1">{% if no_show_rate is not none %}{{ "%.1f"|format(no_show_rate) }}%{% else %}&mdash;{% endif %}</div>
             <div class="text-xs text-white/50">Nicht erschienene Termine</div>
         </div>
 
         <!-- Avg Deal Value -->
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-2">Durchschn. Deal-Wert</div>
-            <div class="text-4xl font-bold text-accent mb-1">{{ avg_deal_value }}€</div>
+            <div class="text-4xl font-bold text-accent mb-1">{% if avg_deal_value is not none %}{{ avg_deal_value }}€{% else %}&mdash;{% endif %}</div>
             <div class="text-xs text-white/50">Pro abgeschlossenem Deal</div>
         </div>
 
         <!-- Revenue Forecast -->
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-2">Revenue Forecast</div>
-            <div class="text-4xl font-bold text-secondary mb-1">{{ "%.0f"|format(revenue_forecast) }}€</div>
+            <div class="text-4xl font-bold text-secondary mb-1">{% if revenue_forecast is not none %}{{ "%.0f"|format(revenue_forecast) }}€{% else %}&mdash;{% endif %}</div>
             <div class="text-xs text-white/50">Prognostizierter Umsatz</div>
         </div>
 
@@ -68,18 +68,18 @@
             <div>
                 <div class="flex justify-between text-sm mb-1">
                     <span class="text-white/70">Show-Rate (Erschienen)</span>
-                    <span class="text-white font-bold">{{ "%.1f"|format(100 - no_show_rate) }}%</span>
+                    <span class="text-white font-bold">{% if no_show_rate is not none %}{{ "%.1f"|format(100 - no_show_rate) }}%{% else %}&mdash;{% endif %}</span>
                 </div>
-                <progress class="progress progress-success w-full" value="{{ 100 - no_show_rate }}" max="100"></progress>
+                <progress class="progress progress-success w-full" value="{{ (100 - no_show_rate) if no_show_rate is not none else 0 }}" max="100"></progress>
             </div>
 
             <!-- Conversion Rate -->
             <div>
                 <div class="flex justify-between text-sm mb-1">
                     <span class="text-white/70">Conversion Rate</span>
-                    <span class="text-white font-bold">{{ "%.1f"|format(conversion_rate) }}%</span>
+                    <span class="text-white font-bold">{% if conversion_rate is not none %}{{ "%.1f"|format(conversion_rate) }}%{% else %}&mdash;{% endif %}</span>
                 </div>
-                <progress class="progress progress-primary w-full" value="{{ conversion_rate }}" max="100"></progress>
+                <progress class="progress progress-primary w-full" value="{{ conversion_rate if conversion_rate is not none else 0 }}" max="100"></progress>
             </div>
 
             <!-- Booking Efficiency -->

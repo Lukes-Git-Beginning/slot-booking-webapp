@@ -23,7 +23,7 @@
         </div>
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-1">Conversion Rate</div>
-            <div class="text-3xl font-bold text-warning">25.5%</div>
+            <div class="text-3xl font-bold text-warning">&mdash;</div>
         </div>
     </div>
 
@@ -134,7 +134,7 @@ function initializeCharts() {
             console.error('Funnel chart error:', err);
             const container = document.getElementById('funnelChart')?.parentElement;
             if (container) {
-                container.innerHTML = '<p class="text-white/70 text-center">Daten werden geladen...</p>';
+                container.innerHTML = '<p class="text-white/50 text-center py-8">Keine Funnel-Daten verfügbar</p>';
             }
         });
 
@@ -197,7 +197,7 @@ function initializeCharts() {
             console.error('Trend chart error:', err);
             const container = document.getElementById('trendChart')?.parentElement;
             if (container) {
-                container.innerHTML = '<p class="text-white/70 text-center">Daten werden geladen...</p>';
+                container.innerHTML = '<p class="text-white/50 text-center py-8">Keine Trend-Daten verfügbar</p>';
             }
         });
 }

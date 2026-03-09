@@ -34,11 +34,11 @@
                     </div>
                     <div>
                         <div class="text-sm text-white/70">Conversion</div>
-                        <div class="text-xl font-bold text-success">{{ top_performer.conversion_rate }}%</div>
+                        <div class="text-xl font-bold text-success">{% if top_performer.conversion_rate is not none %}{{ top_performer.conversion_rate }}%{% else %}&mdash;{% endif %}</div>
                     </div>
                     <div>
                         <div class="text-sm text-white/70">Avg Deal</div>
-                        <div class="text-xl font-bold text-accent">{{ top_performer.avg_deal_value }}€</div>
+                        <div class="text-xl font-bold text-accent">{% if top_performer.avg_deal_value is not none %}{{ top_performer.avg_deal_value }}€{% else %}&mdash;{% endif %}</div>
                     </div>
                 </div>
             </div>
@@ -74,8 +74,8 @@
                         <td class="font-bold">{{ berater.name }}</td>
                         <td>{{ berater.points }}</td>
                         <td>{{ berater.bookings }}</td>
-                        <td>{{ berater.conversion_rate }}%</td>
-                        <td>{{ berater.avg_deal_value }}€</td>
+                        <td>{% if berater.conversion_rate is not none %}{{ berater.conversion_rate }}%{% else %}&mdash;{% endif %}</td>
+                        <td>{% if berater.avg_deal_value is not none %}{{ berater.avg_deal_value }}€{% else %}&mdash;{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -87,7 +87,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-2">Team Durchschn. Conversion</div>
-            <div class="text-3xl font-bold text-primary">{{ "%.1f"|format(team_avg_conversion) }}%</div>
+            <div class="text-3xl font-bold text-primary">{% if team_avg_conversion is not none %}{{ "%.1f"|format(team_avg_conversion) }}%{% else %}&mdash;{% endif %}</div>
         </div>
         <div class="glass rounded-xl p-6">
             <div class="text-sm text-white/70 mb-2">Gesamt Team-Punkte</div>

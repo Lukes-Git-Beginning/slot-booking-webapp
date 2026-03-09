@@ -70,6 +70,56 @@ class HubSpotService:
     # INTERNAL HELPERS
     # ================================================================
 
+    def _resolve_telefonist_name(self, raw_value: str) -> str:
+        """Resolve telefonist_neu value (phone number or ID) to a human-readable name.
+
+        Uses HubSpot Owners API first, then contacts search as fallback.
+        Results are cached for 1 hour.
+        """
+        if not raw_value or raw_value == 'Unbekannt':
+            return raw_value or 'Unbekannt'
+
+        # Check cache
+        cache_key = f'telefonist_name_{raw_value}'
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        name = raw_value  # Default fallback: show raw value
+
+        try:
+            # Try Owners API (if telefonist_neu is an owner ID)
+            try:
+                owner = self.client.crm.owners.owners_api.get_by_id(
+                    owner_id=raw_value
+                )
+                if owner:
+                    first = owner.first_name or ''
+                    last = owner.last_name or ''
+                    resolved = f"{first} {last}".strip()
+                    if resolved:
+                        name = resolved
+                        self._cache_set(cache_key, name)
+                        return name
+            except Exception:
+                pass
+
+            # Try contacts search by phone number
+            results = self._search_contacts('phone', raw_value)
+            if results:
+                props = results[0].properties or {}
+                first = props.get('firstname', '')
+                last = props.get('lastname', '')
+                resolved = f"{first} {last}".strip()
+                if resolved:
+                    name = resolved
+
+        except Exception as e:
+            logger.debug(f"Could not resolve telefonist name for '{raw_value}': {e}")
+
+        self._cache_set(cache_key, name)
+        return name
+
     def _normalize_deal(self, deal) -> Dict[str, Any]:
         """Convert a HubSpot SimplePublicObject to a standardized dict."""
         props = deal.properties or {}
@@ -918,11 +968,14 @@ class HubSpotService:
 
     def get_stage_label(self, stage_id: str) -> str:
         """Get the label for a pipeline stage ID."""
+        if not stage_id:
+            return ''
         stages = self.get_pipeline_stages()
         if stages:
             for stage in stages:
                 if stage['id'] == stage_id:
                     return stage['label']
+        # Return raw stage_id as fallback so something is visible
         return stage_id
 
     def get_campaign_stats(self, days: int = 30) -> Optional[List[Dict[str, Any]]]:
@@ -1004,12 +1057,21 @@ class HubSpotService:
                     campaigns[campaign]['telefonisten'][telefonist] = \
                         campaigns[campaign]['telefonisten'].get(telefonist, 0) + 1
 
+            # Resolve telefonist names (batch: collect unique values)
+            all_telefonist_values = set()
+            for data in campaigns.values():
+                all_telefonist_values.update(data['telefonisten'].keys())
+
+            telefonist_names = {}
+            for raw in all_telefonist_values:
+                telefonist_names[raw] = self._resolve_telefonist_name(raw)
+
             # Convert to list and sort
             result = []
             for name, data in campaigns.items():
-                # Convert telefonisten dict to sorted list
+                # Convert telefonisten dict to sorted list with resolved names
                 tel_list = [
-                    {'name': k, 'deals': v}
+                    {'name': telefonist_names.get(k, k), 'deals': v}
                     for k, v in sorted(data['telefonisten'].items(), key=lambda x: x[1], reverse=True)
                 ]
                 result.append({

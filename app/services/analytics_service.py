@@ -84,30 +84,35 @@ class AnalyticsService:
 
                 no_show_rate = (no_shows / total_bookings * 100) if total_bookings > 0 else 0
 
-                # Avg Deal Value - HubSpot first, Mock fallback
-                avg_deal_value = self._get_hubspot_avg_deal_value() or 1850
+                # Avg Deal Value - HubSpot only, None if unavailable
+                avg_deal_value = self._get_hubspot_avg_deal_value()
 
             else:
-                # Fallback to scores calculation
+                # No PostgreSQL: only show what we can calculate
                 total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
-                conversion_rate = 25.5  # Mock
-                no_show_rate = 12.3  # Mock
-                avg_deal_value = self._get_hubspot_avg_deal_value() or 1850
+                conversion_rate = None
+                no_show_rate = None
+                avg_deal_value = self._get_hubspot_avg_deal_value()
 
         except Exception as e:
             logger.error(f"Error calculating executive KPIs: {e}")
-            # Fallback
             total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
-            conversion_rate = 25.5
-            no_show_rate = 12.3
-            avg_deal_value = self._get_hubspot_avg_deal_value() or 1850
+            conversion_rate = None
+            no_show_rate = None
+            avg_deal_value = self._get_hubspot_avg_deal_value()
+
+        # Calculate revenue forecast only if all data available
+        if conversion_rate is not None and avg_deal_value is not None:
+            revenue_forecast = total_bookings * avg_deal_value * (conversion_rate / 100)
+        else:
+            revenue_forecast = None
 
         return {
             'total_bookings': total_bookings,
-            'conversion_rate': round(conversion_rate, 1),
-            'no_show_rate': round(no_show_rate, 1),
-            'avg_deal_value': avg_deal_value,  # Mock (no sales data)
-            'revenue_forecast': total_bookings * avg_deal_value * (conversion_rate / 100),
+            'conversion_rate': round(conversion_rate, 1) if conversion_rate is not None else None,
+            'no_show_rate': round(no_show_rate, 1) if no_show_rate is not None else None,
+            'avg_deal_value': avg_deal_value,
+            'revenue_forecast': revenue_forecast,
             'active_users': len([u for u, m in scores.items() if current_month in m])
         }
 
@@ -125,19 +130,18 @@ class AnalyticsService:
         for user, months in scores.items():
             month_points = months.get(current_month, 0)
 
-            # Use first available HubSpot conversion rate or mock
-            if hs_conversion:
-                first_rate = next(iter(hs_conversion.values()), None)
-                conv_rate = first_rate if first_rate is not None else 20 + (month_points % 15)
+            # Per-berater HubSpot conversion rate, None if unavailable
+            if hs_conversion and user in hs_conversion:
+                conv_rate = hs_conversion[user]
             else:
-                conv_rate = 20 + (month_points % 15)
+                conv_rate = None
 
             berater_stats.append({
                 'name': user,
                 'points': month_points,
                 'bookings': month_points // 3,  # Approx
                 'conversion_rate': conv_rate,
-                'avg_deal_value': hs_avg_value or (1500 + (month_points % 1000)),
+                'avg_deal_value': hs_avg_value,
             })
 
         # Sortieren nach Punkten
@@ -146,7 +150,11 @@ class AnalyticsService:
         return {
             'berater_rankings': berater_stats,
             'top_performer': berater_stats[0] if berater_stats else None,
-            'team_avg_conversion': sum(b['conversion_rate'] for b in berater_stats) / len(berater_stats) if berater_stats else 0
+            'team_avg_conversion': (
+                round(sum(b['conversion_rate'] for b in berater_stats if b['conversion_rate'] is not None) /
+                      len([b for b in berater_stats if b['conversion_rate'] is not None]), 1)
+                if any(b['conversion_rate'] is not None for b in berater_stats) else None
+            )
         }
 
     def get_lead_insights(self) -> Dict[str, Any]:
@@ -158,30 +166,63 @@ class AnalyticsService:
         }
 
     def get_funnel_data(self) -> Dict[str, Any]:
-        """Lead-to-Close-Funnel"""
+        """Lead-to-Close-Funnel with real data only"""
         scores = data_persistence.load_scores()
         current_month = datetime.now().strftime('%Y-%m')
 
-        # Funnel-Berechnung: HubSpot total deals or mock fallback
-        total_leads = self._get_hubspot_total_deals() or 450
+        total_leads = self._get_hubspot_total_deals()
         total_bookings = sum(months.get(current_month, 0) // 3 for user, months in scores.items())
-        total_showed = int(total_bookings * 0.85)  # 85% Show-Rate
-        total_closed = int(total_showed * 0.28)  # 28% Conversion
+
+        # Get real show/close counts from PostgreSQL
+        total_showed = None
+        total_closed = None
+        try:
+            from app.models.booking import BookingOutcome
+            db_session = _get_db_session()
+            if db_session:
+                month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                total_showed = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= month_start,
+                    BookingOutcome.outcome.in_(['completed', 'no_show'])
+                ).count()
+                total_closed = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= month_start,
+                    BookingOutcome.outcome == 'completed'
+                ).count()
+        except Exception as e:
+            logger.warning(f"Could not get funnel outcomes: {e}")
+
+        # Build funnel stages with available data
+        stages = [
+            {'name': 'Buchungen', 'count': total_bookings, 'percentage': 100},
+        ]
+        if total_showed is not None:
+            stages.append({
+                'name': 'Erschienen',
+                'count': total_showed,
+                'percentage': round(total_showed / total_bookings * 100, 1) if total_bookings > 0 else 0
+            })
+        if total_closed is not None:
+            stages.append({
+                'name': 'Abgeschlossen',
+                'count': total_closed,
+                'percentage': round(total_closed / total_bookings * 100, 1) if total_bookings > 0 else 0
+            })
+
+        # Prepend leads if HubSpot data available
+        if total_leads is not None:
+            stages.insert(0, {'name': 'Leads', 'count': total_leads, 'percentage': 100})
+            # Recalculate percentages relative to leads
+            for stage in stages[1:]:
+                stage['percentage'] = round(stage['count'] / total_leads * 100, 1) if total_leads > 0 else 0
 
         return {
-            'stages': [
-                {'name': 'Leads', 'count': total_leads, 'percentage': 100},
-                {'name': 'Buchungen', 'count': total_bookings, 'percentage': round(total_bookings/total_leads*100, 1)},
-                {'name': 'Erschienen', 'count': total_showed, 'percentage': round(total_showed/total_leads*100, 1)},
-                {'name': 'Abgeschlossen', 'count': total_closed, 'percentage': round(total_closed/total_leads*100, 1)}
-            ],
-            'conversion_rate': round(total_closed/total_leads*100, 1)
+            'stages': stages,
+            'conversion_rate': round(total_closed / total_bookings * 100, 1) if total_closed is not None and total_bookings > 0 else None
         }
 
     def get_trends(self, timeframe: str = 'month') -> Dict[str, Any]:
-        """Trend-Daten"""
-        scores = data_persistence.load_scores()
-
+        """Trend-Daten from real PostgreSQL booking data"""
         # Zeitraum berechnen
         if timeframe == 'week':
             days = 7
@@ -190,17 +231,41 @@ class AnalyticsService:
         else:  # month
             days = 30
 
-        # Trend-Daten generieren
         trend_data = []
+
+        try:
+            from app.models.booking import Booking
+            db_session = _get_db_session()
+
+            if db_session:
+                start_date = datetime.now() - timedelta(days=days)
+                bookings = db_session.query(Booking).filter(
+                    Booking.date >= start_date
+                ).all()
+
+                # Group by date
+                by_date = defaultdict(int)
+                for b in bookings:
+                    by_date[b.date.strftime('%Y-%m-%d')] += 1
+
+                for i in range(days):
+                    date = datetime.now() - timedelta(days=days-i-1)
+                    date_str = date.strftime('%Y-%m-%d')
+                    trend_data.append({
+                        'date': date_str,
+                        'bookings': by_date.get(date_str, 0),
+                    })
+
+                return {'data': trend_data}
+        except Exception as e:
+            logger.warning(f"Could not get trend data from PostgreSQL: {e}")
+
+        # Fallback: empty trend data
         for i in range(days):
             date = datetime.now() - timedelta(days=days-i-1)
-            # Mock-Daten basierend auf realen Scores
-            bookings = sum(1 for u, m in scores.items() if date.strftime('%Y-%m') in m) + (i % 5)
             trend_data.append({
                 'date': date.strftime('%Y-%m-%d'),
-                'bookings': bookings,
-                'conversions': int(bookings * 0.25),
-                'revenue': bookings * 1850 * 0.25
+                'bookings': 0,
             })
 
         return {'data': trend_data}
@@ -221,8 +286,8 @@ class AnalyticsService:
                 berater_data.append({
                     'name': user,
                     'bookings': month_points // 3,
-                    'conversion_rate': 20 + (month_points % 15),
-                    'revenue': (month_points // 3) * 1850 * 0.25
+                    'conversion_rate': None,
+                    'revenue': None
                 })
             return {'berater': berater_data}
 
@@ -262,7 +327,7 @@ class AnalyticsService:
                 'name': username,
                 'bookings': booking_count,
                 'conversion_rate': conversion_rate,
-                'revenue': booking_count * 1850 * 0.25  # Estimated revenue per booking
+                'revenue': None
             })
 
         # Sort by bookings descending
