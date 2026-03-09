@@ -428,6 +428,19 @@ const T2Analytics = (function() {
   function setupEventListeners() {
     // Expose filter functions to Alpine.js/global scope
     window.filterDraws = function() {
+      // Sync from DOM/Alpine state
+      const searchInput = document.querySelector('[x-model="searchQuery"]');
+      const closerSelect = document.querySelector('[x-model="closerFilter"]');
+
+      if (searchInput) currentFilters.search = searchInput.value.trim();
+      if (closerSelect) currentFilters.closer = closerSelect.value;
+
+      // If search query present, use search endpoint
+      if (currentFilters.search && currentFilters.search.length >= 2) {
+        searchDraws(currentFilters.search);
+        return;
+      }
+
       loadDrawHistory(0);
     };
 
