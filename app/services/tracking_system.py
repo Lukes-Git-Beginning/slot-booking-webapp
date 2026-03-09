@@ -499,8 +499,8 @@ class BookingTracker:
                 with open(self.outcomes_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(outcome_data, ensure_ascii=False) + "\n")
 
-                # HubSpot Queue Hook: Ghost/No-Show → Review-Queue
-                if outcome in ("ghost", "no_show"):
+                # HubSpot Queue Hook: Ghost/No-Show/Cancelled/Rescheduled → Review-Queue
+                if outcome in ("ghost", "no_show", "cancelled", "rescheduled"):
                     try:
                         self._queue_hubspot_outcome(outcome_data)
                     except Exception as hs_err:
@@ -565,6 +565,14 @@ class BookingTracker:
             suggested_action = 'no_show'
             stage = hubspot_service.config.STAGE_MAPPING['no_show']
             note = 'Nicht erschienen - automatisch verschoben'
+        elif outcome == 'cancelled':
+            suggested_action = 'cancelled'
+            stage = hubspot_service.config.STAGE_MAPPING.get('cancelled', '')
+            note = 'Storniert - Deal-Stage prüfen'
+        elif outcome == 'rescheduled':
+            suggested_action = 'rescheduled'
+            stage = hubspot_service.config.STAGE_MAPPING.get('rescheduled', '')
+            note = 'Termin verschoben - zur Rückholung'
         else:
             # Ghost ohne Deal
             suggested_action = 'ghost_first'

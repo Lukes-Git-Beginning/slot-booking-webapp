@@ -720,12 +720,14 @@ def hubspot_queue():
     completed.sort(key=lambda x: x.get('updated_at') or '', reverse=True)
 
     stage_mapping = hubspot_config.STAGE_MAPPING
+    queue_summary = hubspot_queue_service.get_queue_summary()
 
     return render_template('t2/hubspot_queue.html',
                          active_page='t2',
                          pending=pending,
                          completed=completed[:20],
                          stage_mapping=stage_mapping,
+                         queue_summary=queue_summary,
                          stats={
                              'pending': len(pending),
                              'synced': len([i for i in completed if i.get('sync_result') == 'synced']),
@@ -793,3 +795,36 @@ def hubspot_queue_approve_all():
 
     result = hubspot_queue_service.approve_all(session.get('user'))
     return jsonify(result)
+
+
+@admin_bp.route('/api/hubspot-queue/generate-batch', methods=['POST'])
+@admin_required
+def hubspot_queue_generate_batch():
+    """Generate batch queue items from recent booking outcomes."""
+    from app.services.hubspot_queue_service import hubspot_queue_service
+
+    data = request.get_json() or {}
+    days = min(int(data.get('days', 1)), 7)  # Max 7 days
+
+    result = hubspot_queue_service.generate_batch_moves(days=days)
+    return jsonify({
+        'success': True,
+        'message': f'{result["count"]} neue Items generiert',
+        **result
+    })
+
+
+@admin_bp.route('/api/hubspot-queue/approve-category', methods=['POST'])
+@admin_required
+def hubspot_queue_approve_category():
+    """Approve all pending items of a specific outcome category."""
+    from app.services.hubspot_queue_service import hubspot_queue_service
+
+    data = request.get_json() or {}
+    category = data.get('category', '').strip()
+    if not category:
+        return jsonify({'success': False, 'message': 'category erforderlich'}), 400
+
+    result = hubspot_queue_service.approve_category(category, session.get('user'))
+    status_code = 200 if result['success'] else 400
+    return jsonify(result), status_code

@@ -276,6 +276,8 @@ class HubSpotConfig:
         "ghost_first": "349476306",       # Rückholung
         "ghost_repeat": "680987595",      # Verloren vor T1
         "no_show": "680987595",           # Verloren vor T1
+        "cancelled": "680987595",         # Verloren vor T1
+        "rescheduled": "349476306",       # Rückholung (Termin verschoben)
         "rueckholung": "349476306",       # Alias für was_deal_in_stage() Lookup
     }
 

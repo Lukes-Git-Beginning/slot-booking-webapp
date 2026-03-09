@@ -270,6 +270,60 @@ class AnalyticsService:
 
         return {'berater': berater_data}
 
+    def get_campaign_analytics(self) -> Dict[str, Any]:
+        """Kampagnen-Analytics: HubSpot-Kampagnendaten + interne Booking-Outcomes.
+
+        Returns:
+            Dict mit campaigns, summary, period_days
+        """
+        hs = self._get_hubspot_service()
+        campaigns = []
+        period_days = 30
+
+        if hs:
+            try:
+                campaigns = hs.get_campaign_stats(days=period_days) or []
+            except Exception as e:
+                logger.warning(f"HubSpot campaign stats unavailable: {e}")
+
+        # Cross-reference with internal booking outcomes for show rates
+        try:
+            from app.models.booking import BookingOutcome
+            db_session = _get_db_session()
+
+            if db_session and campaigns:
+                month_start = datetime.now() - timedelta(days=period_days)
+                total_outcomes = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= month_start,
+                ).count() or 1
+
+                completed = db_session.query(BookingOutcome).filter(
+                    BookingOutcome.date >= month_start,
+                    BookingOutcome.outcome == 'completed',
+                ).count()
+
+                overall_show_rate = round((completed / total_outcomes) * 100, 1) if total_outcomes > 0 else 0
+            else:
+                overall_show_rate = None
+        except Exception:
+            overall_show_rate = None
+
+        # Summary
+        total_deals = sum(c.get('deals', 0) for c in campaigns)
+        total_revenue = sum(c.get('revenue', 0) for c in campaigns)
+
+        return {
+            'campaigns': campaigns,
+            'period_days': period_days,
+            'summary': {
+                'total_campaigns': len(campaigns),
+                'total_deals': total_deals,
+                'total_revenue': round(total_revenue, 2),
+                'avg_deal_value': round(total_revenue / total_deals, 2) if total_deals > 0 else 0,
+                'overall_show_rate': overall_show_rate,
+            }
+        }
+
     # === HubSpot Integration Helpers ===
 
     def _get_hubspot_service(self):

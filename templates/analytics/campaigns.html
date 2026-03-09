@@ -1,0 +1,161 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Kampagnen Analytics{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-white mb-8">Kampagnen Performance</h1>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs tabs-boxed glass mb-6">
+        <a href="{{ url_for('analytics.dashboard') }}" class="tab">Overview</a>
+        <a href="{{ url_for('analytics.executive') }}" class="tab">Executive KPIs</a>
+        <a href="{{ url_for('analytics.team_performance') }}" class="tab">Team</a>
+        <a href="{{ url_for('analytics.lead_insights') }}" class="tab">Leads</a>
+        <a href="{{ url_for('analytics.campaigns') }}" class="tab tab-active">Kampagnen</a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Kampagnen</div>
+            <div class="text-3xl font-bold text-primary">{{ summary.total_campaigns }}</div>
+            <div class="text-xs text-white/50 mt-1">Letzte {{ period_days }} Tage</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Total Deals</div>
+            <div class="text-3xl font-bold text-secondary">{{ summary.total_deals }}</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Revenue</div>
+            <div class="text-3xl font-bold text-success">{{ "%.0f"|format(summary.total_revenue) }} EUR</div>
+        </div>
+        <div class="glass rounded-xl p-6">
+            <div class="text-sm text-white/70 mb-1">Avg Deal Value</div>
+            <div class="text-3xl font-bold text-warning">{{ "%.0f"|format(summary.avg_deal_value) }} EUR</div>
+            {% if summary.overall_show_rate %}
+            <div class="text-xs text-white/50 mt-1">Show-Rate: {{ summary.overall_show_rate }}%</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if campaigns %}
+    <!-- Campaign Chart -->
+    <div class="glass rounded-xl p-6 mb-8">
+        <h3 class="text-lg font-bold text-white mb-4">Kampagnen-Vergleich</h3>
+        <div style="position: relative; height: 300px; max-height: 300px;">
+            <canvas id="campaignChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Campaign Table -->
+    <div class="glass rounded-xl p-6">
+        <h3 class="text-lg font-bold text-white mb-4">Kampagnen Details</h3>
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Kampagne</th>
+                        <th>Source</th>
+                        <th class="text-right">Deals</th>
+                        <th class="text-right">Revenue</th>
+                        <th class="text-right">Avg Deal</th>
+                        <th>Top Telefonisten</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in campaigns %}
+                    <tr>
+                        <td>
+                            <span class="font-medium">{{ c.campaign }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-ghost badge-sm">{{ c.source or '-' }}</span>
+                        </td>
+                        <td class="text-right font-bold">{{ c.deals }}</td>
+                        <td class="text-right">{{ "%.0f"|format(c.revenue) }} EUR</td>
+                        <td class="text-right">{{ "%.0f"|format(c.avg_deal_value) }} EUR</td>
+                        <td>
+                            {% for t in c.telefonisten[:3] %}
+                            <span class="badge badge-outline badge-sm mr-1">{{ t.name }} ({{ t.deals }})</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="glass rounded-xl p-8 text-center">
+        <p class="text-lg text-white/70">Keine Kampagnendaten verfügbar.</p>
+        <p class="text-sm text-white/50 mt-2">HubSpot-Integration prüfen oder Discovery-Script ausführen.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if campaigns %}
+<script src="{{ url_for('static', filename='chart.min.js') }}"></script>
+<script nonce="{{ csp_nonce }}">
+(function() {
+    const campaigns = {{ campaigns | tojson }};
+    const ctx = document.getElementById('campaignChart');
+    if (!ctx || !campaigns.length) return;
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: campaigns.map(c => c.campaign.length > 20 ? c.campaign.substring(0, 20) + '...' : c.campaign),
+            datasets: [
+                {
+                    label: 'Deals',
+                    data: campaigns.map(c => c.deals),
+                    backgroundColor: 'rgba(32, 116, 135, 0.7)',
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Revenue (EUR)',
+                    data: campaigns.map(c => c.revenue),
+                    backgroundColor: 'rgba(212, 175, 106, 0.7)',
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: 'rgba(255,255,255,0.7)' } }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Deals', color: 'rgba(255,255,255,0.5)' },
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    ticks: { color: 'rgba(255,255,255,0.7)' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Revenue (EUR)', color: 'rgba(255,255,255,0.5)' },
+                    grid: { drawOnChartArea: false },
+                    ticks: { color: 'rgba(255,255,255,0.7)' }
+                },
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    ticks: { color: 'rgba(255,255,255,0.7)', maxRotation: 45, minRotation: 45 }
+                }
+            },
+            animation: { duration: 500 }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

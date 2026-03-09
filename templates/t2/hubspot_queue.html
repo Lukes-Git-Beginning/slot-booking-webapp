@@ -14,9 +14,13 @@
             <i data-lucide="git-pull-request" class="w-10 h-10"></i>
             HubSpot Queue
           </h1>
-          <p class="text-base-content/70 mt-2">Ghost/No-Show Outcomes pruefen und nach HubSpot syncen</p>
+          <p class="text-base-content/70 mt-2">Outcomes pruefen und nach HubSpot syncen</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="generateBatch()" class="btn btn-secondary gap-2">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            Batch generieren
+          </button>
           {% if pending %}
           <button onclick="approveAll()" class="btn btn-primary gap-2">
             <i data-lucide="check-circle" class="w-5 h-5"></i>
@@ -68,6 +72,43 @@
       </div>
     </div>
 
+    <!-- Category Summary + Quick Approve -->
+    {% if queue_summary %}
+    <div class="glass rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="150">
+      <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+        <i data-lucide="layers" class="w-5 h-5 text-secondary"></i>
+        Kategorien
+      </h2>
+      <div class="flex flex-wrap gap-3">
+        <button onclick="filterCategory('all')" class="btn btn-sm btn-outline category-btn active" data-category="all">
+          Alle ({{ stats.pending }})
+        </button>
+        {% for outcome, count in queue_summary.items() %}
+        <button onclick="filterCategory('{{ outcome }}')" class="btn btn-sm btn-outline category-btn" data-category="{{ outcome }}">
+          {% if outcome == 'ghost' %}
+            <span class="badge badge-warning badge-xs mr-1"></span>
+          {% elif outcome == 'no_show' %}
+            <span class="badge badge-error badge-xs mr-1"></span>
+          {% elif outcome == 'cancelled' %}
+            <span class="badge badge-info badge-xs mr-1"></span>
+          {% endif %}
+          {{ outcome|replace('_', ' ')|title }} ({{ count }})
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Category approve buttons -->
+      <div class="mt-4 flex flex-wrap gap-2">
+        {% for outcome, count in queue_summary.items() %}
+        <button onclick="approveCategory('{{ outcome }}')" class="btn btn-xs btn-success gap-1">
+          <i data-lucide="check-circle" class="w-3 h-3"></i>
+          Alle {{ outcome|replace('_', ' ')|title }} genehmigen ({{ count }})
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Pending Items -->
     {% if pending %}
     <div class="glass rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="200">
@@ -88,9 +129,9 @@
               <th class="text-right">Aktionen</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="pending-tbody">
             {% for item in pending %}
-            <tr id="row-{{ item.id }}">
+            <tr id="row-{{ item.id }}" data-outcome="{{ item.outcome }}">
               <td class="font-medium">{{ item.customer }}</td>
               <td>{{ item.date }} {{ item.time }}</td>
               <td>
@@ -98,6 +139,10 @@
                   <span class="badge badge-warning badge-sm">Ghost</span>
                 {% elif item.outcome == 'no_show' %}
                   <span class="badge badge-error badge-sm">No-Show</span>
+                {% elif item.outcome == 'cancelled' %}
+                  <span class="badge badge-info badge-sm">Storniert</span>
+                {% elif item.outcome == 'rescheduled' %}
+                  <span class="badge badge-accent badge-sm">Verschoben</span>
                 {% else %}
                   <span class="badge badge-sm">{{ item.outcome }}</span>
                 {% endif %}
@@ -142,7 +187,7 @@
     <div class="glass rounded-2xl p-8 mb-8 text-center" data-aos="fade-up" data-aos-delay="200">
       <i data-lucide="check-circle" class="w-12 h-12 text-success mx-auto mb-4"></i>
       <p class="text-lg font-medium">Keine ausstehenden Items</p>
-      <p class="text-base-content/60 mt-1">Alle Ghost/No-Show Outcomes wurden bearbeitet.</p>
+      <p class="text-base-content/60 mt-1">Alle Outcomes wurden bearbeitet. "Batch generieren" um neue zu laden.</p>
     </div>
     {% endif %}
 
@@ -176,6 +221,12 @@
                   <span class="badge badge-warning badge-sm">Ghost</span>
                 {% elif item.outcome == 'no_show' %}
                   <span class="badge badge-error badge-sm">No-Show</span>
+                {% elif item.outcome == 'cancelled' %}
+                  <span class="badge badge-info badge-sm">Storniert</span>
+                {% elif item.outcome == 'rescheduled' %}
+                  <span class="badge badge-accent badge-sm">Verschoben</span>
+                {% else %}
+                  <span class="badge badge-ghost badge-sm">{{ item.outcome }}</span>
                 {% endif %}
               </td>
               <td>
@@ -312,6 +363,57 @@
     } else {
       alert(data.message || 'Fehler beim Batch-Genehmigen');
     }
+  }
+
+  async function generateBatch() {
+    const days = prompt('Outcomes der letzten wie viele Tage scannen?', '1');
+    if (!days) return;
+
+    const btn = event.target.closest('button');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Generiere...';
+    }
+
+    const data = await apiCall('/t2/api/hubspot-queue/generate-batch', { days: parseInt(days) });
+
+    if (data.success) {
+      alert(`${data.count} neue Items generiert.\n\nSummary: ${JSON.stringify(data.summary || {})}`);
+      location.reload();
+    } else {
+      alert(data.message || 'Fehler bei Batch-Generierung');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="refresh-cw" class="w-5 h-5"></i> Batch generieren';
+      }
+    }
+  }
+
+  async function approveCategory(category) {
+    if (!confirm(`Alle "${category}" Items mit Deal genehmigen?`)) return;
+
+    const data = await apiCall('/t2/api/hubspot-queue/approve-category', { category: category });
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Fehler beim Kategorie-Genehmigen');
+    }
+  }
+
+  function filterCategory(category) {
+    const rows = document.querySelectorAll('#pending-tbody tr');
+    const buttons = document.querySelectorAll('.category-btn');
+
+    buttons.forEach(b => b.classList.remove('btn-primary'));
+    event.target.closest('button')?.classList.add('btn-primary');
+
+    rows.forEach(row => {
+      if (category === 'all' || row.dataset.outcome === category) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
   }
 </script>
 {% endblock %}

@@ -660,6 +660,35 @@ def my_calendar():
     for column in kanban_columns.values():
         column.sort(key=lambda x: x['date_obj'], reverse=False)
 
+    # HubSpot Deal Enrichment (graceful - no error if unavailable)
+    hubspot_portal_id = ''
+    deal_match_count = 0
+    try:
+        from app.services.hubspot_service import hubspot_service
+        from app.config.base import hubspot_config
+        hubspot_portal_id = hubspot_config.HUBSPOT_PORTAL_ID
+
+        if hubspot_service.is_available and my_events:
+            hs_deals = hubspot_service.get_deals_in_date_range(start_date, end_date)
+            if hs_deals:
+                deal_matches = hubspot_service.match_bookings_to_deals(my_events, hs_deals)
+                for ev in my_events:
+                    key = f"{ev['date']}_{ev['hour']}"
+                    deal = deal_matches.get(key)
+                    if deal:
+                        stage_label = hubspot_service.get_stage_label(deal.get('dealstage', ''))
+                        ev['hubspot_deal_id'] = deal.get('id')
+                        ev['hubspot_deal_name'] = deal.get('dealname', '')
+                        ev['hubspot_deal_stage'] = deal.get('dealstage', '')
+                        ev['hubspot_deal_stage_label'] = stage_label
+                        ev['hubspot_telefonist'] = deal.get('telefonist', '')
+                        ev['hubspot_deal_amount'] = deal.get('amount')
+                        deal_match_count += 1
+
+                logger.info(f"MY-CALENDAR: HubSpot enrichment: {deal_match_count}/{len(my_events)} deals matched")
+    except Exception as e:
+        logger.debug(f"MY-CALENDAR: HubSpot enrichment skipped: {e}")
+
     # Calculate statistics
     stats = get_column_stats(kanban_columns)
 
@@ -672,7 +701,9 @@ def my_calendar():
                          kanban_columns=dict(kanban_columns),
                          stats=stats,
                          view_mode=view_mode,
-                         user=user)
+                         user=user,
+                         hubspot_portal_id=hubspot_portal_id,
+                         deal_match_count=deal_match_count)
 
 
 @calendar_bp.route("/my-customers")

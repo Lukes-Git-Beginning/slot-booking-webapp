@@ -99,6 +99,22 @@ def lead_insights():
     )
 
 
+@analytics_bp.route("/campaigns")
+@require_login
+def campaigns():
+    """Kampagnen-Performance-Dashboard"""
+    from app.services.analytics_service import analytics_service
+
+    user = session.get('user')
+    data = analytics_service.get_campaign_analytics()
+
+    return render_template(
+        'analytics/campaigns.html',
+        user=user,
+        **data
+    )
+
+
 # API Endpoints für AJAX/Charts
 
 @analytics_bp.route("/api/funnel")

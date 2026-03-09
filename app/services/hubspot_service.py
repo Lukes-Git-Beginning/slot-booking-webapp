@@ -880,6 +880,267 @@ class HubSpotService:
             logger.error(f"HubSpot conversion rates failed: {e}")
             return None
 
+    def get_pipeline_stages(self) -> Optional[List[Dict[str, Any]]]:
+        """Hole Pipeline-Stages mit IDs und Labels.
+
+        Returns:
+            Liste von {id, label, display_order} oder None
+        """
+        if not self.is_available:
+            return None
+
+        cached = self._cache_get('pipeline_stages')
+        if cached is not None:
+            return cached
+
+        try:
+            pipeline_response = self.client.crm.pipelines.pipeline_stages_api.get_all(
+                object_type="deals",
+                pipeline_id=self.config.HUBSPOT_PIPELINE_ID,
+            )
+            stages = []
+            for stage in sorted(pipeline_response.results or [], key=lambda s: s.display_order):
+                stages.append({
+                    'id': stage.id,
+                    'label': stage.label,
+                    'display_order': stage.display_order,
+                })
+
+            # Use longer TTL (60 min) for stages since they rarely change
+            self._cache['pipeline_stages'] = stages
+            self._cache_ts['pipeline_stages'] = time.time()
+            logger.info(f"HubSpot pipeline stages loaded: {len(stages)} stages")
+            return stages
+
+        except Exception as e:
+            logger.error(f"HubSpot pipeline stages failed: {e}")
+            return None
+
+    def get_stage_label(self, stage_id: str) -> str:
+        """Get the label for a pipeline stage ID."""
+        stages = self.get_pipeline_stages()
+        if stages:
+            for stage in stages:
+                if stage['id'] == stage_id:
+                    return stage['label']
+        return stage_id
+
+    def get_campaign_stats(self, days: int = 30) -> Optional[List[Dict[str, Any]]]:
+        """Hole Kampagnen-Performance-Statistiken.
+
+        Gruppiert Deals nach Kampagnen-Property, berechnet Leads, Deals, Conversions.
+
+        Args:
+            days: Zeitraum in Tagen
+
+        Returns:
+            Liste von Kampagnen-Dicts oder None
+        """
+        if not self.is_available:
+            return None
+
+        cache_key = f'campaign_stats_{days}'
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            from hubspot.crm.deals import PublicObjectSearchRequest
+
+            # Calculate date filter
+            cutoff = datetime.now(timezone.utc) - __import__('datetime').timedelta(days=days)
+            cutoff_ms = str(int(cutoff.timestamp() * 1000))
+
+            # Fetch deals created in the time range with campaign-related properties
+            campaign_props = DEAL_PROPERTIES + [
+                'hs_analytics_source', 'hs_analytics_source_data_1',
+                'hs_analytics_source_data_2',
+            ]
+
+            filters = [
+                {"propertyName": "pipeline", "operator": "EQ",
+                 "value": self.config.HUBSPOT_PIPELINE_ID},
+                {"propertyName": "createdate", "operator": "GTE",
+                 "value": cutoff_ms},
+            ]
+
+            results = self._search_deals(filters=filters, properties=campaign_props)
+
+            # Group by campaign source
+            campaigns = {}
+            for deal_obj in results:
+                props = deal_obj.properties or {}
+                # Use source_data_1 as campaign name (often contains campaign name)
+                # Fallback to hs_analytics_source
+                campaign = (
+                    props.get('hs_analytics_source_data_1')
+                    or props.get('hs_analytics_source')
+                    or 'Unbekannt'
+                )
+                campaign = campaign.strip() or 'Unbekannt'
+
+                if campaign not in campaigns:
+                    campaigns[campaign] = {
+                        'campaign': campaign,
+                        'source': props.get('hs_analytics_source', ''),
+                        'deals': 0,
+                        'revenue': 0.0,
+                        'telefonisten': {},
+                    }
+
+                campaigns[campaign]['deals'] += 1
+
+                # Revenue
+                amount = props.get('amount')
+                if amount:
+                    try:
+                        campaigns[campaign]['revenue'] += float(amount)
+                    except (ValueError, TypeError):
+                        pass
+
+                # Telefonist breakdown
+                telefonist = props.get('telefonist_neu', 'Unbekannt')
+                if telefonist:
+                    campaigns[campaign]['telefonisten'][telefonist] = \
+                        campaigns[campaign]['telefonisten'].get(telefonist, 0) + 1
+
+            # Convert to list and sort
+            result = []
+            for name, data in campaigns.items():
+                # Convert telefonisten dict to sorted list
+                tel_list = [
+                    {'name': k, 'deals': v}
+                    for k, v in sorted(data['telefonisten'].items(), key=lambda x: x[1], reverse=True)
+                ]
+                result.append({
+                    'campaign': data['campaign'],
+                    'source': data['source'],
+                    'deals': data['deals'],
+                    'revenue': round(data['revenue'], 2),
+                    'avg_deal_value': round(data['revenue'] / data['deals'], 2) if data['deals'] > 0 else 0,
+                    'telefonisten': tel_list[:5],
+                })
+
+            result.sort(key=lambda x: x['deals'], reverse=True)
+            self._cache_set(cache_key, result)
+            logger.info(f"HubSpot campaign stats loaded: {len(result)} campaigns ({days} days)")
+            return result
+
+        except Exception as e:
+            logger.error(f"HubSpot campaign stats failed: {e}")
+            return None
+
+    def get_deals_in_date_range(self, start: str, end: str) -> Optional[List[Dict[str, Any]]]:
+        """Hole alle Deals in einem Datumsbereich (für my-calendar Enrichment).
+
+        Ein einzelner paginierter API-Call, cached.
+
+        Args:
+            start: Startdatum YYYY-MM-DD
+            end: Enddatum YYYY-MM-DD
+
+        Returns:
+            Liste von normalisierten Deal-Dicts oder None
+        """
+        if not self.is_available:
+            return None
+
+        cache_key = f'deals_range_{start}_{end}'
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            from hubspot.crm.deals import PublicObjectSearchRequest
+
+            # Convert dates to epoch ms
+            start_dt = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            end_dt = datetime.strptime(end, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+            start_ms = str(int(start_dt.timestamp() * 1000))
+            end_ms = str(int(end_dt.timestamp() * 1000))
+
+            filters = [
+                {"propertyName": "pipeline", "operator": "EQ",
+                 "value": self.config.HUBSPOT_PIPELINE_ID},
+                {"propertyName": "datum_t1_neu", "operator": "GTE",
+                 "value": start_ms},
+                {"propertyName": "datum_t1_neu", "operator": "LTE",
+                 "value": end_ms},
+            ]
+
+            results = self._search_deals(filters=filters)
+            deals = [self._normalize_deal(d) for d in results]
+
+            self._cache_set(cache_key, deals)
+            logger.info(f"HubSpot deals in range {start} - {end}: {len(deals)} deals")
+            return deals
+
+        except Exception as e:
+            logger.error(f"HubSpot deals in date range failed: {e}")
+            return None
+
+    def match_bookings_to_deals(
+        self, bookings: List[Dict[str, Any]], deals: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Match Buchungen zu Deals anhand von Datum + Uhrzeit + Name.
+
+        Reines Python-Matching, keine API-Calls.
+
+        Args:
+            bookings: Liste von Booking-Dicts mit date, hour, customer_name
+            deals: Liste von normalisierten Deal-Dicts
+
+        Returns:
+            Dict mapping booking_key (date_hour) → deal_info
+        """
+        matches = {}
+
+        # Build lookup by date + time from deals
+        deal_lookup = {}
+        for deal in deals:
+            date = deal.get('datum_t1')
+            time_val = deal.get('uhrzeit_t1')
+            if date and time_val:
+                # Normalize date format (HubSpot may return as epoch or date string)
+                try:
+                    if date.isdigit():
+                        dt = datetime.fromtimestamp(int(date) / 1000, tz=timezone.utc)
+                        date = dt.strftime('%Y-%m-%d')
+                except (ValueError, AttributeError):
+                    pass
+
+                key = f"{date}_{time_val}"
+                deal_lookup[key] = deal
+
+        # Match bookings
+        for booking in bookings:
+            bdate = booking.get('date', '')
+            bhour = booking.get('hour', '')
+            if bdate and bhour:
+                key = f"{bdate}_{bhour}"
+                if key in deal_lookup:
+                    matches[key] = deal_lookup[key]
+                    continue
+
+                # Fuzzy: try matching by date + name
+                bname = booking.get('customer_name', '').lower().strip()
+                if bname:
+                    for deal in deals:
+                        dname = (deal.get('dealname') or '').lower().strip()
+                        deal_date = deal.get('datum_t1', '')
+                        try:
+                            if deal_date and deal_date.isdigit():
+                                dt = datetime.fromtimestamp(int(deal_date) / 1000, tz=timezone.utc)
+                                deal_date = dt.strftime('%Y-%m-%d')
+                        except (ValueError, AttributeError):
+                            pass
+
+                        if deal_date == bdate and bname and bname in dname:
+                            matches[key] = deal
+                            break
+
+        return matches
+
     def get_customer_segments(self) -> Optional[List[Dict[str, Any]]]:
         """Hole Kundensegmente basierend auf HubSpot Contact Properties.
 
