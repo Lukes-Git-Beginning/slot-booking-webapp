@@ -2117,21 +2117,12 @@ class BookingTracker:
         Returns:
             Dict mit aggregierten Statistiken
         """
-        # 1. PostgreSQL-First (mit Coverage-Check)
+        # 1. PostgreSQL-First (kein Coverage-Check — seit Go-Live immer PG bevorzugen)
         if POSTGRES_AVAILABLE and is_postgres_enabled():
             try:
                 result = self._get_stats_since_date_pg(start_date_str)
                 if result and result.get("total_slots", 0) > 0:
-                    # Coverage-Check: Hat PG genug Tage?
-                    pg_days = result.get("days_tracked", 0)
-                    sd = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                    today = datetime.now(TZ).date()
-                    expected_workdays = sum(1 for i in range((today - sd).days + 1)
-                                           if (sd + timedelta(days=i)).weekday() < 5)
-                    if expected_workdays > 0 and pg_days >= expected_workdays * 0.5:
-                        return result
-                    else:
-                        logger.info(f"PG DailyMetrics has only {pg_days}/{expected_workdays} workdays since {start_date_str}, falling back to JSON")
+                    return result
             except Exception as e:
                 logger.warning(f"PG load failed for stats since {start_date_str}, falling back to JSON: {e}")
 
@@ -2692,25 +2683,20 @@ class BookingTracker:
         Returns:
             dict mit Aggregatstatistiken und daily_data für Charts
         """
-        # 1. PostgreSQL-First (mit Coverage-Check)
+        # 1. PostgreSQL-First (nur JSON-Fallback wenn PG gar keine Daten hat)
         if POSTGRES_AVAILABLE and is_postgres_enabled():
             try:
                 result = self._get_stats_since_date_pg(start_date_str, end_date_str)
                 if result and result.get("total_slots", 0) > 0:
-                    # Coverage-Check: Hat PG genug Tage?
                     pg_days = result.get("days_tracked", 0)
-                    sd = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                    ed = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-                    expected_workdays = sum(1 for i in range((ed - sd).days + 1)
-                                           if (sd + timedelta(days=i)).weekday() < 5)
-                    if expected_workdays > 0 and pg_days >= expected_workdays * 0.5:
-                        # PG hat genug Abdeckung — verwenden
+                    if pg_days > 0:
+                        # PG hat Daten — verwenden
                         bookings_created_data = self.get_bookings_by_creation_date(start_date_str, end_date_str)
                         result["bookings_created"] = bookings_created_data.get("total_bookings", 0)
                         result["bookings_created_by_user"] = bookings_created_data.get("by_user", {})
                         return result
                     else:
-                        logger.info(f"PG DailyMetrics has only {pg_days}/{expected_workdays} workdays for {start_date_str}–{end_date_str}, falling back to JSON")
+                        logger.info(f"PG DailyMetrics has 0 days for {start_date_str}–{end_date_str}, falling back to JSON")
             except Exception as e:
                 logger.warning(f"PG load failed for period stats, falling back to JSON: {e}")
 
