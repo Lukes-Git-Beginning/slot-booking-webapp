@@ -35,6 +35,8 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+    <!-- Tailwind CDN Safelist (hidden, ensures JS-generated classes are available) -->
+    <div class="hidden w-10 h-10 sm:w-14 sm:h-14 w-8 h-8 sm:w-10 sm:h-10 w-5 h-5 sm:w-6 sm:h-6"></div>
 
     <!-- Header -->
     <div class="bg-white shadow-sm border-b border-gray-100">
@@ -52,7 +54,7 @@
 
         <!-- Greeting -->
         <div class="text-center mb-5">
-            <h1 class="text-2xl font-bold text-accent mb-1">Hallo {{ customer_name }}</h1>
+            <h1 class="text-xl sm:text-2xl font-bold text-accent mb-1">Hallo {{ customer_name }}</h1>
             <p class="text-zfa-gray text-sm">Laden Sie Ihre Unterlagen hoch</p>
         </div>
 
@@ -78,24 +80,24 @@
         <!-- Upload Buttons -->
         <div id="upload-controls" class="space-y-3 mb-6">
             <!-- Camera Button (Primary / Hero) -->
-            <label class="btn w-full flex items-center justify-center gap-3 text-white border-0 shadow-lg active:scale-[0.98] transition-transform cursor-pointer rounded-2xl"
-                   style="min-height: 56px; background: linear-gradient(135deg, #d4af6a 0%, #c9a050 100%);">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <label class="btn w-full flex items-center justify-center gap-2 sm:gap-3 text-white border-0 shadow-lg active:scale-[0.98] transition-transform cursor-pointer rounded-2xl"
+                   style="min-height: 52px; background: linear-gradient(135deg, #d4af6a 0%, #c9a050 100%);">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                 </svg>
-                <span class="text-base font-semibold">Foto aufnehmen</span>
+                <span class="text-sm sm:text-base font-semibold">Foto aufnehmen</span>
                 <input type="file" accept="image/*" capture="environment" class="hidden" id="camera-input"
                        onchange="handleFileSelect(this)">
             </label>
 
             <!-- File Picker Button (Secondary) -->
-            <label class="btn btn-outline w-full flex items-center justify-center gap-3 cursor-pointer rounded-2xl active:scale-[0.98] transition-transform"
-                   style="min-height: 56px; border-color: #207487; color: #207487;">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <label class="btn btn-outline w-full flex items-center justify-center gap-2 sm:gap-3 cursor-pointer rounded-2xl active:scale-[0.98] transition-transform"
+                   style="min-height: 52px; border-color: #207487; color: #207487;">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
-                <span class="text-base font-semibold">Datei auswaehlen</span>
+                <span class="text-sm sm:text-base font-semibold">Datei auswaehlen</span>
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic,image/*,application/pdf" multiple class="hidden" id="file-input"
                        onchange="handleFileSelect(this)">
             </label>
@@ -108,9 +110,9 @@
         <div id="upload-queue" class="space-y-3"></div>
 
         <!-- Expired Overlay (hidden by default) -->
-        <div id="expired-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
-            <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
-                <svg class="w-10 h-10 mx-auto mb-3 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div id="expired-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-xl">
+                <svg class="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-3 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
@@ -120,9 +122,9 @@
         </div>
 
         <!-- All Done Overlay (hidden by default) -->
-        <div id="done-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
-            <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
-                <svg class="w-10 h-10 mx-auto mb-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div id="done-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-xl">
+                <svg class="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                     <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
@@ -232,7 +234,7 @@
 
             var iconHTML;
             if (isPDF(file)) {
-                iconHTML = '<div class="w-14 h-14 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">' +
+                iconHTML = '<div class="w-10 h-10 sm:w-14 sm:h-14 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">' +
                     '<svg class="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                     '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
                     '<polyline points="14 2 14 8 20 8"/>' +
@@ -241,7 +243,7 @@
                     '</svg></div>';
             } else {
                 // Image: show thumbnail preview
-                iconHTML = '<div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">' +
+                iconHTML = '<div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">' +
                     '<img class="w-full h-full object-cover" data-preview="true" alt="Vorschau"></div>';
             }
 

@@ -195,7 +195,7 @@ const T2Analytics = (function() {
     // Previous button
     html += `
       <button class="join-item btn btn-sm ${currentPage === 0 ? 'btn-disabled' : ''}"
-              onclick="T2Analytics.goToPage(${currentPage - 1})"
+              data-page="${currentPage - 1}"
               ${currentPage === 0 ? 'disabled' : ''}>
         «
       </button>
@@ -213,7 +213,7 @@ const T2Analytics = (function() {
     for (let i = startPage; i < endPage; i++) {
       html += `
         <button class="join-item btn btn-sm ${i === currentPage ? 'btn-active btn-primary' : ''}"
-                onclick="T2Analytics.goToPage(${i})">
+                data-page="${i}">
           ${i + 1}
         </button>
       `;
@@ -222,7 +222,7 @@ const T2Analytics = (function() {
     // Next button
     html += `
       <button class="join-item btn btn-sm ${currentPage >= totalPages - 1 ? 'btn-disabled' : ''}"
-              onclick="T2Analytics.goToPage(${currentPage + 1})"
+              data-page="${currentPage + 1}"
               ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
         »
       </button>
@@ -434,6 +434,20 @@ const T2Analytics = (function() {
 
   // Setup Event Listeners
   function setupEventListeners() {
+    // Event delegation for pagination buttons (CSP-safe, no inline onclick)
+    const paginationControls = document.getElementById('pagination-controls');
+    if (paginationControls) {
+      paginationControls.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-page]');
+        if (btn && !btn.disabled) {
+          const page = parseInt(btn.getAttribute('data-page'), 10);
+          if (!isNaN(page)) {
+            goToPage(page);
+          }
+        }
+      });
+    }
+
     // Expose filter functions to Alpine.js/global scope
     window.filterDraws = function() {
       // Sync from DOM/Alpine state

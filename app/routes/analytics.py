@@ -4,10 +4,13 @@ Analytics Blueprint
 Business Intelligence Dashboard für Admins
 """
 
+import logging
 from flask import Blueprint, render_template, session, jsonify
 from app.utils.decorators import require_login
 from app.utils.helpers import is_admin
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 
@@ -90,7 +93,15 @@ def lead_insights():
     user = session.get('user')
 
     # Lead-Analytics laden
-    lead_data = analytics_service.get_lead_insights()
+    try:
+        lead_data = analytics_service.get_lead_insights()
+    except Exception as e:
+        logger.error(f"Lead insights failed: {e}", exc_info=True)
+        lead_data = {
+            'channel_attribution': [],
+            'optimal_booking_times': {},
+            'customer_segments': [],
+        }
 
     return render_template(
         'analytics/lead_insights.html',

@@ -79,7 +79,12 @@ class HubSpotService:
         if not raw_value or raw_value == 'Unbekannt':
             return raw_value or 'Unbekannt'
 
-        # Check cache
+        # If value already contains letters, it's likely a name — use directly
+        if any(c.isalpha() for c in raw_value):
+            logger.debug(f"Telefonist value '{raw_value}' contains letters, using as name directly")
+            return raw_value
+
+        # Check cache (only for numeric IDs that need API lookup)
         cache_key = f'telefonist_name_{raw_value}'
         cached = self._cache_get(cache_key)
         if cached is not None:
@@ -847,6 +852,7 @@ class HubSpotService:
                     'channel': channel_name,
                     'leads': lead_count,
                     'conversion_rate': conversion,
+                    'cost_per_lead': 0,
                 })
 
             attribution.sort(key=lambda x: x['leads'], reverse=True)
@@ -1179,6 +1185,11 @@ class HubSpotService:
             bdate = booking.get('date', '')
             bhour = booking.get('hour', '')
             if bdate and bhour:
+                # Normalize German date format (dd.mm.yyyy) to ISO (yyyy-mm-dd)
+                if '.' in bdate:
+                    parts = bdate.split('.')
+                    if len(parts) == 3:
+                        bdate = f"{parts[2]}-{parts[1]}-{parts[0]}"
                 key = f"{bdate}_{bhour}"
                 if key in deal_lookup:
                     matches[key] = deal_lookup[key]

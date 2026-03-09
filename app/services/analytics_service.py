@@ -159,10 +159,28 @@ class AnalyticsService:
 
     def get_lead_insights(self) -> Dict[str, Any]:
         """Lead-Analytics & Attribution"""
+        try:
+            channel = self._get_hubspot_channel_attribution() or self._get_channel_attribution()
+        except Exception as e:
+            logger.warning(f"Channel attribution failed: {e}")
+            channel = self._get_channel_attribution()
+
+        try:
+            booking_times = self._get_optimal_booking_times()
+        except Exception as e:
+            logger.warning(f"Optimal booking times failed: {e}")
+            booking_times = {}
+
+        try:
+            segments = self._get_hubspot_customer_segments() or self._get_customer_segments()
+        except Exception as e:
+            logger.warning(f"Customer segments failed: {e}")
+            segments = self._get_customer_segments()
+
         return {
-            'channel_attribution': self._get_hubspot_channel_attribution() or self._get_channel_attribution(),
-            'optimal_booking_times': self._get_optimal_booking_times(),
-            'customer_segments': self._get_hubspot_customer_segments() or self._get_customer_segments(),
+            'channel_attribution': channel,
+            'optimal_booking_times': booking_times if booking_times is not None else {},
+            'customer_segments': segments,
         }
 
     def get_funnel_data(self) -> Dict[str, Any]:
@@ -348,8 +366,11 @@ class AnalyticsService:
         if hs:
             try:
                 campaigns = hs.get_campaign_stats(days=period_days) or []
+                logger.info(f"Campaign analytics: {len(campaigns)} campaigns loaded from HubSpot")
             except Exception as e:
                 logger.warning(f"HubSpot campaign stats unavailable: {e}")
+        else:
+            logger.info("Campaign analytics: HubSpot service not available")
 
         # Cross-reference with internal booking outcomes for show rates
         try:

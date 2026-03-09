@@ -673,7 +673,8 @@ def my_calendar():
             if hs_deals:
                 deal_matches = hubspot_service.match_bookings_to_deals(my_events, hs_deals)
                 for ev in my_events:
-                    key = f"{ev['date']}_{ev['hour']}"
+                    iso_date = ev['date_obj'].strftime('%Y-%m-%d')
+                    key = f"{iso_date}_{ev['hour']}"
                     deal = deal_matches.get(key)
                     if deal:
                         stage_label = hubspot_service.get_stage_label(deal.get('dealstage', ''))
