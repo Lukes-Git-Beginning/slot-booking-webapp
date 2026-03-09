@@ -240,17 +240,17 @@ class AnalyticsService:
 
         berater_data = []
         for username, booking_count in bookings_by_user:
-            # Calculate conversion rate from outcomes if available
+            # Calculate conversion rate from outcomes per consultant
             if BookingOutcome:
                 completed_count = db.query(func.count(BookingOutcome.id)).filter(
                     BookingOutcome.date >= month_start,
                     BookingOutcome.outcome == 'completed',
-                    extract('month', BookingOutcome.date) == now.month
+                    BookingOutcome.consultant == username
                 ).scalar() or 0
 
                 total_outcomes = db.query(func.count(BookingOutcome.id)).filter(
                     BookingOutcome.date >= month_start,
-                    extract('month', BookingOutcome.date) == now.month
+                    BookingOutcome.consultant == username
                 ).scalar() or 1
 
                 conversion_rate = round((completed_count / total_outcomes) * 100, 1) if total_outcomes > 0 else 0

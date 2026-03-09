@@ -375,6 +375,7 @@ class BookingTracker:
             
             events = events_result.get('items', [])
             outcomes_tracked = 0
+            pg_failed_count = 0
             
             for event in events:
                 # Skip Platzhalter (nur Zahlen)
@@ -445,44 +446,54 @@ class BookingTracker:
                 elif outcome == "completed":
                     logger.info(f"Completed: {customer_name} at {event_time} (Color: {color_id})")
                 
-                # ========== PostgreSQL Dual-Write ==========
+                # ========== PostgreSQL Dual-Write (mit Retry) ==========
+                pg_write_ok = False
                 if POSTGRES_AVAILABLE and is_postgres_enabled():
-                    try:
-                        from app.utils.db_utils import db_session_scope
-                        with db_session_scope() as db_session:
-                            outcome_id = outcome_data["id"]
-                            existing = db_session.query(BookingOutcome).filter_by(
-                                outcome_id=outcome_id
-                            ).first()
+                    for attempt in range(2):
+                        try:
+                            from app.utils.db_utils import db_session_scope
+                            with db_session_scope() as db_session:
+                                outcome_id = outcome_data["id"]
+                                existing = db_session.query(BookingOutcome).filter_by(
+                                    outcome_id=outcome_id
+                                ).first()
 
-                            if existing:
-                                existing.outcome = outcome
-                                existing.color_id = color_id
-                                existing.potential_type = outcome_data["potential_type"]
-                                existing.checked_at = outcome_data["checked_at"]
-                                existing.description = outcome_data.get("description", "")
-                                existing.is_alert = outcome == "no_show"
-                                existing.consultant = outcome_data.get("consultant")
-                                existing.consultant_email = outcome_data.get("consultant_email")
+                                if existing:
+                                    existing.outcome = outcome
+                                    existing.color_id = color_id
+                                    existing.potential_type = outcome_data["potential_type"]
+                                    existing.checked_at = outcome_data["checked_at"]
+                                    existing.description = outcome_data.get("description", "")
+                                    existing.is_alert = outcome == "no_show"
+                                    existing.consultant = outcome_data.get("consultant")
+                                    existing.consultant_email = outcome_data.get("consultant_email")
+                                else:
+                                    pg_outcome = BookingOutcome(
+                                        outcome_id=outcome_id,
+                                        customer=customer_name,
+                                        date=check_date,
+                                        time=event_time,
+                                        outcome=outcome,
+                                        color_id=color_id,
+                                        potential_type=outcome_data["potential_type"],
+                                        description=outcome_data.get("description", ""),
+                                        is_alert=outcome == "no_show",
+                                        checked_at=outcome_data["checked_at"],
+                                        outcome_timestamp=datetime.now(TZ),
+                                        consultant=outcome_data.get("consultant"),
+                                        consultant_email=outcome_data.get("consultant_email")
+                                    )
+                                    db_session.add(pg_outcome)
+                            pg_write_ok = True
+                            break
+                        except Exception as e:
+                            if attempt == 0:
+                                import time
+                                time.sleep(1)
+                                logger.warning(f"PG outcome write retry for {outcome_data['id']}: {e}")
                             else:
-                                pg_outcome = BookingOutcome(
-                                    outcome_id=outcome_id,
-                                    customer=customer_name,
-                                    date=check_date,
-                                    time=event_time,
-                                    outcome=outcome,
-                                    color_id=color_id,
-                                    potential_type=outcome_data["potential_type"],
-                                    description=outcome_data.get("description", ""),
-                                    is_alert=outcome == "no_show",
-                                    checked_at=outcome_data["checked_at"],
-                                    outcome_timestamp=datetime.now(TZ),
-                                    consultant=outcome_data.get("consultant"),
-                                    consultant_email=outcome_data.get("consultant_email")
-                                )
-                                db_session.add(pg_outcome)
-                    except Exception as e:
-                        logger.warning(f"PostgreSQL outcome write failed for {outcome_data['id']}: {e}")
+                                pg_failed_count += 1
+                                logger.error(f"PG outcome write FAILED after retry for {outcome_data['id']}: {e}")
 
                 # Speichere Outcome (JSONL)
                 with open(self.outcomes_file, "a", encoding="utf-8") as f:
@@ -496,7 +507,9 @@ class BookingTracker:
                         logger.warning(f"HubSpot queue hook failed: {hs_err}")
 
                 outcomes_tracked += 1
-            
+
+            if pg_failed_count > 0:
+                logger.error(f"PG outcome writes: {pg_failed_count} of {outcomes_tracked} FAILED for {check_date}")
             logger.info(f"Tracked {outcomes_tracked} outcomes for {check_date}")
             
             # Berechne Tagesmetriken
@@ -1875,27 +1888,17 @@ class BookingTracker:
         return workdays
 
     def _get_last_n_workdays_stats_pg(self, n=5):
-        """PG-First: Lade letzte N Werktage aus BookingOutcome."""
+        """PG-First: Lade letzte N Werktage aus DailyMetrics (zuverlaessiger als BookingOutcome)."""
         from app.utils.db_utils import db_session_scope_no_commit
-        from sqlalchemy import func, case
 
         workdays = self._get_last_n_workdays(n)
         if not workdays:
             return []
 
         with db_session_scope_no_commit() as session:
-            results = session.query(
-                BookingOutcome.date,
-                func.count().label('total_slots'),
-                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
-                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
-                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
-                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
-                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
-                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
-            ).filter(
-                BookingOutcome.date.in_(workdays)
-            ).group_by(BookingOutcome.date).all()
+            results = session.query(DailyMetrics).filter(
+                DailyMetrics.date.in_(workdays)
+            ).all()
 
             pg_data = {row.date: row for row in results}
 
@@ -2019,48 +2022,41 @@ class BookingTracker:
             return []
 
     def _get_stats_since_date_pg(self, start_date_str, end_date_str=None):
-        """PG-First: Lade aggregierte Stats aus BookingOutcome."""
+        """PG-First: Lade aggregierte Stats aus DailyMetrics (zuverlaessiger als BookingOutcome)."""
         from app.utils.db_utils import db_session_scope_no_commit
-        from sqlalchemy import func, case
+        from sqlalchemy import func
 
         start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         today = datetime.now(TZ).date()
         end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date() if end_date_str else today
 
         with db_session_scope_no_commit() as session:
-            # Aggregat-Totals
+            # Aggregat-Totals aus DailyMetrics
             totals = session.query(
-                func.count().label('total_slots'),
-                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
-                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
-                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
-                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
-                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
-                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
-                func.count(func.distinct(BookingOutcome.date)).label('days_tracked')
+                func.sum(DailyMetrics.total_slots).label('total_slots'),
+                func.sum(DailyMetrics.completed).label('completed'),
+                func.sum(DailyMetrics.no_shows).label('no_shows'),
+                func.sum(DailyMetrics.ghosts).label('ghosts'),
+                func.sum(DailyMetrics.cancelled).label('cancelled'),
+                func.sum(DailyMetrics.rescheduled).label('rescheduled'),
+                func.sum(DailyMetrics.overhang).label('overhang'),
+                func.count(DailyMetrics.id).label('days_tracked')
             ).filter(
-                BookingOutcome.date >= start_date,
-                BookingOutcome.date <= end_date
+                DailyMetrics.date >= start_date,
+                DailyMetrics.date <= end_date,
+                DailyMetrics.total_slots > 0
             ).first()
 
             # Daily-Data fuer Charts + Tabelle (nur Werktage)
-            daily_rows = session.query(
-                BookingOutcome.date,
-                func.count().label('total_slots'),
-                func.sum(case((BookingOutcome.outcome == 'completed', 1), else_=0)).label('completed'),
-                func.sum(case((BookingOutcome.outcome == 'no_show', 1), else_=0)).label('no_shows'),
-                func.sum(case((BookingOutcome.outcome == 'ghost', 1), else_=0)).label('ghosts'),
-                func.sum(case((BookingOutcome.outcome == 'cancelled', 1), else_=0)).label('cancelled'),
-                func.sum(case((BookingOutcome.outcome == 'rescheduled', 1), else_=0)).label('rescheduled'),
-                func.sum(case((BookingOutcome.outcome == 'overhang', 1), else_=0)).label('overhang'),
-            ).filter(
-                BookingOutcome.date >= start_date,
-                BookingOutcome.date <= end_date
-            ).group_by(BookingOutcome.date).order_by(BookingOutcome.date).all()
+            daily_rows = session.query(DailyMetrics).filter(
+                DailyMetrics.date >= start_date,
+                DailyMetrics.date <= end_date,
+                DailyMetrics.total_slots > 0
+            ).order_by(DailyMetrics.date).all()
 
             daily_data = []
             for row in daily_rows:
-                if row.date.weekday() < 5 and (row.total_slots or 0) > 0:
+                if row.date.weekday() < 5:
                     slots = row.total_slots or 0
                     completed = row.completed or 0
                     appearance_rate = round((completed / slots) * 100, 1) if slots > 0 else 0.0
