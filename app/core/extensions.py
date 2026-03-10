@@ -207,6 +207,9 @@ def init_session_storage(app: Flask) -> None:
                 socket_timeout=5
             )
 
+            # Verify Redis is actually reachable (from_url is lazy)
+            app.config['SESSION_REDIS'].ping()
+
             # Initialize Flask-Session
             sess = Session(app)
             logger.info("Redis session storage activated")
@@ -218,10 +221,29 @@ def init_session_storage(app: Flask) -> None:
 
         except Exception as e:
             logger.warning(f"WARNING: Redis session unavailable, falling back to filesystem sessions: {e}")
-            # Fallback to filesystem sessions (Flask default)
-            app.config['SESSION_TYPE'] = 'filesystem'
-            sess = None
+            _init_filesystem_session(app)
     else:
         logger.info("REDIS_URL not set, using filesystem sessions")
-        app.config['SESSION_TYPE'] = 'filesystem'
+        _init_filesystem_session(app)
+
+
+def _init_filesystem_session(app: Flask) -> None:
+    """Initialize filesystem-backed sessions with a persistent directory"""
+    global sess
+    import os
+
+    session_dir = os.path.join(app.config.get('PERSIST_BASE', 'data'), 'sessions')
+    os.makedirs(session_dir, exist_ok=True)
+
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_FILE_DIR'] = session_dir
+    app.config['SESSION_FILE_THRESHOLD'] = 500
+    app.config['SESSION_PERMANENT'] = True
+
+    try:
+        from flask_session import Session
+        sess = Session(app)
+        logger.info(f"Filesystem session storage activated: {session_dir}")
+    except ImportError:
         sess = None
+        logger.info("Flask-Session not installed, using default cookie sessions")

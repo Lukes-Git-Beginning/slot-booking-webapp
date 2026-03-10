@@ -34,6 +34,10 @@ def create_app(config_object: Optional[str] = None) -> Flask:
         # Standard-Konfiguration für Development
         app.config.from_object('app.config.base.Config')
 
+    # ProxyFix: Flask erkennt HTTPS korrekt hinter Nginx Reverse-Proxy
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     # Celery configuration (must be set before init_extensions)
     _redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
     # Strip trailing /N to get base URL for DB separation
@@ -464,6 +468,7 @@ def register_request_hooks(app: Flask) -> None:
         # User-Activity-Tracking
         if 'user' in session:
             session['last_activity'] = datetime.now().isoformat()
+            session.modified = True  # Force session TTL refresh on every request
 
         # Request-Logging für wichtige Endpoints
         if request.endpoint and not request.endpoint.startswith('static'):
