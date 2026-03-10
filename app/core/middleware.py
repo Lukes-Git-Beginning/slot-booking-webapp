@@ -43,9 +43,21 @@ def init_middleware(app: Flask) -> None:
         if request.path.startswith('/finanzberatung/upload/'):
             return
 
+        # SSE endpoints have their own @require_login decorator.
+        # Excluding them prevents the redirect → save_session loop that
+        # overwrites Redis with an empty session on every SSE reconnect.
+        if request.path.startswith('/finanzberatung/sse/'):
+            return
+
         # Check if user is logged in
         if 'user' not in session or not session.get('user'):
-            logger.warning(f"Session invalid - no user key. Path: {request.path}, IP: {request.remote_addr}, Session keys: {list(session.keys())}")
+            sid = getattr(session, 'sid', 'unknown')
+            is_new = getattr(session, 'new', 'unknown')
+            logger.warning(
+                "Session invalid - sid: %s, new: %s, keys: %s, Path: %s, IP: %s",
+                str(sid)[:8] + '...', is_new, list(session.keys()),
+                request.path, request.remote_addr
+            )
             return redirect('/login')
 
     logger.info("Middleware initialized successfully")

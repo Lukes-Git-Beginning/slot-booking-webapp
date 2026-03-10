@@ -463,6 +463,11 @@ def register_request_hooks(app: Flask) -> None:
         g.csp_nonce = secrets.token_urlsafe(16)
 
     @app.before_request
+    def track_session_user():
+        """Track whether session had user key at request start (debug)"""
+        g._had_user = 'user' in session
+
+    @app.before_request
     def before_request():
         """Vor jedem Request ausführen"""
         # User-Activity-Tracking
@@ -473,6 +478,19 @@ def register_request_hooks(app: Flask) -> None:
         # Request-Logging für wichtige Endpoints
         if request.endpoint and not request.endpoint.startswith('static'):
             app.logger.debug(f'Request: {request.method} {request.path} from {request.remote_addr}')
+
+    @app.after_request
+    def watch_session_integrity(response):
+        """Temporary debug hook: warn if session loses user key during request"""
+        if getattr(g, '_had_user', False) and 'user' not in session:
+            sid = getattr(session, 'sid', '?')
+            app.logger.error(
+                "SESSION CORRUPTION: user key lost during request! "
+                "Path: %s, Method: %s, Status: %s, sid: %s",
+                request.path, request.method, response.status_code,
+                str(sid)[:8]
+            )
+        return response
 
     @app.after_request
     def after_request(response):
