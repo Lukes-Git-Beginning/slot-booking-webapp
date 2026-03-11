@@ -45,7 +45,7 @@ class LevelSystem:
 
         # Lade Badge-System
         try:
-            from achievement_system import achievement_system
+            from app.services.achievement_system import achievement_system
             user_badges = achievement_system.get_user_badges(user)
         except:
             user_badges = {"badges": [], "total_badges": 0}
@@ -116,6 +116,18 @@ class LevelSystem:
                 json.dump(levels, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
+
+        # Dual-Write: Sync Level + XP in PostgreSQL User-Tabelle
+        try:
+            from app.models.user import User
+            from app.core.extensions import db
+            pg_user = User.query.filter_by(username=user).first()
+            if pg_user and (pg_user.level != level or pg_user.experience != xp):
+                pg_user.level = level
+                pg_user.experience = xp
+                db.session.commit()
+        except Exception as e:
+            logger.debug(f"PG level sync skipped for {user}: {e}")
 
         return result
     
@@ -196,7 +208,7 @@ class LevelSystem:
         
         # 3. Streak-XP (20% der Gesamt-XP)
         try:
-            from achievement_system import achievement_system
+            from app.services.achievement_system import achievement_system
             from app.core.extensions import data_persistence
             daily_stats = data_persistence.load_daily_user_stats()
             streak_info = achievement_system.calculate_advanced_streak(daily_stats.get(user, {}))

@@ -455,12 +455,115 @@ class CosmeticsShop:
 
         # Ensure directories exist
         os.makedirs("persist/persistent", exist_ok=True)
-        
+
         # Initialize files
         for file_path in [self.purchases_file, self.active_cosmetics_file]:
             if not os.path.exists(file_path):
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump({}, f)
+
+    # --- PostgreSQL Dual-Write Helpers ---
+
+    def _get_item_shop(self, item_type):
+        """Hole Shop-Dict fuer einen Item-Typ"""
+        shops = {
+            "title": TITLE_SHOP,
+            "theme": COLOR_THEMES,
+            "avatar": AVATAR_SHOP,
+            "effect": SPECIAL_EFFECTS,
+        }
+        return shops.get(item_type, {})
+
+    def _get_item_category(self, item_type):
+        """Mappe item_type auf PG item_category"""
+        categories = {
+            "title": "visual",
+            "theme": "visual",
+            "avatar": "visual",
+            "effect": "animation",
+        }
+        return categories.get(item_type, "visual")
+
+    def _pg_sync_purchase(self, user, item_type, item_id, price):
+        """Dual-Write: Kauf in PostgreSQL syncen"""
+        try:
+            from app.models.cosmetics import UserCosmetic
+            from app.core.extensions import db
+
+            item_data = self._get_item_shop(item_type).get(item_id, {})
+            existing = UserCosmetic.query.filter_by(
+                username=user, item_id=item_id
+            ).first()
+
+            if existing:
+                existing.is_owned = True
+                existing.purchase_price = price
+                existing.unlock_date = datetime.now(TZ)
+            else:
+                cosmetic = UserCosmetic(
+                    username=user,
+                    item_id=item_id,
+                    item_type=item_type,
+                    item_category=self._get_item_category(item_type),
+                    name=item_data.get("name", item_id),
+                    description=item_data.get("description", ""),
+                    rarity=item_data.get("rarity", "common"),
+                    is_owned=True,
+                    is_active=False,
+                    unlock_date=datetime.now(TZ),
+                    purchase_price=price,
+                    config=item_data.get("colors"),
+                )
+                db.session.add(cosmetic)
+
+            db.session.commit()
+        except Exception as e:
+            logger.debug(f"PG cosmetic purchase sync skipped: {e}")
+
+    def _pg_sync_equip(self, user, item_type, item_id):
+        """Dual-Write: Equip-Status in PostgreSQL syncen"""
+        try:
+            from app.models.cosmetics import UserCosmetic
+            from app.core.extensions import db
+
+            if item_type != "effect":
+                # Deaktiviere alle Items desselben Typs
+                UserCosmetic.query.filter_by(
+                    username=user, item_type=item_type, is_active=True
+                ).update({"is_active": False})
+
+            # Aktiviere das neue Item
+            item = UserCosmetic.query.filter_by(
+                username=user, item_id=item_id
+            ).first()
+            if item:
+                item.is_active = True
+                db.session.commit()
+        except Exception as e:
+            logger.debug(f"PG cosmetic equip sync skipped: {e}")
+
+    def _pg_sync_unequip(self, user, item_type, item_id=None):
+        """Dual-Write: Unequip-Status in PostgreSQL syncen"""
+        try:
+            from app.models.cosmetics import UserCosmetic
+            from app.core.extensions import db
+
+            if item_type == "effect" and item_id:
+                UserCosmetic.query.filter_by(
+                    username=user, item_id=item_id
+                ).update({"is_active": False})
+            elif item_type == "effect":
+                UserCosmetic.query.filter_by(
+                    username=user, item_type="effect", is_active=True
+                ).update({"is_active": False})
+            else:
+                UserCosmetic.query.filter_by(
+                    username=user, item_type=item_type, is_active=True
+                ).update({"is_active": False})
+
+            db.session.commit()
+        except Exception as e:
+            logger.debug(f"PG cosmetic unequip sync skipped: {e}")
     
     def load_purchases(self):
         """Lade gekaufte Kosmetik-Items"""
@@ -610,7 +713,8 @@ class CosmeticsShop:
         })
         
         self.save_purchases(purchases)
-        
+        self._pg_sync_purchase(user, item_type, item_id, price)
+
         return {
             "success": True,
             "message": f"'{item_data['name']}' erfolgreich gekauft!",
@@ -642,7 +746,8 @@ class CosmeticsShop:
             active[user][item_type] = item_id
         
         self.save_active_cosmetics(active)
-        
+        self._pg_sync_equip(user, item_type, item_id)
+
         # Hole Item-Daten für Response
         item_data = None
         if item_type == "title":
@@ -653,7 +758,7 @@ class CosmeticsShop:
             item_data = AVATAR_SHOP.get(item_id, {})
         elif item_type == "effect":
             item_data = SPECIAL_EFFECTS.get(item_id, {})
-        
+
         return {
             "success": True,
             "message": f"'{item_data.get('name', item_id)}' ausgerüstet!",
@@ -679,7 +784,8 @@ class CosmeticsShop:
             active[user][item_type] = defaults.get(item_type)
         
         self.save_active_cosmetics(active)
-        
+        self._pg_sync_unequip(user, item_type, item_id)
+
         return {"success": True, "message": f"{item_type.title()} entfernt"}
     
     def unlock_all_for_admin(self, user):

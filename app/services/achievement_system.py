@@ -605,7 +605,26 @@ class AchievementSystem:
             from app.core.extensions import data_persistence
             scores = data_persistence.load_scores()
             mvp_data = self.load_mvp_badges()
-            
+
+            # Wochen-MVP
+            now = datetime.now(TZ)
+            current_week = now.strftime("%Y-W%V")
+            week_start = now - timedelta(days=now.weekday())
+            daily_stats = self.load_daily_stats()
+            week_scores = defaultdict(int)
+            for user, user_stats in daily_stats.items():
+                for date_str, stats in user_stats.items():
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                        if date_obj >= week_start.date():
+                            week_scores[user] += stats.get("points", 0)
+                    except (ValueError, TypeError):
+                        continue
+            if week_scores:
+                best_user = max(week_scores.items(), key=lambda x: x[1])[0]
+                if best_user and week_scores[best_user] > 0:
+                    self.award_mvp_badge(best_user, "mvp_week", current_week, mvp_data)
+
             # Monats-MVP
             current_month = datetime.now(TZ).strftime("%Y-%m")
             month_scores = [(u, v.get(current_month, 0)) for u, v in scores.items()]
@@ -771,7 +790,18 @@ class AchievementSystem:
                 earned = False
                 current = 0
                 target = 1
-                if badge_id == "mvp_month":
+                current_year = datetime.now(TZ).year
+                if badge_id == "mvp_week":
+                    # Prüfe ob User aktueller Wochen-MVP ist
+                    try:
+                        mvp_data = self.load_mvp_badges()
+                        current_week = datetime.now(TZ).strftime("%Y-W%V")
+                        if user in mvp_data and current_week in mvp_data[user].get("periods", {}):
+                            earned = True
+                            earned_date = current_week
+                    except (KeyError, TypeError, ValueError, AttributeError) as e:
+                        logger.warning(f"Error checking week MVP for {user}", extra={'error': str(e)})
+                elif badge_id == "mvp_month":
                     # Prüfe ob User Champion des aktuellen Monats ist
                     try:
                         champions = data_persistence.load_champions()
@@ -781,7 +811,6 @@ class AchievementSystem:
                             earned_date = current_month
                     except (KeyError, TypeError, ValueError, AttributeError) as e:
                         logger.warning(f"Error checking month champion for {user}", extra={'error': str(e)})
-                        pass
                 elif badge_id == "mvp_year":
                     # Prüfe ob User Champion des aktuellen Jahres ist
                     try:
@@ -792,7 +821,6 @@ class AchievementSystem:
                             earned_date = str(current_year)
                     except (KeyError, TypeError, ValueError, AttributeError) as e:
                         logger.warning(f"Error checking year champion for {user}", extra={'error': str(e)})
-                        pass
             
             if earned:
                 badges.append({

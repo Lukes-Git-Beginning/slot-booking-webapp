@@ -271,7 +271,7 @@ class PrestigeSystem:
     def calculate_user_prestige(self, user):
         """Berechne Prestige-Level und verfügbare Upgrades für einen User"""
         try:
-            from level_system import LevelSystem
+            from app.services.level_system import LevelSystem
             level_system = LevelSystem()
             user_level_data = level_system.calculate_user_level(user)
             current_level = user_level_data["level"]
@@ -313,7 +313,7 @@ class PrestigeSystem:
     def perform_prestige(self, user):
         """Führe Prestige-Aufstieg durch (Reset auf Level 1 mit Boni)"""
         try:
-            from level_system import LevelSystem
+            from app.services.level_system import LevelSystem
             level_system = LevelSystem()
             user_level_data = level_system.calculate_user_level(user)
             current_level = user_level_data["level"]
@@ -501,7 +501,7 @@ class PrestigeSystem:
         
         try:
             # Lade Booking-Daten
-            from tracking_system import BookingTracker
+            from app.services.tracking_system import BookingTracker
             tracker = BookingTracker()
             all_bookings = tracker.load_all_bookings()
 
@@ -544,7 +544,7 @@ class PrestigeSystem:
         
         try:
             # Lade Streak-Daten
-            from achievement_system import achievement_system
+            from app.services.achievement_system import achievement_system
             daily_stats = achievement_system.load_daily_stats()
             user_stats = daily_stats.get(user, {})
             streak_info = achievement_system.calculate_advanced_streak(user_stats)
