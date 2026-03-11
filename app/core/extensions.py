@@ -181,6 +181,32 @@ def _verify_tracking_write_access(tracker) -> None:
         logger.info("Tracking write access verified OK")
 
 
+def _install_save_session_guard(app: Flask) -> None:
+    """Wrap save_session to prevent empty sessions from overwriting valid Redis data.
+
+    An empty session (only '_permanent') typically means Redis had a read hiccup
+    and Flask-Session created a blank session with the same SID. Saving it would
+    destroy the real user data. This guard skips the save in that case.
+    """
+    iface = app.session_interface
+    original_save = iface.save_session
+
+    def guarded_save_session(sa_app, sa_session, response):
+        meaningful_keys = [k for k in sa_session if k not in ('_permanent', '_id')]
+        if not meaningful_keys:
+            # Session has no user data — don't persist to Redis
+            sid = getattr(sa_session, 'sid', 'unknown')
+            logger.debug(
+                "save_session guard: skipping save for empty session sid=%s",
+                str(sid)[:8] + '...',
+            )
+            return
+        return original_save(sa_app, sa_session, response)
+
+    iface.save_session = guarded_save_session
+    logger.info("Session save guard installed — empty sessions will not overwrite Redis")
+
+
 def init_session_storage(app: Flask) -> None:
     """Initialize Flask-Session with Redis backend (if available)"""
     global sess
@@ -212,6 +238,14 @@ def init_session_storage(app: Flask) -> None:
 
             # Initialize Flask-Session
             sess = Session(app)
+
+            # CRITICAL: Guard save_session to prevent empty sessions from
+            # overwriting valid user data in Redis. When Redis has a brief
+            # read timeout, open_session() returns an empty session with the
+            # same SID. Without this guard, save_session() would persist
+            # that empty session, permanently destroying the user's login.
+            _install_save_session_guard(app)
+
             logger.info("Redis session storage activated")
 
             # Also update Flask-Limiter to use Redis

@@ -3,7 +3,7 @@
 Flask middleware and request processing
 """
 
-from flask import Flask, session, redirect, url_for, request
+from flask import Flask, session, redirect, url_for, request, make_response
 from functools import wraps
 import logging
 from app.config.base import config
@@ -58,7 +58,19 @@ def init_middleware(app: Flask) -> None:
                 str(sid)[:8] + '...', is_new, list(session.keys()),
                 request.path, request.remote_addr
             )
-            return redirect('/login')
+
+            # CRITICAL: Prevent Flask-Session from overwriting a potentially
+            # valid Redis session with this empty session data.
+            # If Redis had a read hiccup, open_session() returns an empty
+            # session with the same SID — saving it would destroy the real data.
+            session.clear()
+            resp = make_response(redirect('/login'))
+            resp.delete_cookie(
+                app.config.get('SESSION_COOKIE_NAME', 'session'),
+                path='/',
+                domain=app.config.get('SESSION_COOKIE_DOMAIN'),
+            )
+            return resp
 
     logger.info("Middleware initialized successfully")
 
