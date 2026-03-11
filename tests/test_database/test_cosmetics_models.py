@@ -5,7 +5,7 @@ Tests for UserCosmetic, CustomizationAchievement
 """
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 
 
@@ -27,7 +27,7 @@ class TestUserCosmeticModel:
             rarity='common',
             is_owned=True,
             is_active=True,
-            unlock_date=datetime.utcnow(),
+            unlock_date=datetime.now(timezone.utc).replace(tzinfo=None),
             purchase_price=100,
             config={'primary': '#1a1a1a', 'accent': '#4a9eff'}
         )
@@ -220,7 +220,7 @@ class TestCustomizationAchievementModel:
         """Test achievement completion tracking"""
         from app.models.cosmetics import CustomizationAchievement
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         achievement = CustomizationAchievement(
             username='test.user',

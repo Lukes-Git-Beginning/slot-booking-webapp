@@ -6,7 +6,7 @@ import os
 import json
 import shutil
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from app.utils.json_utils import atomic_write_json, atomic_read_json, atomic_update_json
@@ -181,9 +181,9 @@ class DataPersistence:
                                     try:
                                         earned_date = datetime.strptime(earned_date_str, "%Y-%m-%d %H:%M:%S")
                                     except (ValueError, TypeError):
-                                        earned_date = datetime.utcnow()
+                                        earned_date = datetime.now(timezone.utc)
                             else:
-                                earned_date = datetime.utcnow()
+                                earned_date = datetime.now(timezone.utc)
 
                             existing = session.query(UserBadgeModel).filter_by(
                                 username=username, badge_id=badge_id

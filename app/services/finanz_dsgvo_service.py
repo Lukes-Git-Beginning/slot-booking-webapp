@@ -21,7 +21,7 @@ File-Deletion Logic:
 
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.config.base import FinanzConfig as finanz_config
@@ -71,7 +71,7 @@ class FinanzDSGVOService:
                     f"on {session.deletion_requested_at.isoformat()}"
                 )
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             session.deletion_requested_at = now
             session.deletion_requested_by = admin_user
 
@@ -147,7 +147,7 @@ class FinanzDSGVOService:
             if session.files_deleted_at is not None:
                 return False  # Already deleted
 
-            elapsed = datetime.utcnow() - session.deletion_requested_at
+            elapsed = datetime.now(timezone.utc) - session.deletion_requested_at
             return elapsed >= timedelta(days=DELETION_RETENTION_DAYS)
 
         finally:
@@ -188,7 +188,7 @@ class FinanzDSGVOService:
                 remaining = (
                     session.deletion_requested_at
                     + timedelta(days=DELETION_RETENTION_DAYS)
-                    - datetime.utcnow()
+                    - datetime.now(timezone.utc)
                 )
                 raise ValueError(
                     f"Retention period not expired. {remaining.days} days remaining."
@@ -220,7 +220,7 @@ class FinanzDSGVOService:
                 doc.stored_filename = None
 
             # Update session
-            session.files_deleted_at = datetime.utcnow()
+            session.files_deleted_at = datetime.now(timezone.utc)
             session.transition_to(SessionStatus.ARCHIVED)
 
             db.commit()
@@ -275,7 +275,7 @@ class FinanzDSGVOService:
                 FinanzSession.files_deleted_at.is_(None),
             ).order_by(FinanzSession.deletion_requested_at.asc()).all()
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             queue = []
             for s in sessions:
                 deletion_due = s.deletion_requested_at + timedelta(days=DELETION_RETENTION_DAYS)

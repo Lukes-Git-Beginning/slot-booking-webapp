@@ -7,6 +7,7 @@ Verhindert Brute-Force-Angriffe durch temporäre Konto-Sperrung
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
+from app.config.base import SecurityConfig
 from app.core.extensions import data_persistence
 
 logger = logging.getLogger(__name__)
@@ -24,12 +25,12 @@ class AccountLockoutService:
 
     def __init__(self):
         self.lockout_file = 'account_lockouts'
-        self.max_attempts_tier1 = 5
-        self.max_attempts_tier2 = 10
-        self.max_attempts_tier3 = 15
-        self.lockout_duration_tier1 = 15  # Minuten
-        self.lockout_duration_tier2 = 60  # Minuten
-        self.lockout_duration_tier3 = 1440  # Minuten (24 Stunden)
+        self.max_attempts_tier1 = SecurityConfig.LOCKOUT_ATTEMPTS_TIER1
+        self.max_attempts_tier2 = SecurityConfig.LOCKOUT_ATTEMPTS_TIER2
+        self.max_attempts_tier3 = SecurityConfig.LOCKOUT_ATTEMPTS_TIER3
+        self.lockout_duration_tier1 = SecurityConfig.LOCKOUT_DURATION_TIER1
+        self.lockout_duration_tier2 = SecurityConfig.LOCKOUT_DURATION_TIER2
+        self.lockout_duration_tier3 = SecurityConfig.LOCKOUT_DURATION_TIER3
 
     def _load_lockout_data(self) -> Dict:
         """Lade Lockout-Daten"""

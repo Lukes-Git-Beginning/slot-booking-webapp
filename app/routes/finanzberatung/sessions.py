@@ -23,7 +23,7 @@ Routes:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
@@ -697,14 +697,14 @@ def verify_field(session_id):
             if action == 'verify':
                 ed.verified = True
                 ed.verified_by = current_user
-                ed.verified_at = datetime.utcnow()
+                ed.verified_at = datetime.now(timezone.utc)
                 ed.confidence = 1.0
             elif action == 'update':
                 if new_value is not None:
                     ed.field_value = str(new_value)
                 ed.verified = True
                 ed.verified_by = current_user
-                ed.verified_at = datetime.utcnow()
+                ed.verified_at = datetime.now(timezone.utc)
                 ed.confidence = 1.0
 
             db.commit()
@@ -763,8 +763,8 @@ def add_manual_contract(session_id):
             doc = FinanzDocument(
                 session_id=session_id,
                 original_filename=f"Manuell: {ct['label']}",
-                stored_filename=f"manual_{session_id}_{type_key}_{datetime.utcnow().timestamp():.0f}",
-                file_hash=f"manual_{session_id}_{type_key}_{datetime.utcnow().timestamp():.0f}",
+                stored_filename=f"manual_{session_id}_{type_key}_{datetime.now(timezone.utc).timestamp():.0f}",
+                file_hash=f"manual_{session_id}_{type_key}_{datetime.now(timezone.utc).timestamp():.0f}",
                 file_size=0,
                 mime_type="application/manual",
                 document_type=doc_type,
@@ -793,7 +793,7 @@ def add_manual_contract(session_id):
                     source_text="Manuell erfasst",
                     verified=True,
                     verified_by=current_user,
-                    verified_at=datetime.utcnow(),
+                    verified_at=datetime.now(timezone.utc),
                 )
                 db.add(ed)
                 count += 1

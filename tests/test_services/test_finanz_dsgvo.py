@@ -6,7 +6,7 @@ Tests for app/services/finanz_dsgvo_service.py
 
 import os
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 
 
@@ -38,7 +38,7 @@ def mock_session_marked():
     session.customer_name = 'Delete Kunde'
     session.opener_username = 'test.opener'
     session.status = 'deletion_pending'
-    session.deletion_requested_at = datetime.utcnow() - timedelta(days=31)
+    session.deletion_requested_at = datetime.now(timezone.utc) - timedelta(days=31)
     session.deletion_requested_by = 'admin.user'
     session.files_deleted_at = None
     return session
@@ -86,7 +86,7 @@ class TestMarkForDeletion:
     @patch('app.services.finanz_dsgvo_service.get_db_session')
     def test_mark_already_marked_raises(self, mock_db, dsgvo_service, mock_session):
         """Test that marking already-marked session raises ValueError."""
-        mock_session.deletion_requested_at = datetime.utcnow()
+        mock_session.deletion_requested_at = datetime.now(timezone.utc)
 
         db = MagicMock()
         mock_db.return_value = db
@@ -111,7 +111,7 @@ class TestCanExecuteDeletion:
     @patch('app.services.finanz_dsgvo_service.get_db_session')
     def test_cannot_delete_before_30_days(self, mock_db, dsgvo_service, mock_session):
         """Test that deletion is blocked within 30 days."""
-        mock_session.deletion_requested_at = datetime.utcnow() - timedelta(days=10)
+        mock_session.deletion_requested_at = datetime.now(timezone.utc) - timedelta(days=10)
 
         db = MagicMock()
         mock_db.return_value = db
@@ -131,7 +131,7 @@ class TestCanExecuteDeletion:
     @patch('app.services.finanz_dsgvo_service.get_db_session')
     def test_cannot_delete_already_deleted(self, mock_db, dsgvo_service, mock_session_marked):
         """Test that already-deleted session returns False."""
-        mock_session_marked.files_deleted_at = datetime.utcnow()
+        mock_session_marked.files_deleted_at = datetime.now(timezone.utc)
 
         db = MagicMock()
         mock_db.return_value = db
@@ -247,7 +247,7 @@ class TestGetDeletionQueue:
         session.id = 1
         session.customer_name = 'Test'
         session.opener_username = 'opener'
-        session.deletion_requested_at = datetime.utcnow() - timedelta(days=15)
+        session.deletion_requested_at = datetime.now(timezone.utc) - timedelta(days=15)
         session.deletion_requested_by = 'admin'
         session.files_deleted_at = None
 
@@ -270,7 +270,7 @@ class TestGetDeletionQueue:
         session.id = 1
         session.customer_name = 'Expired'
         session.opener_username = 'opener'
-        session.deletion_requested_at = datetime.utcnow() - timedelta(days=35)
+        session.deletion_requested_at = datetime.now(timezone.utc) - timedelta(days=35)
         session.deletion_requested_by = 'admin'
         session.files_deleted_at = None
 

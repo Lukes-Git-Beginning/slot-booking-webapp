@@ -5,9 +5,10 @@ Protokolliert Admin-Aktionen und Security-Events für Compliance & Sicherheit
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from flask import request, session
+from app.config.base import APIConfig
 from app.core.extensions import data_persistence
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class AuditService:
 
     def __init__(self):
         self.audit_file = 'audit_log'
-        self.max_entries = 10000  # Maximal 10.000 Einträge (ca. 1 Jahr)
+        self.max_entries = APIConfig.MAX_AUDIT_ENTRIES
 
     def _load_audit_log(self) -> List[Dict]:
         """Lade Audit-Log"""
@@ -61,7 +62,7 @@ class AuditService:
 
             # Event erstellen
             event = {
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
                 'event_type': event_type,
                 'action': action,
                 'user': user,
@@ -236,7 +237,7 @@ class AuditService:
         """Hole fehlgeschlagene Logins der letzten X Stunden"""
         from datetime import timedelta
 
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         audit_log = self._load_audit_log()
 
         failed_logins = [

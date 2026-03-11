@@ -5,7 +5,7 @@ Tests for User, UserStats, UserPrediction, BehaviorPattern, PersonalInsight
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 
 
@@ -50,7 +50,7 @@ class TestUserModel:
             experience=1500,
             prestige_level=1,
             prestige_points=100,
-            last_login=datetime.utcnow(),
+            last_login=datetime.now(timezone.utc).replace(tzinfo=None),
             on_vacation=False
         )
 
@@ -124,7 +124,7 @@ class TestUserStatsModel:
 
         stats = UserStats(
             username='test.user',
-            stat_date=datetime.utcnow(),
+            stat_date=datetime.now(timezone.utc).replace(tzinfo=None),
             stat_type='daily',
             bookings_count=10,
             bookings_erschienen=8,
@@ -147,7 +147,7 @@ class TestUserStatsModel:
         """Test querying stats by type"""
         from app.models.user import UserStats
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         stats_data = [
             ('daily', 100),
@@ -174,7 +174,7 @@ class TestUserStatsModel:
         """Test querying stats by date range"""
         from app.models.user import UserStats
 
-        base_date = datetime.utcnow()
+        base_date = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for i in range(5):
             stats = UserStats(
@@ -209,7 +209,7 @@ class TestUserPredictionModel:
 
         prediction = UserPrediction(
             username='test.user',
-            prediction_date=datetime.utcnow(),
+            prediction_date=datetime.now(timezone.utc).replace(tzinfo=None),
             prediction_type='performance',
             predicted_value=85.5,
             confidence_score=0.92,
@@ -232,7 +232,7 @@ class TestUserPredictionModel:
 
         prediction = UserPrediction(
             username='test.user',
-            prediction_date=datetime.utcnow(),
+            prediction_date=datetime.now(timezone.utc).replace(tzinfo=None),
             prediction_type='churn',
             predicted_value=0.15,
             confidence_score=0.85,
@@ -251,7 +251,7 @@ class TestUserPredictionModel:
         """Test querying predictions by type"""
         from app.models.user import UserPrediction
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         predictions_data = [
             ('performance', 80.0),
@@ -290,7 +290,7 @@ class TestBehaviorPatternModel:
 
         pattern = BehaviorPattern(
             username='test.user',
-            pattern_date=datetime.utcnow(),
+            pattern_date=datetime.now(timezone.utc).replace(tzinfo=None),
             pattern_type='login',
             frequency=5.2,
             avg_duration=15.5,
@@ -315,7 +315,7 @@ class TestBehaviorPatternModel:
 
         pattern = BehaviorPattern(
             username='test.user',
-            pattern_date=datetime.utcnow(),
+            pattern_date=datetime.now(timezone.utc).replace(tzinfo=None),
             pattern_type='booking',
             frequency=0.5,  # Very low
             is_consistent=False,
@@ -334,7 +334,7 @@ class TestBehaviorPatternModel:
         """Test querying patterns by type"""
         from app.models.user import BehaviorPattern
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         patterns_data = [
             ('login', 5.0),
@@ -371,7 +371,7 @@ class TestPersonalInsightModel:
 
         insight = PersonalInsight(
             username='test.user',
-            insight_date=datetime.utcnow(),
+            insight_date=datetime.now(timezone.utc).replace(tzinfo=None),
             insight_type='strength',
             insight_category='performance',
             title='Excellent Show Rate',
@@ -396,7 +396,7 @@ class TestPersonalInsightModel:
 
         insight = PersonalInsight(
             username='test.user',
-            insight_date=datetime.utcnow(),
+            insight_date=datetime.now(timezone.utc).replace(tzinfo=None),
             insight_type='improvement',
             insight_category='growth',
             title='Improve Booking Lead Time',
@@ -417,7 +417,7 @@ class TestPersonalInsightModel:
         """Test querying insights by category"""
         from app.models.user import PersonalInsight
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         insights_data = [
             ('performance', 'strength'),

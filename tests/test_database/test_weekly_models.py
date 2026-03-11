@@ -5,7 +5,7 @@ Tests for WeeklyPointsParticipant, WeeklyPoints, WeeklyActivity, PrestigeData, M
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 
 
@@ -21,7 +21,7 @@ class TestWeeklyPointsParticipantModel:
             participant_name='Test User',
             username='test.user',
             is_active=True,
-            joined_date=datetime.utcnow(),
+            joined_date=datetime.now(timezone.utc).replace(tzinfo=None),
             total_weeks_participated=5,
             total_goal_points=250
         )
@@ -169,12 +169,12 @@ class TestWeeklyActivityModel:
             week_id='2026-01',
             participant_name='Test User',
             activity_type='booking',
-            activity_date=datetime.utcnow(),
+            activity_date=datetime.now(timezone.utc).replace(tzinfo=None),
             points_earned=10,
             is_pending=False,
             is_approved=True,
             approved_by='admin.user',
-            approved_at=datetime.utcnow(),
+            approved_at=datetime.now(timezone.utc).replace(tzinfo=None),
             activity_data={'booking_id': 'BK123', 'customer': 'Test Customer'}
         )
 
@@ -191,7 +191,7 @@ class TestWeeklyActivityModel:
         """Test querying pending activities"""
         from app.models.weekly import WeeklyActivity
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         activities_data = [
             ('booking', 10, True),
@@ -219,7 +219,7 @@ class TestWeeklyActivityModel:
         """Test querying activities by participant"""
         from app.models.weekly import WeeklyActivity
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         activities_data = [
             ('User 1', 10),
@@ -261,7 +261,7 @@ class TestPrestigeDataModel:
             pre_prestige_points=5000,
             prestige_multiplier=1.2,
             unlocked_perks=['double_xp', 'faster_cooldowns'],
-            last_prestige_date=datetime.utcnow(),
+            last_prestige_date=datetime.now(timezone.utc).replace(tzinfo=None),
             lifetime_points=10000,
             lifetime_bookings=500
         )
@@ -329,7 +329,7 @@ class TestMinigameDataModel:
             high_score=9500,
             average_score=6500.5,
             achievements_unlocked=['speed_demon', 'perfectionist'],
-            last_played=datetime.utcnow(),
+            last_played=datetime.now(timezone.utc).replace(tzinfo=None),
             total_coins_earned=500,
             total_xp_earned=1500
         )
@@ -448,7 +448,7 @@ class TestPersistentDataModel:
         """Test persistent data with expiry date"""
         from app.models.weekly import PersistentData
 
-        expires_at = datetime.utcnow() + timedelta(hours=24)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
 
         data = PersistentData(
             data_key='cache.temp_data',

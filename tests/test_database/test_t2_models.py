@@ -5,7 +5,7 @@ Comprehensive tests for T2 Booking and Bucket System models
 """
 
 import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 
 
@@ -354,7 +354,7 @@ class TestT2BucketStateModel:
             total_draws=0,
             stats={'David': 0, 'Alexander': 0, 'Jose': 0},
             max_draws_before_reset=20,
-            last_reset=datetime.utcnow()
+            last_reset=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db_session.add(state)
@@ -376,7 +376,7 @@ class TestT2BucketStateModel:
             total_draws=0,
             stats={'David': 0},
             max_draws_before_reset=20,
-            last_reset=datetime.utcnow()
+            last_reset=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db_session.add(state1)
@@ -390,7 +390,7 @@ class TestT2BucketStateModel:
             total_draws=5,
             stats={'Alexander': 5},
             max_draws_before_reset=20,
-            last_reset=datetime.utcnow()
+            last_reset=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db_session.add(state2)
@@ -409,7 +409,7 @@ class TestT2BucketStateModel:
             total_draws=5,
             stats={'David': 3, 'Alexander': 1, 'Jose': 1},
             max_draws_before_reset=20,
-            last_reset=datetime.utcnow()
+            last_reset=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db_session.add(state)
@@ -437,7 +437,7 @@ class TestT2DrawHistoryModel:
             customer_name='Müller, Hans',
             bucket_size_after=19,
             probability_after=9.0,
-            drawn_at=datetime.utcnow()
+            drawn_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db_session.add(draw)
@@ -452,7 +452,7 @@ class TestT2DrawHistoryModel:
         from app.models.t2_bucket import T2DrawHistory
 
         # Create draws for multiple users
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for i in range(3):
             draw = T2DrawHistory(
@@ -486,7 +486,7 @@ class TestT2DrawHistoryModel:
         """Test querying draws by closer"""
         from app.models.t2_bucket import T2DrawHistory
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for closer in ['David', 'Alexander', 'Jose']:
             draw = T2DrawHistory(
@@ -510,7 +510,7 @@ class TestT2DrawHistoryModel:
         """Test DrawHistory to_dict() method"""
         from app.models.t2_bucket import T2DrawHistory
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         draw = T2DrawHistory(
             username='test.user',
@@ -542,7 +542,7 @@ class TestT2UserLastDrawModel:
         """Test creating a user last draw record"""
         from app.models.t2_bucket import T2UserLastDraw
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         last_draw = T2UserLastDraw(
             username='dominik.mikic',
@@ -563,7 +563,7 @@ class TestT2UserLastDrawModel:
         """Test that username must be unique"""
         from app.models.t2_bucket import T2UserLastDraw
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         last_draw1 = T2UserLastDraw(
             username='duplicate.user',
@@ -592,7 +592,7 @@ class TestT2UserLastDrawModel:
         """Test updating user's last draw (simulates upsert)"""
         from app.models.t2_bucket import T2UserLastDraw
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # Create initial record
         last_draw = T2UserLastDraw(
@@ -621,7 +621,7 @@ class TestT2UserLastDrawModel:
         """Test UserLastDraw to_dict() method"""
         from app.models.t2_bucket import T2UserLastDraw
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         last_draw = T2UserLastDraw(
             username='test.user',

@@ -7,7 +7,7 @@ Sendet Discord-Benachrichtigungen für gelöschte T1-bereit Slots
 import os
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 import requests
 
@@ -98,7 +98,7 @@ class DiscordWebhookService:
             'footer': {
                 'text': f"Detected at {scan_timestamp}"
             },
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
         }
 
         payload = {

@@ -5,7 +5,7 @@ Comprehensive tests for Booking and BookingOutcome models
 """
 
 import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 
 
@@ -46,7 +46,7 @@ class TestBookingModel:
         """Test creating a booking with all fields populated"""
         from app.models.booking import Booking
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         booking = Booking(
             booking_id='2026-01-20_16:00_schmidt',
             username='admin.user',

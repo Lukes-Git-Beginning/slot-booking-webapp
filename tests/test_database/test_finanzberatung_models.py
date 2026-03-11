@@ -8,7 +8,7 @@ values (active). Tests pass enum members directly and compare enum members.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 @pytest.mark.database
@@ -36,7 +36,7 @@ class TestFinanzSessionModel:
         """Test creating a session with all fields populated."""
         from app.models.finanzberatung import FinanzSession, SessionStatus
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         session = FinanzSession(
             opener_username='test.opener',
             closer_username='test.closer',
@@ -74,7 +74,7 @@ class TestFinanzSessionModel:
         """Test that DSGVO fields can be populated."""
         from app.models.finanzberatung import FinanzSession, SessionStatus
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         session = FinanzSession(
             opener_username='test.opener',
             customer_name='Test Kunde',
@@ -327,7 +327,7 @@ class TestFinanzExtractedDataModel:
         db_session.add(doc)
         db_session.commit()
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         data = FinanzExtractedData(
             document_id=doc.id,
             field_name='beitrag',

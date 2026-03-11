@@ -5,7 +5,7 @@ Tests for Score, UserBadge, DailyQuest, QuestProgress, PersonalGoal, Champion, M
 """
 
 import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 
 
@@ -86,7 +86,7 @@ class TestUserBadgeModel:
             emoji='🎯',
             rarity='common',
             category='daily',
-            earned_date=datetime.utcnow()
+            earned_date=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db_session.add(badge)
@@ -109,7 +109,7 @@ class TestUserBadgeModel:
             emoji='👑',
             rarity='legendary',
             category='weekly',
-            earned_date=datetime.utcnow()
+            earned_date=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db_session.add(badge1)
         db_session.commit()
@@ -123,7 +123,7 @@ class TestUserBadgeModel:
             emoji='👑',
             rarity='legendary',
             category='weekly',
-            earned_date=datetime.utcnow()
+            earned_date=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db_session.add(badge2)
 
@@ -149,7 +149,7 @@ class TestUserBadgeModel:
                 emoji='🎯',
                 rarity=rarity,
                 category='daily',
-                earned_date=datetime.utcnow()
+                earned_date=datetime.now(timezone.utc).replace(tzinfo=None)
             )
             db_session.add(badge)
 
@@ -312,7 +312,7 @@ class TestQuestProgressModel:
         """Test quest completion tracking"""
         from app.models.gamification import QuestProgress
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         progress = QuestProgress(
             username='test.user',

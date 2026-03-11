@@ -104,6 +104,10 @@ class SlotConfig:
     # Spezielle Kapazität für 20-Uhr-Slots (nur 2 Kunden pro Berater)
     SLOTS_PER_BERATER_8PM: int = int(os.getenv("SLOTS_PER_BERATER_8PM", "2"))
 
+    # T2 Availability Scan
+    T2_AVAILABILITY_SCAN_DAYS: int = 42
+    T2_SLOT_DURATION_HOURS: int = 2
+
     # Zeitzone
     TIMEZONE: str = os.getenv("TIMEZONE", "Europe/Berlin")
 
@@ -182,6 +186,22 @@ class GamificationConfig:
     MAX_LEVEL: int = 100
 
 
+# ========== SECURITY KONFIGURATION ==========
+class SecurityConfig:
+    """Konfiguration für Security-Features (Lockout, Online-Timeout)"""
+
+    # Account Lockout Tiers
+    LOCKOUT_ATTEMPTS_TIER1: int = 5
+    LOCKOUT_ATTEMPTS_TIER2: int = 10
+    LOCKOUT_ATTEMPTS_TIER3: int = 15
+    LOCKOUT_DURATION_TIER1: int = 15      # Minuten
+    LOCKOUT_DURATION_TIER2: int = 60      # Minuten
+    LOCKOUT_DURATION_TIER3: int = 1440    # Minuten (24h)
+
+    # Online-User Erkennung
+    ONLINE_USER_TIMEOUT_MINUTES: int = 15
+
+
 # ========== API KONFIGURATION ==========
 class APIConfig:
     """Konfiguration für API-Endpunkte"""
@@ -195,6 +215,12 @@ class APIConfig:
 
     # Export-Limits
     MAX_EXPORT_RECORDS: int = int(os.getenv("MAX_EXPORT_RECORDS", "10000"))
+
+    # Admin-Dashboard Defaults
+    MAX_AUDIT_ENTRIES: int = 10000
+    LOGIN_ACTIVITY_LIMIT: int = 50
+    LOGIN_STATS_DAYS: int = 30
+    UPCOMING_HOLIDAYS_DAYS: int = 90
 
 
 # ========== BERATER KONFIGURATION ==========

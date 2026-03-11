@@ -6,7 +6,7 @@ Ersetzt: data/persistent/t2_bookings.json
 Trackt T2 Closer Buchungen mit Google Calendar Integration
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import String, Text, Date, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column
@@ -89,7 +89,7 @@ class T2Booking(Base):
             'calendar_id': self.calendar_id,
             'status': self.status,
             'is_rescheduled_from': self.is_rescheduled_from,
-            'created_at': self.created_at.isoformat() if self.created_at else datetime.utcnow().isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else datetime.now(timezone.utc).isoformat()
         }
 
     def __repr__(self) -> str:

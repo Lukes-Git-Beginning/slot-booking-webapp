@@ -42,7 +42,7 @@ def test_database_tables_created(test_db_engine):
 def test_session_isolation(db_session):
     """Verify test sessions are isolated (changes rollback after test)"""
     from app.models.booking import Booking
-    from datetime import datetime, date
+    from datetime import datetime, date, timezone
 
     # Add a test booking
     booking = Booking(
@@ -60,7 +60,7 @@ def test_session_isolation(db_session):
         booking_lead_time=7,
         booked_at_hour=10,
         booked_on_weekday='Wednesday',
-        booking_timestamp=datetime.utcnow()
+        booking_timestamp=datetime.now(timezone.utc).replace(tzinfo=None)
     )
 
     db_session.add(booking)

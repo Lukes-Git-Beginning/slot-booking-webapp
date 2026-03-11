@@ -20,7 +20,7 @@ import logging
 import os
 import secrets
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 
 import magic
@@ -90,7 +90,7 @@ class FinanzUploadService:
             if ttl_getter is None:
                 raise ValueError(f"Unknown token type: {token_type}")
             ttl_seconds = ttl_getter()
-            expires_at = datetime.utcnow() + timedelta(seconds=ttl_seconds)
+            expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
 
             # Create token record
             token = FinanzUploadToken(

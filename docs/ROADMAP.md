@@ -1,6 +1,6 @@
 # ROADMAP — Central Business Tool Hub
 
-**Version:** 3.3.18 | **Stand:** 15.02.2026 | **Production:** https://berater.zfa.gmbh/
+**Version:** 3.3.19 | **Stand:** 11.03.2026 | **Production:** https://berater.zfa.gmbh/
 
 ---
 
@@ -8,7 +8,7 @@
 
 Das System ist **produktionsreif und stabil**. Flask 3.1.1 + PostgreSQL + Redis + Tailwind/DaisyUI.
 CI/CD via GitHub Actions mit automatischem Deploy, CodeRabbit Review und Discord-Notifications.
-561 Tests, ~98% Coverage auf kritischen Pfaden.
+728 Tests, ~98% Coverage auf kritischen Pfaden.
 
 ---
 
@@ -24,6 +24,9 @@ CI/CD via GitHub Actions mit automatischem Deploy, CodeRabbit Review und Discord
 | **F.4** | Parsing-Bug behoben | Feb 2026 |
 | **F.5** | Score-Recovery + Startup-Validierung + Datei-Ownership-Prävention | Feb 2026 |
 | **F.1** | CSP Nonce-Migration (Tailwind pre-compiled, Nonce-basierte CSP, onclick→data-action) | Feb 2026 |
+| **G.1-G.3** | HubSpot Deal-Suche, Outcome-Sync, Analytics | Mär 2026 |
+| **H** | Finanzberatung v1.0 (9 Phasen, feature-complete) | Mär 2026 |
+| **I** | Code-Quality / Tech Debt Tier 1-3: MVP-Badge Fix, Cosmetics Dual-Write, Level PG-Sync, tracking_system.py→11-Modul Package, T2-Legacy Cleanup, 728 Tests | Mär 2026 |
 
 ---
 
@@ -57,16 +60,16 @@ CI/CD via GitHub Actions mit automatischem Deploy, CodeRabbit Review und Discord
 
 ---
 
-## Code-Qualität (Nice-to-Have)
+## Code-Qualität
 
 Aus dem System-Audit (`docs/SYSTEM_AUDIT_2026-02.md`):
 
-| ID | Thema | Aufwand |
-|----|-------|---------|
-| Q1 | `tracking_system.py` aufteilen (2.477 Zeilen) | Mittel |
-| Q5 | Magic Numbers in `config/constants.py` zentralisieren | Klein |
-| Q3 | Booking-Handler weiter in Service extrahieren (teilweise erledigt) | Klein |
-| S5 | CSRF-Token-Header für `/slots/book` Endpoint | Klein |
+| ID | Thema | Status |
+|----|-------|--------|
+| Q1 | `tracking_system.py` aufteilen (2.477 Zeilen) | **Erledigt (Mär 2026)** — 11-Modul Package mit Fassaden-Pattern |
+| Q5 | Magic Numbers in `config/constants.py` zentralisieren | Offen |
+| Q3 | Booking-Handler weiter in Service extrahieren (teilweise erledigt) | Offen |
+| S5 | CSRF-Token-Header für `/slots/book` Endpoint | Offen |
 
 Vollständige Liste (Q1-Q8, S5-S6) siehe System-Audit.
 

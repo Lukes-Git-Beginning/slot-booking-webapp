@@ -12,7 +12,7 @@ Models:
 """
 
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (
@@ -289,7 +289,7 @@ class FinanzUploadToken(Base):
     @property
     def is_expired(self) -> bool:
         """Check if the token has expired."""
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     @property
     def is_exhausted(self) -> bool:

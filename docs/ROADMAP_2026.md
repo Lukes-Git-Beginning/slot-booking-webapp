@@ -1,7 +1,7 @@
 # Roadmap 2026 — Business Tool Hub
 
 **Version:** 1.0
-**Letzte Aktualisierung:** 2026-03-04
+**Letzte Aktualisierung:** 2026-03-11
 **Kapazität:** 12–20h/Woche (Mini-Job, seit 01.03.2026)
 **Planungshorizont:** Q1–Q4 2026
 **Priorisierung:** Impact für Nutzer × Machbarkeit
@@ -12,10 +12,10 @@
 
 - **Core Slots + T2** — produktiv seit November 2025
 - **Gamification** — Badges, XP, Levels, Weekly Rankings, Cosmetics Shop
-- **PostgreSQL Migration** — ~61% fertig, Dual-Write aktiv
+- **PostgreSQL Migration** — ~65% fertig, Dual-Write aktiv
 - **CI/CD Pipeline** — GitHub Actions, CodeRabbit Review
 - **CSP Nonce-Migration** — vollständig abgeschlossen
-- **Test-Suite** — 561 Tests, ~98% Coverage auf kritischen Pfaden
+- **Test-Suite** — 728 Tests, ~98% Coverage auf kritischen Pfaden
 - **Finanzberatung v1.0** — 9 Phasen, feature-complete
 - **HubSpot G.1–G.3** — Deal-Suche, Outcome-Sync, Analytics
 
@@ -30,7 +30,7 @@
 | 1.1 | Finanzberatung Go-Live | 8–12h | Alembic Migration, CSS Rebuild, Celery-Worker auf Server, Upload-Verzeichnis Permissions |
 | 1.2 | HubSpot G.4 Webhook-Handler | 6–10h | Stage-Change Events empfangen, Deal-Status live synchronisieren |
 | 1.3 | PostgreSQL Migration Phase 1 | 8–12h | Tracking-System (114KB, größte JSON-Abhängigkeit) auf PG-first umstellen |
-| 1.4 | Code-Quality Quick Wins | 4–6h | tracking_system.py aufteilen, Magic Numbers in Config, CSRF-Header für /slots/book |
+| 1.4 | ~~Code-Quality Quick Wins~~ | ~~4–6h~~ | ✅ **Erledigt (Mär 2026)** — tracking_system.py→11-Modul Package (Fassaden-Pattern), verwaiste T2-Templates entfernt, 728 Tests |
 
 ---
 

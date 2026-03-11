@@ -10,7 +10,7 @@ import os
 import json
 import pytz
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 from app.utils.json_utils import atomic_write_json, atomic_read_json
 
@@ -358,7 +358,7 @@ class PersonalizationSystem:
                 ).first()
                 if row:
                     row.config = customization_data
-                    row.updated_at = datetime.utcnow()
+                    row.updated_at = datetime.now(timezone.utc)
                 else:
                     row = UserCosmetic(
                         username=user,

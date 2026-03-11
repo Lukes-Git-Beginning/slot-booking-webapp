@@ -8,7 +8,7 @@ from flask import render_template, request, jsonify, flash, redirect, url_for, s
 from datetime import datetime, date, timedelta
 import pytz
 
-from app.config.base import slot_config
+from app.config.base import slot_config, APIConfig
 from app.services.holiday_service import holiday_service
 from app.utils.decorators import require_admin
 from app.routes.admin import admin_bp
@@ -27,7 +27,7 @@ def blocked_dates():
         overview = holiday_service.get_blocked_dates_overview(current_year)
 
         # Get upcoming holidays for quick reference
-        upcoming_holidays = holiday_service.get_upcoming_holidays(90)  # Next 3 months
+        upcoming_holidays = holiday_service.get_upcoming_holidays(APIConfig.UPCOMING_HOLIDAYS_DAYS)
 
         # Get available years for dropdown
         available_years = []

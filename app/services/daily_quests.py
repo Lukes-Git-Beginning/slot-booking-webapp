@@ -9,7 +9,7 @@ import json
 import pytz
 import random
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 # Logger setup
@@ -335,9 +335,9 @@ class DailyQuestSystem:
                                     existing.is_completed = is_completed
                                     existing.is_claimed = is_claimed
                                     existing.progress_percent = min(100.0, (current_value / target_value * 100)) if target_value > 0 else 0.0
-                                    existing.last_progress_at = datetime.utcnow()
+                                    existing.last_progress_at = datetime.now(timezone.utc)
                                     if is_completed and not existing.completed_at:
-                                        existing.completed_at = datetime.utcnow()
+                                        existing.completed_at = datetime.now(timezone.utc)
                                 else:
                                     new_row = QuestProgressModel(
                                         username=username,
@@ -348,8 +348,8 @@ class DailyQuestSystem:
                                         is_completed=is_completed,
                                         is_claimed=is_claimed,
                                         started_at=quest_date,
-                                        completed_at=datetime.utcnow() if is_completed else None,
-                                        last_progress_at=datetime.utcnow()
+                                        completed_at=datetime.now(timezone.utc) if is_completed else None,
+                                        last_progress_at=datetime.now(timezone.utc)
                                     )
                                     session.add(new_row)
                     session.commit()
@@ -793,7 +793,7 @@ class DailyQuestSystem:
                             existing.total_coins_earned = total_winnings
                             existing.high_score = max(existing.high_score, total_winnings)
                             existing.achievements_unlocked = {"spins": spins[-100:]}
-                            existing.last_played = datetime.utcnow()
+                            existing.last_played = datetime.now(timezone.utc)
                         else:
                             new_row = MinigameDataModel(
                                 username=username,
@@ -805,7 +805,7 @@ class DailyQuestSystem:
                                 achievements_unlocked={"spins": spins[-100:]},
                                 total_coins_earned=total_winnings,
                                 total_xp_earned=0,
-                                last_played=datetime.utcnow()
+                                last_played=datetime.now(timezone.utc)
                             )
                             session.add(new_row)
                     session.commit()

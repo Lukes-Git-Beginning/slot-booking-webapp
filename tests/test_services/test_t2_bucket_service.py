@@ -5,7 +5,7 @@ Tests for app/services/t2_bucket_system.py (797 lines)
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch, Mock
 import json
 
@@ -30,7 +30,7 @@ def mock_bucket_data():
         "stats": {"Alex": 0, "David": 0, "Jose": 0},
         "user_last_draw": {},
         "draw_history": [],
-        "last_reset": datetime.utcnow().isoformat()
+        "last_reset": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -205,7 +205,7 @@ class TestTimeout:
         from app.services.t2_bucket_system import check_user_timeout
 
         # GIVEN: User just drew
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         mock_bucket_data['user_last_draw'] = {
             'test.user': {
                 'timestamp': now.isoformat(),
@@ -227,7 +227,7 @@ class TestTimeout:
         from app.services.t2_bucket_system import check_user_timeout
 
         # GIVEN: User drew 30 seconds ago
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         last_draw = now - timedelta(seconds=30)
         mock_bucket_data['user_last_draw'] = {
             'test.user': {
@@ -253,7 +253,7 @@ class TestTimeout:
         from app.services.t2_bucket_system import check_user_timeout
 
         # GIVEN: User drew 2 minutes ago
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         last_draw = now - timedelta(minutes=2)
         mock_bucket_data['user_last_draw'] = {
             'test.user': {
@@ -275,7 +275,7 @@ class TestTimeout:
         from app.services.t2_bucket_system import check_user_timeout
 
         # GIVEN: User drew with timezone info
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         last_draw = now - timedelta(seconds=30)
         mock_bucket_data['user_last_draw'] = {
             'test.user': {

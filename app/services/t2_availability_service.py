@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timedelta, time
 from typing import Dict, List, Optional
 from app.core.google_calendar import get_google_calendar_service
+from app.config.base import SlotConfig
 from app.services.data_persistence import data_persistence
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class T2AvailabilityService:
     def __init__(self):
         self.calendar_service = get_google_calendar_service()
 
-    def scan_all_closers_availability(self, days: int = 42) -> Dict:
+    def scan_all_closers_availability(self, days: int = SlotConfig.T2_AVAILABILITY_SCAN_DAYS) -> Dict:
         """
         Scan availability for all closers for next N days
 
@@ -60,7 +61,7 @@ class T2AvailabilityService:
 
         return availability
 
-    def scan_closer_availability(self, closer_name: str, days: int = 42) -> Dict[str, List[str]]:
+    def scan_closer_availability(self, closer_name: str, days: int = SlotConfig.T2_AVAILABILITY_SCAN_DAYS) -> Dict[str, List[str]]:
         """
         Scan availability for single closer
 
@@ -165,7 +166,7 @@ class T2AvailabilityService:
         slot_start_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(
             hour=slot_start_hour, minute=slot_start_minute
         )
-        slot_end_dt = slot_start_dt + timedelta(hours=2)
+        slot_end_dt = slot_start_dt + timedelta(hours=SlotConfig.T2_SLOT_DURATION_HOURS)
 
         # Check against all events
         for event in events:
@@ -272,7 +273,7 @@ class T2AvailabilityService:
         date_slots = closer_data.get(date, [])
         return len(date_slots) > 0
 
-    def get_available_dates(self, closer_name: str, days: int = 42) -> List[str]:
+    def get_available_dates(self, closer_name: str, days: int = SlotConfig.T2_AVAILABILITY_SCAN_DAYS) -> List[str]:
         """
         Get list of dates where closer has availability
 
@@ -316,7 +317,7 @@ def scan_all_closers():
     logger.info("=== T2 Availability Scan Started ===")
     try:
         service = get_availability_service()
-        result = service.scan_all_closers_availability(days=42)
+        result = service.scan_all_closers_availability(days=SlotConfig.T2_AVAILABILITY_SCAN_DAYS)
         logger.info(f"=== Scan Complete: {len(result)} closers processed ===")
         return result
     except Exception as e:

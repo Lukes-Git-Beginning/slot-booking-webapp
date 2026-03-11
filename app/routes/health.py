@@ -4,7 +4,7 @@ Health Check and Monitoring Endpoints
 """
 
 from flask import Blueprint, jsonify, request
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import psutil
 
@@ -202,7 +202,7 @@ def health_check():
     # Build response
     response = {
         'status': 'healthy' if overall_healthy else 'unhealthy',
-        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
         'checks': checks,
         'version': '3.3.17',  # Business Tool Hub version
         'uptime': get_uptime()
@@ -223,13 +223,13 @@ def readiness_check():
         data_persistence.load_data('user_stats', default={})
         return jsonify({
             'status': 'ready',
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
         }), 200
     except Exception as e:
         return jsonify({
             'status': 'not_ready',
             'error': str(e),
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
         }), 503
 
 
@@ -241,7 +241,7 @@ def liveness_check():
     """
     return jsonify({
         'status': 'alive',
-        'timestamp': datetime.utcnow().isoformat() + 'Z'
+        'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
     }), 200
 
 
@@ -283,14 +283,14 @@ def metrics():
                 'total_bookings': total_bookings,
                 'uptime_seconds': get_uptime_seconds()
             },
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
         }
 
         return jsonify(metrics_data), 200
     except Exception as e:
         return jsonify({
             'error': f'Could not generate metrics: {str(e)}',
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
         }), 500
 
 
@@ -362,14 +362,14 @@ def health_detailed():
             details['disk_space'] = {'error': str(e), 'status': 'error'}
 
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
             'version': '3.3.17',
             'details': details
         }), 200
     except Exception as e:
         return jsonify({
             'error': f'Health detailed check failed: {str(e)}',
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
         }), 500
 
 

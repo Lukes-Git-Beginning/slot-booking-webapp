@@ -10,7 +10,7 @@ from flask import render_template, session, redirect, url_for, flash, jsonify, r
 from datetime import datetime, timedelta
 import pytz
 
-from app.config.base import slot_config
+from app.config.base import slot_config, APIConfig, SecurityConfig
 from app.core.extensions import data_persistence, tracking_system
 from app.services.activity_tracking import activity_tracking
 from app.utils.decorators import require_admin
@@ -143,10 +143,10 @@ def admin_login_history():
     """Admin-Seite: Login-History aller User"""
     try:
         # Hole letzte 50 Logins
-        all_logins = activity_tracking.get_all_login_activity(limit=50)
+        all_logins = activity_tracking.get_all_login_activity(limit=APIConfig.LOGIN_ACTIVITY_LIMIT)
 
         # Hole Login-Stats (letzte 30 Tage)
-        login_stats = activity_tracking.get_login_stats(days=30)
+        login_stats = activity_tracking.get_login_stats(days=APIConfig.LOGIN_STATS_DAYS)
 
         return render_template("admin_login_history.html",
                              all_logins=all_logins,
@@ -164,7 +164,7 @@ def admin_online_users():
     """Admin-Seite: Aktuell online User"""
     try:
         # Hole online Users (Timeout: 15 Minuten)
-        online_users = activity_tracking.get_online_users(timeout_minutes=15)
+        online_users = activity_tracking.get_online_users(timeout_minutes=SecurityConfig.ONLINE_USER_TIMEOUT_MINUTES)
 
         return render_template("admin_online_users.html",
                              online_users=online_users,
@@ -198,7 +198,7 @@ def refactoring_status():
 def api_online_users():
     """API: Aktuell online User (für AJAX-Updates)"""
     try:
-        online_users = activity_tracking.get_online_users(timeout_minutes=15)
+        online_users = activity_tracking.get_online_users(timeout_minutes=SecurityConfig.ONLINE_USER_TIMEOUT_MINUTES)
 
         return jsonify({
             "success": True,
