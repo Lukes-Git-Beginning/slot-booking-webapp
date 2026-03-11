@@ -34,7 +34,7 @@ def app():
 
     with patch('app.utils.credentials.load_google_credentials', return_value=mock_creds), \
          patch('app.core.google_calendar.GoogleCalendarService._initialize_service'), \
-         patch('app.services.tracking_system.build', return_value=MagicMock()):
+         patch('googleapiclient.discovery.build', return_value=MagicMock()):
 
         from app import create_app
 
