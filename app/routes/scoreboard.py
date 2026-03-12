@@ -91,7 +91,7 @@ def scoreboard():
     # Filter out excluded users
     filtered_scores = {u: v for u, v in scores.items() if u not in all_excluded}
 
-    ranking = sorted([(u, v.get(month, 0)) for u, v in filtered_scores.items()], key=lambda x: x[1], reverse=True)
+    ranking = sorted([(u, v.get(month, 0)) for u, v in filtered_scores.items() if v.get(month, 0) > 0], key=lambda x: x[1], reverse=True)
     user_score = scores.get(user, {}).get(month, 0) if user else 0
     champion = get_champion_for_month((datetime.now(TZ).replace(day=1) - timedelta(days=1)).strftime("%Y-%m"))
 
