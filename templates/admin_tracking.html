@@ -652,9 +652,8 @@
                         ranges: [
                             { from: -1, to: -0.01, color: 'transparent', name: 'Keine Daten' },
                             { from: 0, to: 24.9, color: '#ef4444', name: '<25%' },
-                            { from: 25, to: 34.9, color: '#f97316', name: '25-35%' },
-                            { from: 35, to: 49.9, color: '#22c55e', name: '35-50%' },
-                            { from: 50, to: 100, color: '#ec4899', name: '>50%' }
+                            { from: 25, to: 39.9, color: '#f97316', name: '25-40%' },
+                            { from: 40, to: 100, color: '#22c55e', name: '≥40%' }
                         ]
                     }
                 }
@@ -691,7 +690,7 @@
                         <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#8b5cf6;">Verschoben</span><span>${cell.rescheduled}</span></div>
                         <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#f59e0b;">Überhang</span><span>${cell.overhang}</span></div>
                         <div style="border-top:1px solid rgba(255,255,255,0.15);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:bold;">
-                            <span>Show-Rate</span><span style="color:${cell.show_rate >= 50 ? '#ec4899' : cell.show_rate >= 35 ? '#22c55e' : cell.show_rate >= 25 ? '#f97316' : '#ef4444'};">${cell.show_rate}%</span>
+                            <span>Show-Rate</span><span style="color:${cell.show_rate >= 40 ? '#22c55e' : cell.show_rate >= 25 ? '#f97316' : '#ef4444'};">${cell.show_rate}%</span>
                         </div>
                     </div>`;
                 }
