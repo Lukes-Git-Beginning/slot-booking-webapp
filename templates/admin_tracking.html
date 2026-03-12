@@ -61,7 +61,22 @@
 {% endblock %}
 
 {% block content %}
-    <div class="space-y-8">
+    <!-- Tab Navigation -->
+    <div class="container mx-auto px-4 mb-6">
+        <div class="tabs tabs-boxed bg-white/5 inline-flex">
+            <a class="tab tab-lg tab-active" id="main-tab-dashboard" onclick="switchMainTab('dashboard')">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i>
+                Dashboard
+            </a>
+            <a class="tab tab-lg" id="main-tab-heatmap" onclick="switchMainTab('heatmap')">
+                <i data-lucide="grid-3x3" class="w-4 h-4 mr-2"></i>
+                Uhrzeitanalyse
+            </a>
+        </div>
+    </div>
+
+    <!-- Tab: Dashboard -->
+    <div id="tab-dashboard" class="space-y-8">
 
     <!-- Failed Bookings Recovery (nur sichtbar wenn Einträge vorhanden) -->
     <div id="failed-bookings-section" class="hidden glass rounded-2xl p-6 md:p-8 border border-warning/30">
@@ -335,6 +350,84 @@
 
     </div>
 
+    <!-- Tab: Uhrzeitanalyse (Heatmap) -->
+    <div id="tab-heatmap" class="hidden space-y-6">
+        <div class="glass rounded-2xl p-6 md:p-8">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                        <i data-lucide="grid-3x3" class="w-6 h-6 text-primary"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Uhrzeitanalyse</h2>
+                        <p class="text-white/60 text-sm">Show-Rate nach Wochentag und Uhrzeit</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <select id="heatmap-period" class="select select-bordered select-sm bg-base-300 text-white" onchange="loadHeatmapData()">
+                        <option value="4weeks">Letzte 4 Wochen</option>
+                        <option value="lastMonth">Letzter Monat</option>
+                        <option value="3months" selected>Letzte 3 Monate</option>
+                        <option value="golive">Seit Go-Live</option>
+                        <option value="custom">Eigener Zeitraum</option>
+                    </select>
+
+                    <div id="heatmap-custom-range" class="hidden flex items-center gap-2">
+                        <input type="date" id="heatmap-start" class="input input-bordered input-sm bg-base-300 text-white">
+                        <span class="text-white/60">–</span>
+                        <input type="date" id="heatmap-end" class="input input-bordered input-sm bg-base-300 text-white">
+                        <button onclick="loadHeatmapData()" class="btn btn-primary btn-sm">Laden</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legende -->
+            <div class="flex items-center gap-4 mb-4 text-sm text-white/70">
+                <span class="flex items-center gap-1"><span class="w-4 h-4 rounded" style="background: #ef4444;"></span> &lt;40%</span>
+                <span class="flex items-center gap-1"><span class="w-4 h-4 rounded" style="background: #f97316;"></span> 40–59%</span>
+                <span class="flex items-center gap-1"><span class="w-4 h-4 rounded" style="background: #eab308;"></span> 60–79%</span>
+                <span class="flex items-center gap-1"><span class="w-4 h-4 rounded" style="background: #22c55e;"></span> &ge;80%</span>
+                <span class="ml-auto text-white/40">Farbe = Show-Rate (Erschienen / Gesamt)</span>
+            </div>
+
+            <!-- Loading -->
+            <div id="heatmap-loading" class="text-center py-12">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="text-white/60 mt-2">Lade Uhrzeitanalyse...</p>
+            </div>
+
+            <!-- Heatmap Chart -->
+            <div id="heatmapChart" class="hidden"></div>
+
+            <!-- Keine Daten -->
+            <div id="heatmap-empty" class="hidden text-center py-12">
+                <i data-lucide="inbox" class="w-12 h-12 text-white/30 mx-auto mb-3"></i>
+                <p class="text-white/60">Keine Daten für den gewählten Zeitraum</p>
+            </div>
+
+            <!-- Summary Stats -->
+            <div id="heatmap-summary" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
+                <div class="text-center">
+                    <p class="text-white/60 text-sm">Gesamt Termine</p>
+                    <p id="hm-total" class="text-2xl font-bold text-white">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-white/60 text-sm">Beste Uhrzeit</p>
+                    <p id="hm-best-hour" class="text-2xl font-bold text-success">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-white/60 text-sm">Schlechteste Uhrzeit</p>
+                    <p id="hm-worst-hour" class="text-2xl font-bold text-error">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-white/60 text-sm">Bester Wochentag</p>
+                    <p id="hm-best-day" class="text-2xl font-bold text-primary">--</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Drawer (Sidebar) -->
     <div class="drawer drawer-end">
         <input id="settings-drawer" type="checkbox" class="drawer-toggle" />
@@ -434,6 +527,232 @@
 
 {% block extra_js %}
     <script nonce="{{ csp_nonce }}">
+    // ========== MAIN TAB SWITCHING ==========
+    let heatmapChart = null;
+    let heatmapLoaded = false;
+
+    function switchMainTab(tab) {
+        document.getElementById('tab-dashboard').classList.toggle('hidden', tab !== 'dashboard');
+        document.getElementById('tab-heatmap').classList.toggle('hidden', tab !== 'heatmap');
+        document.getElementById('main-tab-dashboard').classList.toggle('tab-active', tab === 'dashboard');
+        document.getElementById('main-tab-heatmap').classList.toggle('tab-active', tab === 'heatmap');
+
+        if (tab === 'heatmap' && !heatmapLoaded) {
+            heatmapLoaded = true;
+            loadHeatmapData();
+        }
+    }
+
+    // ========== HEATMAP ==========
+
+    function getHeatmapDateRange() {
+        const preset = document.getElementById('heatmap-period').value;
+        const today = new Date();
+        const customDiv = document.getElementById('heatmap-custom-range');
+        customDiv.classList.toggle('hidden', preset !== 'custom');
+
+        let startDate, endDate = today.toISOString().split('T')[0];
+
+        switch(preset) {
+            case '4weeks':
+                startDate = new Date(today.getTime() - 28 * 86400000).toISOString().split('T')[0];
+                break;
+            case 'lastMonth':
+                const lm = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                startDate = lm.toISOString().split('T')[0];
+                endDate = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+                break;
+            case '3months':
+                startDate = new Date(today.getTime() - 90 * 86400000).toISOString().split('T')[0];
+                break;
+            case 'golive':
+                startDate = '2025-09-01';
+                break;
+            case 'custom':
+                startDate = document.getElementById('heatmap-start').value;
+                endDate = document.getElementById('heatmap-end').value;
+                if (!startDate || !endDate) return null;
+                break;
+        }
+        return { startDate, endDate };
+    }
+
+    async function loadHeatmapData() {
+        const range = getHeatmapDateRange();
+        if (!range) return;
+
+        document.getElementById('heatmap-loading').classList.remove('hidden');
+        document.getElementById('heatmapChart').classList.add('hidden');
+        document.getElementById('heatmap-empty').classList.add('hidden');
+        document.getElementById('heatmap-summary').classList.add('hidden');
+
+        try {
+            const resp = await fetch(`/admin/tracking/api/hourly-distribution?start_date=${range.startDate}&end_date=${range.endDate}`);
+            const result = await resp.json();
+
+            if (!result.success || !result.data || result.data.total_slots === 0) {
+                document.getElementById('heatmap-loading').classList.add('hidden');
+                document.getElementById('heatmap-empty').classList.remove('hidden');
+                return;
+            }
+
+            renderHeatmap(result.data);
+            updateHeatmapSummary(result.data);
+        } catch (err) {
+            console.error('Heatmap load error:', err);
+            document.getElementById('heatmap-loading').classList.add('hidden');
+            document.getElementById('heatmap-empty').classList.remove('hidden');
+        }
+    }
+
+    function renderHeatmap(data) {
+        const weekdays = data.weekdays;  // ["Montag", ..., "Freitag"]
+        const hours = data.hours;        // ["09:00", "10:00", ...]
+        const matrix = data.matrix;
+
+        // Build lookup: (weekday_idx, hour) -> cell data
+        const lookup = {};
+        matrix.forEach(cell => {
+            lookup[cell.weekday + '_' + cell.hour] = cell;
+        });
+
+        // ApexCharts heatmap: series = rows (weekdays reversed for top-down), data = columns (hours)
+        const series = weekdays.slice().reverse().map((dayName, revIdx) => {
+            const weekdayIdx = weekdays.length - 1 - revIdx;
+            return {
+                name: dayName,
+                data: hours.map(hour => {
+                    const cell = lookup[weekdayIdx + '_' + hour];
+                    return {
+                        x: hour,
+                        y: cell ? cell.show_rate : null,
+                        meta: cell || null
+                    };
+                })
+            };
+        });
+
+        const options = {
+            series: series,
+            chart: {
+                type: 'heatmap',
+                height: 280,
+                background: 'transparent',
+                toolbar: { show: false },
+                fontFamily: 'inherit'
+            },
+            plotOptions: {
+                heatmap: {
+                    shadeIntensity: 0,
+                    radius: 4,
+                    enableShades: false,
+                    colorScale: {
+                        ranges: [
+                            { from: -1, to: -0.01, color: 'transparent', name: 'Keine Daten' },
+                            { from: 0, to: 39.9, color: '#ef4444', name: '<40%' },
+                            { from: 40, to: 59.9, color: '#f97316', name: '40-59%' },
+                            { from: 60, to: 79.9, color: '#eab308', name: '60-79%' },
+                            { from: 80, to: 100, color: '#22c55e', name: '≥80%' }
+                        ]
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                style: { fontSize: '12px', fontWeight: 'bold', colors: ['#fff'] },
+                formatter: function(val) {
+                    if (val === null || val === undefined) return '';
+                    return val.toFixed(0) + '%';
+                }
+            },
+            xaxis: {
+                labels: { style: { colors: 'rgba(255,255,255,0.7)', fontSize: '12px' } },
+                axisBorder: { show: false }
+            },
+            yaxis: {
+                labels: { style: { colors: 'rgba(255,255,255,0.7)', fontSize: '12px' } }
+            },
+            grid: { show: false },
+            legend: { show: false },
+            tooltip: {
+                custom: function({ seriesIndex, dataPointIndex, w }) {
+                    const cell = w.config.series[seriesIndex].data[dataPointIndex].meta;
+                    if (!cell) return '<div class="p-3 bg-base-300 text-white rounded-lg shadow-lg">Keine Daten</div>';
+                    return `<div style="background:#1d232a;color:#fff;padding:12px;border-radius:8px;min-width:180px;font-size:13px;">
+                        <div style="font-weight:bold;margin-bottom:8px;color:#d4af6a;">${cell.weekday_de} · ${cell.hour} Uhr</div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span>Gesamt</span><span style="font-weight:bold;">${cell.total}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#22c55e;">Erschienen</span><span>${cell.completed}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#ef4444;">Nicht erschienen</span><span>${cell.no_shows}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#0ea5e9;">Ghosts</span><span>${cell.ghosts}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#eab308;">Abgesagt</span><span>${cell.cancelled}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#8b5cf6;">Verschoben</span><span>${cell.rescheduled}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#f59e0b;">Überhang</span><span>${cell.overhang}</span></div>
+                        <div style="border-top:1px solid rgba(255,255,255,0.15);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:bold;">
+                            <span>Show-Rate</span><span style="color:${cell.show_rate >= 80 ? '#22c55e' : cell.show_rate >= 60 ? '#eab308' : cell.show_rate >= 40 ? '#f97316' : '#ef4444'};">${cell.show_rate}%</span>
+                        </div>
+                    </div>`;
+                }
+            },
+            states: {
+                hover: { filter: { type: 'darken', value: 0.15 } }
+            }
+        };
+
+        if (heatmapChart) {
+            heatmapChart.destroy();
+        }
+
+        document.getElementById('heatmap-loading').classList.add('hidden');
+        document.getElementById('heatmapChart').classList.remove('hidden');
+
+        heatmapChart = new ApexCharts(document.querySelector("#heatmapChart"), options);
+        heatmapChart.render();
+    }
+
+    function updateHeatmapSummary(data) {
+        const matrix = data.matrix;
+        if (!matrix || matrix.length === 0) return;
+
+        document.getElementById('hm-total').textContent = data.total_slots;
+
+        // Best/worst hour (by show_rate, min 3 total)
+        const byHour = {};
+        matrix.forEach(cell => {
+            if (!byHour[cell.hour]) byHour[cell.hour] = { total: 0, completed: 0 };
+            byHour[cell.hour].total += cell.total;
+            byHour[cell.hour].completed += cell.completed;
+        });
+
+        let bestHour = null, worstHour = null, bestRate = -1, worstRate = 101;
+        Object.entries(byHour).forEach(([hour, d]) => {
+            if (d.total < 3) return;
+            const rate = (d.completed / d.total) * 100;
+            if (rate > bestRate) { bestRate = rate; bestHour = hour; }
+            if (rate < worstRate) { worstRate = rate; worstHour = hour; }
+        });
+
+        document.getElementById('hm-best-hour').textContent = bestHour ? `${bestHour} (${bestRate.toFixed(0)}%)` : '--';
+        document.getElementById('hm-worst-hour').textContent = worstHour ? `${worstHour} (${worstRate.toFixed(0)}%)` : '--';
+
+        // Best weekday
+        const byDay = {};
+        matrix.forEach(cell => {
+            if (!byDay[cell.weekday_de]) byDay[cell.weekday_de] = { total: 0, completed: 0 };
+            byDay[cell.weekday_de].total += cell.total;
+            byDay[cell.weekday_de].completed += cell.completed;
+        });
+
+        let bestDay = null, bestDayRate = -1;
+        Object.entries(byDay).forEach(([day, d]) => {
+            if (d.total < 3) return;
+            const rate = (d.completed / d.total) * 100;
+            if (rate > bestDayRate) { bestDayRate = rate; bestDay = day; }
+        });
+
+        document.getElementById('hm-best-day').textContent = bestDay ? `${bestDay} (${bestDayRate.toFixed(0)}%)` : '--';
+        document.getElementById('heatmap-summary').classList.remove('hidden');
+    }
+
     // Global chart references
     let trendChart = null;
     let donutChart = null;

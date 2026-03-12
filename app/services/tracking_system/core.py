@@ -88,6 +88,10 @@ class BookingTracker:
         from app.services.tracking_system.reporting import get_stats_for_period
         return get_stats_for_period(self, start_date_str, end_date_str)
 
+    def get_hourly_distribution(self, start_date_str, end_date_str):
+        from app.services.tracking_system.reporting import get_hourly_distribution
+        return get_hourly_distribution(self, start_date_str, end_date_str)
+
     # ---- dashboard ----
     def get_performance_dashboard(self):
         from app.services.tracking_system.dashboard import get_performance_dashboard

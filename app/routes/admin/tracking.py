@@ -190,6 +190,35 @@ def api_period_stats():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@admin_bp.route("/tracking/api/hourly-distribution")
+@require_admin
+def api_hourly_distribution():
+    """
+    API Endpoint fuer Wochentag x Uhrzeit Heatmap.
+
+    Query Parameters:
+        start_date: Start-Datum YYYY-MM-DD (default: 2025-09-01)
+        end_date: End-Datum YYYY-MM-DD (default: heute)
+    """
+    try:
+        if not tracking_system:
+            return jsonify({"success": False, "error": "Tracking-System nicht verfügbar"}), 503
+
+        start_date = request.args.get("start_date", "2025-09-01")
+        end_date = request.args.get("end_date", str(datetime.now(TZ).date()))
+
+        data = tracking_system.get_hourly_distribution(start_date, end_date)
+
+        return jsonify({
+            "success": True,
+            "data": data
+        })
+
+    except Exception as e:
+        logger.error(f"Fehler bei api_hourly_distribution: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @admin_bp.route("/tracking/api/combined-ranking")
 @require_admin
 def api_combined_ranking():

@@ -39,6 +39,148 @@ USERNAME_TO_DISPLAY = {
 }
 
 
+WEEKDAY_NAMES_DE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"]
+
+
+def get_hourly_distribution(tracker, start_date_str, end_date_str):
+    """
+    Aggregiere Outcomes nach Wochentag x Uhrzeit fuer Heatmap.
+    PG-First, JSON-Fallback.
+    """
+    # 1. PostgreSQL-First
+    if POSTGRES_AVAILABLE and is_postgres_enabled():
+        try:
+            result = _get_hourly_distribution_pg(start_date_str, end_date_str)
+            if result and result.get("total_slots", 0) > 0:
+                return result
+        except Exception as e:
+            logger.warning(f"PG get_hourly_distribution failed, falling back to JSON: {e}")
+
+    # 2. JSON-Fallback
+    return _get_hourly_distribution_json(tracker, start_date_str, end_date_str)
+
+
+def _aggregate_hourly_data(by_hour_data, weekday_index):
+    """Shared aggregation logic for both PG and JSON paths."""
+    cells = {}
+    for hour_str, hour_data in by_hour_data.items():
+        key = (weekday_index, hour_str)
+        if key not in cells:
+            cells[key] = {"total": 0, "completed": 0, "no_shows": 0, "ghosts": 0,
+                          "cancelled": 0, "rescheduled": 0, "overhang": 0}
+        cell = cells[key]
+        cell["total"] += hour_data.get("total", 0)
+        cell["completed"] += hour_data.get("completed", 0)
+        cell["no_shows"] += hour_data.get("no_shows", 0)
+        cell["ghosts"] += hour_data.get("ghosts", 0)
+        cell["cancelled"] += hour_data.get("cancelled", 0)
+        cell["rescheduled"] += hour_data.get("rescheduled", 0)
+        cell["overhang"] += hour_data.get("overhang", 0)
+    return cells
+
+
+def _build_hourly_result(all_cells, start_date_str, end_date_str):
+    """Build the final result dict from aggregated cells."""
+    # Merge all cell dicts
+    merged = {}
+    for cells in all_cells:
+        for key, data in cells.items():
+            if key not in merged:
+                merged[key] = {"total": 0, "completed": 0, "no_shows": 0, "ghosts": 0,
+                               "cancelled": 0, "rescheduled": 0, "overhang": 0}
+            for field in merged[key]:
+                merged[key][field] += data[field]
+
+    # Build matrix (skip weekends: weekday >= 5)
+    matrix = []
+    hours_set = set()
+    total_slots = 0
+
+    for (weekday_idx, hour_str), data in sorted(merged.items()):
+        if weekday_idx >= 5:
+            continue
+        total = data["total"]
+        if total == 0:
+            continue
+        total_slots += total
+        show_rate = round((data["completed"] / total) * 100, 1)
+        hours_set.add(hour_str)
+        matrix.append({
+            "weekday": weekday_idx,
+            "weekday_de": WEEKDAY_NAMES_DE[weekday_idx],
+            "hour": hour_str,
+            "total": total,
+            "completed": data["completed"],
+            "no_shows": data["no_shows"],
+            "ghosts": data["ghosts"],
+            "cancelled": data["cancelled"],
+            "rescheduled": data["rescheduled"],
+            "overhang": data["overhang"],
+            "show_rate": show_rate,
+        })
+
+    hours = sorted(hours_set)
+
+    return {
+        "matrix": matrix,
+        "hours": hours,
+        "weekdays": list(WEEKDAY_NAMES_DE),
+        "total_slots": total_slots,
+        "period": {"start": start_date_str, "end": end_date_str},
+    }
+
+
+def _get_hourly_distribution_pg(start_date_str, end_date_str):
+    """PG: Lade DailyMetrics und aggregiere by_hour nach Wochentag."""
+    from app.utils.db_utils import db_session_scope_no_commit
+
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+    with db_session_scope_no_commit() as session:
+        rows = session.query(DailyMetrics).filter(
+            DailyMetrics.date >= start_date,
+            DailyMetrics.date <= end_date,
+        ).all()
+
+        if not rows:
+            return None
+
+        all_cells = []
+        for row in rows:
+            if not row.by_hour:
+                continue
+            by_hour = json.loads(row.by_hour) if isinstance(row.by_hour, str) else row.by_hour
+            weekday_index = row.date.weekday()
+            all_cells.append(_aggregate_hourly_data(by_hour, weekday_index))
+
+        return _build_hourly_result(all_cells, start_date_str, end_date_str)
+
+
+def _get_hourly_distribution_json(tracker, start_date_str, end_date_str):
+    """JSON-Fallback: Lade daily_metrics.json und aggregiere by_hour nach Wochentag."""
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+    all_cells = []
+
+    if os.path.exists(tracker.metrics_file):
+        with open(tracker.metrics_file, "r", encoding="utf-8") as f:
+            all_metrics = json.load(f)
+
+        current_date = start_date
+        while current_date <= end_date:
+            date_str = str(current_date)
+            if date_str in all_metrics:
+                day_metrics = all_metrics[date_str]
+                by_hour = day_metrics.get("by_hour", {})
+                weekday_index = current_date.weekday()
+                all_cells.append(_aggregate_hourly_data(by_hour, weekday_index))
+            current_date += timedelta(days=1)
+
+    return _build_hourly_result(all_cells, start_date_str, end_date_str)
+
+
 def get_weekly_report(tracker, week_number=None):
     """Generiere erweiterten Wochenbericht (PG-First, JSON-Fallback)"""
     if week_number is None:
