@@ -79,15 +79,6 @@
 .hover-card {
   position: absolute;
   z-index: 50;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.hover-card.visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
 }
 
 /* === Badge mini === */
@@ -208,7 +199,7 @@
           <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar overflow-hidden flex items-center justify-center text-2xl"
                data-user="{{ p2[0] }}" style="line-height:1;">
             {% if p2_avatar_url %}
-              <img src="{{ p2_avatar_url }}" alt="{{ p2[0] }}" class="w-full h-full object-cover" loading="lazy">
+              <img src="{{ p2_avatar_url }}" alt="{{ p2[0] }}" class="w-full h-full object-cover rounded-full" loading="lazy">
             {% elif p2_cosmetics.get('avatar') %}
               {{ p2_cosmetics.get('avatar') }}
             {% else %}
@@ -242,7 +233,7 @@
           <div class="w-24 h-24 rounded-full bg-gradient-to-br from-warning to-orange-500 player-avatar overflow-hidden flex items-center justify-center text-5xl ring-4 ring-warning/50"
                data-user="{{ p1[0] }}" style="line-height:1;">
             {% if p1_avatar_url %}
-              <img src="{{ p1_avatar_url }}" alt="{{ p1[0] }}" class="w-full h-full object-cover" loading="lazy">
+              <img src="{{ p1_avatar_url }}" alt="{{ p1[0] }}" class="w-full h-full object-cover rounded-full" loading="lazy">
             {% elif p1_cosmetics.get('avatar') %}
               {{ p1_cosmetics.get('avatar') }}
             {% else %}
@@ -276,7 +267,7 @@
           <div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar overflow-hidden flex items-center justify-center text-xl"
                data-user="{{ p3[0] }}" style="line-height:1;">
             {% if p3_avatar_url %}
-              <img src="{{ p3_avatar_url }}" alt="{{ p3[0] }}" class="w-full h-full object-cover" loading="lazy">
+              <img src="{{ p3_avatar_url }}" alt="{{ p3[0] }}" class="w-full h-full object-cover rounded-full" loading="lazy">
             {% elif p3_cosmetics.get('avatar') %}
               {{ p3_cosmetics.get('avatar') }}
             {% else %}
@@ -352,7 +343,7 @@
 
             {# Rang #}
             <td class="font-bold text-center text-lg text-white/80">
-              {{ loop.index }}
+              {% if top_three|length >= 3 %}{{ loop.index + 3 }}{% else %}{{ loop.index }}{% endif %}
             </td>
 
             {# Aenderung #}
@@ -376,7 +367,7 @@
                     {% set pl_avatar_url = avatar_urls.get(player[0]) if avatar_urls else None %}
                     {% set pl_cosmetics = user_cosmetics.get(player[0], {}) %}
                     {% if pl_avatar_url %}
-                      <img src="{{ pl_avatar_url }}" alt="{{ player[0] }}" class="w-full h-full object-cover" loading="lazy">
+                      <img src="{{ pl_avatar_url }}" alt="{{ player[0] }}" class="w-full h-full object-cover rounded-full" loading="lazy">
                     {% elif pl_cosmetics.get('avatar') %}
                       {{ pl_cosmetics.get('avatar') }}
                     {% else %}
@@ -397,12 +388,13 @@
               {# Hover Card #}
               {% set hd = hover_data.get(player[0], {}) if hover_data else {} %}
               <div class="hover-card top-full left-0 mt-1"
-                   :class="showCard ? 'visible' : ''">
+                   x-show="showCard" x-transition.opacity.duration.200ms
+                   style="display: none;">
                 <div class="glass rounded-xl p-4 shadow-xl min-w-[220px] border border-white/10">
                   <div class="flex items-center gap-3 mb-3">
                     <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary overflow-hidden flex items-center justify-center text-xl" style="line-height:1;">
                       {% if pl_avatar_url %}
-                        <img src="{{ pl_avatar_url }}" alt="{{ player[0] }}" class="w-full h-full object-cover">
+                        <img src="{{ pl_avatar_url }}" alt="{{ player[0] }}" class="w-full h-full object-cover rounded-full">
                       {% elif pl_cosmetics.get('avatar') %}
                         {{ pl_cosmetics.get('avatar') }}
                       {% else %}
@@ -492,7 +484,7 @@
                 {% set ba_url = avatar_urls.get(player.user) if avatar_urls else None %}
                 {% set ba_cosmetics = user_cosmetics.get(player.user, {}) %}
                 {% if ba_url %}
-                  <img src="{{ ba_url }}" alt="{{ player.user }}" class="w-full h-full object-cover" loading="lazy">
+                  <img src="{{ ba_url }}" alt="{{ player.user }}" class="w-full h-full object-cover rounded-full" loading="lazy">
                 {% elif ba_cosmetics.get('avatar') %}
                   {{ ba_cosmetics.get('avatar') }}
                 {% else %}
@@ -590,7 +582,7 @@
                       {% set sr_avatar = avatar_urls.get(player[0]) if avatar_urls else None %}
                       {% set sr_cosmetics = user_cosmetics.get(player[0], {}) %}
                       {% if sr_avatar %}
-                        <img src="{{ sr_avatar }}" alt="{{ player[0] }}" class="w-full h-full object-cover" loading="lazy">
+                        <img src="{{ sr_avatar }}" alt="{{ player[0] }}" class="w-full h-full object-cover rounded-full" loading="lazy">
                       {% elif sr_cosmetics.get('avatar') %}
                         {{ sr_cosmetics.get('avatar') }}
                       {% else %}
@@ -733,20 +725,28 @@ function applyAvatarCustomization(avatarElement, customization) {
     }
   };
 
+  const hasImage = !!avatarElement.querySelector('img');
+
   if (customization.avatar_url) {
-    avatarElement.innerHTML = `<img src="${customization.avatar_url}" alt="Avatar" class="w-full h-full object-cover" loading="lazy">`;
-  } else if (avatarElement.querySelector('img')) {
+    avatarElement.innerHTML = `<img src="${customization.avatar_url}" alt="Avatar" class="w-full h-full object-cover rounded-full" loading="lazy">`;
+  } else if (hasImage) {
     // Image avatar already rendered server-side
   } else if (customization.avatar && components.avatars[customization.avatar]) {
     avatarElement.textContent = components.avatars[customization.avatar];
   }
 
-  const background = components.backgrounds[customization.background] || components.backgrounds["gradient_blue"];
-  avatarElement.style.setProperty('--avatar-bg', background);
-
-  const border = components.borders[customization.border] || components.borders["simple"];
-  avatarElement.style.setProperty('--avatar-border', border.style);
-  avatarElement.style.setProperty('--avatar-glow', border.glow || 'none');
+  // Don't apply background/border overlays when showing an image
+  if (customization.avatar_url || avatarElement.querySelector('img')) {
+    avatarElement.style.setProperty('--avatar-bg', 'transparent');
+    avatarElement.style.setProperty('--avatar-border', 'none');
+    avatarElement.style.setProperty('--avatar-glow', 'none');
+  } else {
+    const background = components.backgrounds[customization.background] || components.backgrounds["gradient_blue"];
+    avatarElement.style.setProperty('--avatar-bg', background);
+    const border = components.borders[customization.border] || components.borders["simple"];
+    avatarElement.style.setProperty('--avatar-border', border.style);
+    avatarElement.style.setProperty('--avatar-glow', border.glow || 'none');
+  }
 
   avatarElement.classList.add('customized');
 
