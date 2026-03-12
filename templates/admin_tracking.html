@@ -64,11 +64,11 @@
     <!-- Tab Navigation -->
     <div class="container mx-auto px-4 mb-6">
         <div class="tabs tabs-boxed bg-white/5 inline-flex">
-            <a class="tab tab-lg tab-active" id="main-tab-dashboard" onclick="switchMainTab('dashboard')">
+            <a class="tab tab-lg tab-active" id="main-tab-dashboard" data-action="switchMainTab" data-args='["dashboard"]'>
                 <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i>
                 Dashboard
             </a>
-            <a class="tab tab-lg" id="main-tab-heatmap" onclick="switchMainTab('heatmap')">
+            <a class="tab tab-lg" id="main-tab-heatmap" data-action="switchMainTab" data-args='["heatmap"]'>
                 <i data-lucide="grid-3x3" class="w-4 h-4 mr-2"></i>
                 Uhrzeitanalyse
             </a>
@@ -365,7 +365,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <select id="heatmap-period" class="select select-bordered select-sm bg-base-300 text-white" onchange="loadHeatmapData()">
+                    <select id="heatmap-period" class="select select-bordered select-sm bg-base-300 text-white" data-action="loadHeatmapDataAction">
                         <option value="4weeks">Letzte 4 Wochen</option>
                         <option value="lastMonth">Letzter Monat</option>
                         <option value="3months" selected>Letzte 3 Monate</option>
@@ -377,7 +377,7 @@
                         <input type="date" id="heatmap-start" class="input input-bordered input-sm bg-base-300 text-white">
                         <span class="text-white/60">–</span>
                         <input type="date" id="heatmap-end" class="input input-bordered input-sm bg-base-300 text-white">
-                        <button onclick="loadHeatmapData()" class="btn btn-primary btn-sm">Laden</button>
+                        <button data-action="loadHeatmapDataAction" class="btn btn-primary btn-sm">Laden</button>
                     </div>
                 </div>
             </div>
@@ -531,7 +531,10 @@
     let heatmapChart = null;
     let heatmapLoaded = false;
 
-    function switchMainTab(tab) {
+    window.switchMainTab = function(e, tab) { _switchMainTab(tab); };
+    window.loadHeatmapDataAction = function(e) { loadHeatmapData(); };
+
+    function _switchMainTab(tab) {
         document.getElementById('tab-dashboard').classList.toggle('hidden', tab !== 'dashboard');
         document.getElementById('tab-heatmap').classList.toggle('hidden', tab !== 'heatmap');
         document.getElementById('main-tab-dashboard').classList.toggle('tab-active', tab === 'dashboard');
