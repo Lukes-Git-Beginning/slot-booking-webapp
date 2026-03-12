@@ -533,6 +533,7 @@
 
     window.switchMainTab = function(e, tab) { _switchMainTab(tab); };
     window.loadHeatmapDataAction = function(e) { loadHeatmapData(); };
+    document.getElementById('heatmap-period').addEventListener('change', function() { loadHeatmapData(); });
 
     function _switchMainTab(tab) {
         document.getElementById('tab-dashboard').classList.toggle('hidden', tab !== 'dashboard');
@@ -619,27 +620,25 @@
             lookup[cell.weekday + '_' + cell.hour] = cell;
         });
 
-        // ApexCharts heatmap: series = rows (weekdays reversed for top-down), data = columns (hours)
-        const series = weekdays.slice().reverse().map((dayName, revIdx) => {
-            const weekdayIdx = weekdays.length - 1 - revIdx;
-            return {
-                name: dayName,
-                data: hours.map(hour => {
-                    const cell = lookup[weekdayIdx + '_' + hour];
-                    return {
-                        x: hour,
-                        y: cell ? cell.show_rate : null,
-                        meta: cell || null
-                    };
-                })
-            };
-        });
+        // ApexCharts heatmap: Kalender-Layout — Zeiten als Zeilen (Y), Tage als Spalten (X)
+        const shortDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+        const series = hours.map(hour => ({
+            name: hour,
+            data: weekdays.map((dayName, idx) => {
+                const cell = lookup[idx + '_' + hour];
+                return {
+                    x: shortDays[idx],
+                    y: cell ? cell.show_rate : null,
+                    meta: cell || null
+                };
+            })
+        }));
 
         const options = {
             series: series,
             chart: {
                 type: 'heatmap',
-                height: 280,
+                height: 320,
                 background: 'transparent',
                 toolbar: { show: false },
                 fontFamily: 'inherit'
@@ -704,6 +703,7 @@
         if (heatmapChart) {
             heatmapChart.destroy();
         }
+        document.getElementById('heatmapChart').innerHTML = '';
 
         document.getElementById('heatmap-loading').classList.add('hidden');
         document.getElementById('heatmapChart').classList.remove('hidden');
