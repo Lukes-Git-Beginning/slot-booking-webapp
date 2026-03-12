@@ -254,7 +254,7 @@ class LevelSystem:
         
         # Sortiere nach Seltenheit und dann nach Datum
         sorted_badges = sorted(badges, 
-                             key=lambda x: (rarity_order.get(x["rarity"], 0), x["earned_date"]), 
+                             key=lambda x: (rarity_order.get(x["rarity"], 0), x.get("earned_date", x.get("earned_at", ""))),
                              reverse=True)
         
         return sorted_badges[0]
