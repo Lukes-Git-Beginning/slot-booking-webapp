@@ -3,6 +3,7 @@
 {% block title %}Benutzerverwaltung{% endblock %}
 
 {% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <!-- Header -->
 <div class="glass rounded-3xl p-8 md:p-12 mb-8" data-aos="fade-down">
@@ -24,7 +25,7 @@
 </div>
 
 <!-- Stats Overview -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
     <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
         <div class="flex items-center gap-3 mb-3">
             <i data-lucide="users" class="w-6 h-6 text-primary"></i>
@@ -59,65 +60,109 @@
 </div>
 
 <!-- User List -->
-<div class="glass rounded-3xl p-8" data-aos="fade-up" data-aos-delay="500">
-    <div class="flex items-center justify-between mb-6">
+<div class="glass rounded-3xl p-6 md:p-8" data-aos="fade-up" data-aos-delay="500">
+    <!-- Header + Search + Filter -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <h2 class="text-2xl font-bold text-white">Alle Benutzer</h2>
-        <button class="btn btn-primary gap-2" data-action="showModal" data-args='["add_user_modal"]'>
-            <i data-lucide="user-plus" class="w-5 h-5"></i>
-            <span>Neuer Benutzer</span>
-        </button>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/40"></i>
+                <input type="text" id="userSearch" placeholder="Benutzer suchen..."
+                    class="input input-bordered input-sm pl-9 w-full sm:w-48 bg-white/5 border-white/10 text-white placeholder:text-white/40">
+            </div>
+            <select id="roleFilter" class="select select-bordered select-sm bg-white/5 border-white/10 text-white">
+                <option value="all">Alle Rollen</option>
+                <option value="admin">Admins</option>
+                <option value="user">Benutzer</option>
+            </select>
+            <button class="btn btn-primary btn-sm gap-2" id="btnAddUser">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                <span>Neuer Benutzer</span>
+            </button>
+        </div>
     </div>
 
+    <!-- Table -->
     <div class="overflow-x-auto">
-        <table class="table w-full">
+        <table class="table w-full" id="usersTable">
             <thead>
                 <tr>
                     <th class="text-white">Benutzer</th>
-                    <th class="text-white">Passwort</th>
-                    <th class="text-white">Status</th>
                     <th class="text-white">Rolle</th>
+                    <th class="text-white text-center">Status</th>
                     <th class="text-white">Letzter Login</th>
-                    <th class="text-white">Aktionen</th>
+                    <th class="text-white text-right">Punkte</th>
+                    <th class="text-white text-center">Level</th>
+                    <th class="text-white text-center">Badges</th>
+                    <th class="text-white text-right">Aktionen</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr class="hover:bg-white/5">
+                <tr class="hover:bg-white/5 cursor-pointer user-row"
+                    data-username="{{ user.username }}"
+                    data-role="{{ 'admin' if user.is_admin else 'user' }}">
                     <td>
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                <i data-lucide="user" class="w-5 h-5 text-primary"></i>
+                        <div class="flex items-center gap-3" data-action="showUserDetail" data-args='["{{ user.username }}"]'>
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <i data-lucide="user" class="w-5 h-5 text-primary"></i>
+                                </div>
+                                {% if user.is_online %}
+                                <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success rounded-full border-2 border-base-100"></div>
+                                {% endif %}
                             </div>
                             <div>
                                 <div class="font-semibold text-white">{{ user.username }}</div>
-                                <div class="text-sm text-white/60">{{ user.email or 'Keine Email' }}</div>
+                                <div class="text-xs text-white/50">{{ user.level_title }}</div>
                             </div>
                         </div>
                     </td>
                     <td>
-                        <div class="font-mono text-white/50">{{ user.password if user.password else '***' }}</div>
-                    </td>
-                    <td>
-                        <div class="badge {% if user.active %}badge-success{% else %}badge-error{% endif %}">
-                            {{ 'Aktiv' if user.active else 'Inaktiv' }}
+                        {% if user.is_admin %}
+                        <div class="badge badge-warning badge-sm gap-1">
+                            <i data-lucide="shield" class="w-3 h-3"></i> Admin
                         </div>
+                        {% else %}
+                        <div class="badge badge-ghost badge-sm">Benutzer</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if user.is_online %}
+                        <div class="badge badge-success badge-sm gap-1">Online</div>
+                        {% else %}
+                        <div class="badge badge-ghost badge-sm">Offline</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-white/70 text-sm">{{ user.last_login or 'Nie' }}</td>
+                    <td class="text-right">
+                        <span class="font-mono text-white font-semibold">{{ user.current_month_points }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="font-semibold text-primary">{{ user.level }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="text-white/70">{{ user.badge_count }}</span>
                     </td>
                     <td>
-                        <div class="badge {% if user.is_admin %}badge-warning{% else %}badge-ghost{% endif %}">
-                            {{ 'Admin' if user.is_admin else 'Benutzer' }}
-                        </div>
-                    </td>
-                    <td class="text-white/70">{{ user.last_login or 'Nie' }}</td>
-                    <td>
-                        <div class="flex gap-2">
-                            <button class="btn btn-sm btn-ghost" data-action="editUser" data-args='["{{ user.username }}"]'>
-                                <i data-lucide="edit" class="w-4 h-4"></i>
+                        <div class="flex gap-1 justify-end">
+                            <button class="btn btn-xs btn-ghost tooltip tooltip-left" data-tip="Details"
+                                data-action="showUserDetail" data-args='["{{ user.username }}"]'>
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                             </button>
-                            {% if not user.is_admin %}
-                            <button class="btn btn-sm btn-error btn-outline" data-action="deleteUser" data-args='["{{ user.username }}"]'>
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <button class="btn btn-xs btn-ghost tooltip tooltip-left" data-tip="Passwort zurücksetzen"
+                                data-action="resetPassword" data-args='["{{ user.username }}"]'>
+                                <i data-lucide="key" class="w-3.5 h-3.5"></i>
                             </button>
-                            {% endif %}
+                            <button class="btn btn-xs btn-ghost tooltip tooltip-left"
+                                data-tip="{{ 'Admin entfernen' if user.is_admin else 'Zum Admin machen' }}"
+                                data-action="toggleAdmin" data-args='["{{ user.username }}"]'>
+                                <i data-lucide="shield" class="w-3.5 h-3.5 {{ 'text-warning' if user.is_admin else '' }}"></i>
+                            </button>
+                            <button class="btn btn-xs btn-error btn-ghost tooltip tooltip-left" data-tip="Löschen"
+                                data-action="deleteUser" data-args='["{{ user.username }}"]'>
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -125,64 +170,406 @@
             </tbody>
         </table>
     </div>
+
+    {% if not users %}
+    <div class="text-center py-12 text-white/50">
+        <i data-lucide="users" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+        <p>Keine Benutzer gefunden</p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Add User Modal -->
-<dialog id="add_user_modal" class="modal">
-    <div class="modal-box glass">
-        <h3 class="font-bold text-2xl text-white mb-4">Neuen Benutzer hinzufügen</h3>
-        <form method="post" action="{{ url_for('admin.admin_users') }}">
-            <div class="space-y-4">
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text text-white">Benutzername</span>
-                    </label>
-                    <input type="text" name="username" class="input input-bordered w-full" required>
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text text-white">Passwort</span>
-                    </label>
-                    <input type="password" name="password" class="input input-bordered w-full" required>
-                </div>
-                <div class="form-control">
-                    <label class="label cursor-pointer">
-                        <span class="label-text text-white">Admin-Rechte</span>
-                        <input type="checkbox" name="is_admin" class="checkbox checkbox-primary">
-                    </label>
-                </div>
+<dialog id="addUserModal" class="modal">
+    <div class="modal-box glass max-w-md">
+        <h3 class="font-bold text-2xl text-white mb-6">Neuen Benutzer hinzufügen</h3>
+        <div class="space-y-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text text-white">Benutzername</span></label>
+                <input type="text" id="newUsername" class="input input-bordered w-full bg-white/5 border-white/10 text-white" placeholder="z.B. MaxM">
             </div>
-            <div class="modal-action">
-                <button type="button" class="btn btn-ghost" data-action="closeModal" data-args='["add_user_modal"]'>Abbrechen</button>
-                <button type="submit" class="btn btn-primary">Hinzufügen</button>
+            <div class="form-control">
+                <label class="label"><span class="label-text text-white">Passwort</span></label>
+                <input type="text" id="newPassword" class="input input-bordered w-full bg-white/5 border-white/10 text-white font-mono" placeholder="Mind. 6 Zeichen">
             </div>
-        </form>
+            <div class="form-control">
+                <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" id="newIsAdmin" class="checkbox checkbox-primary checkbox-sm">
+                    <span class="label-text text-white">Admin-Rechte</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-action">
+            <button class="btn btn-ghost" id="btnCancelAdd">Abbrechen</button>
+            <button class="btn btn-primary" id="btnConfirmAdd">Hinzufügen</button>
+        </div>
     </div>
-    <form method="dialog" class="modal-backdrop">
-        <button>Schließen</button>
-    </form>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
+
+<!-- User Detail Modal -->
+<dialog id="userDetailModal" class="modal">
+    <div class="modal-box glass max-w-2xl max-h-[85vh]">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="font-bold text-2xl text-white" id="detailUsername">-</h3>
+            <button class="btn btn-ghost btn-sm" id="btnCloseDetail">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="detailLoading" class="text-center py-8">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+
+        <!-- Content -->
+        <div id="detailContent" class="hidden space-y-6">
+            <!-- Info Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white/5 rounded-xl p-3 text-center">
+                    <div class="text-xs text-white/50 mb-1">Level</div>
+                    <div class="text-2xl font-bold text-primary" id="detailLevel">-</div>
+                    <div class="text-xs text-white/50" id="detailLevelTitle">-</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-3 text-center">
+                    <div class="text-xs text-white/50 mb-1">XP</div>
+                    <div class="text-2xl font-bold text-white" id="detailXP">-</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-3 text-center">
+                    <div class="text-xs text-white/50 mb-1">Badges</div>
+                    <div class="text-2xl font-bold text-accent" id="detailBadgeCount">-</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-3 text-center">
+                    <div class="text-xs text-white/50 mb-1">Status</div>
+                    <div id="detailStatus" class="text-sm font-semibold">-</div>
+                </div>
+            </div>
+
+            <!-- Level Progress -->
+            <div>
+                <div class="flex justify-between text-xs text-white/50 mb-1">
+                    <span>Fortschritt</span>
+                    <span id="detailProgressPct">0%</span>
+                </div>
+                <progress id="detailProgressBar" class="progress progress-primary w-full" value="0" max="100"></progress>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs tabs-boxed bg-white/5">
+                <button class="tab tab-active detail-tab" data-tab="scores">Punkte</button>
+                <button class="tab detail-tab" data-tab="logins">Login-History</button>
+                <button class="tab detail-tab" data-tab="badges">Badges</button>
+            </div>
+
+            <!-- Scores Tab -->
+            <div id="tabScores" class="detail-tab-content">
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead><tr>
+                            <th class="text-white/70">Monat</th>
+                            <th class="text-white/70 text-right">Punkte</th>
+                            <th class="text-white/70" style="width:60%">Balken</th>
+                        </tr></thead>
+                        <tbody id="scoresBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Login History Tab -->
+            <div id="tabLogins" class="detail-tab-content hidden">
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead><tr>
+                            <th class="text-white/70">Datum</th>
+                            <th class="text-white/70">IP</th>
+                            <th class="text-white/70">Browser</th>
+                            <th class="text-white/70 text-center">Status</th>
+                        </tr></thead>
+                        <tbody id="loginsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Badges Tab -->
+            <div id="tabBadges" class="detail-tab-content hidden">
+                <div id="badgesGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+                <p id="noBadges" class="text-white/50 text-center py-4 hidden">Noch keine Badges</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="divider text-white/30">Aktionen</div>
+            <div class="flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-outline gap-2" id="detailResetPw">
+                    <i data-lucide="key" class="w-4 h-4"></i> Passwort zurücksetzen
+                </button>
+                <button class="btn btn-sm btn-outline gap-2" id="detailToggleAdmin">
+                    <i data-lucide="shield" class="w-4 h-4"></i> <span id="detailAdminBtnText">Admin Toggle</span>
+                </button>
+                <button class="btn btn-sm btn-error btn-outline gap-2" id="detailDeleteUser">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Benutzer löschen
+                </button>
+            </div>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<!-- Password Result Modal -->
+<dialog id="passwordModal" class="modal">
+    <div class="modal-box glass max-w-sm">
+        <h3 class="font-bold text-xl text-white mb-4">Neues Passwort</h3>
+        <p class="text-white/70 mb-3">Das neue Passwort lautet:</p>
+        <div class="bg-white/10 rounded-xl p-4 text-center">
+            <code class="text-2xl font-mono text-primary select-all" id="newPasswordDisplay">-</code>
+        </div>
+        <p class="text-xs text-white/50 mt-3">Dieses Passwort wird nur einmal angezeigt. Bitte notieren!</p>
+        <div class="modal-action">
+            <button class="btn btn-primary" id="btnClosePassword">Verstanden</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script nonce="{{ csp_nonce }}">
-    // CSP-compliant wrappers for data-action
-    window.editUser = function(e, username) {
-        alert('Edit user: ' + username);
-    };
+(function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
+    // ---- Helpers ----
+    function apiCall(url, method, body) {
+        const opts = {
+            method: method || 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        };
+        if (csrfToken) opts.headers['X-CSRFToken'] = csrfToken;
+        if (body) opts.body = JSON.stringify(body);
+        return fetch(url, opts).then(r => r.json());
+    }
+
+    function showToast(msg, type) {
+        const colors = { success: 'alert-success', error: 'alert-error', info: 'alert-info', warning: 'alert-warning' };
+        const cls = colors[type] || 'alert-info';
+        const id = 'toast-' + Date.now();
+        const html = '<div id="' + id + '" class="alert ' + cls + ' shadow-lg text-sm py-2 px-4 animate-slide-in-right">' +
+            '<span>' + msg + '</span></div>';
+        document.getElementById('toastContainer').insertAdjacentHTML('beforeend', html);
+        setTimeout(function() {
+            var el = document.getElementById(id);
+            if (el) el.remove();
+        }, 4000);
+    }
+
+    // ---- Search & Filter ----
+    var searchInput = document.getElementById('userSearch');
+    var roleFilter = document.getElementById('roleFilter');
+    function filterTable() {
+        var query = searchInput.value.toLowerCase();
+        var role = roleFilter.value;
+        var rows = document.querySelectorAll('.user-row');
+        rows.forEach(function(row) {
+            var username = row.getAttribute('data-username').toLowerCase();
+            var userRole = row.getAttribute('data-role');
+            var matchName = !query || username.indexOf(query) !== -1;
+            var matchRole = role === 'all' || userRole === role;
+            row.style.display = (matchName && matchRole) ? '' : 'none';
+        });
+    }
+    searchInput.addEventListener('input', filterTable);
+    roleFilter.addEventListener('change', filterTable);
+
+    // ---- Add User ----
+    document.getElementById('btnAddUser').addEventListener('click', function() {
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newIsAdmin').checked = false;
+        document.getElementById('addUserModal').showModal();
+    });
+    document.getElementById('btnCancelAdd').addEventListener('click', function() {
+        document.getElementById('addUserModal').close();
+    });
+    document.getElementById('btnConfirmAdd').addEventListener('click', function() {
+        var username = document.getElementById('newUsername').value.trim();
+        var password = document.getElementById('newPassword').value.trim();
+        var isAdmin = document.getElementById('newIsAdmin').checked;
+        if (!username || !password) { showToast('Bitte alle Felder ausfüllen', 'warning'); return; }
+        apiCall('/admin/users/add', 'POST', { username: username, password: password, is_admin: isAdmin })
+            .then(function(data) {
+                if (data.success) { showToast(data.message, 'success'); setTimeout(function() { location.reload(); }, 1000); }
+                else { showToast(data.message, 'error'); }
+            })
+            .catch(function() { showToast('Fehler bei der Anfrage', 'error'); });
+        document.getElementById('addUserModal').close();
+    });
+
+    // ---- Delete User ----
     window.deleteUser = function(e, username) {
-        if (confirm('Möchten Sie den Benutzer ' + username + ' wirklich löschen?')) {
-            fetch('/admin/users/delete/' + username, {
-                method: 'POST'
-            }).then(() => location.reload());
-        }
+        if (!confirm('Benutzer "' + username + '" wirklich löschen?')) return;
+        apiCall('/admin/users/' + username + '/delete', 'POST')
+            .then(function(data) {
+                if (data.success) { showToast(data.message, 'success'); setTimeout(function() { location.reload(); }, 1000); }
+                else { showToast(data.message, 'error'); }
+            })
+            .catch(function() { showToast('Fehler bei der Anfrage', 'error'); });
     };
 
-    // Refresh Lucide icons
-    setTimeout(() => {
-        lucide.createIcons();
-    }, 100);
+    // ---- Reset Password ----
+    window.resetPassword = function(e, username) {
+        if (!confirm('Passwort für "' + username + '" zurücksetzen?')) return;
+        apiCall('/admin/users/' + username + '/reset-password', 'POST')
+            .then(function(data) {
+                if (data.success) {
+                    document.getElementById('newPasswordDisplay').textContent = data.new_password;
+                    document.getElementById('passwordModal').showModal();
+                } else { showToast(data.message, 'error'); }
+            })
+            .catch(function() { showToast('Fehler bei der Anfrage', 'error'); });
+    };
+    document.getElementById('btnClosePassword').addEventListener('click', function() {
+        document.getElementById('passwordModal').close();
+    });
+
+    // ---- Toggle Admin ----
+    window.toggleAdmin = function(e, username) {
+        apiCall('/admin/users/' + username + '/toggle-admin', 'POST')
+            .then(function(data) {
+                if (data.success) { showToast(data.message, 'success'); setTimeout(function() { location.reload(); }, 1000); }
+                else { showToast(data.message, 'error'); }
+            })
+            .catch(function() { showToast('Fehler bei der Anfrage', 'error'); });
+    };
+
+    // ---- User Detail Modal ----
+    var currentDetailUser = null;
+
+    window.showUserDetail = function(e, username) {
+        currentDetailUser = username;
+        document.getElementById('detailUsername').textContent = username;
+        document.getElementById('detailLoading').classList.remove('hidden');
+        document.getElementById('detailContent').classList.add('hidden');
+        document.getElementById('userDetailModal').showModal();
+
+        // Reset tabs
+        document.querySelectorAll('.detail-tab').forEach(function(t) { t.classList.remove('tab-active'); });
+        document.querySelector('.detail-tab[data-tab="scores"]').classList.add('tab-active');
+        document.querySelectorAll('.detail-tab-content').forEach(function(c) { c.classList.add('hidden'); });
+        document.getElementById('tabScores').classList.remove('hidden');
+
+        fetch('/admin/users/' + username + '/detail')
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                if (!resp.success) { showToast('Fehler: ' + resp.message, 'error'); return; }
+                renderDetail(resp.data);
+            })
+            .catch(function() { showToast('Fehler beim Laden', 'error'); });
+    };
+
+    function renderDetail(d) {
+        document.getElementById('detailLoading').classList.add('hidden');
+        document.getElementById('detailContent').classList.remove('hidden');
+
+        document.getElementById('detailLevel').textContent = d.level;
+        document.getElementById('detailLevelTitle').textContent = d.level_title;
+        document.getElementById('detailXP').textContent = d.xp.toLocaleString();
+        document.getElementById('detailBadgeCount').textContent = d.total_badges;
+
+        // Status
+        var statusEl = document.getElementById('detailStatus');
+        if (d.is_admin) {
+            statusEl.innerHTML = '<span class="badge badge-warning badge-sm">Admin</span>';
+        } else {
+            statusEl.innerHTML = '<span class="badge badge-ghost badge-sm">Benutzer</span>';
+        }
+        if (d.has_2fa) {
+            statusEl.innerHTML += ' <span class="badge badge-success badge-sm">2FA</span>';
+        }
+
+        // Progress
+        document.getElementById('detailProgressPct').textContent = Math.round(d.progress_to_next) + '%';
+        document.getElementById('detailProgressBar').value = d.progress_to_next;
+
+        // Admin button text
+        document.getElementById('detailAdminBtnText').textContent = d.is_admin ? 'Admin entfernen' : 'Zum Admin machen';
+
+        // Scores
+        var maxScore = Math.max.apply(null, d.scores_history.map(function(s) { return s.points; }).concat([1]));
+        var scoresHtml = '';
+        d.scores_history.forEach(function(s) {
+            var pct = Math.round((s.points / maxScore) * 100);
+            scoresHtml += '<tr>' +
+                '<td class="text-white/70 text-sm">' + s.month + '</td>' +
+                '<td class="text-right font-mono text-white font-semibold">' + s.points + '</td>' +
+                '<td><div class="bg-white/10 rounded-full h-3 overflow-hidden"><div class="bg-primary h-full rounded-full" style="width:' + pct + '%"></div></div></td>' +
+                '</tr>';
+        });
+        document.getElementById('scoresBody').innerHTML = scoresHtml;
+
+        // Login History
+        var loginsHtml = '';
+        d.login_history.forEach(function(l) {
+            var statusBadge = l.success
+                ? '<div class="badge badge-success badge-xs">OK</div>'
+                : '<div class="badge badge-error badge-xs">Fehl</div>';
+            loginsHtml += '<tr>' +
+                '<td class="text-white/70 text-sm">' + l.timestamp + '</td>' +
+                '<td class="text-white/50 text-xs font-mono">' + l.ip + '</td>' +
+                '<td class="text-white/50 text-xs">' + l.browser + '</td>' +
+                '<td class="text-center">' + statusBadge + '</td>' +
+                '</tr>';
+        });
+        if (!d.login_history.length) loginsHtml = '<tr><td colspan="4" class="text-center text-white/50">Keine Login-Daten</td></tr>';
+        document.getElementById('loginsBody').innerHTML = loginsHtml;
+
+        // Badges
+        var rarityColors = { common: 'bg-gray-500/20 text-gray-300', uncommon: 'bg-green-500/20 text-green-300', rare: 'bg-blue-500/20 text-blue-300', epic: 'bg-purple-500/20 text-purple-300', legendary: 'bg-yellow-500/20 text-yellow-300', mythic: 'bg-red-500/20 text-red-300' };
+        var badgesHtml = '';
+        d.badges.forEach(function(b) {
+            var cls = rarityColors[b.rarity] || rarityColors.common;
+            badgesHtml += '<div class="' + cls + ' rounded-xl p-3 flex items-center gap-2">' +
+                '<span class="text-xl">' + b.emoji + '</span>' +
+                '<div><div class="text-sm font-semibold">' + b.name + '</div>' +
+                '<div class="text-xs opacity-60 capitalize">' + b.rarity + '</div></div></div>';
+        });
+        document.getElementById('badgesGrid').innerHTML = badgesHtml;
+        document.getElementById('noBadges').classList.toggle('hidden', d.badges.length > 0);
+
+        // Re-init lucide icons in modal
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Tabs
+    document.querySelectorAll('.detail-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.detail-tab').forEach(function(t) { t.classList.remove('tab-active'); });
+            tab.classList.add('tab-active');
+            document.querySelectorAll('.detail-tab-content').forEach(function(c) { c.classList.add('hidden'); });
+            var target = tab.getAttribute('data-tab');
+            var map = { scores: 'tabScores', logins: 'tabLogins', badges: 'tabBadges' };
+            document.getElementById(map[target]).classList.remove('hidden');
+        });
+    });
+
+    document.getElementById('btnCloseDetail').addEventListener('click', function() {
+        document.getElementById('userDetailModal').close();
+    });
+
+    // Detail modal actions
+    document.getElementById('detailResetPw').addEventListener('click', function() {
+        if (currentDetailUser) window.resetPassword(null, currentDetailUser);
+    });
+    document.getElementById('detailToggleAdmin').addEventListener('click', function() {
+        if (currentDetailUser) window.toggleAdmin(null, currentDetailUser);
+    });
+    document.getElementById('detailDeleteUser').addEventListener('click', function() {
+        if (currentDetailUser) { document.getElementById('userDetailModal').close(); window.deleteUser(null, currentDetailUser); }
+    });
+
+    // Init lucide icons
+    setTimeout(function() { if (window.lucide) lucide.createIcons(); }, 100);
+})();
 </script>
 {% endblock %}

@@ -14,6 +14,7 @@ from app.utils.decorators import require_admin
 from app.utils.helpers import get_userlist
 from app.routes.admin import admin_bp
 from app.services.activity_tracking import activity_tracking
+from app.services.user_management_service import user_management_service
 
 TZ = pytz.timezone(slot_config.TIMEZONE)
 
@@ -22,64 +23,80 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 @require_admin
 def admin_users():
     """User management interface"""
-    from app.config.base import Config
+    users = user_management_service.get_all_users()
 
-    userlist = get_userlist()
-    admin_users_list = Config.get_admin_users()
-
-    # Load login history for last_login timestamps
-    login_history = data_persistence.load_data('login_history', default={})
-
-    # Build user objects for template
-    users = []
-    for username, password in userlist.items():
-        # Get last successful login for this user
-        last_login = None
-        last_login_formatted = None
-        user_logins = login_history.get(username, [])
-        for entry in user_logins:
-            if entry.get('success', True):
-                last_login = entry.get('timestamp')
-                # Format timestamp for display
-                if last_login:
-                    try:
-                        dt = datetime.fromisoformat(last_login)
-                        last_login_formatted = dt.strftime('%d.%m.%Y %H:%M')
-                    except:
-                        last_login_formatted = last_login
-                break
-
-        users.append({
-            'username': username,
-            'password': password,  # Wird im Template nicht angezeigt, nur "***"
-            'email': None,  # TODO: Email-System implementieren (braucht SMTP)
-            'active': True,  # Alle User aus USERLIST sind aktiv
-            'is_admin': username in admin_users_list,
-            'last_login': last_login_formatted
-        })
-
-    # Sort by username
-    users.sort(key=lambda x: x['username'])
-
-    # Calculate statistics
     total_users = len(users)
-    active_users = len([u for u in users if u['active']])
+    active_users = total_users  # All visible users are active (deleted are filtered)
     admin_count = len([u for u in users if u['is_admin']])
-
-    # Get online users count from activity tracking
-    online_users_list = activity_tracking.get_online_users(timeout_minutes=15)
-    online_users = len(online_users_list)
+    online_users = len([u for u in users if u['is_online']])
 
     return render_template("admin_users.html",
                          users=users,
                          total_users=total_users,
                          active_users=active_users,
                          admin_count=admin_count,
-                         online_users=online_users,
-                         online_users_list=online_users_list)
+                         online_users=online_users)
 
 
-# admin_fix_points and admin_debug_points endpoints removed - not needed for production
+@admin_bp.route("/users/add", methods=["POST"])
+@require_admin
+def admin_users_add():
+    """Add a new user"""
+    data = request.get_json()
+    if not data:
+        return jsonify(success=False, message="Keine Daten erhalten"), 400
+
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    is_admin = data.get('is_admin', False)
+    admin_username = session.get('user', 'unknown')
+
+    success, message = user_management_service.add_user(username, password, is_admin, admin_username)
+    status_code = 200 if success else 400
+    return jsonify(success=success, message=message), status_code
+
+
+@admin_bp.route("/users/<username>/delete", methods=["POST"])
+@require_admin
+def admin_users_delete(username):
+    """Delete a user (soft-delete)"""
+    admin_username = session.get('user', 'unknown')
+    success, message = user_management_service.delete_user(username, admin_username)
+    status_code = 200 if success else 400
+    return jsonify(success=success, message=message), status_code
+
+
+@admin_bp.route("/users/<username>/reset-password", methods=["POST"])
+@require_admin
+def admin_users_reset_password(username):
+    """Reset a user's password"""
+    admin_username = session.get('user', 'unknown')
+    success, message, new_password = user_management_service.reset_password(username, admin_username)
+    status_code = 200 if success else 400
+    result = {'success': success, 'message': message}
+    if success:
+        result['new_password'] = new_password
+    return jsonify(result), status_code
+
+
+@admin_bp.route("/users/<username>/toggle-admin", methods=["POST"])
+@require_admin
+def admin_users_toggle_admin(username):
+    """Toggle admin status for a user"""
+    admin_username = session.get('user', 'unknown')
+    success, message = user_management_service.toggle_admin(username, admin_username)
+    status_code = 200 if success else 400
+    return jsonify(success=success, message=message), status_code
+
+
+@admin_bp.route("/users/<username>/detail")
+@require_admin
+def admin_users_detail(username):
+    """Get detailed user data"""
+    detail = user_management_service.get_user_detail(username)
+    if not detail:
+        return jsonify(success=False, message="Benutzer nicht gefunden"), 404
+    return jsonify(success=True, data=detail)
 
 
 @admin_bp.route("/badges/backfill")
@@ -87,7 +104,6 @@ def admin_users():
 def admin_badges_backfill():
     """Backfill badges for existing users"""
     try:
-        # This would trigger badge recalculation for all users
         processed_users = []
 
         try:
@@ -120,12 +136,8 @@ def admin_backfill_september():
     """Backfill tracking data from September 2nd"""
     try:
         from app.services.tracking_system import backfill_september_data
-
-        # Run the backfill process
         backfill_september_data()
-
         flash("September data backfill completed successfully! Dashboard now shows complete data from September 2nd.", "success")
-
     except Exception as e:
         flash(f"Error during September backfill: {str(e)}", "danger")
 
