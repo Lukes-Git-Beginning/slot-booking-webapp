@@ -4,11 +4,10 @@ User Management Service
 CRUD-Operationen und Datenanreicherung für die Admin-Benutzerverwaltung
 """
 
-import os
 import secrets
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import pytz
 
@@ -24,6 +23,14 @@ TZ = pytz.timezone(slot_config.TIMEZONE)
 
 REGISTRY_FILE = 'user_registry'
 
+USER_ROLES = {
+    'admin': {'label': 'Admin', 'color': 'badge-warning'},
+    'telefonist': {'label': 'Telefonist', 'color': 'badge-info'},
+    't2_closer': {'label': 'T2 Closer', 'color': 'badge-success'},
+    'berater': {'label': 'Berater', 'color': 'badge-secondary'},
+    'user': {'label': 'Benutzer', 'color': 'badge-ghost'},
+}
+
 
 class UserManagementService:
     """Service für User-CRUD und Datenanreicherung"""
@@ -32,55 +39,42 @@ class UserManagementService:
         return data_persistence.load_data(REGISTRY_FILE, default={
             'added_users': {},
             'deleted_users': [],
-            'admin_overrides': {}
+            'admin_overrides': {},
+            'roles': {}
         })
 
     def _save_registry(self, registry: dict):
         data_persistence.save_data(REGISTRY_FILE, registry)
 
-    def _sync_runtime_userlist(self):
-        """Synchronisiere os.environ USERLIST mit Registry-Änderungen"""
-        registry = self._load_registry()
+    def _get_all_usernames(self) -> list:
+        """Alle aktiven Usernamen aus user_passwords + USERLIST (Fallback)"""
+        passwords = data_persistence.load_data('user_passwords', {})
         userlist = get_userlist()
-
-        # Add registry users to runtime
-        for username, pw_hash in registry.get('added_users', {}).items():
-            if username not in userlist:
-                # Add placeholder to env USERLIST so get_userlist() sees it
-                current = os.environ.get('USERLIST', '')
-                # Use a dummy password - actual auth goes through custom_passwords
-                os.environ['USERLIST'] = f"{current},{username}:__registry__" if current else f"{username}:__registry__"
-
-        # Remove deleted users from runtime
+        registry = self._load_registry()
         deleted = registry.get('deleted_users', [])
-        if deleted:
-            current = os.environ.get('USERLIST', '')
-            if current:
-                parts = []
-                for part in current.split(','):
-                    if ':' in part:
-                        uname = part.split(':', 1)[0].strip()
-                        if uname not in deleted:
-                            parts.append(part)
-                os.environ['USERLIST'] = ','.join(parts)
+        all_users = set(passwords.keys()) | set(userlist.keys())
+        return sorted([u for u in all_users if u not in deleted])
+
+    def _get_user_role(self, username: str, registry: dict = None) -> str:
+        """Rolle eines Users aus der Registry lesen"""
+        if registry is None:
+            registry = self._load_registry()
+        roles = registry.get('roles', {})
+        return roles.get(username, 'user')
 
     def get_all_users(self) -> List[dict]:
         """Alle User mit angereicherten Daten laden"""
-        self._sync_runtime_userlist()
         registry = self._load_registry()
-        userlist = get_userlist()
+        active_usernames = self._get_all_usernames()
         admin_users_list = Config.get_admin_users()
         admin_overrides = registry.get('admin_overrides', {})
-        deleted = registry.get('deleted_users', [])
-
-        # Filter deleted users
-        active_usernames = [u for u in userlist.keys() if u not in deleted]
 
         # Load shared data once
         login_history = data_persistence.load_data('login_history', default={})
         scores = data_persistence.load_scores()
         online_users_list = activity_tracking.get_online_users(timeout_minutes=15)
         online_usernames = {u.get('username', '') if isinstance(u, dict) else u for u in online_users_list}
+        roles = registry.get('roles', {})
 
         # Current month key for scores
         now = datetime.now(TZ)
@@ -146,10 +140,18 @@ class UserManagementService:
             # Online status
             is_online = username in online_usernames
 
+            # Role: admin override takes precedence
+            role = roles.get(username, 'user')
+            if is_admin and role == 'user':
+                role = 'admin'
+
             users.append({
                 'username': username,
                 'is_admin': is_admin,
                 'is_online': is_online,
+                'role': role,
+                'role_label': USER_ROLES.get(role, USER_ROLES['user'])['label'],
+                'role_color': USER_ROLES.get(role, USER_ROLES['user'])['color'],
                 'last_login': last_login_formatted,
                 'current_month_points': current_month_points,
                 'level': level,
@@ -162,11 +164,10 @@ class UserManagementService:
 
     def get_user_detail(self, username: str) -> Optional[dict]:
         """Detaildaten für einen einzelnen User"""
-        userlist = get_userlist()
+        active_users = self._get_all_usernames()
         registry = self._load_registry()
-        deleted = registry.get('deleted_users', [])
 
-        if username not in userlist or username in deleted:
+        if username not in active_users:
             return None
 
         # Login history (last 20)
@@ -234,10 +235,18 @@ class UserManagementService:
         else:
             is_admin = username in admin_users_list
 
+        # Role
+        role = self._get_user_role(username, registry)
+        if is_admin and role == 'user':
+            role = 'admin'
+
         return {
             'username': username,
             'is_admin': is_admin,
             'has_2fa': has_2fa,
+            'role': role,
+            'role_label': USER_ROLES.get(role, USER_ROLES['user'])['label'],
+            'role_color': USER_ROLES.get(role, USER_ROLES['user'])['color'],
             'level': level_info.get('level', 0),
             'level_title': level_info.get('level_title', 'Neuling'),
             'xp': level_info.get('xp', 0),
@@ -248,7 +257,7 @@ class UserManagementService:
             'total_badges': len(badges),
         }
 
-    def add_user(self, username: str, password: str, is_admin: bool, admin_username: str) -> Tuple[bool, str]:
+    def add_user(self, username: str, password: str, is_admin: bool, admin_username: str, role: str = 'user') -> Tuple[bool, str]:
         """Neuen User hinzufügen"""
         username = username.strip()
 
@@ -265,12 +274,16 @@ class UserManagementService:
         if not username.replace('_', '').replace('-', '').isalnum():
             return False, "Benutzername darf nur Buchstaben, Zahlen, _ und - enthalten"
 
+        # Validate role
+        if role not in USER_ROLES:
+            role = 'user'
+
         # Check duplicates
-        userlist = get_userlist()
+        active_users = self._get_all_usernames()
         registry = self._load_registry()
         deleted = registry.get('deleted_users', [])
 
-        if username in userlist and username not in deleted:
+        if username in active_users:
             return False, f"Benutzer '{username}' existiert bereits"
 
         # If user was previously deleted, remove from deleted list
@@ -281,8 +294,11 @@ class UserManagementService:
         registry.setdefault('added_users', {})[username] = True
 
         # Set admin override if requested
-        if is_admin:
+        if is_admin or role == 'admin':
             registry.setdefault('admin_overrides', {})[username] = True
+
+        # Save role
+        registry.setdefault('roles', {})[username] = role
 
         self._save_registry(registry)
 
@@ -292,12 +308,8 @@ class UserManagementService:
         custom_passwords[username] = hashed
         data_persistence.save_data('user_passwords', custom_passwords)
 
-        # Update runtime USERLIST
-        current = os.environ.get('USERLIST', '')
-        os.environ['USERLIST'] = f"{current},{username}:__registry__" if current else f"{username}:__registry__"
-
         audit_service.log_user_created(username, admin_username)
-        logger.info(f"User '{username}' created by {admin_username}")
+        logger.info(f"User '{username}' created by {admin_username} with role '{role}'")
 
         return True, f"Benutzer '{username}' erfolgreich erstellt"
 
@@ -306,19 +318,18 @@ class UserManagementService:
         if username == admin_username:
             return False, "Du kannst dich nicht selbst löschen"
 
-        userlist = get_userlist()
-        if username not in userlist:
+        active_users = self._get_all_usernames()
+        if username not in active_users:
             return False, f"Benutzer '{username}' nicht gefunden"
 
         # Check if this is the last admin
         registry = self._load_registry()
         admin_overrides = registry.get('admin_overrides', {})
         admin_users_list = Config.get_admin_users()
-        deleted = registry.get('deleted_users', [])
 
         active_admins = []
-        for u in userlist:
-            if u in deleted or u == username:
+        for u in active_users:
+            if u == username:
                 continue
             if u in admin_overrides:
                 if admin_overrides[u]:
@@ -337,9 +348,6 @@ class UserManagementService:
             registry['deleted_users'].append(username)
         self._save_registry(registry)
 
-        # Sync runtime
-        self._sync_runtime_userlist()
-
         audit_service.log_user_deleted(username, admin_username)
         logger.info(f"User '{username}' deleted by {admin_username}")
 
@@ -347,8 +355,8 @@ class UserManagementService:
 
     def reset_password(self, username: str, admin_username: str) -> Tuple[bool, str, str]:
         """Passwort zurücksetzen, gibt (success, message, new_password) zurück"""
-        userlist = get_userlist()
-        if username not in userlist:
+        active_users = self._get_all_usernames()
+        if username not in active_users:
             return False, f"Benutzer '{username}' nicht gefunden", ""
 
         # Generate random password
@@ -372,8 +380,8 @@ class UserManagementService:
         if username == admin_username:
             return False, "Du kannst deine eigene Admin-Rolle nicht ändern"
 
-        userlist = get_userlist()
-        if username not in userlist:
+        active_users = self._get_all_usernames()
+        if username not in active_users:
             return False, f"Benutzer '{username}' nicht gefunden"
 
         registry = self._load_registry()
@@ -390,10 +398,9 @@ class UserManagementService:
 
         # If removing admin, check we're not removing the last one
         if currently_admin and not new_admin_status:
-            deleted = registry.get('deleted_users', [])
             active_admins = 0
-            for u in userlist:
-                if u in deleted or u == username:
+            for u in active_users:
+                if u == username:
                     continue
                 if u in admin_overrides:
                     if admin_overrides[u]:
@@ -415,6 +422,35 @@ class UserManagementService:
         logger.info(f"Admin toggle for '{username}' -> {status_text} by {admin_username}")
 
         return True, f"'{username}' ist jetzt {status_text}"
+
+    def change_role(self, username: str, new_role: str, admin_username: str) -> Tuple[bool, str]:
+        """Rolle eines Users ändern"""
+        if new_role not in USER_ROLES:
+            return False, f"Ungültige Rolle: '{new_role}'"
+
+        active_users = self._get_all_usernames()
+        if username not in active_users:
+            return False, f"Benutzer '{username}' nicht gefunden"
+
+        registry = self._load_registry()
+        registry.setdefault('roles', {})[username] = new_role
+
+        # Sync admin status with role
+        if new_role == 'admin':
+            registry.setdefault('admin_overrides', {})[username] = True
+        elif new_role != 'admin' and registry.get('roles', {}).get(username) == 'admin':
+            registry.setdefault('admin_overrides', {})[username] = False
+
+        self._save_registry(registry)
+
+        role_label = USER_ROLES[new_role]['label']
+        audit_service.log_admin_action('role_change', {
+            'target_user': username,
+            'new_role': new_role,
+        }, admin_username)
+        logger.info(f"Role change for '{username}' -> {new_role} by {admin_username}")
+
+        return True, f"Rolle von '{username}' auf '{role_label}' geändert"
 
 
 # Global instance

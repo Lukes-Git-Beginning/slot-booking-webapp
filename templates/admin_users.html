@@ -72,7 +72,10 @@
             </div>
             <select id="roleFilter" class="select select-bordered select-sm bg-white/5 border-white/10 text-white">
                 <option value="all">Alle Rollen</option>
-                <option value="admin">Admins</option>
+                <option value="admin">Admin</option>
+                <option value="telefonist">Telefonist</option>
+                <option value="t2_closer">T2 Closer</option>
+                <option value="berater">Berater</option>
                 <option value="user">Benutzer</option>
             </select>
             <button class="btn btn-primary btn-sm gap-2" id="btnAddUser">
@@ -101,7 +104,7 @@
                 {% for user in users %}
                 <tr class="hover:bg-white/5 cursor-pointer user-row"
                     data-username="{{ user.username }}"
-                    data-role="{{ 'admin' if user.is_admin else 'user' }}">
+                    data-role="{{ user.role }}">
                     <td>
                         <div class="flex items-center gap-3" data-action="showUserDetail" data-args='["{{ user.username }}"]'>
                             <div class="relative">
@@ -119,13 +122,10 @@
                         </div>
                     </td>
                     <td>
-                        {% if user.is_admin %}
-                        <div class="badge badge-warning badge-sm gap-1">
-                            <i data-lucide="shield" class="w-3 h-3"></i> Admin
+                        <div class="badge {{ user.role_color }} badge-sm gap-1">
+                            {% if user.role == 'admin' %}<i data-lucide="shield" class="w-3 h-3"></i>{% endif %}
+                            {{ user.role_label }}
                         </div>
-                        {% else %}
-                        <div class="badge badge-ghost badge-sm">Benutzer</div>
-                        {% endif %}
                     </td>
                     <td class="text-center">
                         {% if user.is_online %}
@@ -193,10 +193,14 @@
                 <input type="text" id="newPassword" class="input input-bordered w-full bg-white/5 border-white/10 text-white font-mono" placeholder="Mind. 6 Zeichen">
             </div>
             <div class="form-control">
-                <label class="label cursor-pointer justify-start gap-3">
-                    <input type="checkbox" id="newIsAdmin" class="checkbox checkbox-primary checkbox-sm">
-                    <span class="label-text text-white">Admin-Rechte</span>
-                </label>
+                <label class="label"><span class="label-text text-white">Rolle</span></label>
+                <select id="newUserRole" class="select select-bordered w-full bg-white/5 border-white/10 text-white">
+                    <option value="user">Benutzer</option>
+                    <option value="telefonist">Telefonist</option>
+                    <option value="t2_closer">T2 Closer</option>
+                    <option value="berater">Berater</option>
+                    <option value="admin">Admin</option>
+                </select>
             </div>
         </div>
         <div class="modal-action">
@@ -240,8 +244,8 @@
                     <div class="text-2xl font-bold text-accent" id="detailBadgeCount">-</div>
                 </div>
                 <div class="bg-white/5 rounded-xl p-3 text-center">
-                    <div class="text-xs text-white/50 mb-1">Status</div>
-                    <div id="detailStatus" class="text-sm font-semibold">-</div>
+                    <div class="text-xs text-white/50 mb-1">Rolle</div>
+                    <div id="detailRole" class="text-sm font-semibold">-</div>
                 </div>
             </div>
 
@@ -294,6 +298,19 @@
             <div id="tabBadges" class="detail-tab-content hidden">
                 <div id="badgesGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
                 <p id="noBadges" class="text-white/50 text-center py-4 hidden">Noch keine Badges</p>
+            </div>
+
+            <!-- Role Change -->
+            <div class="divider text-white/30">Rolle ändern</div>
+            <div class="flex items-center gap-3">
+                <select id="detailRoleSelect" class="select select-bordered select-sm bg-white/5 border-white/10 text-white flex-1">
+                    <option value="user">Benutzer</option>
+                    <option value="telefonist">Telefonist</option>
+                    <option value="t2_closer">T2 Closer</option>
+                    <option value="berater">Berater</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button class="btn btn-sm btn-primary" id="detailChangeRole">Ändern</button>
             </div>
 
             <!-- Actions -->
@@ -386,7 +403,7 @@
     document.getElementById('btnAddUser').addEventListener('click', function() {
         document.getElementById('newUsername').value = '';
         document.getElementById('newPassword').value = '';
-        document.getElementById('newIsAdmin').checked = false;
+        document.getElementById('newUserRole').value = 'user';
         document.getElementById('addUserModal').showModal();
     });
     document.getElementById('btnCancelAdd').addEventListener('click', function() {
@@ -395,9 +412,10 @@
     document.getElementById('btnConfirmAdd').addEventListener('click', function() {
         var username = document.getElementById('newUsername').value.trim();
         var password = document.getElementById('newPassword').value.trim();
-        var isAdmin = document.getElementById('newIsAdmin').checked;
+        var role = document.getElementById('newUserRole').value;
+        var isAdmin = role === 'admin';
         if (!username || !password) { showToast('Bitte alle Felder ausfüllen', 'warning'); return; }
-        apiCall('/admin/users/add', 'POST', { username: username, password: password, is_admin: isAdmin })
+        apiCall('/admin/users/add', 'POST', { username: username, password: password, is_admin: isAdmin, role: role })
             .then(function(data) {
                 if (data.success) { showToast(data.message, 'success'); setTimeout(function() { location.reload(); }, 1000); }
                 else { showToast(data.message, 'error'); }
@@ -477,16 +495,13 @@
         document.getElementById('detailXP').textContent = d.xp.toLocaleString();
         document.getElementById('detailBadgeCount').textContent = d.total_badges;
 
-        // Status
-        var statusEl = document.getElementById('detailStatus');
-        if (d.is_admin) {
-            statusEl.innerHTML = '<span class="badge badge-warning badge-sm">Admin</span>';
-        } else {
-            statusEl.innerHTML = '<span class="badge badge-ghost badge-sm">Benutzer</span>';
-        }
+        // Role
+        var roleEl = document.getElementById('detailRole');
+        roleEl.innerHTML = '<span class="badge ' + (d.role_color || 'badge-ghost') + ' badge-sm">' + (d.role_label || 'Benutzer') + '</span>';
         if (d.has_2fa) {
-            statusEl.innerHTML += ' <span class="badge badge-success badge-sm">2FA</span>';
+            roleEl.innerHTML += ' <span class="badge badge-success badge-sm">2FA</span>';
         }
+        document.getElementById('detailRoleSelect').value = d.role || 'user';
 
         // Progress
         document.getElementById('detailProgressPct').textContent = Math.round(d.progress_to_next) + '%';
@@ -566,6 +581,16 @@
     });
     document.getElementById('detailDeleteUser').addEventListener('click', function() {
         if (currentDetailUser) { document.getElementById('userDetailModal').close(); window.deleteUser(null, currentDetailUser); }
+    });
+    document.getElementById('detailChangeRole').addEventListener('click', function() {
+        if (!currentDetailUser) return;
+        var newRole = document.getElementById('detailRoleSelect').value;
+        apiCall('/admin/users/' + currentDetailUser + '/change-role', 'POST', { role: newRole })
+            .then(function(data) {
+                if (data.success) { showToast(data.message, 'success'); setTimeout(function() { location.reload(); }, 1000); }
+                else { showToast(data.message, 'error'); }
+            })
+            .catch(function() { showToast('Fehler bei der Anfrage', 'error'); });
     });
 
     // Init lucide icons

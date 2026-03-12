@@ -49,9 +49,10 @@ def admin_users_add():
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
     is_admin = data.get('is_admin', False)
+    role = data.get('role', 'user')
     admin_username = session.get('user', 'unknown')
 
-    success, message = user_management_service.add_user(username, password, is_admin, admin_username)
+    success, message = user_management_service.add_user(username, password, is_admin, admin_username, role=role)
     status_code = 200 if success else 400
     return jsonify(success=success, message=message), status_code
 
@@ -97,6 +98,20 @@ def admin_users_detail(username):
     if not detail:
         return jsonify(success=False, message="Benutzer nicht gefunden"), 404
     return jsonify(success=True, data=detail)
+
+
+@admin_bp.route("/users/<username>/change-role", methods=["POST"])
+@require_admin
+def admin_users_change_role(username):
+    """Change a user's role"""
+    data = request.get_json()
+    if not data or 'role' not in data:
+        return jsonify(success=False, message="Keine Rolle angegeben"), 400
+
+    admin_username = session.get('user', 'unknown')
+    success, message = user_management_service.change_role(username, data['role'], admin_username)
+    status_code = 200 if success else 400
+    return jsonify(success=success, message=message), status_code
 
 
 @admin_bp.route("/badges/backfill")
