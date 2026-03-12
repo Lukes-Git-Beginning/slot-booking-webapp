@@ -38,6 +38,16 @@ class ConsultantRankingService:
 
     FIXED_CONTRACT = {"Ann-Kathrin", "Yasmine", "Ben"}
 
+    # Qualitäts-Score Gewichtung pro Outcome
+    QUALITY_WEIGHTS = {
+        "completed": 100,
+        "overhang": 90,
+        "rescheduled": 40,
+        "cancelled": 10,
+        "no_show": 0,
+        "ghost": -10,
+    }
+
     def __init__(self):
         # Nur aktive Telefonisten im Ranking anzeigen (nicht alle Consultants)
         all_consultants = consultant_config.get_consultants()
@@ -109,6 +119,9 @@ class ConsultantRankingService:
                     "consistency_score": tel_data.get("consistency_score", 50.0),
                     "weeks_analyzed": tel_data.get("weeks_analyzed", 0),
                 }
+
+                # Berechne Qualitäts-Score (gewichteter Outcome-Mix)
+                consultant_perf["quality_score"] = self._calculate_quality_score(consultant_perf)
 
                 # Berechne Combined Score
                 consultant_perf["combined_score"] = self._calculate_combined_score(
@@ -233,6 +246,29 @@ class ConsultantRankingService:
             logger.error(f"Fehler bei _get_telefonie_performance: {e}")
             return {}
 
+    def _calculate_quality_score(self, perf: Dict) -> float:
+        """
+        Berechne gewichteten Qualitäts-Score basierend auf Outcome-Mix.
+
+        Gewichtung: Erschienen=100, Überhang=90, Verschoben=40,
+                    Abgesagt=10, Nicht Erschienen=0, Ghost=-10
+        """
+        total = perf.get("total_slots", 0)
+        if total == 0:
+            return 0.0
+
+        weighted_sum = (
+            perf.get("completed", 0) * self.QUALITY_WEIGHTS["completed"]
+            + perf.get("overhang", 0) * self.QUALITY_WEIGHTS["overhang"]
+            + perf.get("rescheduled", 0) * self.QUALITY_WEIGHTS["rescheduled"]
+            + perf.get("cancelled", 0) * self.QUALITY_WEIGHTS["cancelled"]
+            + perf.get("no_shows", 0) * self.QUALITY_WEIGHTS["no_show"]
+            + perf.get("ghosts", 0) * self.QUALITY_WEIGHTS["ghost"]
+        )
+
+        score = (weighted_sum / (total * 100)) * 100
+        return round(max(score, 0.0), 1)
+
     def _calculate_combined_score(
         self,
         show_rate: float,
@@ -307,7 +343,7 @@ class ConsultantRankingService:
                         "medium_performers": 0,
                         "low_performers": 0,
                         "avg_show_rate": 0.0,
-                        "avg_achievement": 0.0
+                        "avg_quality_score": 0.0
                     }
                 }
 
@@ -317,7 +353,7 @@ class ConsultantRankingService:
             low_count = sum(1 for r in rankings if r["category"] == "low")
 
             avg_show_rate = sum(r["show_rate"] for r in rankings) / len(rankings)
-            avg_achievement = sum(r["telefonie_achievement"] for r in rankings) / len(rankings)
+            avg_quality_score = sum(r["quality_score"] for r in rankings) / len(rankings)
             total_t1_booked = sum(r["t1_booked"] for r in rankings)
 
             return {
@@ -332,7 +368,7 @@ class ConsultantRankingService:
                     "medium_performers": medium_count,
                     "low_performers": low_count,
                     "avg_show_rate": round(avg_show_rate, 1),
-                    "avg_achievement": round(avg_achievement, 1),
+                    "avg_quality_score": round(avg_quality_score, 1),
                     "total_t1_booked": total_t1_booked
                 }
             }

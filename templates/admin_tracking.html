@@ -329,9 +329,9 @@
                 <p class="text-white/60 text-sm">Durchschn. Erschienen-Quote</p>
                 <p id="avgShowRate" class="text-xl font-bold text-white">--</p>
             </div>
-            <div class="text-center tooltip tooltip-bottom" data-tip="Erreichung des wöchentlichen Telefonie-Ziels in %">
-                <p class="text-white/60 text-sm">Durchschn. Tel. Zielerreichung</p>
-                <p id="avgAchievement" class="text-xl font-bold text-white">--</p>
+            <div class="text-center tooltip tooltip-bottom" data-tip="Gewichtete Bewertung aller Termin-Outcomes (Erschienen, Verschoben, Abgesagt, Ghost etc.)">
+                <p class="text-white/60 text-sm">Durchschn. Qualitäts-Score</p>
+                <p id="avgQualityScore" class="text-xl font-bold text-white">--</p>
             </div>
             <div class="text-center">
                 <p class="text-white/60 text-sm">Gesamt T1 gelegt</p>
@@ -922,8 +922,8 @@
                                 <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">Tel. Zielerreichung</span>
-                                <span class="text-white">${r.telefonie_achievement}%</span>
+                                <span class="text-white/60">Qualitäts-Score</span>
+                                <span class="text-white">${r.quality_score}%</span>
                             </div>
                         ` : `
                             <div class="flex justify-between">
@@ -943,8 +943,16 @@
                                 <span class="text-sky-400">${r.ghosts || 0}</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">T1 gelegt</span>
-                                <span class="text-secondary font-semibold">${r.t1_booked || 0}</span>
+                                <span class="text-white/60">Abgesagt</span>
+                                <span class="text-warning">${r.cancelled || 0}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Verschoben</span>
+                                <span class="text-violet-400">${r.rescheduled || 0}</span>
+                            </div>
+                            <div class="flex justify-between border-t border-white/10 pt-1 mt-1">
+                                <span class="text-white/60 font-semibold">Qualitäts-Score</span>
+                                <span class="text-white font-bold">${r.quality_score}%</span>
                             </div>
                         `}
                     </div>
@@ -1153,7 +1161,7 @@
         const summary = data.summary;
         if (summary) {
             document.getElementById('avgShowRate').textContent = summary.avg_show_rate + '%';
-            document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
+            document.getElementById('avgQualityScore').textContent = summary.avg_quality_score + '%';
             document.getElementById('totalT1Booked').textContent = summary.total_t1_booked || 0;
             document.getElementById('highPerformers').textContent = summary.high_performers;
             document.getElementById('lowPerformers').textContent = summary.low_performers;
