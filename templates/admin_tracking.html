@@ -622,7 +622,7 @@
 
         // ApexCharts heatmap: Kalender-Layout — Zeiten als Zeilen (Y), Tage als Spalten (X)
         const shortDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
-        const series = hours.map(hour => ({
+        const series = hours.slice().reverse().map(hour => ({
             name: hour,
             data: weekdays.map((dayName, idx) => {
                 const cell = lookup[idx + '_' + hour];
@@ -668,6 +668,7 @@
                 }
             },
             xaxis: {
+                position: 'top',
                 labels: { style: { colors: 'rgba(255,255,255,0.7)', fontSize: '12px' } },
                 axisBorder: { show: false }
             },
