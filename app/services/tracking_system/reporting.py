@@ -41,6 +41,17 @@ USERNAME_TO_DISPLAY = {
 
 WEEKDAY_NAMES_DE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"]
 
+# Stunden auf die 6 festen Hauptslots mappen
+SLOT_MAPPING = {
+    "08:00": "09:00", "09:00": "09:00", "10:00": "09:00",
+    "11:00": "11:00", "12:00": "11:00",
+    "13:00": "14:00", "14:00": "14:00",
+    "15:00": "16:00", "16:00": "16:00",
+    "17:00": "18:00", "18:00": "18:00",
+    "19:00": "20:00", "20:00": "20:00",
+}
+MAIN_SLOTS = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
+
 
 def get_hourly_distribution(tracker, start_date_str, end_date_str):
     """
@@ -64,7 +75,10 @@ def _aggregate_hourly_data(by_hour_data, weekday_index):
     """Shared aggregation logic for both PG and JSON paths."""
     cells = {}
     for hour_str, hour_data in by_hour_data.items():
-        key = (weekday_index, hour_str)
+        mapped = SLOT_MAPPING.get(hour_str)
+        if not mapped:
+            continue
+        key = (weekday_index, mapped)
         if key not in cells:
             cells[key] = {"total": 0, "completed": 0, "no_shows": 0, "ghosts": 0,
                           "cancelled": 0, "rescheduled": 0, "overhang": 0}
@@ -119,7 +133,7 @@ def _build_hourly_result(all_cells, start_date_str, end_date_str):
             "show_rate": show_rate,
         })
 
-    hours = sorted(hours_set)
+    hours = list(MAIN_SLOTS)
 
     return {
         "matrix": matrix,
