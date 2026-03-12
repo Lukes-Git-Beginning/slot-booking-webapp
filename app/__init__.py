@@ -403,6 +403,23 @@ def register_template_context(app: Flask) -> None:
     def inject_global_vars():
         """Globale Template-Variablen"""
         from app.config.base import FinanzConfig
+
+        # Booster and seasonal event data for base template
+        active_boosters = []
+        seasonal_event = None
+        current_user = session.get('user')
+        if current_user:
+            try:
+                from app.services.gameplay_rewards import gameplay_rewards
+                active_boosters = gameplay_rewards.get_active_boosters(current_user)
+            except Exception:
+                pass
+            try:
+                from app.services.seasonal_events import seasonal_events
+                seasonal_event = seasonal_events.get_active_event()
+            except Exception:
+                pass
+
         return {
             'current_year': datetime.now().year,
             'app_name': 'Beraterwelt',
@@ -414,6 +431,8 @@ def register_template_context(app: Flask) -> None:
             'csp_nonce': getattr(g, 'csp_nonce', ''),
             'finanz_enabled': FinanzConfig.FINANZ_ENABLED,
             'finanz_access': user_has_tool_access(session.get('user', ''), 'finanzberatung') if session.get('user') else False,
+            'active_boosters': active_boosters,
+            'seasonal_event': seasonal_event,
         }
 
     @app.template_filter('datetime')

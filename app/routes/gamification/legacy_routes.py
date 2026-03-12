@@ -23,6 +23,7 @@ try:
     from app.services.achievement_system import achievement_system
     from app.services.level_system import LevelSystem
     from app.services.cosmetics_shop import cosmetics_shop
+    from app.services.avatar_service import avatar_service
 except ImportError as e:
     logger.error(f"Import Error in gamification_routes: {e}")
     # Set fallback objects to prevent further errors
@@ -33,6 +34,17 @@ except ImportError as e:
     achievement_system = None
     LevelSystem = None
     cosmetics_shop = None
+    avatar_service = None
+
+try:
+    from app.services.lootbox_service import lootbox_service
+    from app.services.gameplay_rewards import gameplay_rewards
+    from app.services.seasonal_events import seasonal_events
+except ImportError as e:
+    logger.error(f"Import Error for Phase 4 services: {e}")
+    lootbox_service = None
+    gameplay_rewards = None
+    seasonal_events = None
 
 # Blueprint erstellen
 gamification_bp = Blueprint('gamification', __name__)
@@ -450,6 +462,12 @@ def api_user_avatar(username):
         if active_avatar:
             avatar_data['avatar'] = active_avatar
 
+        # Include resolved avatar URL from avatar_service
+        if avatar_service:
+            avatar_url = avatar_service.get_avatar_url(username)
+            if avatar_url:
+                avatar_data['avatar_url'] = avatar_url
+
         return jsonify(avatar_data)
 
     except Exception as e:
@@ -483,30 +501,82 @@ def api_user_cosmetics(username):
 # ===== QUEST PROGRESS UPDATES =====
 
 def update_quest_progress_for_booking(user, booking_data):
-    """Update Quest-Fortschritt für Buchungen"""
+    """Update Quest-Fortschritt fuer Buchungen (Legacy + rollenspezifische Quests)"""
     try:
-        # Quest-Updates
+        # Quest-Updates (booking triggers: speed_booking, quality_booking,
+        # booking_blitz, double_slot, full_day, berater_variety, morning_rush)
         daily_quest_system.update_quest_progress(user, "booking", booking_data)
-        
-        # Check für zeitbasierte Quests
+
+        # Check fuer zeitbasierte Quests
         daily_quest_system.update_quest_progress(user, "time_based", booking_data)
-        
-        # Streak-Quests (täglich ausgeführt)
+
+        # Streak-Quests (taeglich ausgefuehrt)
         daily_quest_system.update_quest_progress(user, "streak", booking_data)
-        
+
         logger.info(f"Quest progress updated for user {user}")
-        
+
     except Exception as e:
         logger.error(f"Error updating quest progress: {e}")
 
+
 def update_quest_progress_for_minigame(user, game_data):
-    """Update Quest-Fortschritt für Mini-Games"""
+    """Update Quest-Fortschritt fuer Mini-Games"""
     try:
         daily_quest_system.update_quest_progress(user, "minigame", game_data)
         logger.info(f"Minigame quest progress updated for user {user}")
-        
+
     except Exception as e:
         logger.error(f"Error updating minigame quest progress: {e}")
+
+
+def update_quest_progress_for_cancel(user):
+    """Update Quest-Fortschritt bei Stornierung (no_cancel Quest)"""
+    try:
+        if daily_quest_system:
+            daily_quest_system.update_quest_progress(user, "cancel", {})
+    except Exception as e:
+        logger.error(f"Error updating cancel quest progress: {e}")
+
+
+def update_quest_progress_for_close(user, close_data):
+    """Update Quest-Fortschritt fuer T2 Abschluesse"""
+    try:
+        if daily_quest_system:
+            daily_quest_system.update_quest_progress(user, "close", close_data)
+    except Exception as e:
+        logger.error(f"Error updating close quest progress: {e}")
+
+
+def update_quest_progress_for_callback(user):
+    """Update Quest-Fortschritt fuer T2 Rueckrufe"""
+    try:
+        if daily_quest_system:
+            daily_quest_system.update_quest_progress(user, "callback", {})
+    except Exception as e:
+        logger.error(f"Error updating callback quest progress: {e}")
+
+
+def update_quest_progress_for_dice_win(user):
+    """Update Quest-Fortschritt fuer Dice-Roll Gewinne"""
+    try:
+        if daily_quest_system:
+            daily_quest_system.update_quest_progress(user, "dice_win", {})
+    except Exception as e:
+        logger.error(f"Error updating dice quest progress: {e}")
+
+
+def update_quest_progress_for_login(user):
+    """Update Quest-Fortschritt fuer Login (daily_login + streak_keeper)"""
+    try:
+        if daily_quest_system:
+            from datetime import datetime
+            import pytz
+            tz = pytz.timezone('Europe/Berlin')
+            login_hour = datetime.now(tz).hour
+            daily_quest_system.update_quest_progress(user, "login", {"login_hour": login_hour})
+            daily_quest_system.update_quest_progress(user, "streak", {})
+    except Exception as e:
+        logger.error(f"Error updating login quest progress: {e}")
 
 # ===== INTEGRATION HELPERS =====
 
@@ -562,11 +632,17 @@ def cosmetics_shop_view():
             logger.error("Cosmetics shop or daily quest system not available")
             return render_template('cosmetics_shop.html',
                 current_user=user,
-                error="Shop-System ist derzeit nicht verfügbar",
+                error="Shop-System ist derzeit nicht verfuegbar",
                 user_coins=0,
                 cosmetics={"owned": {}, "active": {}},
-                shop_items={"titles": [], "themes": [], "avatars": [], "effects": []},
-                owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0})
+                shop_items={"titles": [], "themes": [], "avatars": [], "effects": [], "frames": []},
+                owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0, "frames": 0},
+                crate_types=[],
+                unopened_crates=[],
+                active_event=None,
+                seasonal_items=[],
+                inventory={},
+            )
 
         # Hole User-Coins aus Daily Quest System
         user_coins = daily_quest_system.get_user_coins(user) if daily_quest_system else 0
@@ -577,7 +653,7 @@ def cosmetics_shop_view():
         active = user_cosmetics.get('active', {})
 
         # Build shop_items structure for template - convert dicts to lists with all info
-        from app.services.cosmetics_shop import TITLE_SHOP, COLOR_THEMES, AVATAR_SHOP, SPECIAL_EFFECTS
+        from app.services.cosmetics_shop import TITLE_SHOP, COLOR_THEMES, AVATAR_SHOP, SPECIAL_EFFECTS, FRAME_SHOP
 
         def build_item_list(shop_dict, owned_list, active_item, item_type):
             items = []
@@ -630,11 +706,36 @@ def cosmetics_shop_view():
                 items.append(item)
             return items
 
+        # Build frame items (filter out milestone-exclusive unless owned)
+        frame_items = []
+        for frame_id, frame_data in FRAME_SHOP.items():
+            is_owned = frame_id in owned.get('frames', [])
+            is_active = active.get('frame') == frame_id
+            if frame_data.get('milestone_exclusive') and not is_owned:
+                continue
+            frame_items.append({
+                'id': frame_id,
+                'name': frame_data.get('name', frame_id),
+                'price': frame_data.get('price', 0),
+                'description': frame_data.get('description', ''),
+                'rarity': frame_data.get('rarity', 'common'),
+                'css_class': frame_data.get('css_class', ''),
+                'owned': is_owned,
+                'active': is_active,
+                'seasonal': frame_data.get('seasonal'),
+                'milestone_exclusive': frame_data.get('milestone_exclusive', False),
+            })
+
+        # Filter effects to exclude milestone-exclusive unless owned
+        effect_items_raw = build_item_list(SPECIAL_EFFECTS, owned.get('effects', []), active.get('effects', []), 'effects')
+        effect_items = [e for e in effect_items_raw if not SPECIAL_EFFECTS.get(e['id'], {}).get('milestone_exclusive') or e['owned']]
+
         shop_items = {
             'titles': build_item_list(TITLE_SHOP, owned.get('titles', []), active.get('title'), 'titles'),
             'themes': build_item_list(COLOR_THEMES, owned.get('themes', []), active.get('theme'), 'themes'),
             'avatars': build_item_list(AVATAR_SHOP, owned.get('avatars', []), active.get('avatar'), 'avatars'),
-            'effects': build_item_list(SPECIAL_EFFECTS, owned.get('effects', []), active.get('effects', []), 'effects')
+            'effects': effect_items,
+            'frames': frame_items,
         }
 
         # Calculate owned items counts for summary section
@@ -642,15 +743,42 @@ def cosmetics_shop_view():
             'titles': len(owned.get('titles', [])),
             'themes': len(owned.get('themes', [])),
             'avatars': len(owned.get('avatars', [])),
-            'effects': len(owned.get('effects', []))
+            'effects': len(owned.get('effects', [])),
+            'frames': len(owned.get('frames', [])),
         }
+
+        # Lootbox data
+        from app.services.lootbox_service import CRATE_TYPES
+        unopened_crates = []
+        if lootbox_service:
+            unopened_crates = lootbox_service.get_unopened_crates(user)
+        crate_types = []
+        for crate_id, crate_data in CRATE_TYPES.items():
+            crate_types.append({'id': crate_id, **crate_data})
+
+        # Seasonal event data
+        active_event = None
+        seasonal_items = []
+        if seasonal_events:
+            active_event = seasonal_events.get_active_event()
+            seasonal_items = seasonal_events.get_seasonal_shop_items()
+
+        # Inventory data
+        inventory = {}
+        if gameplay_rewards:
+            inventory = gameplay_rewards.get_inventory(user)
 
         return render_template('cosmetics_shop.html',
             current_user=user,
             user_coins=user_coins,
             cosmetics=user_cosmetics,
             shop_items=shop_items,
-            owned_items=owned_items
+            owned_items=owned_items,
+            crate_types=crate_types,
+            unopened_crates=unopened_crates,
+            active_event=active_event,
+            seasonal_items=seasonal_items,
+            inventory=inventory,
         )
 
     except Exception as e:
@@ -661,8 +789,13 @@ def cosmetics_shop_view():
             error="Fehler beim Laden des Cosmetics Shops",
             user_coins=0,
             cosmetics={"owned": {}, "active": {}, "available_titles": {}, "available_themes": {}, "available_avatars": {}, "available_effects": {}},
-            shop_items={"titles": [], "themes": [], "avatars": [], "effects": []},
-            owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0}
+            shop_items={"titles": [], "themes": [], "avatars": [], "effects": [], "frames": []},
+            owned_items={"titles": 0, "themes": 0, "avatars": 0, "effects": 0, "frames": 0},
+            crate_types=[],
+            unopened_crates=[],
+            active_event=None,
+            seasonal_items=[],
+            inventory={},
         )
 
 @gamification_bp.route('/cosmetics/purchase', methods=['POST'])
@@ -760,23 +893,326 @@ def admin_unlock_all_cosmetics():
         logger.error(f"Error in admin unlock all cosmetics: {e}")
         return jsonify({"success": False, "message": "Fehler beim Admin-Unlock"})
 
+def _csrf_exempt(route_func):
+    """Apply CSRF exemption for file upload and API routes (session-based auth)"""
+    if csrf:
+        return csrf.exempt(route_func)
+    return route_func
+
+
+# ===== LOOTBOX & REWARDS API ROUTES =====
+
+@gamification_bp.route('/api/purchase-crate', methods=['POST'])
+@_csrf_exempt
+@require_login
+def api_purchase_crate():
+    """API: Kiste kaufen"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+        if not lootbox_service or not daily_quest_system:
+            return jsonify({"success": False, "message": "Service nicht verfuegbar"}), 500
+
+        data = request.get_json()
+        crate_type = data.get('crate_type')
+        if not crate_type:
+            return jsonify({"success": False, "message": "Kisten-Typ fehlt"}), 400
+
+        from app.services.lootbox_service import CRATE_TYPES
+        if crate_type not in CRATE_TYPES:
+            return jsonify({"success": False, "message": "Unbekannter Kisten-Typ"}), 400
+
+        price = CRATE_TYPES[crate_type]["price"]
+        user_coins = daily_quest_system.get_user_coins(user)
+        if user_coins < price:
+            return jsonify({"success": False, "message": f"Nicht genug Coins! Benötigt: {price}, Verfügbar: {user_coins}"})
+
+        result = lootbox_service.purchase_crate(user, crate_type)
+        if result["success"]:
+            coins_data = daily_quest_system.load_user_coins()
+            coins_data[user] = coins_data.get(user, 0) - price
+            daily_quest_system.save_user_coins(coins_data)
+            result["remaining_coins"] = coins_data.get(user, 0)
+
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in api_purchase_crate: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler"}), 500
+
+
+@gamification_bp.route('/api/open-crate', methods=['POST'])
+@_csrf_exempt
+@require_login
+def api_open_crate():
+    """API: Kiste oeffnen"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+        if not lootbox_service:
+            return jsonify({"success": False, "message": "Service nicht verfuegbar"}), 500
+
+        data = request.get_json()
+        crate_id = data.get('crate_id')
+        if not crate_id:
+            return jsonify({"success": False, "message": "Kisten-ID fehlt"}), 400
+
+        result = lootbox_service.open_crate(user, crate_id)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in api_open_crate: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler"}), 500
+
+
+@gamification_bp.route('/api/inventory')
+@require_login
+def api_inventory():
+    """API: Inventar abrufen"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+        if not gameplay_rewards:
+            return jsonify({"success": False, "message": "Service nicht verfuegbar"}), 500
+
+        inventory = gameplay_rewards.get_inventory(user)
+        return jsonify({"success": True, "inventory": inventory})
+    except Exception as e:
+        logger.error(f"Error in api_inventory: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler"}), 500
+
+
+@gamification_bp.route('/api/activate-booster', methods=['POST'])
+@_csrf_exempt
+@require_login
+def api_activate_booster():
+    """API: XP-Booster aktivieren (aus Inventar)"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+        if not gameplay_rewards:
+            return jsonify({"success": False, "message": "Service nicht verfuegbar"}), 500
+
+        data = request.get_json() or {}
+        multiplier = data.get('multiplier', 2.0)
+        hours = data.get('hours', 1)
+
+        result = gameplay_rewards.activate_xp_booster(user, multiplier=multiplier, duration_hours=hours)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in api_activate_booster: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler"}), 500
+
+
+@gamification_bp.route('/api/equip-frame', methods=['POST'])
+@_csrf_exempt
+@require_login
+def api_equip_frame():
+    """API: Rahmen anlegen"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+        if not cosmetics_shop:
+            return jsonify({"success": False, "message": "Service nicht verfuegbar"}), 500
+
+        data = request.get_json()
+        frame_id = data.get('frame_id')
+        if not frame_id:
+            return jsonify({"success": False, "message": "Rahmen-ID fehlt"}), 400
+
+        result = cosmetics_shop.equip_frame(user, frame_id)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in api_equip_frame: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler"}), 500
+
+
+@gamification_bp.route('/api/seasonal-event')
+@require_login
+def api_seasonal_event():
+    """API: Aktives Event abrufen"""
+    try:
+        if not seasonal_events:
+            return jsonify({"success": True, "event": None})
+
+        event = seasonal_events.get_active_event()
+        multipliers = seasonal_events.get_event_multipliers()
+        return jsonify({
+            "success": True,
+            "event": event,
+            "multipliers": multipliers,
+        })
+    except Exception as e:
+        logger.error(f"Error in api_seasonal_event: {e}")
+        return jsonify({"success": False, "message": "Server-Fehler"}), 500
+
+
+# ===== AVATAR UPLOAD ROUTES =====
+
+@gamification_bp.route('/api/upload-avatar', methods=['POST'])
+@_csrf_exempt
+@require_login
+def api_upload_avatar():
+    """API: Avatar-Bild hochladen"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+
+        if not avatar_service:
+            return jsonify({"success": False, "message": "Avatar-Service nicht verfuegbar"}), 500
+
+        if 'avatar' not in request.files:
+            return jsonify({"success": False, "message": "Keine Datei im Request"}), 400
+
+        file = request.files['avatar']
+        result = avatar_service.save_uploaded_avatar(user, file)
+
+        if result['success']:
+            # Audit logging
+            try:
+                from app.services.audit_service import audit_service
+                audit_service.log('avatar_uploaded', user, {
+                    'avatar_url': result.get('avatar_url', ''),
+                    'original_filename': file.filename
+                })
+            except Exception as e:
+                logger.debug(f"Audit log for avatar upload skipped: {e}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in api_upload_avatar: {e}", exc_info=True)
+        return jsonify({"success": False, "message": "Server-Fehler beim Avatar-Upload"}), 500
+
+
+@gamification_bp.route('/api/delete-avatar', methods=['POST'])
+@_csrf_exempt
+@require_login
+def api_delete_avatar():
+    """API: Avatar loeschen (zurueck zu Emoji/Initialen)"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({"success": False, "message": "Nicht angemeldet"}), 401
+
+        if not avatar_service:
+            return jsonify({"success": False, "message": "Avatar-Service nicht verfuegbar"}), 500
+
+        result = avatar_service.delete_avatar(user)
+
+        if result['success']:
+            try:
+                from app.services.audit_service import audit_service
+                audit_service.log('avatar_deleted', user, {})
+            except Exception as e:
+                logger.debug(f"Audit log for avatar delete skipped: {e}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in api_delete_avatar: {e}", exc_info=True)
+        return jsonify({"success": False, "message": "Server-Fehler beim Avatar-Loeschen"}), 500
+
+
+@gamification_bp.route('/api/avatar-url/<username>')
+@require_login
+def api_avatar_url(username):
+    """API: Avatar-URL fuer einen User auflösen"""
+    try:
+        if not avatar_service:
+            return jsonify({"avatar_url": None, "username": username})
+
+        avatar_url = avatar_service.get_avatar_url(username)
+        return jsonify({
+            "avatar_url": avatar_url,
+            "username": username
+        })
+
+    except Exception as e:
+        logger.error(f"Error in api_avatar_url: {e}", exc_info=True)
+        return jsonify({"avatar_url": None, "username": username})
+
+
 # ===== DAILY MAINTENANCE =====
 
 def run_daily_maintenance():
     """Tägliche Wartungsroutinen für Gamification-Features"""
     try:
         logger.info("Running daily gamification maintenance...")
-        
-        # Generiere neue Daily Quests
+
+        # Generiere neue Daily Quests (Legacy global)
         daily_quest_system.generate_daily_quests()
-        
+
+        # Per-User Quest-Generierung fuer alle aktiven Telefonisten
+        try:
+            from app.config.base import Config
+            active_users = Config.get_active_telefonists()
+            for user in active_users:
+                try:
+                    daily_quest_system.generate_user_daily_quests(user)
+                except Exception as user_err:
+                    logger.warning(f"Quest generation failed for {user}: {user_err}")
+            logger.info(f"Per-user quests generated for {len(active_users)} users")
+        except Exception as e:
+            logger.warning(f"Per-user quest generation skipped: {e}")
+
         # Prüfe MVP-Badges
         achievement_system.auto_check_mvp_badges()
-        
-        # Analytics-Cache leeren (wird bei nächstem Zugriff neu generiert)
-        # analytics_system könnte hier Cache-Cleanup machen
-        
+
+        # Record daily rank snapshots
+        try:
+            from app.services.rank_tracking_service import rank_tracking_service
+            from app.services.data_persistence import data_persistence
+            scores = data_persistence.load_scores()
+            import pytz
+            from datetime import datetime as _dt
+            _tz = pytz.timezone("Europe/Berlin")
+            month = _dt.now(_tz).strftime("%Y-%m")
+            scores_list = sorted(
+                [(u, s.get(month, 0)) for u, s in scores.items()],
+                key=lambda x: x[1],
+                reverse=True
+            )
+            rank_tracking_service.record_daily_ranks(scores_list)
+            logger.info(f"Daily rank snapshot recorded for {len(scores_list)} users")
+        except Exception as e:
+            logger.warning(f"Rank snapshot skipped: {e}")
+
+        # Check seasonal events (start/end notifications)
+        try:
+            from app.services.seasonal_events import seasonal_events
+            from app.services.notification_service import notification_service
+            event = seasonal_events.get_active_event()
+            if event:
+                # Check if event just started (within first day)
+                from datetime import datetime as _dt
+                import pytz
+                _tz = pytz.timezone("Europe/Berlin")
+                now = _dt.now(_tz)
+                if now.month == event["start_month"] and now.day == event["start_day"]:
+                    notification_service.create_notification(
+                        roles=['all'],
+                        title=f'Event gestartet: {event["name"]}',
+                        message=f'{event["name"]} ist aktiv! {event["xp_multiplier"]}x XP und {event["coin_multiplier"]}x Coins!',
+                        notification_type='info',
+                        show_popup=True,
+                    )
+                    logger.info(f"Seasonal event start notification sent: {event['name']}")
+        except Exception as e:
+            logger.warning(f"Seasonal event check skipped: {e}")
+
+        # Cleanup expired boosters
+        try:
+            from app.services.gameplay_rewards import gameplay_rewards
+            gameplay_rewards.cleanup_expired_boosters()
+        except Exception as e:
+            logger.debug(f"Booster cleanup skipped: {e}")
+
         logger.info("Daily maintenance completed successfully")
-        
+
     except Exception as e:
         logger.error(f"Error in daily maintenance: {e}")

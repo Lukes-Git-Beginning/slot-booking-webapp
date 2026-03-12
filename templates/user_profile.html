@@ -1,6 +1,27 @@
 {% extends "hub/base.html" %}
 
-{% block title %}Profil - {{ profile_user }}{% endblock %}
+{% block title %}Profil - {{ profile.username }}{% endblock %}
+
+{% block extra_head %}
+<style nonce="{{ csp_nonce }}">
+.avatar-upload-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    cursor: pointer;
+}
+.avatar-container:hover .avatar-upload-overlay {
+    opacity: 1;
+}
+.cropper-modal { border-radius: 0 !important; }
+</style>
+{% endblock %}
 
 {% block content %}
 
@@ -14,40 +35,50 @@
     <div class="relative z-10">
         <div class="flex flex-col md:flex-row items-center gap-8">
             <!-- Avatar -->
-            <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-6xl border-4 border-white/20">
-                {{ profile_avatar or '👤' }}
+            <div class="relative avatar-container">
+                <div id="profile-avatar-display" class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-6xl border-4 border-white/20 overflow-hidden">
+                    {% if profile.get('cosmetics', {}).get('avatar_url') %}
+                        <img src="{{ profile.cosmetics.avatar_url }}" alt="{{ profile.username }}" class="w-full h-full object-cover">
+                    {% else %}
+                        {{ profile.get('cosmetics', {}).get('active', {}).get('avatar', '') or profile.username[0].upper() if profile.username else '?' }}
+                    {% endif %}
+                </div>
+                {% if profile.get('is_own_profile') %}
+                <div class="avatar-upload-overlay" id="avatar-upload-trigger" title="Avatar aendern">
+                    <i data-lucide="camera" class="w-8 h-8 text-white"></i>
+                </div>
+                <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" class="hidden">
+                {% endif %}
             </div>
 
             <!-- User Info -->
             <div class="flex-1 text-center md:text-left">
-                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">{{ profile_user }}</h1>
-                {% if user_title %}
-                <div class="text-xl text-primary mb-4">{{ user_title }}</div>
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">{{ profile.username }}</h1>
+                {% set basic = profile.get('basic_stats', {}) %}
+                {% set cosmetics = profile.get('cosmetics', {}) %}
+                {% set active_cosmetics = cosmetics.get('active', {}) %}
+                {% if active_cosmetics.get('title') %}
+                <div class="text-xl text-primary mb-4">{{ active_cosmetics.title|replace('_', ' ')|title }}</div>
                 {% endif %}
 
                 <div class="flex flex-wrap gap-3 justify-center md:justify-start">
-                    <div class="badge badge-lg badge-primary">Level {{ user_level }}</div>
-                    {% if prestige_level > 0 %}
-                    <div class="badge badge-lg badge-warning">Prestige {{ prestige_level }}</div>
-                    {% endif %}
-                    {% if is_admin %}
-                    <div class="badge badge-lg badge-error">Admin</div>
-                    {% endif %}
+                    <div class="badge badge-lg badge-primary">Level {{ basic.get('level', 1) }}</div>
+                    <div class="badge badge-lg badge-warning">Rang #{{ basic.get('current_rank', '?') }}</div>
                 </div>
             </div>
 
             <!-- Quick Stats -->
             <div class="grid grid-cols-3 gap-6 text-center">
                 <div>
-                    <div class="text-3xl font-bold text-primary">{{ total_badges }}</div>
+                    <div class="text-3xl font-bold text-primary">{{ profile.get('achievements', {}).get('total_badges', 0) }}</div>
                     <div class="text-sm text-white/60">Badges</div>
                 </div>
                 <div>
-                    <div class="text-3xl font-bold text-secondary">{{ total_xp }}</div>
+                    <div class="text-3xl font-bold text-secondary">{{ basic.get('xp', 0) }}</div>
                     <div class="text-sm text-white/60">XP</div>
                 </div>
                 <div>
-                    <div class="text-3xl font-bold text-accent">{{ total_points }}</div>
+                    <div class="text-3xl font-bold text-accent">{{ basic.get('total_points', 0) }}</div>
                     <div class="text-sm text-white/60">Punkte</div>
                 </div>
             </div>
@@ -55,34 +86,105 @@
     </div>
 </div>
 
+<!-- Avatar Upload Modal -->
+{% if profile.get('is_own_profile') %}
+<dialog id="avatar-upload-modal" class="modal">
+    <div class="modal-box glass max-w-lg">
+        <h3 class="font-bold text-xl text-white mb-4 flex items-center gap-2">
+            <i data-lucide="image" class="w-6 h-6 text-primary"></i>
+            Avatar aendern
+        </h3>
+
+        <!-- Tabs: Upload vs Shop -->
+        <div x-data="{ avatarTab: 'upload' }">
+            <div class="tabs tabs-boxed mb-4">
+                <a class="tab" :class="avatarTab === 'upload' ? 'tab-active' : ''" @click="avatarTab = 'upload'">
+                    <i data-lucide="upload" class="w-4 h-4 mr-2"></i>Eigenes Bild
+                </a>
+                <a class="tab" :class="avatarTab === 'shop' ? 'tab-active' : ''" @click="avatarTab = 'shop'">
+                    <i data-lucide="shopping-bag" class="w-4 h-4 mr-2"></i>Shop-Avatar
+                </a>
+            </div>
+
+            <!-- Upload Tab -->
+            <div x-show="avatarTab === 'upload'" x-transition>
+                <div id="avatar-preview-area" class="hidden mb-4">
+                    <div class="w-64 h-64 mx-auto rounded-2xl overflow-hidden bg-base-300">
+                        <img id="avatar-preview-img" src="" alt="Vorschau" class="w-full h-full object-contain">
+                    </div>
+                </div>
+
+                <div id="avatar-dropzone" class="border-2 border-dashed border-white/30 rounded-2xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer mb-4">
+                    <i data-lucide="upload-cloud" class="w-12 h-12 text-white/50 mx-auto mb-3"></i>
+                    <p class="text-white/70 mb-2">Bild hierher ziehen oder klicken</p>
+                    <p class="text-white/40 text-sm">PNG, JPG oder WebP, max. 2MB</p>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="avatar-upload-btn" class="btn btn-primary flex-1" disabled>
+                        <i data-lucide="check" class="w-4 h-4 mr-2"></i>
+                        Hochladen
+                    </button>
+                    <button id="avatar-delete-btn" class="btn btn-error btn-outline">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shop Tab -->
+            <div x-show="avatarTab === 'shop'" x-transition>
+                <p class="text-white/60 mb-4">Waehle einen Avatar aus dem Cosmetics Shop:</p>
+                <a href="{{ url_for('gamification.cosmetics_shop_view') }}" class="btn btn-accent w-full gap-2">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                    Zum Cosmetics Shop
+                </a>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Schliessen</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+{% endif %}
+
 <!-- Stats Overview -->
+{% set social = profile.get('social_stats', {}) %}
+{% set perf = profile.get('performance_metrics', {}) %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="100">
         <i data-lucide="calendar-check" class="w-10 h-10 text-primary mx-auto mb-3"></i>
-        <div class="text-3xl font-bold text-white mb-2">{{ bookings_completed }}</div>
+        <div class="text-3xl font-bold text-white mb-2">{{ social.get('total_bookings', 0) }}</div>
         <div class="text-white/60">Buchungen</div>
     </div>
 
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="200">
         <i data-lucide="flame" class="w-10 h-10 text-accent mx-auto mb-3"></i>
-        <div class="text-3xl font-bold text-white mb-2">{{ current_streak }}</div>
+        <div class="text-3xl font-bold text-white mb-2">{{ perf.get('streak_info', {}).get('current', 0) }}</div>
         <div class="text-white/60">Tage Streak</div>
     </div>
 
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="300">
         <i data-lucide="target" class="w-10 h-10 text-secondary mx-auto mb-3"></i>
-        <div class="text-3xl font-bold text-white mb-2">{{ quests_completed }}</div>
-        <div class="text-white/60">Quests</div>
+        <div class="text-3xl font-bold text-white mb-2">{{ basic.get('active_months', 0) }}</div>
+        <div class="text-white/60">Aktive Monate</div>
     </div>
 
     <div class="glass rounded-2xl p-6 text-center" data-aos="fade-up" data-aos-delay="400">
         <i data-lucide="trophy" class="w-10 h-10 text-warning mx-auto mb-3"></i>
-        <div class="text-3xl font-bold text-white mb-2">#{{ leaderboard_rank }}</div>
+        <div class="text-3xl font-bold text-white mb-2">#{{ basic.get('current_rank', '?') }}</div>
         <div class="text-white/60">Rang</div>
     </div>
 </div>
 
 <!-- Recent Badges -->
+{% set achievements = profile.get('achievements', {}) %}
+{% set recent_badges = achievements.get('recent_badges', []) %}
 {% if recent_badges %}
 <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="500">
     <div class="flex items-center justify-between mb-6">
@@ -101,12 +203,12 @@
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {% for badge in recent_badges[:6] %}
         <div class="glass rounded-xl p-4 text-center hover:scale-105 transition-transform">
-            <div class="text-4xl mb-2">{{ badge.icon }}</div>
+            <div class="text-4xl mb-2">{{ badge.icon or badge.emoji or '🏅' }}</div>
             <div class="text-sm font-semibold text-white truncate">{{ badge.name }}</div>
             <div class="badge badge-xs mt-2
-                {% if badge.rarity == 'mythisch' %}badge-error
-                {% elif badge.rarity == 'legendär' %}badge-warning
-                {% elif badge.rarity == 'episch' %}badge-info
+                {% if badge.rarity == 'mythisch' or badge.rarity == 'mythic' %}badge-error
+                {% elif badge.rarity == 'legendär' or badge.rarity == 'legendary' %}badge-warning
+                {% elif badge.rarity == 'episch' or badge.rarity == 'epic' %}badge-info
                 {% else %}badge-primary{% endif %}">
                 {{ badge.rarity|title }}
             </div>
@@ -117,26 +219,26 @@
 {% endif %}
 
 <!-- Activity Timeline -->
-{% if recent_activity %}
+{% set activity_timeline = profile.get('activity_timeline', []) %}
+{% if activity_timeline %}
 <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="600">
     <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
             <i data-lucide="activity" class="w-7 h-7 text-primary"></i>
         </div>
-        <h2 class="text-2xl font-bold text-white">Letzte Aktivitäten</h2>
+        <h2 class="text-2xl font-bold text-white">Letzte Aktivitaeten</h2>
     </div>
 
     <div class="space-y-3">
-        {% for activity in recent_activity %}
+        {% for day in activity_timeline[-10:] %}
         <div class="glass rounded-xl p-4 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl flex-shrink-0">
-                {{ activity.icon }}
+                📅
             </div>
             <div class="flex-1">
-                <h4 class="font-semibold text-white">{{ activity.title }}</h4>
-                <p class="text-sm text-white/60">{{ activity.description }}</p>
+                <h4 class="font-semibold text-white">{{ day.date }}</h4>
+                <p class="text-sm text-white/60">{{ day.bookings }} Buchungen, {{ day.points }} Punkte</p>
             </div>
-            <div class="text-sm text-white/50">{{ activity.time_ago }}</div>
         </div>
         {% endfor %}
     </div>
@@ -144,7 +246,8 @@
 {% endif %}
 
 <!-- Performance Stats -->
-{% if performance_stats %}
+{% set success_rates = perf.get('success_rates', {}) %}
+{% if success_rates %}
 <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="700">
     <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
@@ -154,35 +257,32 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% set sr = success_rates.get('rate', 0) %}
         <div class="bg-white/5 rounded-xl p-4">
             <div class="text-sm text-white/60 mb-2">Erfolgsrate</div>
-            <div class="text-3xl font-bold text-secondary mb-3">{{ performance_stats.success_rate }}%</div>
+            <div class="text-3xl font-bold text-secondary mb-3">{{ sr }}%</div>
             <div class="w-full bg-white/10 rounded-full h-2">
-                <div class="bg-secondary h-2 rounded-full" style="width: {{ performance_stats.success_rate }}%"></div>
+                <div class="bg-secondary h-2 rounded-full" style="width: {{ sr }}%"></div>
             </div>
         </div>
 
         <div class="bg-white/5 rounded-xl p-4">
-            <div class="text-sm text-white/60 mb-2">Konsistenz</div>
-            <div class="text-3xl font-bold text-primary mb-3">{{ performance_stats.consistency }}%</div>
-            <div class="w-full bg-white/10 rounded-full h-2">
-                <div class="bg-primary h-2 rounded-full" style="width: {{ performance_stats.consistency }}%"></div>
-            </div>
+            <div class="text-sm text-white/60 mb-2">Aktuelle Punkte</div>
+            <div class="text-3xl font-bold text-primary mb-3">{{ basic.get('current_points', 0) }}</div>
         </div>
 
         <div class="bg-white/5 rounded-xl p-4">
-            <div class="text-sm text-white/60 mb-2">Engagement</div>
-            <div class="text-3xl font-bold text-accent mb-3">{{ performance_stats.engagement }}%</div>
-            <div class="w-full bg-white/10 rounded-full h-2">
-                <div class="bg-accent h-2 rounded-full" style="width: {{ performance_stats.engagement }}%"></div>
-            </div>
+            <div class="text-sm text-white/60 mb-2">Level-Fortschritt</div>
+            {% set lp = profile.get('level_progression', {}) %}
+            <div class="text-3xl font-bold text-accent mb-3">{{ basic.get('level_title', 'Anfaenger') }}</div>
         </div>
     </div>
 </div>
 {% endif %}
 
 <!-- Customization -->
-{% if owned_cosmetics %}
+{% set owned = cosmetics.get('owned', {}) %}
+{% if owned.get('titles') or owned.get('themes') or owned.get('avatars') or owned.get('effects') %}
 <div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="800">
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
@@ -199,19 +299,19 @@
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
         <div class="text-center">
-            <div class="text-4xl font-bold text-primary mb-2">{{ owned_cosmetics.titles }}</div>
+            <div class="text-4xl font-bold text-primary mb-2">{{ owned.get('titles', [])|length }}</div>
             <div class="text-sm text-white/60">Titel</div>
         </div>
         <div class="text-center">
-            <div class="text-4xl font-bold text-secondary mb-2">{{ owned_cosmetics.themes }}</div>
+            <div class="text-4xl font-bold text-secondary mb-2">{{ owned.get('themes', [])|length }}</div>
             <div class="text-sm text-white/60">Themes</div>
         </div>
         <div class="text-center">
-            <div class="text-4xl font-bold text-accent mb-2">{{ owned_cosmetics.avatars }}</div>
+            <div class="text-4xl font-bold text-accent mb-2">{{ owned.get('avatars', [])|length }}</div>
             <div class="text-sm text-white/60">Avatare</div>
         </div>
         <div class="text-center">
-            <div class="text-4xl font-bold text-warning mb-2">{{ owned_cosmetics.effects }}</div>
+            <div class="text-4xl font-bold text-warning mb-2">{{ owned.get('effects', [])|length }}</div>
             <div class="text-sm text-white/60">Effekte</div>
         </div>
     </div>
@@ -237,10 +337,215 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Cropper.js CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
 <script nonce="{{ csp_nonce }}">
-    // Refresh Lucide icons
-    setTimeout(() => {
-        lucide.createIcons();
-    }, 100);
+// ============================================================================
+// AVATAR UPLOAD SYSTEM
+// ============================================================================
+(function() {
+    const isOwnProfile = {{ 'true' if profile.get('is_own_profile') else 'false' }};
+    if (!isOwnProfile) return;
+
+    const fileInput = document.getElementById('avatar-file-input');
+    const uploadTrigger = document.getElementById('avatar-upload-trigger');
+    const uploadModal = document.getElementById('avatar-upload-modal');
+    const previewArea = document.getElementById('avatar-preview-area');
+    const previewImg = document.getElementById('avatar-preview-img');
+    const dropzone = document.getElementById('avatar-dropzone');
+    const uploadBtn = document.getElementById('avatar-upload-btn');
+    const deleteBtn = document.getElementById('avatar-delete-btn');
+
+    if (!fileInput || !uploadModal) return;
+
+    let selectedFile = null;
+    let cropper = null;
+
+    // Open modal on avatar click
+    uploadTrigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        uploadModal.showModal();
+        setTimeout(() => lucide.createIcons(), 100);
+    });
+
+    // Dropzone click -> file input
+    dropzone.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // Drag & drop
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('border-primary');
+    });
+    dropzone.addEventListener('dragleave', function() {
+        dropzone.classList.remove('border-primary');
+    });
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('border-primary');
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+            handleFileSelect(fileInput.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        // Validate file type
+        const validTypes = ['image/png', 'image/jpeg', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            alert('Ungültiges Dateiformat. Bitte PNG, JPG oder WebP verwenden.');
+            return;
+        }
+
+        // Validate file size (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Datei zu gross. Maximum: 2MB');
+            return;
+        }
+
+        selectedFile = file;
+
+        // Show preview with Cropper.js
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewArea.classList.remove('hidden');
+            dropzone.classList.add('hidden');
+
+            // Destroy previous cropper if exists
+            if (cropper) {
+                cropper.destroy();
+            }
+
+            // Initialize Cropper.js
+            cropper = new Cropper(previewImg, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 1,
+                cropBoxResizable: true,
+                cropBoxMovable: true,
+                guides: false,
+                center: true,
+                background: false,
+            });
+
+            uploadBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Upload button
+    uploadBtn.addEventListener('click', async function() {
+        if (!selectedFile && !cropper) return;
+
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Wird hochgeladen...';
+
+        try {
+            let fileToUpload;
+
+            if (cropper) {
+                // Get cropped canvas and convert to blob
+                const canvas = cropper.getCroppedCanvas({
+                    width: 256,
+                    height: 256,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+
+                fileToUpload = await new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/webp', 0.85);
+                });
+            } else {
+                fileToUpload = selectedFile;
+            }
+
+            const formData = new FormData();
+            formData.append('avatar', fileToUpload, 'avatar.webp');
+
+            const response = await fetch('/slots/api/upload-avatar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update avatar display
+                const avatarDisplay = document.getElementById('profile-avatar-display');
+                if (avatarDisplay && result.avatar_url) {
+                    avatarDisplay.innerHTML = `<img src="${result.avatar_url}?t=${Date.now()}" alt="Avatar" class="w-full h-full object-cover">`;
+                }
+
+                uploadModal.close();
+                resetUploadUI();
+            } else {
+                alert('Fehler: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Fehler beim Hochladen. Bitte versuche es erneut.');
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4 mr-2"></i> Hochladen';
+            lucide.createIcons();
+        }
+    });
+
+    // Delete button
+    deleteBtn.addEventListener('click', async function() {
+        if (!confirm('Avatar wirklich entfernen?')) return;
+
+        deleteBtn.disabled = true;
+
+        try {
+            const response = await fetch('/slots/api/delete-avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Fehler: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Fehler beim Entfernen.');
+        } finally {
+            deleteBtn.disabled = false;
+        }
+    });
+
+    function resetUploadUI() {
+        selectedFile = null;
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        previewArea.classList.add('hidden');
+        dropzone.classList.remove('hidden');
+        uploadBtn.disabled = true;
+        fileInput.value = '';
+    }
+})();
+
+// Refresh Lucide icons
+setTimeout(() => {
+    lucide.createIcons();
+}, 100);
 </script>
 {% endblock %}

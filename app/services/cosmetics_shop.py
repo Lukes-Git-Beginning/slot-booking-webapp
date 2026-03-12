@@ -408,6 +408,22 @@ AVATAR_SHOP = {
     }
 }
 
+# Avatar-Rahmen Shop
+FRAME_SHOP = {
+    "frame_gold": {"name": "Goldrahmen", "description": "Eleganter goldener Rahmen", "price": 200, "rarity": "rare", "css_class": "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50"},
+    "frame_diamond": {"name": "Diamant", "description": "Funkelnder Diamant-Rahmen", "price": 500, "rarity": "epic", "css_class": "ring-4 ring-cyan-300 shadow-lg shadow-cyan-300/50"},
+    "frame_fire": {"name": "Feuer", "description": "Brennender Rahmen", "price": 400, "rarity": "epic", "css_class": "ring-4 ring-orange-500 shadow-lg shadow-orange-500/50 animate-pulse"},
+    "frame_neon": {"name": "Neon", "description": "Leuchtender Neon-Rahmen", "price": 300, "rarity": "rare", "css_class": "ring-4 ring-green-400 shadow-lg shadow-green-400/50"},
+    "frame_rainbow": {"name": "Regenbogen", "description": "Schillernder Regenbogen-Rahmen", "price": 750, "rarity": "legendary", "css_class": "ring-4 ring-purple-400 shadow-lg shadow-purple-400/30"},
+    "frame_frost": {"name": "Frost", "description": "Eisiger Frost-Rahmen", "price": 350, "rarity": "rare", "css_class": "ring-4 ring-blue-300 shadow-lg shadow-blue-300/50"},
+    "frame_shadow": {"name": "Schatten", "description": "Mysterioeser Schatten-Rahmen", "price": 450, "rarity": "epic", "css_class": "ring-4 ring-gray-600 shadow-lg shadow-gray-900/70"},
+    "frame_cherry": {"name": "Kirschbluete", "description": "Fruehlings-Rahmen", "price": 300, "rarity": "rare", "css_class": "ring-4 ring-pink-300 shadow-lg shadow-pink-300/50", "seasonal": "spring"},
+    "frame_holly": {"name": "Stechpalme", "description": "Winter-Rahmen", "price": 300, "rarity": "rare", "css_class": "ring-4 ring-red-600 shadow-lg shadow-green-600/50", "seasonal": "winter"},
+    "frame_starter": {"name": "Basis-Rahmen", "description": "Einfacher Rahmen fuer Einsteiger", "price": 50, "rarity": "common", "css_class": "ring-2 ring-base-content/30"},
+    # Milestone-exclusive frames (NOT purchasable)
+    "frame_centurion": {"name": "Centurion-Rahmen", "description": "Exklusiv: 100 Buchungen", "price": 0, "rarity": "epic", "css_class": "ring-4 ring-amber-500 shadow-lg shadow-amber-500/50", "milestone_exclusive": True},
+}
+
 # Animations/Effekte Shop
 SPECIAL_EFFECTS = {
     "sparkle_trail": {
@@ -444,7 +460,44 @@ SPECIAL_EFFECTS = {
         "description": "Screen Shake bei wichtigen Events",
         "effect": "screen_shake",
         "rarity": "uncommon"
-    }
+    },
+    "rainbow_glow": {
+        "name": "🌈 Regenbogen-Leuchten",
+        "price": 500,
+        "description": "Dein Avatar leuchtet in Regenbogenfarben",
+        "effect": "rainbow_glow",
+        "rarity": "rare"
+    },
+    "particle_trail": {
+        "name": "💫 Partikel-Spur",
+        "price": 600,
+        "description": "Leuchtende Partikel folgen deiner Maus",
+        "effect": "particle_trail",
+        "rarity": "epic"
+    },
+    "seasonal_snow": {
+        "name": "❄️ Schneefall",
+        "price": 350,
+        "description": "Sanfter Schneefall auf deinem Profil",
+        "effect": "seasonal_snow",
+        "rarity": "rare"
+    },
+    "cherry_blossom": {
+        "name": "🌸 Kirschblueten",
+        "price": 350,
+        "description": "Fallende Kirschblueten-Blätter",
+        "effect": "cherry_blossom",
+        "rarity": "rare"
+    },
+    # Milestone-exclusive effect (NOT purchasable)
+    "legendary_aura": {
+        "name": "🔮 Legendaere Aura",
+        "price": 0,
+        "description": "Exklusiv: 500 Buchungen",
+        "effect": "legendary_aura",
+        "rarity": "legendary",
+        "milestone_exclusive": True
+    },
 }
 
 class CosmeticsShop:
@@ -471,6 +524,7 @@ class CosmeticsShop:
             "theme": COLOR_THEMES,
             "avatar": AVATAR_SHOP,
             "effect": SPECIAL_EFFECTS,
+            "frame": FRAME_SHOP,
         }
         return shops.get(item_type, {})
 
@@ -481,6 +535,7 @@ class CosmeticsShop:
             "theme": "visual",
             "avatar": "visual",
             "effect": "animation",
+            "frame": "visual",
         }
         return categories.get(item_type, "visual")
 
@@ -603,8 +658,13 @@ class CosmeticsShop:
             "themes": [],
             "avatars": [],
             "effects": [],
+            "frames": [],
             "purchase_history": []
         })
+
+        # Ensure frames key exists for older data
+        if "frames" not in user_purchases:
+            user_purchases["frames"] = []
 
         # Admin-Users bekommen automatisch alle Items freigeschaltet
         admin_users = ["Luke", "admin", "Jose", "Simon", "Alex", "David"]
@@ -614,6 +674,7 @@ class CosmeticsShop:
                 "themes": list(COLOR_THEMES.keys()),
                 "avatars": list(AVATAR_SHOP.keys()),
                 "effects": list(SPECIAL_EFFECTS.keys()),
+                "frames": list(FRAME_SHOP.keys()),
                 "purchase_history": user_purchases.get("purchase_history", [])
             }
 
@@ -621,7 +682,8 @@ class CosmeticsShop:
             "title": None,
             "theme": "default",
             "avatar": "🧑‍💼",
-            "effects": []
+            "effects": [],
+            "frame": None
         })
 
         return {
@@ -630,7 +692,8 @@ class CosmeticsShop:
             "available_titles": self.get_available_items(user, "titles"),
             "available_themes": self.get_available_themes(user),
             "available_avatars": self.get_available_avatars(user),
-            "available_effects": self.get_available_effects(user)
+            "available_effects": self.get_available_effects(user),
+            "available_frames": self.get_available_frames(user)
         }
     
     def get_available_items(self, user, item_type):
@@ -686,8 +749,18 @@ class CosmeticsShop:
         elif item_type == "effect" and item_id in SPECIAL_EFFECTS:
             item_data = SPECIAL_EFFECTS[item_id]
             price = item_data["price"]
+        elif item_type == "frame" and item_id in FRAME_SHOP:
+            item_data = FRAME_SHOP[item_id]
+            if item_data.get("milestone_exclusive"):
+                return {"success": False, "message": "Dieses Item ist exklusiv und nicht kaufbar"}
+            price = item_data["price"]
         else:
             return {"success": False, "message": "Item nicht gefunden"}
+
+        # Block milestone-exclusive effects
+        if item_type == "effect" and item_id in SPECIAL_EFFECTS:
+            if SPECIAL_EFFECTS[item_id].get("milestone_exclusive"):
+                return {"success": False, "message": "Dieses Item ist exklusiv und nicht kaufbar"}
         
         # Prüfe Coins
         if user_coins < price:
@@ -696,12 +769,16 @@ class CosmeticsShop:
         # Prüfe ob bereits gekauft
         purchases = self.load_purchases()
         if user not in purchases:
-            purchases[user] = {"titles": [], "themes": [], "avatars": [], "effects": [], "purchase_history": []}
-        
+            purchases[user] = {"titles": [], "themes": [], "avatars": [], "effects": [], "frames": [], "purchase_history": []}
+
         item_list_key = item_type + "s" if item_type != "effect" else "effects"
+        # Ensure the list key exists (backwards compat for older data)
+        if item_list_key not in purchases[user]:
+            purchases[user][item_list_key] = []
+
         if item_id in purchases[user].get(item_list_key, []):
             return {"success": False, "message": "Item bereits gekauft"}
-        
+
         # Kaufe Item
         purchases[user][item_list_key].append(item_id)
         purchases[user]["purchase_history"].append({
@@ -727,24 +804,29 @@ class CosmeticsShop:
         # Prüfe ob User das Item besitzt
         purchases = self.load_purchases()
         user_purchases = purchases.get(user, {})
-        
+
         item_list_key = item_type + "s" if item_type != "effect" else "effects"
         if item_id not in user_purchases.get(item_list_key, []):
             return {"success": False, "message": "Item nicht im Besitz"}
-        
+
         # Aktiviere Item
         active = self.load_active_cosmetics()
         if user not in active:
-            active[user] = {"title": None, "theme": "default", "avatar": "🧑‍💼", "effects": []}
-        
+            active[user] = {"title": None, "theme": "default", "avatar": "🧑‍💼", "effects": [], "frame": None}
+        # Ensure frame key exists for older data
+        if "frame" not in active[user]:
+            active[user]["frame"] = None
+
         if item_type == "effect":
             # Effekte können mehrere aktiv sein
-            if item_id not in active[user]["effects"]:
+            if item_id not in active[user].get("effects", []):
+                if "effects" not in active[user]:
+                    active[user]["effects"] = []
                 active[user]["effects"].append(item_id)
         else:
             # Andere Items ersetzen das aktuelle
             active[user][item_type] = item_id
-        
+
         self.save_active_cosmetics(active)
         self._pg_sync_equip(user, item_type, item_id)
 
@@ -756,8 +838,16 @@ class CosmeticsShop:
             item_data = COLOR_THEMES.get(item_id, {})
         elif item_type == "avatar":
             item_data = AVATAR_SHOP.get(item_id, {})
+            # Sync avatar selection to avatar_service
+            try:
+                from app.services.avatar_service import avatar_service
+                avatar_service.save_shop_avatar(user, item_id)
+            except Exception as e:
+                logger.debug(f"Avatar service sync skipped: {e}")
         elif item_type == "effect":
             item_data = SPECIAL_EFFECTS.get(item_id, {})
+        elif item_type == "frame":
+            item_data = FRAME_SHOP.get(item_id, {})
 
         return {
             "success": True,
@@ -780,7 +870,7 @@ class CosmeticsShop:
             active[user]["effects"] = []
         else:
             # Item auf Standard zurücksetzen
-            defaults = {"title": None, "theme": "default", "avatar": "🧑‍💼"}
+            defaults = {"title": None, "theme": "default", "avatar": "🧑‍💼", "frame": None}
             active[user][item_type] = defaults.get(item_type)
         
         self.save_active_cosmetics(active)
@@ -788,58 +878,141 @@ class CosmeticsShop:
 
         return {"success": True, "message": f"{item_type.title()} entfernt"}
     
+    # ------------------------------------------------------------------
+    # Frame-specific methods
+    # ------------------------------------------------------------------
+
+    def get_available_frames(self, user):
+        """Return frames available for purchase (excl. owned and milestone-exclusive)."""
+        purchases = self.load_purchases()
+        user_purchases = purchases.get(user, {})
+        owned_frames = user_purchases.get("frames", [])
+
+        available = {}
+        for frame_id, frame in FRAME_SHOP.items():
+            if frame_id in owned_frames:
+                continue
+            if frame.get("milestone_exclusive"):
+                continue
+            # Seasonal filter
+            if frame.get("seasonal"):
+                try:
+                    from app.services.seasonal_events import seasonal_events
+                    current_season = seasonal_events.get_current_season()
+                    if frame["seasonal"] != current_season:
+                        continue
+                except Exception:
+                    continue
+            available[frame_id] = frame
+        return available
+
+    def equip_frame(self, username, frame_id):
+        """Equip a frame for a user."""
+        return self.equip_item(username, "frame", frame_id)
+
+    def get_user_frame(self, username):
+        """Return the CSS class for the user's active frame, or empty string."""
+        active = self.load_active_cosmetics()
+        user_active = active.get(username, {})
+        frame_id = user_active.get("frame")
+        if frame_id and frame_id in FRAME_SHOP:
+            return FRAME_SHOP[frame_id]["css_class"]
+        return ""
+
+    def grant_milestone_cosmetic(self, username, item_type, item_id):
+        """Grant a milestone-exclusive cosmetic to a user (no coin cost)."""
+        shop = self._get_item_shop(item_type)
+        if item_id not in shop:
+            return {"success": False, "message": "Item nicht gefunden"}
+
+        purchases = self.load_purchases()
+        if username not in purchases:
+            purchases[username] = {"titles": [], "themes": [], "avatars": [], "effects": [], "frames": [], "purchase_history": []}
+
+        list_key = item_type + "s" if item_type not in ("effect", "frame") else (item_type + "s")
+        if list_key not in purchases[username]:
+            purchases[username][list_key] = []
+
+        if item_id in purchases[username].get(list_key, []):
+            return {"success": False, "message": "Item bereits im Besitz"}
+
+        purchases[username][list_key].append(item_id)
+        purchases[username]["purchase_history"].append({
+            "item_type": item_type,
+            "item_id": item_id,
+            "item_name": shop[item_id].get("name", item_id),
+            "price": 0,
+            "source": "milestone",
+            "purchased_at": datetime.now(TZ).isoformat(),
+        })
+        self.save_purchases(purchases)
+        self._pg_sync_purchase(username, item_type, item_id, 0)
+
+        logger.info(f"Milestone cosmetic granted: {username} -> {item_id}")
+        return {"success": True, "message": f"Milestone-Belohnung '{shop[item_id]['name']}' freigeschaltet!"}
+
     def unlock_all_for_admin(self, user):
         """Schalte alle Kosmetik-Items für Admin frei (ohne Coins-Kosten)"""
         purchases = self.load_purchases()
-        
+
         # Initialisiere User falls nicht vorhanden
         if user not in purchases:
-            purchases[user] = {"titles": [], "themes": [], "avatars": [], "effects": [], "purchase_history": []}
-        
+            purchases[user] = {"titles": [], "themes": [], "avatars": [], "effects": [], "frames": [], "purchase_history": []}
+
         # Sammle alle verfügbaren Items
         all_titles = list(TITLE_SHOP.keys())
         all_themes = list(COLOR_THEMES.keys())
         all_avatars = list(AVATAR_SHOP.keys())
         all_effects = list(SPECIAL_EFFECTS.keys())
-        
+        all_frames = list(FRAME_SHOP.keys())
+
+        # Ensure frames list exists
+        if "frames" not in purchases[user]:
+            purchases[user]["frames"] = []
+
         # Füge alle Items hinzu (ohne Duplikate)
         for title_id in all_titles:
             if title_id not in purchases[user]["titles"]:
                 purchases[user]["titles"].append(title_id)
-                
+
         for theme_id in all_themes:
             if theme_id not in purchases[user]["themes"]:
                 purchases[user]["themes"].append(theme_id)
-                
+
         for avatar_id in all_avatars:
             if avatar_id not in purchases[user]["avatars"]:
                 purchases[user]["avatars"].append(avatar_id)
-                
+
         for effect_id in all_effects:
             if effect_id not in purchases[user]["effects"]:
                 purchases[user]["effects"].append(effect_id)
-        
+
+        for frame_id in all_frames:
+            if frame_id not in purchases[user]["frames"]:
+                purchases[user]["frames"].append(frame_id)
+
         # Füge Admin-Unlock-Eintrag zur Kaufhistorie hinzu
         purchases[user]["purchase_history"].append({
             "item_type": "admin_unlock",
             "item_id": "all_cosmetics",
-            "item_name": "🔓 Admin Unlock All",
+            "item_name": "Admin Unlock All",
             "price": 0,
             "purchased_at": datetime.now(TZ).isoformat()
         })
-        
+
         self.save_purchases(purchases)
-        
-        total_unlocked = len(all_titles) + len(all_themes) + len(all_avatars) + len(all_effects)
-        
+
+        total_unlocked = len(all_titles) + len(all_themes) + len(all_avatars) + len(all_effects) + len(all_frames)
+
         return {
             "success": True,
             "message": f"Alle {total_unlocked} Kosmetik-Items für Admin freigeschaltet!",
             "unlocked": {
                 "titles": len(all_titles),
-                "themes": len(all_themes), 
+                "themes": len(all_themes),
                 "avatars": len(all_avatars),
-                "effects": len(all_effects)
+                "effects": len(all_effects),
+                "frames": len(all_frames)
             }
         }
 

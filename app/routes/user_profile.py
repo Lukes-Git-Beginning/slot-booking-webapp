@@ -124,6 +124,14 @@ def get_user_cosmetics(username):
         elif not result['owned']:
             result['owned'] = {'titles': [], 'themes': [], 'avatars': [], 'effects': []}
 
+        # Resolve avatar URL via avatar_service
+        try:
+            from app.services.avatar_service import avatar_service
+            result['avatar_url'] = avatar_service.get_avatar_url(username)
+        except Exception as e:
+            logger.debug(f"Avatar URL resolution skipped for {username}: {e}")
+            result['avatar_url'] = None
+
         return result
     except Exception as e:
         logger.error(f"Cosmetics data error for {username}: {e}", exc_info=True)
@@ -131,7 +139,8 @@ def get_user_cosmetics(username):
         traceback.print_exc()
         return {
             'owned': {'titles': [], 'themes': [], 'avatars': [], 'effects': []},
-            'active': {'title': None, 'theme': 'default', 'avatar': '🧑‍💼', 'effects': []}
+            'active': {'title': None, 'theme': 'default', 'avatar': '🧑‍💼', 'effects': []},
+            'avatar_url': None
         }
 
 

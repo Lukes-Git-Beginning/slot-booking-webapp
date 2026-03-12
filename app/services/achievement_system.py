@@ -236,7 +236,39 @@ ACHIEVEMENT_DEFINITIONS = {
         "threshold": 5,
         "emoji": "⚔️",
         "rarity": "rare"
-    }
+    },
+
+    # Meilenstein-Badges (booking milestones with exclusive cosmetics)
+    "milestone_100": {
+        "name": "Centurion 🏛️",
+        "description": "100 Buchungen erreicht",
+        "category": "milestone",
+        "threshold": 100,
+        "emoji": "🏛️",
+        "rarity": "epic",
+        "cosmetic_rewards": [{"type": "frame", "id": "frame_centurion"}],
+    },
+    "milestone_500": {
+        "name": "Legende 🌟",
+        "description": "500 Buchungen erreicht",
+        "category": "milestone",
+        "threshold": 500,
+        "emoji": "🌟",
+        "rarity": "legendary",
+        "cosmetic_rewards": [{"type": "effect", "id": "legendary_aura"}],
+    },
+    "milestone_1000": {
+        "name": "Mythisch 💎",
+        "description": "1000 Buchungen erreicht",
+        "category": "milestone",
+        "threshold": 1000,
+        "emoji": "💎",
+        "rarity": "mythic",
+        "cosmetic_rewards": [
+            {"type": "frame", "id": "frame_centurion"},
+            {"type": "effect", "id": "legendary_aura"},
+        ],
+    },
 }
 
 # Raritäts-Farben für Badges
@@ -348,10 +380,34 @@ class AchievementSystem:
         """
         Prüft auf neue Achievements OHNE Punkte zu vergeben
         (Punkte werden bereits vom aufrufenden System vergeben)
+        XP-Booster und saisonale Multiplikatoren werden auf die Punkte angewendet.
         """
         try:
+            # Apply XP booster multiplier
+            try:
+                from app.services.gameplay_rewards import gameplay_rewards
+                boosted, booster_mult = gameplay_rewards.is_xp_boosted(user)
+                if boosted and booster_mult > 1.0:
+                    base_points = points
+                    points = int(points * booster_mult)
+                    logger.info(f"XP boosted: {base_points} * {booster_mult} = {points} for {user}")
+            except Exception as e:
+                logger.debug(f"XP booster check skipped: {e}")
+
+            # Apply seasonal event multiplier
+            try:
+                from app.services.seasonal_events import seasonal_events
+                event_mults = seasonal_events.get_event_multipliers()
+                seasonal_xp_mult = event_mults.get("xp", 1.0)
+                if seasonal_xp_mult > 1.0:
+                    base_points = points
+                    points = int(points * seasonal_xp_mult)
+                    logger.info(f"Seasonal XP: {base_points} * {seasonal_xp_mult} = {points} for {user} ({event_mults.get('event_name', '')})")
+            except Exception as e:
+                logger.debug(f"Seasonal event check skipped: {e}")
+
             from app.core.extensions import data_persistence
-            
+
             # Lade aktuelle Daten (Punkte sind bereits gespeichert)
             scores = data_persistence.load_scores()
             daily_stats = data_persistence.load_daily_user_stats()
@@ -487,7 +543,37 @@ class AchievementSystem:
                 new_badge = self.award_badge(user, "early_bird", definition, badges_data)
                 if new_badge:
                     new_badges.append(new_badge)
+
+        # Milestone Badges (based on total bookings)
+        total_bookings = sum(stats.get("bookings", 0) for stats in user_stats.values())
+        for badge_id, definition in ACHIEVEMENT_DEFINITIONS.items():
+            if definition.get("category") != "milestone":
+                continue
+            if badge_id in user_badges:
+                continue
+            if total_bookings >= definition.get("threshold", 0):
+                new_badge = self.award_badge(user, badge_id, definition, badges_data)
+                if new_badge:
+                    new_badges.append(new_badge)
+                    # Grant exclusive cosmetic rewards
+                    self._grant_milestone_cosmetics(user, definition)
     
+    def _grant_milestone_cosmetics(self, user, definition):
+        """Grant milestone-exclusive cosmetic rewards."""
+        cosmetic_rewards = definition.get("cosmetic_rewards", [])
+        if not cosmetic_rewards:
+            return
+        try:
+            from app.services.cosmetics_shop import cosmetics_shop
+            for reward in cosmetic_rewards:
+                result = cosmetics_shop.grant_milestone_cosmetic(
+                    user, reward["type"], reward["id"]
+                )
+                if result.get("success"):
+                    logger.info(f"Milestone cosmetic granted to {user}: {reward['id']}")
+        except Exception as e:
+            logger.error(f"Failed to grant milestone cosmetics for {user}: {e}")
+
     def award_badge(self, user, badge_id, definition, badges_data):
         """Vergebe ein Badge an einen User"""
         if user not in badges_data:
@@ -514,9 +600,32 @@ class AchievementSystem:
         badges_data[user]["badges"].append(badge)
         badges_data[user]["earned_dates"][badge_id] = badge["earned_date"]
         badges_data[user]["total_badges"] += 1
-        
+
         logger.info(f"Badge verliehen: {user} erhaelt '{definition['name']}'")
-        
+
+        # Send notification for new badge
+        try:
+            from app.services.notification_service import notification_service
+            import uuid as _uuid
+            all_notifs = notification_service._load_all_notifications()
+            if user not in all_notifs:
+                all_notifs[user] = []
+            all_notifs[user].append({
+                'id': str(_uuid.uuid4())[:8],
+                'type': 'success',
+                'title': 'Neues Badge erhalten!',
+                'message': f"{definition['emoji']} {definition['name']} freigeschaltet!",
+                'timestamp': datetime.now(TZ).isoformat(),
+                'read': False,
+                'dismissed': False,
+                'show_popup': True,
+                'roles': [],
+                'actions': [{'text': 'Ansehen', 'url': '/slots/profile'}],
+            })
+            notification_service._save_all_notifications(all_notifs)
+        except Exception as notif_err:
+            logger.debug(f"Badge notification skipped: {notif_err}")
+
         return badge
     
     def calculate_week_points(self, user_stats):

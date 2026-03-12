@@ -123,6 +123,91 @@ def scoreboard():
             logger.error(f"Cosmetics data error for {username}: {e}", exc_info=True)
             user_cosmetics[username] = {"title": None, "theme": "default", "avatar": "🧑‍💼", "effects": []}
 
+    # Resolve avatar URLs for all ranked users
+    avatar_urls = {}
+    try:
+        from app.services.avatar_service import avatar_service
+        avatar_urls = avatar_service.get_all_avatar_urls([u for u, _ in ranking])
+    except Exception as e:
+        logger.debug(f"Avatar URL resolution skipped: {e}")
+
+    # --- Phase 3: Rank changes, streaks, hover data, quest stats ---
+
+    # Rank tracking: record current snapshot + compute deltas
+    rank_changes = {}
+    try:
+        from app.services.rank_tracking_service import rank_tracking_service
+        rank_tracking_service.record_daily_ranks(ranking)
+        rank_changes = rank_tracking_service.get_rank_changes(ranking)
+    except Exception as e:
+        logger.debug(f"Rank tracking skipped: {e}")
+
+    # User streaks (from daily reward system)
+    user_streaks = {}
+    try:
+        from app.services.daily_reward_system import daily_reward_system
+        for username, _ in ranking:
+            try:
+                reward_check = daily_reward_system.check_daily_reward(username)
+                user_streaks[username] = reward_check.get('streak', 0)
+            except Exception:
+                user_streaks[username] = 0
+    except Exception as e:
+        logger.debug(f"Streak loading skipped: {e}")
+
+    # Top three for podium rendering
+    top_three = ranking[:3] if len(ranking) >= 3 else ranking
+
+    # Hover-card data for each user
+    hover_data = {}
+    try:
+        from app.services.achievement_system import achievement_system
+        for username, pts in ranking:
+            badge_info = achievement_system.get_user_badges(username)
+            badge_count = len(badge_info.get('badges', []))
+
+            # Total bookings: sum of all monthly scores
+            user_all_scores = scores.get(username, {})
+            bookings_count = sum(v for k, v in user_all_scores.items() if isinstance(v, (int, float)))
+
+            lvl_data = user_levels.get(username, {})
+
+            hover_data[username] = {
+                'bookings_count': bookings_count,
+                'current_streak': user_streaks.get(username, 0),
+                'badge_count': badge_count,
+                'level': lvl_data.get('level', 1),
+                'level_title': lvl_data.get('level_title', 'Anfaenger'),
+            }
+    except Exception as e:
+        logger.debug(f"Hover data loading skipped: {e}")
+
+    # Quest stats for current user
+    quest_stats = {'completed': 0, 'total': 0}
+    try:
+        from app.services.daily_quests import daily_quest_system
+        if user:
+            user_quests = daily_quest_system.get_user_daily_quests(user)
+            quest_stats = {
+                'completed': user_quests.get('total_completed', 0),
+                'total': len(user_quests.get('quests', []))
+            }
+    except Exception as e:
+        logger.debug(f"Quest stats loading skipped: {e}")
+
+    # User level data for current user
+    current_user_level = user_levels.get(user, {
+        'level': 1, 'xp': 0, 'level_xp': 0,
+        'next_level_xp': 100, 'progress_to_next': 0, 'level_title': 'Anfaenger'
+    })
+
+    # Current user rank position
+    user_rank = 0
+    for idx, (uname, _) in enumerate(ranking, start=1):
+        if uname == user:
+            user_rank = idx
+            break
+
     return render_template("scoreboard.html",
                          ranking=ranking,
                          user_score=user_score,
@@ -131,7 +216,15 @@ def scoreboard():
                          champion=champion,
                          badge_leaderboard=badge_leaderboard,
                          user_levels=user_levels,
-                         user_cosmetics=user_cosmetics)
+                         user_cosmetics=user_cosmetics,
+                         avatar_urls=avatar_urls,
+                         rank_changes=rank_changes,
+                         user_streaks=user_streaks,
+                         top_three=top_three,
+                         hover_data=hover_data,
+                         quest_stats=quest_stats,
+                         current_user_level=current_user_level,
+                         user_rank=user_rank)
 
 
 @scoreboard_bp.route("/badges")

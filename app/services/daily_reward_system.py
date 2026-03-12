@@ -107,8 +107,43 @@ class DailyRewardSystem:
             # Streak continues
             streak = user_data.get('streak', 0) + 1
         elif last_reward_date < yesterday:
-            # Streak broken, restart
-            streak = 1
+            # Streak broken - check for streak shield before resetting
+            shield_used = False
+            try:
+                from app.services.gameplay_rewards import gameplay_rewards
+                if gameplay_rewards.has_streak_shield(username):
+                    shield_used = gameplay_rewards.use_streak_shield(username)
+            except Exception as e:
+                logger.debug(f"Streak shield check skipped: {e}")
+
+            if shield_used:
+                # Shield protected the streak
+                streak = user_data.get('streak', 0) + 1
+                logger.info(f"Streak shield protected streak for {username} (streak: {streak})")
+                try:
+                    from app.services.notification_service import notification_service
+                    import uuid as _uuid
+                    all_notifs = notification_service._load_all_notifications()
+                    if username not in all_notifs:
+                        all_notifs[username] = []
+                    all_notifs[username].append({
+                        'id': str(_uuid.uuid4())[:8],
+                        'type': 'success',
+                        'title': 'Streak-Shield aktiviert!',
+                        'message': 'Dein Streak-Shield hat deine Streak geschuetzt!',
+                        'timestamp': datetime.now(TZ).isoformat(),
+                        'read': False,
+                        'dismissed': False,
+                        'show_popup': True,
+                        'roles': [],
+                        'actions': [],
+                    })
+                    notification_service._save_all_notifications(all_notifs)
+                except Exception as notif_err:
+                    logger.debug(f"Streak shield notification skipped: {notif_err}")
+            else:
+                # No shield - streak broken, restart
+                streak = 1
         else:
             streak = 1
 

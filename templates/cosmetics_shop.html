@@ -4,6 +4,24 @@
 
 {% block content %}
 
+<!-- Seasonal Event Banner -->
+{% if active_event %}
+<div class="glass rounded-2xl p-4 mb-6 border border-{{ active_event.theme_color }}-400/30 bg-{{ active_event.theme_color }}-500/10" data-aos="fade-down">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <i data-lucide="{{ active_event.icon }}" class="w-8 h-8 text-{{ active_event.theme_color }}-400"></i>
+            <div>
+                <h3 class="text-lg font-bold text-white">{{ active_event.name }}</h3>
+                <p class="text-sm text-white/70">{{ active_event.xp_multiplier }}x XP &middot; {{ active_event.coin_multiplier }}x Coins</p>
+            </div>
+        </div>
+        <div class="badge badge-lg bg-{{ active_event.theme_color }}-500/30 text-{{ active_event.theme_color }}-200 border-{{ active_event.theme_color }}-400/50">
+            Event aktiv
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Hero Section -->
 <div class="glass rounded-3xl p-8 md:p-12 mb-8 relative overflow-hidden" data-aos="fade-down">
     <div class="gradient-bg absolute inset-0 opacity-20"></div>
@@ -15,13 +33,13 @@
                     <i data-lucide="shopping-bag" class="w-10 h-10 text-accent"></i>
                 </div>
                 <div>
-                    <h1 class="text-4xl md:text-5xl font-bold text-white">🛍️ Cosmetics Shop</h1>
+                    <h1 class="text-4xl md:text-5xl font-bold text-white">Cosmetics Shop</h1>
                     <p class="text-xl text-white/80 mt-2">Personalisiere deinen Style</p>
                 </div>
             </div>
             <div class="text-right">
-                <div class="text-3xl font-bold text-warning">{{ user_coins }}</div>
-                <div class="text-sm text-white/70">Verfügbare Punkte</div>
+                <div class="text-3xl font-bold text-warning" id="coinDisplay">{{ user_coins }}</div>
+                <div class="text-sm text-white/70">Verfuegbare Punkte</div>
             </div>
         </div>
     </div>
@@ -32,31 +50,54 @@
     <button
         @click="activeTab = 'titles'"
         :class="activeTab === 'titles' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
-        class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
         <i data-lucide="award" class="w-5 h-5"></i>
         <span>Titel</span>
     </button>
     <button
         @click="activeTab = 'themes'"
         :class="activeTab === 'themes' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
-        class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
         <i data-lucide="palette" class="w-5 h-5"></i>
         <span>Themes</span>
     </button>
     <button
         @click="activeTab = 'avatars'"
         :class="activeTab === 'avatars' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
-        class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
         <i data-lucide="user-circle" class="w-5 h-5"></i>
         <span>Avatare</span>
     </button>
     <button
         @click="activeTab = 'effects'"
         :class="activeTab === 'effects' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
-        class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
         <i data-lucide="sparkles" class="w-5 h-5"></i>
         <span>Effekte</span>
     </button>
+    <button
+        @click="activeTab = 'frames'"
+        :class="activeTab === 'frames' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        <i data-lucide="circle" class="w-5 h-5"></i>
+        <span>Rahmen</span>
+    </button>
+    <button
+        @click="activeTab = 'lootboxes'"
+        :class="activeTab === 'lootboxes' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        <i data-lucide="box" class="w-5 h-5"></i>
+        <span>Lootboxen</span>
+    </button>
+    {% if active_event and seasonal_items %}
+    <button
+        @click="activeTab = 'seasonal'"
+        :class="activeTab === 'seasonal' ? 'bg-primary text-white' : 'text-white/70 hover:text-white hover:bg-white/5'"
+        class="flex-1 min-w-[100px] px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2">
+        <i data-lucide="calendar" class="w-5 h-5"></i>
+        <span>Saisonales</span>
+    </button>
+    {% endif %}
 
     <!-- Titles Tab -->
     <div x-show="activeTab === 'titles'" x-transition class="w-full pt-6">
@@ -84,11 +125,11 @@
                         {% if title.equipped %}
                         <button class="btn btn-sm btn-success" disabled>
                             <i data-lucide="check" class="w-4 h-4 mr-1"></i>
-                            Ausgerüstet
+                            Ausgeruestet
                         </button>
                         {% else %}
                         <button class="btn btn-sm btn-primary" data-action="equipCosmeticItem" data-args='["title", "{{ title.id }}"]'>
-                            Ausrüsten
+                            Ausruesten
                         </button>
                         {% endif %}
                     {% else %}
@@ -160,13 +201,13 @@
                 @click="genderFilter = 'male'"
                 :class="genderFilter === 'male' ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'"
                 class="px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2">
-                <span>♂</span> Männlich
+                Maennlich
             </button>
             <button
                 @click="genderFilter = 'female'"
                 :class="genderFilter === 'female' ? 'bg-pink-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'"
                 class="px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2">
-                <span>♀</span> Weiblich
+                Weiblich
             </button>
         </div>
 
@@ -188,15 +229,6 @@
                          loading="lazy">
                 </div>
 
-                <!-- Gender Badge -->
-                <div class="flex justify-center mb-2">
-                    <span class="badge badge-sm
-                        {% if avatar.gender == 'male' %}bg-blue-600/50 text-white border-blue-400
-                        {% else %}bg-pink-600/50 text-white border-pink-400{% endif %}">
-                        {% if avatar.gender == 'male' %}♂ Männlich{% else %}♀ Weiblich{% endif %}
-                    </span>
-                </div>
-
                 <!-- Avatar Info -->
                 <h3 class="font-bold text-white text-lg mb-1">{{ avatar.name }}</h3>
                 <p class="text-xs text-white/60 mb-3">{{ avatar.description }}</p>
@@ -212,15 +244,15 @@
                 <!-- Action Button -->
                 <div class="flex justify-center">
                     {% if avatar.owned %}
-                        {% if avatar.equipped %}
+                        {% if avatar.active %}
                         <button class="btn btn-sm btn-success gap-2" disabled>
                             <i data-lucide="check" class="w-4 h-4"></i>
-                            Ausgerüstet
+                            Ausgeruestet
                         </button>
                         {% else %}
                         <button class="btn btn-sm btn-primary gap-2" data-action="equipCosmeticItem" data-args='["avatar", "{{ avatar.id }}"]'>
                             <i data-lucide="sparkles" class="w-4 h-4"></i>
-                            Ausrüsten
+                            Ausruesten
                         </button>
                         {% endif %}
                     {% else %}
@@ -242,7 +274,7 @@
             <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
                 <div class="flex items-center gap-4 mb-4">
                     <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-accent/20 to-warning/20 flex items-center justify-center text-3xl">
-                        {{ effect.icon }}
+                        <i data-lucide="sparkles" class="w-8 h-8 text-accent"></i>
                     </div>
                     <div class="flex-1">
                         <h3 class="text-xl font-bold text-white">{{ effect.name }}</h3>
@@ -253,33 +285,6 @@
                         {% elif effect.rarity == 'epic' %}badge-info
                         {% else %}badge-primary{% endif %}">
                         {{ effect.rarity|title }}
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <div class="text-sm text-white/70 mb-2">Vorschau:</div>
-                    <div class="bg-white/5 rounded-lg p-4 relative overflow-hidden">
-                        {% if effect.effect == 'sparkle_cursor' %}
-                        <div class="flex items-center gap-2 text-white/80">
-                            <span class="animate-pulse">✨</span> Glitzer bei Klicks
-                        </div>
-                        {% elif effect.effect == 'keyboard_sounds' %}
-                        <div class="flex items-center gap-2 text-white/80">
-                            <span class="animate-bounce">⌨️</span> Mechanische Sounds
-                        </div>
-                        {% elif effect.effect == 'booking_fanfare' %}
-                        <div class="flex items-center gap-2 text-white/80">
-                            <span class="animate-ping">🎺</span> Epische Musik
-                        </div>
-                        {% elif effect.effect == 'achievement_confetti' %}
-                        <div class="flex items-center gap-2 text-white/80">
-                            <span class="animate-spin">🎉</span> Konfetti-Regen
-                        </div>
-                        {% elif effect.effect == 'screen_shake' %}
-                        <div class="flex items-center gap-2 text-white/80 animate-bounce">
-                            <span>📳</span> Bildschirm vibriert
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -296,17 +301,255 @@
                         </button>
                         {% endif %}
                     {% else %}
+                        {% if effect.price == 0 %}
+                        <button class="btn btn-sm btn-disabled" disabled>
+                            <i data-lucide="lock" class="w-4 h-4 mr-1"></i>
+                            Exklusiv
+                        </button>
+                        {% else %}
                         <button class="btn btn-sm btn-accent" data-action="purchaseCosmeticItem" data-args='["effect", "{{ effect.id }}"]'>
                             <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
                             {{ effect.price }} Punkte
                         </button>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
+
+    <!-- Frames Tab -->
+    <div x-show="activeTab === 'frames'" x-transition class="w-full pt-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for frame in shop_items.frames %}
+            <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="badge
+                        {% if frame.rarity == 'legendary' %}badge-warning
+                        {% elif frame.rarity == 'epic' %}badge-info
+                        {% elif frame.rarity == 'rare' %}badge-primary
+                        {% else %}badge-ghost{% endif %}">
+                        {{ frame.rarity|title }}
+                    </div>
+                    {% if frame.seasonal %}
+                    <div class="badge badge-sm bg-pink-500/30 text-pink-200 border-pink-400/50">Saisonal</div>
+                    {% endif %}
+                    {% if frame.milestone_exclusive %}
+                    <div class="badge badge-sm bg-amber-500/30 text-amber-200 border-amber-400/50">Exklusiv</div>
+                    {% endif %}
+                    {% if frame.owned %}
+                    <i data-lucide="check-circle" class="w-5 h-5 text-success"></i>
+                    {% endif %}
+                </div>
+
+                <!-- Frame Preview -->
+                <div class="flex justify-center mb-4">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center {{ frame.css_class }}">
+                        <i data-lucide="user" class="w-12 h-12 text-white/70"></i>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-white mb-2 text-center">{{ frame.name }}</h3>
+                <p class="text-sm text-white/60 mb-4 text-center">{{ frame.description }}</p>
+
+                <div class="flex items-center justify-center">
+                    {% if frame.owned %}
+                        {% if frame.active %}
+                        <button class="btn btn-sm btn-success" disabled>
+                            <i data-lucide="check" class="w-4 h-4 mr-1"></i>
+                            Angelegt
+                        </button>
+                        {% else %}
+                        <button class="btn btn-sm btn-primary" data-action="equipFrameItem" data-args='["{{ frame.id }}"]'>
+                            Anlegen
+                        </button>
+                        {% endif %}
+                    {% else %}
+                        {% if frame.milestone_exclusive %}
+                        <button class="btn btn-sm btn-disabled" disabled>
+                            <i data-lucide="lock" class="w-4 h-4 mr-1"></i>
+                            Meilenstein
+                        </button>
+                        {% else %}
+                        <button class="btn btn-sm btn-accent" data-action="purchaseCosmeticItem" data-args='["frame", "{{ frame.id }}"]'>
+                            <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
+                            {{ frame.price }} Punkte
+                        </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Lootboxes Tab -->
+    <div x-show="activeTab === 'lootboxes'" x-transition class="w-full pt-6">
+        <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            <i data-lucide="box" class="w-6 h-6"></i>
+            Kisten kaufen
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {% for crate in crate_types %}
+            <div class="glass rounded-2xl p-6 text-center hover:scale-105 transition-transform border border-white/10"
+                 style="border-color: {{ crate.color }}30;">
+                <!-- Crate Icon -->
+                <div class="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                     style="background: {{ crate.color }}20;">
+                    <i data-lucide="{{ crate.icon }}" class="w-10 h-10" style="color: {{ crate.color }};"></i>
+                </div>
+
+                <h4 class="text-lg font-bold text-white mb-1">{{ crate.name }}</h4>
+                <div class="badge badge-sm mb-3" style="background: {{ crate.color }}30; color: {{ crate.color }}; border-color: {{ crate.color }}50;">
+                    {{ crate.id|title }}
+                </div>
+
+                <div class="text-2xl font-bold text-warning mb-4">{{ crate.price }}</div>
+
+                <button class="btn btn-sm btn-accent w-full" data-action="purchaseCrateItem" data-args='["{{ crate.id }}"]'>
+                    <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
+                    Kaufen
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Unopened Crates -->
+        {% if unopened_crates %}
+        <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            <i data-lucide="gift" class="w-6 h-6"></i>
+            Ungeoeffnete Kisten ({{ unopened_crates|length }})
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            {% for crate in unopened_crates %}
+            <div class="glass rounded-xl p-4 text-center cursor-pointer hover:scale-105 transition-transform"
+                 data-action="openCrateItem" data-args='["{{ crate.id }}"]'>
+                <div class="w-16 h-16 mx-auto mb-2 rounded-xl flex items-center justify-center bg-warning/20 animate-pulse">
+                    <i data-lucide="box" class="w-8 h-8 text-warning"></i>
+                </div>
+                <div class="text-sm font-bold text-white">{{ crate.type|title }}-Kiste</div>
+                <div class="text-xs text-white/50">Klicke zum Oeffnen</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Seasonal Tab -->
+    {% if active_event and seasonal_items %}
+    <div x-show="activeTab === 'seasonal'" x-transition class="w-full pt-6">
+        <div class="glass rounded-2xl p-6 mb-6 border border-{{ active_event.theme_color }}-400/20">
+            <div class="flex items-center gap-3 mb-4">
+                <i data-lucide="{{ active_event.icon }}" class="w-8 h-8 text-{{ active_event.theme_color }}-400"></i>
+                <div>
+                    <h3 class="text-xl font-bold text-white">{{ active_event.name }}</h3>
+                    <p class="text-sm text-white/70">Saisonale Items -- bleiben dauerhaft nach Kauf</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for item in seasonal_items %}
+            <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                <div class="flex justify-center mb-4">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-{{ active_event.theme_color }}-500/30 to-{{ active_event.theme_color }}-300/30 flex items-center justify-center {{ item.css_class }}">
+                        <i data-lucide="user" class="w-12 h-12 text-white/70"></i>
+                    </div>
+                </div>
+                <h4 class="text-lg font-bold text-white text-center mb-2">{{ item.name }}</h4>
+                <p class="text-sm text-white/60 text-center mb-4">{{ item.description }}</p>
+                <div class="flex justify-center">
+                    <button class="btn btn-sm btn-accent" data-action="purchaseCosmeticItem" data-args='["frame", "{{ item.id }}"]'>
+                        <i data-lucide="shopping-cart" class="w-4 h-4 mr-1"></i>
+                        {{ item.price }} Punkte
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<!-- Inventory Section -->
+{% if inventory %}
+<div class="glass rounded-3xl p-8 mb-8" data-aos="fade-up" data-aos-delay="150">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-info/20 flex items-center justify-center">
+            <i data-lucide="backpack" class="w-7 h-7 text-info"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Inventar</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- XP Boosters -->
+        <div class="glass rounded-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                    <i data-lucide="zap" class="w-6 h-6 text-yellow-400"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white">XP-Booster</h4>
+                    <p class="text-xs text-white/60">{{ inventory.xp_boosters|length if inventory.xp_boosters else 0 }} aktiv</p>
+                </div>
+            </div>
+            {% if inventory.xp_boosters %}
+                {% for booster in inventory.xp_boosters %}
+                <div class="bg-yellow-500/10 rounded-lg p-3 mb-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-white font-semibold">{{ booster.multiplier }}x XP</span>
+                        <span class="text-xs text-yellow-300">{{ booster.remaining_display }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-sm text-white/50">Keine aktiven Booster</p>
+            {% endif %}
+        </div>
+
+        <!-- Streak Shields -->
+        <div class="glass rounded-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <i data-lucide="shield" class="w-6 h-6 text-blue-400"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white">Streak-Shields</h4>
+                    <p class="text-xs text-white/60">{{ inventory.streak_shields|default(0) }} verfuegbar</p>
+                </div>
+            </div>
+            {% if inventory.streak_shields and inventory.streak_shields > 0 %}
+            <div class="bg-blue-500/10 rounded-lg p-3">
+                <div class="text-sm text-white">{{ inventory.streak_shields }}x Schutz vor Streak-Verlust</div>
+            </div>
+            {% else %}
+            <p class="text-sm text-white/50">Keine Shields vorhanden</p>
+            {% endif %}
+        </div>
+
+        <!-- Bonus Spins -->
+        <div class="glass rounded-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <i data-lucide="refresh-cw" class="w-6 h-6 text-green-400"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white">Bonus-Spins</h4>
+                    <p class="text-xs text-white/60">{{ inventory.bonus_spins|default(0) }} verfuegbar</p>
+                </div>
+            </div>
+            {% if inventory.bonus_spins and inventory.bonus_spins > 0 %}
+            <div class="bg-green-500/10 rounded-lg p-3">
+                <div class="text-sm text-white">{{ inventory.bonus_spins }}x Gratis-Gluecksrad</div>
+            </div>
+            {% else %}
+            <p class="text-sm text-white/50">Keine Bonus-Spins vorhanden</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Owned Items Summary -->
 {% if owned_items %}
@@ -318,7 +561,7 @@
         <h2 class="text-2xl font-bold text-white">Deine Sammlung</h2>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
         <div class="text-center">
             <div class="text-4xl font-bold text-primary mb-2">{{ owned_items.titles }}</div>
             <div class="text-sm text-white/60">Titel</div>
@@ -334,6 +577,10 @@
         <div class="text-center">
             <div class="text-4xl font-bold text-warning mb-2">{{ owned_items.effects }}</div>
             <div class="text-sm text-white/60">Effekte</div>
+        </div>
+        <div class="text-center">
+            <div class="text-4xl font-bold text-info mb-2">{{ owned_items.frames }}</div>
+            <div class="text-sm text-white/60">Rahmen</div>
         </div>
     </div>
 </div>
@@ -355,6 +602,36 @@
     </a>
 </div>
 
+<!-- Lootbox Opening Modal -->
+<dialog id="crateModal" class="modal">
+    <div class="modal-box glass max-w-md text-center">
+        <div id="crateAnimationArea">
+            <!-- Unopened state -->
+            <div id="crateUnopened" class="py-8">
+                <div class="w-24 h-24 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-warning/20 animate-bounce">
+                    <i data-lucide="box" class="w-12 h-12 text-warning"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Kiste wird geoeffnet...</h3>
+            </div>
+
+            <!-- Opened state (hidden initially) -->
+            <div id="crateOpened" class="py-8 hidden">
+                <div class="w-24 h-24 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-success/20">
+                    <i data-lucide="gift" class="w-12 h-12 text-success"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2" id="rewardTitle">Belohnung!</h3>
+                <p class="text-lg text-white/80 mb-4" id="rewardDisplay"></p>
+                <div class="badge badge-lg" id="rewardBadge"></div>
+            </div>
+        </div>
+        <div class="modal-action justify-center">
+            <form method="dialog">
+                <button class="btn btn-primary">Schliessen</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -372,22 +649,98 @@
     window.activateCosmeticEffect = function(e, effectId) {
         activateEffect(effectId);
     };
+    window.equipFrameItem = function(e, frameId) {
+        equipFrame(frameId);
+    };
+    window.purchaseCrateItem = function(e, crateType) {
+        purchaseCrate(crateType);
+    };
+    window.openCrateItem = function(e, crateId) {
+        openCrate(crateId);
+    };
 
     function purchaseItem(type, itemId) {
-        if (confirm('Möchtest du dieses Item wirklich kaufen?')) {
+        if (confirm('Dieses Item wirklich kaufen?')) {
             fetch('/slots/cosmetics/purchase', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    item_type: type,
-                    item_id: itemId
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_type: type, item_id: itemId })
             })
-            .then(response => response.json())
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { location.reload(); }
+                else { alert('Fehler: ' + data.message); }
+            });
+        }
+    }
+
+    function equipItem(type, itemId) {
+        fetch('/slots/cosmetics/equip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_type: type, item_id: itemId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); }
+            else { alert('Fehler: ' + data.message); }
+        });
+    }
+
+    function activateTheme(themeId) {
+        fetch('/slots/cosmetics/equip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_type: 'themes', item_id: themeId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); }
+            else { alert('Fehler: ' + data.message); }
+        });
+    }
+
+    function activateEffect(effectId) {
+        fetch('/slots/cosmetics/equip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_type: 'effects', item_id: effectId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); }
+            else { alert('Fehler: ' + data.message); }
+        });
+    }
+
+    function equipFrame(frameId) {
+        fetch('/slots/api/equip-frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ frame_id: frameId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); }
+            else { alert('Fehler: ' + data.message); }
+        });
+    }
+
+    function purchaseCrate(crateType) {
+        if (confirm('Diese Kiste wirklich kaufen?')) {
+            fetch('/slots/api/purchase-crate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ crate_type: crateType })
+            })
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
+                    // Update coin display
+                    if (data.remaining_coins !== undefined) {
+                        var el = document.getElementById('coinDisplay');
+                        if (el) el.textContent = data.remaining_coins;
+                    }
                     location.reload();
                 } else {
                     alert('Fehler: ' + data.message);
@@ -396,71 +749,54 @@
         }
     }
 
-    function equipItem(type, itemId) {
-        fetch('/slots/cosmetics/equip', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                item_type: type,
-                item_id: itemId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Fehler: ' + data.message);
-            }
-        });
-    }
+    function openCrate(crateId) {
+        var modal = document.getElementById('crateModal');
+        var unopened = document.getElementById('crateUnopened');
+        var opened = document.getElementById('crateOpened');
 
-    function activateTheme(themeId) {
-        fetch('/slots/cosmetics/equip', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                item_type: 'themes',
-                item_id: themeId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Fehler: ' + data.message);
-            }
-        });
-    }
+        // Show opening animation
+        unopened.classList.remove('hidden');
+        opened.classList.add('hidden');
+        modal.showModal();
 
-    function activateEffect(effectId) {
-        fetch('/slots/cosmetics/equip', {
+        fetch('/slots/api/open-crate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                item_type: 'effects',
-                item_id: effectId
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ crate_id: crateId })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.success) {
-                location.reload();
+                // Delay reveal for animation feel
+                setTimeout(function() {
+                    unopened.classList.add('hidden');
+                    opened.classList.remove('hidden');
+
+                    var reward = data.reward;
+                    document.getElementById('rewardDisplay').textContent = reward.display;
+
+                    var badge = document.getElementById('rewardBadge');
+                    var rarity = reward.rarity || reward.type;
+                    badge.textContent = rarity.charAt(0).toUpperCase() + rarity.slice(1);
+                    badge.className = 'badge badge-lg';
+                    if (rarity === 'legendary') badge.classList.add('badge-warning');
+                    else if (rarity === 'epic') badge.classList.add('badge-info');
+                    else if (rarity === 'rare') badge.classList.add('badge-primary');
+                    else badge.classList.add('badge-ghost');
+                }, 1500);
             } else {
+                modal.close();
                 alert('Fehler: ' + data.message);
             }
+        })
+        .catch(function() {
+            modal.close();
+            alert('Verbindungsfehler');
         });
     }
 
     // Refresh Lucide icons
-    setTimeout(() => {
+    setTimeout(function() {
         lucide.createIcons();
     }, 100);
 </script>

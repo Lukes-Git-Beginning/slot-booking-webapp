@@ -167,6 +167,29 @@ class LevelSystem:
             level_history[user]["level_ups"].append(level_up_info)
             logger.info(f"LEVEL UP! {user} ist von Level {old_level} auf Level {new_level} aufgestiegen!")
 
+            # Send level-up notification
+            try:
+                from app.services.notification_service import notification_service
+                import uuid as _uuid
+                all_notifs = notification_service._load_all_notifications()
+                if user not in all_notifs:
+                    all_notifs[user] = []
+                all_notifs[user].append({
+                    'id': str(_uuid.uuid4())[:8],
+                    'type': 'success',
+                    'title': 'Level Up!',
+                    'message': f"Du bist auf Level {new_level} aufgestiegen!",
+                    'timestamp': now_ts,
+                    'read': False,
+                    'dismissed': False,
+                    'show_popup': True,
+                    'roles': [],
+                    'actions': [{'text': 'Profil', 'url': '/slots/profile'}],
+                })
+                notification_service._save_all_notifications(all_notifs)
+            except Exception as notif_err:
+                logger.debug(f"Level-up notification skipped: {notif_err}")
+
         # Aktualisiere Snapshot immer
         level_history[user]["current_level"] = new_level
         level_history[user]["current_xp"] = new_xp

@@ -63,7 +63,17 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% for quest in active_quests %}
-        <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+        <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform relative">
+            {% if quest.role_tag %}
+            <div class="absolute top-3 right-3">
+                <span class="badge badge-sm
+                    {% if quest.role_tag == 'T1' %}badge-info
+                    {% elif quest.role_tag == 'T2' %}badge-warning
+                    {% else %}badge-ghost{% endif %}">
+                    {{ quest.role_tag }}
+                </span>
+            </div>
+            {% endif %}
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
                     <div class="text-3xl">{{ quest.icon }}</div>
@@ -75,7 +85,7 @@
                 <div class="badge
                     {% if quest.difficulty == 'hard' %}badge-error
                     {% elif quest.difficulty == 'medium' %}badge-warning
-                    {% else %}badge-success{% endif %}">
+                    {% else %}badge-success{% endif %} mr-12">
                     {{ quest.difficulty|title }}
                 </div>
             </div>
@@ -119,7 +129,17 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for quest in completed_quests %}
-        <div class="glass rounded-xl p-4 bg-success/5 border border-success/20">
+        <div class="glass rounded-xl p-4 bg-success/5 border border-success/20 relative">
+            {% if quest.role_tag %}
+            <div class="absolute top-2 right-2">
+                <span class="badge badge-xs
+                    {% if quest.role_tag == 'T1' %}badge-info
+                    {% elif quest.role_tag == 'T2' %}badge-warning
+                    {% else %}badge-ghost{% endif %}">
+                    {{ quest.role_tag }}
+                </span>
+            </div>
+            {% endif %}
             <div class="flex items-center gap-3 mb-3">
                 <div class="text-2xl">{{ quest.icon }}</div>
                 <div class="flex-1">

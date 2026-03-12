@@ -250,6 +250,62 @@
     </nav>
 {% endblock %}
 
+{% block booster_indicator %}
+{% if active_boosters or seasonal_event %}
+<div id="booster-bar" class="fixed top-[72px] right-4 z-40 flex flex-col gap-2 max-w-xs" x-data="boosterTimer()">
+    {% for booster in active_boosters %}
+    <div class="glass rounded-xl px-3 py-2 flex items-center gap-2 text-sm animate-slide-in-right shadow-lg border border-warning/30">
+        <i data-lucide="zap" class="w-4 h-4 text-warning"></i>
+        <span class="font-bold text-warning">{{ booster.multiplier }}x XP</span>
+        <span class="text-gray-400" x-text="formatCountdown({{ booster.remaining_seconds }})"></span>
+    </div>
+    {% endfor %}
+    {% if seasonal_event %}
+    <div class="glass rounded-xl px-3 py-2 flex items-center gap-2 text-sm animate-slide-in-right shadow-lg border border-primary/30">
+        <i data-lucide="{{ seasonal_event.icon }}" class="w-4 h-4 text-primary"></i>
+        <span class="font-semibold text-primary">{{ seasonal_event.name }}</span>
+        <span class="text-gray-400 text-xs">{{ seasonal_event.xp_multiplier }}x XP / {{ seasonal_event.coin_multiplier }}x Coins</span>
+    </div>
+    {% endif %}
+</div>
+<script nonce="{{ csp_nonce }}">
+function boosterTimer() {
+    return {
+        formatCountdown(seconds) {
+            if (seconds <= 0) return 'abgelaufen';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return h + 'h ' + m + 'm';
+            if (m > 0) return m + 'm ' + s + 's';
+            return s + 's';
+        },
+        init() {
+            // Update countdown every second
+            setInterval(() => {
+                const bar = document.getElementById('booster-bar');
+                if (!bar) return;
+                const spans = bar.querySelectorAll('[x-text]');
+                spans.forEach(span => {
+                    const match = span.getAttribute('x-text');
+                    if (match && match.includes('formatCountdown')) {
+                        const numMatch = match.match(/(\d+)/);
+                        if (numMatch) {
+                            let val = parseInt(numMatch[1]) - 1;
+                            if (val < 0) val = 0;
+                            span.setAttribute('x-text', 'formatCountdown(' + val + ')');
+                            span.textContent = this.formatCountdown(val);
+                        }
+                    }
+                });
+            }, 1000);
+        }
+    };
+}
+</script>
+{% endif %}
+{% endblock %}
+
 {% block footer %}
     <!-- Footer -->
     <footer class="glass mt-16 backdrop-blur-xl" data-aos="fade-up">

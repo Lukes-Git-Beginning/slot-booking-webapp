@@ -4,7 +4,43 @@
 
 {% block extra_head %}
 <style nonce="{{ csp_nonce }}">
-/* Avatar Customizations */
+/* === Podium === */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.podium-float { animation: float 3s ease-in-out infinite; }
+
+.podium-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.podium-bar {
+  width: 100%;
+  border-radius: 1rem 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1.5rem 1rem 1rem;
+  position: relative;
+}
+.podium-bar-1 {
+  background: linear-gradient(180deg, #FFD700 0%, #B8860B 100%);
+  min-height: 180px;
+}
+.podium-bar-2 {
+  background: linear-gradient(180deg, #C0C0C0 0%, #808080 100%);
+  min-height: 130px;
+}
+.podium-bar-3 {
+  background: linear-gradient(180deg, #CD7F32 0%, #8B4513 100%);
+  min-height: 100px;
+}
+
+/* === Avatar Customizations === */
 .player-avatar.customized {
   background: var(--avatar-bg, linear-gradient(135deg, #d4af6a, #c2ae7f));
   border: var(--avatar-border, 2px solid #e5e7eb);
@@ -21,28 +57,40 @@
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.3) drop-shadow(0 0 10px rgba(255, 255, 255, 0.8)); }
 }
-
 @keyframes floating {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-5px); }
 }
-
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
-
 @keyframes rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-5px); }
   60% { transform: translateY(-3px); }
 }
 
+/* === Hover Card === */
+.hover-card {
+  position: absolute;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.hover-card.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* === Badge mini === */
 .badge-mini {
   width: 24px;
   height: 24px;
@@ -55,245 +103,544 @@
   transition: all 0.2s ease;
   cursor: pointer;
 }
-
 .badge-mini:hover {
   transform: scale(1.3);
   z-index: 10;
 }
-
 .badge-mini.rarity-common { background: linear-gradient(135deg, #10b981, #059669); }
 .badge-mini.rarity-uncommon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .badge-mini.rarity-rare { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 .badge-mini.rarity-epic { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .badge-mini.rarity-legendary { background: linear-gradient(135deg, #eab308, #ca8a04); }
 .badge-mini.rarity-mythic { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+/* === Rank change indicators === */
+.rank-up { color: #10b981; }
+.rank-down { color: #ef4444; }
+.rank-same { color: #6b7280; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Champion Section -->
-{% if champion %}
-<div class="glass rounded-3xl p-8 mb-8 bg-gradient-to-br from-warning/20 to-orange-500/20" data-aos="fade-down">
-  <div class="text-center">
-    <div class="text-6xl mb-4">👑</div>
-    <div class="text-xl font-bold text-warning mb-2">Aktueller Champion</div>
-    <div class="text-3xl font-bold text-white">{{ champion }}</div>
+{# ================================================================ #}
+{# STATS GRID (4 Cards)                                             #}
+{# ================================================================ #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8" data-aos="fade-up">
+  {# Dein Rang #}
+  <div class="glass rounded-2xl p-5 text-center">
+    <div class="text-4xl mb-2">
+      {% if user_rank == 1 %}
+        <span>&#x1F451;</span>
+      {% elif user_rank == 2 %}
+        <span>&#x1F948;</span>
+      {% elif user_rank == 3 %}
+        <span>&#x1F949;</span>
+      {% else %}
+        <span>#</span>
+      {% endif %}
+    </div>
+    <div class="text-3xl font-bold text-primary mb-1">
+      {{ user_rank if user_rank else '-' }}
+    </div>
+    <div class="text-sm text-white/70 mb-1">Dein Rang</div>
+    {% set my_change = rank_changes.get(current_user, 0) if rank_changes else 0 %}
+    {% if my_change > 0 %}
+      <span class="rank-up text-sm font-semibold">&#9650; {{ my_change }}</span>
+    {% elif my_change < 0 %}
+      <span class="rank-down text-sm font-semibold">&#9660; {{ my_change|abs }}</span>
+    {% else %}
+      <span class="rank-same text-sm">&mdash;</span>
+    {% endif %}
+  </div>
+
+  {# Deine Streak #}
+  <div class="glass rounded-2xl p-5 text-center">
+    <div class="text-4xl mb-2">&#x1F525;</div>
+    <div class="text-3xl font-bold text-orange-400 mb-1">
+      {{ user_streaks.get(current_user, 0) if user_streaks else 0 }}
+    </div>
+    <div class="text-sm text-white/70">Deine Streak</div>
+  </div>
+
+  {# Quests heute #}
+  <div class="glass rounded-2xl p-5 text-center">
+    <div class="text-4xl mb-2">&#x1F3AF;</div>
+    <div class="text-3xl font-bold text-secondary mb-1">
+      {{ quest_stats.completed }}/{{ quest_stats.total }}
+    </div>
+    <div class="text-sm text-white/70">Quests heute</div>
+  </div>
+
+  {# Dein Level #}
+  <div class="glass rounded-2xl p-5 text-center">
+    <div class="text-4xl mb-2">&#x2B50;</div>
+    <div class="text-3xl font-bold text-accent mb-1">
+      {{ current_user_level.get('level', 1) }}
+    </div>
+    <div class="text-sm text-white/70 mb-2">Dein Level</div>
+    <div class="w-full bg-base-300 rounded-full h-2">
+      <div class="bg-accent rounded-full h-2 transition-all" style="width: {{ current_user_level.get('progress_to_next', 0) }}%"></div>
+    </div>
+    <div class="text-xs text-white/50 mt-1">{{ current_user_level.get('level_title', 'Anfaenger') }}</div>
+  </div>
+</div>
+
+{# ================================================================ #}
+{# PODIUM SECTION (Top 3)                                           #}
+{# ================================================================ #}
+{% if top_three|length >= 3 %}
+<div class="mb-10" data-aos="fade-up" data-aos-delay="100">
+  <h2 class="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
+    <i data-lucide="trophy" class="w-6 h-6 text-warning"></i>
+    Top 3 &mdash; {{ month }}
+  </h2>
+
+  <div class="grid grid-cols-3 gap-4 items-end max-w-2xl mx-auto" style="min-height: 280px;">
+    {# -- Platz 2 (links) -- #}
+    {% set p2 = top_three[1] %}
+    {% set p2_cosmetics = user_cosmetics.get(p2[0], {}) %}
+    {% set p2_level = user_levels.get(p2[0], {}) %}
+    {% set p2_avatar_url = avatar_urls.get(p2[0]) if avatar_urls else None %}
+    <div class="podium-col">
+      <div class="mb-3 text-center">
+        <div class="avatar mx-auto mb-2">
+          <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar overflow-hidden flex items-center justify-center text-2xl"
+               data-user="{{ p2[0] }}" style="line-height:1;">
+            {% if p2_avatar_url %}
+              <img src="{{ p2_avatar_url }}" alt="{{ p2[0] }}" class="w-full h-full object-cover" loading="lazy">
+            {% elif p2_cosmetics.get('avatar') %}
+              {{ p2_cosmetics.get('avatar') }}
+            {% else %}
+              {{ p2[0][0].upper() }}
+            {% endif %}
+          </div>
+        </div>
+        {% if p2_cosmetics.get('title') %}
+        <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent">
+          {{ p2_cosmetics.get('title')|replace('_', ' ')|title }}
+        </div>
+        {% endif %}
+        <div class="font-semibold text-white text-sm">{{ p2[0] }}</div>
+        <div class="text-xs text-white/60">Lv. {{ p2_level.get('level', 1) }}</div>
+      </div>
+      <div class="podium-bar podium-bar-2 w-full">
+        <span class="text-3xl mb-1">&#x1F948;</span>
+        <span class="font-bold text-white text-lg">{{ p2[1] }}</span>
+        <span class="text-xs text-white/80">Punkte</span>
+      </div>
+    </div>
+
+    {# -- Platz 1 (mitte) -- #}
+    {% set p1 = top_three[0] %}
+    {% set p1_cosmetics = user_cosmetics.get(p1[0], {}) %}
+    {% set p1_level = user_levels.get(p1[0], {}) %}
+    {% set p1_avatar_url = avatar_urls.get(p1[0]) if avatar_urls else None %}
+    <div class="podium-col podium-float">
+      <div class="mb-3 text-center">
+        <div class="avatar mx-auto mb-2">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-warning to-orange-500 player-avatar overflow-hidden flex items-center justify-center text-5xl ring-4 ring-warning/50"
+               data-user="{{ p1[0] }}" style="line-height:1;">
+            {% if p1_avatar_url %}
+              <img src="{{ p1_avatar_url }}" alt="{{ p1[0] }}" class="w-full h-full object-cover" loading="lazy">
+            {% elif p1_cosmetics.get('avatar') %}
+              {{ p1_cosmetics.get('avatar') }}
+            {% else %}
+              {{ p1[0][0].upper() }}
+            {% endif %}
+          </div>
+        </div>
+        {% if p1_cosmetics.get('title') %}
+        <div class="text-xs font-bold bg-gradient-to-r from-warning via-orange-400 to-warning bg-clip-text text-transparent">
+          {{ p1_cosmetics.get('title')|replace('_', ' ')|title }}
+        </div>
+        {% endif %}
+        <div class="font-bold text-white">{{ p1[0] }}</div>
+        <div class="text-xs text-white/60">Lv. {{ p1_level.get('level', 1) }}</div>
+      </div>
+      <div class="podium-bar podium-bar-1 w-full">
+        <span class="text-4xl mb-1">&#x1F451;</span>
+        <span class="font-bold text-white text-2xl">{{ p1[1] }}</span>
+        <span class="text-xs text-white/80">Punkte</span>
+      </div>
+    </div>
+
+    {# -- Platz 3 (rechts) -- #}
+    {% set p3 = top_three[2] %}
+    {% set p3_cosmetics = user_cosmetics.get(p3[0], {}) %}
+    {% set p3_level = user_levels.get(p3[0], {}) %}
+    {% set p3_avatar_url = avatar_urls.get(p3[0]) if avatar_urls else None %}
+    <div class="podium-col">
+      <div class="mb-3 text-center">
+        <div class="avatar mx-auto mb-2">
+          <div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar overflow-hidden flex items-center justify-center text-xl"
+               data-user="{{ p3[0] }}" style="line-height:1;">
+            {% if p3_avatar_url %}
+              <img src="{{ p3_avatar_url }}" alt="{{ p3[0] }}" class="w-full h-full object-cover" loading="lazy">
+            {% elif p3_cosmetics.get('avatar') %}
+              {{ p3_cosmetics.get('avatar') }}
+            {% else %}
+              {{ p3[0][0].upper() }}
+            {% endif %}
+          </div>
+        </div>
+        {% if p3_cosmetics.get('title') %}
+        <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent">
+          {{ p3_cosmetics.get('title')|replace('_', ' ')|title }}
+        </div>
+        {% endif %}
+        <div class="font-semibold text-white text-sm">{{ p3[0] }}</div>
+        <div class="text-xs text-white/60">Lv. {{ p3_level.get('level', 1) }}</div>
+      </div>
+      <div class="podium-bar podium-bar-3 w-full">
+        <span class="text-3xl mb-1">&#x1F949;</span>
+        <span class="font-bold text-white text-lg">{{ p3[1] }}</span>
+        <span class="text-xs text-white/80">Punkte</span>
+      </div>
+    </div>
   </div>
 </div>
 {% endif %}
 
-<!-- Quick Actions -->
-<div class="flex flex-wrap gap-3 mb-8" data-aos="fade-down" data-aos-delay="100">
-  <a href="{{ url_for('main.index') }}" class="btn btn-primary gap-2">
-    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-    Zurück zur Buchung
-  </a>
-  <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-secondary gap-2">
-    <i data-lucide="award" class="w-4 h-4"></i>
-    Alle Badges ansehen
-  </a>
-  <a href="/my-calendar" class="btn btn-accent gap-2">
-    <i data-lucide="calendar" class="w-4 h-4"></i>
-    Meine Termine
-  </a>
-  <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn gap-2 bg-secondary hover:bg-accent border-0 text-white">
-    <i data-lucide="gamepad-2" class="w-4 h-4"></i>
-    Gamification
-  </a>
-</div>
-
-<!-- Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-aos="fade-up" data-aos-delay="200">
-  <div class="glass rounded-2xl p-6 text-center">
-    <div class="text-5xl mb-3">🏆</div>
-    <div class="text-3xl font-bold text-primary mb-1">{{ ranking|length }}</div>
-    <div class="text-sm text-white/70">Aktive Spieler</div>
-  </div>
-
-  <div class="glass rounded-2xl p-6 text-center">
-    <div class="text-5xl mb-3">🎯</div>
-    <div class="text-3xl font-bold text-secondary mb-1">{{ user_score if current_user else 0 }}</div>
-    <div class="text-sm text-white/70">Deine Punkte</div>
-  </div>
-
-  <div class="glass rounded-2xl p-6 text-center">
-    <div class="text-5xl mb-3">📅</div>
-    <div class="text-3xl font-bold text-accent mb-1">{{ month }}</div>
-    <div class="text-sm text-white/70">Aktueller Monat</div>
-  </div>
-
-  <div class="glass rounded-2xl p-6 text-center">
-    <div class="text-5xl mb-3">🥇</div>
-    <div class="text-3xl font-bold text-warning mb-1">{{ ranking[0].points if ranking else 0 }}</div>
-    <div class="text-sm text-white/70">Höchste Punktzahl</div>
-  </div>
-</div>
-
-<!-- Tabs -->
-<div x-data="{ activeTab: 'points' }" data-aos="fade-up" data-aos-delay="300">
-  <div class="tabs tabs-boxed glass rounded-2xl p-2 mb-8">
+{# ================================================================ #}
+{# TABS: Punkte / Badges / Streaks                                  #}
+{# ================================================================ #}
+<div x-data="{ activeTab: 'points' }" data-aos="fade-up" data-aos-delay="200">
+  <div class="tabs tabs-boxed glass rounded-2xl p-2 mb-6">
     <a class="tab" :class="activeTab === 'points' ? 'tab-active' : ''" @click="activeTab = 'points'">
       <i data-lucide="trophy" class="w-4 h-4 mr-2"></i>
-      Punkte-Ranking
+      Punkte
     </a>
     <a class="tab" :class="activeTab === 'badges' ? 'tab-active' : ''" @click="activeTab = 'badges'">
       <i data-lucide="award" class="w-4 h-4 mr-2"></i>
-      Badge-Ranking
+      Badges
+    </a>
+    <a class="tab" :class="activeTab === 'streaks' ? 'tab-active' : ''" @click="activeTab = 'streaks'">
+      <i data-lucide="flame" class="w-4 h-4 mr-2"></i>
+      Streaks
     </a>
   </div>
 
-  <!-- Punkte-Ranking Tab -->
-  <div x-show="activeTab === 'points'" x-transition class="glass rounded-3xl p-8">
-    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-      <i data-lucide="trophy" class="w-6 h-6 text-primary"></i>
-      Punkte-Ranking – {{ month }}
+  {# ============================================================== #}
+  {# TAB 1: Punkte-Ranking (ab Platz 4)                             #}
+  {# ============================================================== #}
+  <div x-show="activeTab === 'points'" x-transition class="glass rounded-3xl p-6 lg:p-8">
+    <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+      <i data-lucide="trophy" class="w-5 h-5 text-primary"></i>
+      Punkte-Ranking &mdash; {{ month }}
     </h2>
 
     <div class="overflow-x-auto">
       <table class="table w-full">
         <thead>
           <tr>
-            <th class="text-white">Rang</th>
+            <th class="text-white w-16">Rang</th>
+            <th class="text-white w-16 text-center">+/-</th>
             <th class="text-white">Spieler</th>
-            <th class="text-white text-center">Level</th>
-            <th class="text-white">Badges</th>
+            <th class="text-white text-center hidden sm:table-cell">Level</th>
+            <th class="text-white text-center hidden md:table-cell">Streak</th>
             <th class="text-white text-right">Punkte</th>
           </tr>
         </thead>
         <tbody>
           {% for player in ranking %}
-          <tr class="hover:bg-white/5 cursor-pointer transition-all {% if current_user and player[0] == current_user %}bg-primary/10{% endif %}"
-              data-action="navigateTo" data-args='["/profile/{{ player[0] }}"]'
-            <!-- Rang -->
-            <td class="font-bold text-center">
-              {% if loop.index == 1 %}
-                <span class="text-3xl">🥇</span>
-              {% elif loop.index == 2 %}
-                <span class="text-3xl">🥈</span>
-              {% elif loop.index == 3 %}
-                <span class="text-3xl">🥉</span>
+          {% if loop.index > 3 or top_three|length < 3 %}
+          <tr class="hover:bg-white/5 transition-all relative group
+                      {% if current_user and player[0] == current_user %}bg-primary/10 border-l-4 border-primary{% endif %}"
+              x-data="{ showCard: false }"
+              @mouseenter="showCard = true" @mouseleave="showCard = false">
+
+            {# Rang #}
+            <td class="font-bold text-center text-lg text-white/80">
+              {{ loop.index }}
+            </td>
+
+            {# Aenderung #}
+            <td class="text-center">
+              {% set change = rank_changes.get(player[0], 0) if rank_changes else 0 %}
+              {% if change > 0 %}
+                <span class="rank-up font-semibold">&#9650;{{ change }}</span>
+              {% elif change < 0 %}
+                <span class="rank-down font-semibold">&#9660;{{ change|abs }}</span>
               {% else %}
-                <span class="text-xl text-white">{{ loop.index }}</span>
+                <span class="rank-same">&mdash;</span>
               {% endif %}
             </td>
 
-            <!-- Spieler -->
+            {# Avatar + Name #}
             <td>
               <div class="flex items-center gap-3">
                 <div class="avatar">
-                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar"
-                       data-user="{{ player[0] }}"
-                       style="display: flex; align-items: center; justify-content: center; font-size: 1.25rem; overflow: hidden; line-height: 1;">
-                    {% set user_cosmetics_data = user_cosmetics.get(player[0], {}) %}
-                    {% if user_cosmetics_data.get('avatar') %}
-                      {{ user_cosmetics_data.get('avatar') }}
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary player-avatar overflow-hidden flex items-center justify-center text-lg"
+                       data-user="{{ player[0] }}" style="line-height:1;">
+                    {% set pl_avatar_url = avatar_urls.get(player[0]) if avatar_urls else None %}
+                    {% set pl_cosmetics = user_cosmetics.get(player[0], {}) %}
+                    {% if pl_avatar_url %}
+                      <img src="{{ pl_avatar_url }}" alt="{{ player[0] }}" class="w-full h-full object-cover" loading="lazy">
+                    {% elif pl_cosmetics.get('avatar') %}
+                      {{ pl_cosmetics.get('avatar') }}
                     {% else %}
                       {{ player[0][0].upper() }}
                     {% endif %}
                   </div>
                 </div>
                 <div>
-                  {% if user_cosmetics_data.get('title') %}
-                  <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent drop-shadow-lg">
-                    {{ user_cosmetics_data.get('title')|replace('_', ' ')|title }}
+                  {% if pl_cosmetics.get('title') %}
+                  <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent">
+                    {{ pl_cosmetics.get('title')|replace('_', ' ')|title }}
                   </div>
                   {% endif %}
                   <div class="font-semibold text-white">{{ player[0] }}</div>
                 </div>
               </div>
-            </td>
 
-            <!-- Level -->
-            <td class="text-center">
-              {% set user_level = user_levels.get(player[0], {}) %}
-              <div class="flex flex-col items-center">
-                <div class="text-2xl font-bold text-primary">{{ user_level.get('level', 1) }}</div>
-                <div class="text-xs text-white/60 uppercase">{{ user_level.get('level_title', 'Anfänger') }}</div>
+              {# Hover Card #}
+              {% set hd = hover_data.get(player[0], {}) if hover_data else {} %}
+              <div class="hover-card top-full left-0 mt-1"
+                   :class="showCard ? 'visible' : ''">
+                <div class="glass rounded-xl p-4 shadow-xl min-w-[220px] border border-white/10">
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary overflow-hidden flex items-center justify-center text-xl" style="line-height:1;">
+                      {% if pl_avatar_url %}
+                        <img src="{{ pl_avatar_url }}" alt="{{ player[0] }}" class="w-full h-full object-cover">
+                      {% elif pl_cosmetics.get('avatar') %}
+                        {{ pl_cosmetics.get('avatar') }}
+                      {% else %}
+                        {{ player[0][0].upper() }}
+                      {% endif %}
+                    </div>
+                    <div>
+                      <div class="font-bold text-white">{{ player[0] }}</div>
+                      <div class="text-xs text-white/60">Lv. {{ hd.get('level', 1) }} &mdash; {{ hd.get('level_title', '') }}</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div class="text-white/60">Punkte gesamt</div>
+                    <div class="text-white font-semibold text-right">{{ hd.get('bookings_count', 0) }}</div>
+                    <div class="text-white/60">Streak</div>
+                    <div class="text-white font-semibold text-right">&#x1F525; {{ hd.get('current_streak', 0) }}</div>
+                    <div class="text-white/60">Badges</div>
+                    <div class="text-white font-semibold text-right">{{ hd.get('badge_count', 0) }}</div>
+                  </div>
+                </div>
               </div>
             </td>
 
-            <!-- Badges -->
-            <td>
-              <div class="flex gap-1 player-badges" data-user="{{ player[0] }}">
-                <!-- Badges werden dynamisch geladen -->
-              </div>
+            {# Level #}
+            <td class="text-center hidden sm:table-cell">
+              {% set pl_level = user_levels.get(player[0], {}) %}
+              <div class="font-bold text-primary">{{ pl_level.get('level', 1) }}</div>
+              <div class="text-xs text-white/50">{{ pl_level.get('level_title', '') }}</div>
             </td>
 
-            <!-- Punkte -->
+            {# Streak #}
+            <td class="text-center hidden md:table-cell">
+              {% set pl_streak = user_streaks.get(player[0], 0) if user_streaks else 0 %}
+              {% if pl_streak > 0 %}
+                <span class="text-orange-400 font-semibold">&#x1F525; {{ pl_streak }}</span>
+              {% else %}
+                <span class="text-white/40">&mdash;</span>
+              {% endif %}
+            </td>
+
+            {# Punkte #}
             <td class="text-right">
-              <div class="text-2xl font-bold text-success">{{ player[1] }}</div>
+              <div class="text-xl font-bold text-success">{{ player[1] }}</div>
             </td>
           </tr>
+          {% endif %}
           {% endfor %}
         </tbody>
       </table>
     </div>
+
+    {% if ranking|length == 0 %}
+    <div class="text-center text-white/50 py-12">
+      Noch keine Eintraege diesen Monat.
+    </div>
+    {% endif %}
   </div>
 
-  <!-- Badge-Ranking Tab -->
-  <div x-show="activeTab === 'badges'" x-transition class="glass rounded-3xl p-8">
-    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-      <i data-lucide="award" class="w-6 h-6 text-secondary"></i>
+  {# ============================================================== #}
+  {# TAB 2: Badge-Ranking                                           #}
+  {# ============================================================== #}
+  <div x-show="activeTab === 'badges'" x-transition class="glass rounded-3xl p-6 lg:p-8">
+    <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+      <i data-lucide="award" class="w-5 h-5 text-secondary"></i>
       Badge-Ranking
     </h2>
 
-    <div class="space-y-4">
+    <div class="space-y-3">
       {% for player in badge_leaderboard %}
-      <div class="glass rounded-2xl p-6 hover:scale-[1.02] transition-transform cursor-pointer"
-           data-action="navigateTo" data-args='["/profile/{{ player.user }}"]'
+      <div class="glass rounded-2xl p-5 hover:scale-[1.01] transition-transform">
         <div class="flex items-center justify-between gap-4">
-          <!-- Player Info -->
           <div class="flex items-center gap-4">
+            <div class="text-lg font-bold text-white/60 w-8 text-center">
+              {% if loop.index == 1 %}
+                <span class="text-2xl">&#x1F947;</span>
+              {% elif loop.index == 2 %}
+                <span class="text-2xl">&#x1F948;</span>
+              {% elif loop.index == 3 %}
+                <span class="text-2xl">&#x1F949;</span>
+              {% else %}
+                {{ loop.index }}
+              {% endif %}
+            </div>
             <div class="avatar">
-              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-secondary to-accent player-avatar"
-                   data-user="{{ player.user }}"
-                   style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem; overflow: hidden; line-height: 1;">
-                {% set user_cosmetics_data = user_cosmetics.get(player.user, {}) %}
-                {% if user_cosmetics_data.get('avatar') %}
-                  {{ user_cosmetics_data.get('avatar') }}
+              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-secondary to-accent player-avatar overflow-hidden flex items-center justify-center text-xl"
+                   data-user="{{ player.user }}" style="line-height:1;">
+                {% set ba_url = avatar_urls.get(player.user) if avatar_urls else None %}
+                {% set ba_cosmetics = user_cosmetics.get(player.user, {}) %}
+                {% if ba_url %}
+                  <img src="{{ ba_url }}" alt="{{ player.user }}" class="w-full h-full object-cover" loading="lazy">
+                {% elif ba_cosmetics.get('avatar') %}
+                  {{ ba_cosmetics.get('avatar') }}
                 {% else %}
                   {{ player.user[0].upper() }}
                 {% endif %}
               </div>
             </div>
             <div>
-              {% if user_cosmetics_data.get('title') %}
-              <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent drop-shadow-lg">
-                {{ user_cosmetics_data.get('title')|replace('_', ' ')|title }}
+              {% if ba_cosmetics.get('title') %}
+              <div class="text-xs font-bold bg-gradient-to-r from-primary via-warning to-secondary bg-clip-text text-transparent">
+                {{ ba_cosmetics.get('title')|replace('_', ' ')|title }}
               </div>
               {% endif %}
-              <div class="font-bold text-white text-lg">{{ player.user }}</div>
-              <div class="flex gap-1 mt-2">
+              <div class="font-bold text-white">{{ player.user }}</div>
+              <div class="flex gap-1 mt-1">
                 {% for badge in player.badges[:5] %}
                 <span class="badge-mini rarity-{{ badge.rarity }}" title="{{ badge.name }}">
                   {{ badge.emoji }}
                 </span>
                 {% endfor %}
+                {% if player.badges|length > 5 %}
+                <span class="badge badge-sm badge-primary">+{{ player.badges|length - 5 }}</span>
+                {% endif %}
               </div>
             </div>
           </div>
 
-          <!-- Stats -->
-          <div class="flex gap-6">
+          <div class="flex gap-4 sm:gap-6">
             <div class="text-center">
-              <div class="text-2xl font-bold text-primary">{{ player.total_badges }}</div>
-              <div class="text-xs text-white/60 uppercase">Total</div>
+              <div class="text-xl font-bold text-primary">{{ player.total_badges }}</div>
+              <div class="text-xs text-white/60">Total</div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-secondary">{{ player.rarity_points }}</div>
-              <div class="text-xs text-white/60 uppercase">Score</div>
+            <div class="text-center hidden sm:block">
+              <div class="text-xl font-bold text-secondary">{{ player.rarity_points }}</div>
+              <div class="text-xs text-white/60">Score</div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-warning">{{ player.rarity_breakdown.get('legendary', 0) + player.rarity_breakdown.get('mythic', 0) }}</div>
-              <div class="text-xs text-white/60 uppercase">Rare</div>
+            <div class="text-center hidden md:block">
+              <div class="text-xl font-bold text-warning">{{ player.rarity_breakdown.get('legendary', 0) + player.rarity_breakdown.get('mythic', 0) }}</div>
+              <div class="text-xs text-white/60">Rare</div>
             </div>
           </div>
         </div>
       </div>
       {% endfor %}
+
+      {% if badge_leaderboard|length == 0 %}
+      <div class="text-center text-white/50 py-12">
+        Noch keine Badges vergeben.
+      </div>
+      {% endif %}
     </div>
   </div>
+
+  {# ============================================================== #}
+  {# TAB 3: Streak-Ranking                                          #}
+  {# ============================================================== #}
+  <div x-show="activeTab === 'streaks'" x-transition class="glass rounded-3xl p-6 lg:p-8">
+    <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+      <i data-lucide="flame" class="w-5 h-5 text-orange-400"></i>
+      Streak-Ranking
+    </h2>
+
+    {% set streak_ranking = [] %}
+    {% if user_streaks %}
+      {% for uname, streak_val in user_streaks.items() %}
+        {% if streak_ranking.append((uname, streak_val)) %}{% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <div class="overflow-x-auto">
+      <table class="table w-full">
+        <thead>
+          <tr>
+            <th class="text-white w-16">Rang</th>
+            <th class="text-white">Spieler</th>
+            <th class="text-white text-center">Level</th>
+            <th class="text-white text-right">Streak</th>
+          </tr>
+        </thead>
+        <tbody>
+          {# Sort streaks descending in JS since Jinja sort on dict is tricky #}
+          {% if user_streaks %}
+          {% for player in ranking %}
+            {% set s_val = user_streaks.get(player[0], 0) %}
+            {% if s_val > 0 %}
+            <tr class="hover:bg-white/5 transition-all
+                        {% if current_user and player[0] == current_user %}bg-primary/10 border-l-4 border-primary{% endif %}"
+                data-streak-val="{{ s_val }}">
+              <td class="font-bold text-center text-white/80 streak-rank"></td>
+              <td>
+                <div class="flex items-center gap-3">
+                  <div class="avatar">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 player-avatar overflow-hidden flex items-center justify-center text-lg"
+                         data-user="{{ player[0] }}" style="line-height:1;">
+                      {% set sr_avatar = avatar_urls.get(player[0]) if avatar_urls else None %}
+                      {% set sr_cosmetics = user_cosmetics.get(player[0], {}) %}
+                      {% if sr_avatar %}
+                        <img src="{{ sr_avatar }}" alt="{{ player[0] }}" class="w-full h-full object-cover" loading="lazy">
+                      {% elif sr_cosmetics.get('avatar') %}
+                        {{ sr_cosmetics.get('avatar') }}
+                      {% else %}
+                        {{ player[0][0].upper() }}
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="font-semibold text-white">{{ player[0] }}</div>
+                </div>
+              </td>
+              <td class="text-center">
+                {% set sr_level = user_levels.get(player[0], {}) %}
+                <span class="font-bold text-primary">{{ sr_level.get('level', 1) }}</span>
+              </td>
+              <td class="text-right">
+                <span class="text-xl font-bold text-orange-400">
+                  &#x1F525; {{ s_val }}
+                </span>
+                <span class="text-sm text-white/50 ml-1">Tage</span>
+              </td>
+            </tr>
+            {% endif %}
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if not user_streaks or user_streaks.values()|select('gt', 0)|list|length == 0 %}
+    <div class="text-center text-white/50 py-12">
+      Noch keine aktiven Streaks.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# Quick Actions #}
+<div class="flex flex-wrap gap-3 mt-8" data-aos="fade-up" data-aos-delay="300">
+  <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm gap-2">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    Zur Buchung
+  </a>
+  <a href="{{ url_for('scoreboard.badges') }}" class="btn btn-secondary btn-sm gap-2">
+    <i data-lucide="award" class="w-4 h-4"></i>
+    Alle Badges
+  </a>
+  <a href="{{ url_for('scoreboard.gamification_dashboard') }}" class="btn btn-accent btn-sm gap-2">
+    <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+    Gamification
+  </a>
 </div>
 
 {% endblock %}
@@ -301,64 +648,36 @@
 {% block extra_js %}
 <script nonce="{{ csp_nonce }}">
 // ============================================================================
-// BADGE & AVATAR LOADING
+// STREAK TAB: Sort rows by streak value and assign ranks
+// ============================================================================
+(function() {
+  const streakTable = document.querySelector('[x-show="activeTab === \'streaks\'"] tbody');
+  if (streakTable) {
+    const rows = Array.from(streakTable.querySelectorAll('tr[data-streak-val]'));
+    rows.sort((a, b) => parseInt(b.dataset.streakVal) - parseInt(a.dataset.streakVal));
+    rows.forEach((row, idx) => {
+      streakTable.appendChild(row);
+      const rankCell = row.querySelector('.streak-rank');
+      if (rankCell) {
+        if (idx === 0) rankCell.innerHTML = '<span class="text-2xl">\u{1F947}</span>';
+        else if (idx === 1) rankCell.innerHTML = '<span class="text-2xl">\u{1F948}</span>';
+        else if (idx === 2) rankCell.innerHTML = '<span class="text-2xl">\u{1F949}</span>';
+        else rankCell.textContent = idx + 1;
+      }
+    });
+  }
+})();
+
+// ============================================================================
+// AVATAR CUSTOMIZATION LOADING
 // ============================================================================
 document.addEventListener('DOMContentLoaded', function() {
-  Promise.all([
-    loadUserBadges(),
-    loadUserAvatars()
-  ]).catch(error => console.error('Error loading cosmetics:', error));
+  loadUserAvatars().catch(error => console.error('Error loading avatars:', error));
 });
-
-async function loadUserBadges() {
-  const badgeContainers = document.querySelectorAll('.player-badges[data-user]');
-
-  for (const container of badgeContainers) {
-    const username = container.getAttribute('data-user');
-    try {
-      const response = await fetch(`/api/user/${username}/badges`);
-      if (response.ok) {
-        const data = await response.json();
-        displayUserBadges(container, data.badges || []);
-      }
-    } catch (error) {
-      console.error(`Failed to load badges for ${username}:`, error);
-    }
-  }
-}
-
-function displayUserBadges(container, badges) {
-  container.innerHTML = '';
-
-  if (!badges || badges.length === 0) {
-    container.innerHTML = '<span class="text-xs text-white/50">Keine Badges</span>';
-    return;
-  }
-
-  const rarityOrder = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
-  const sortedBadges = badges.sort((a, b) => (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0));
-  const displayBadges = sortedBadges.slice(0, 5);
-
-  displayBadges.forEach(badge => {
-    const badgeElement = document.createElement('span');
-    badgeElement.className = `badge-mini rarity-${badge.rarity} tooltip`;
-    badgeElement.setAttribute('data-tip', badge.name);
-    badgeElement.textContent = badge.emoji;
-    container.appendChild(badgeElement);
-  });
-
-  if (badges.length > 5) {
-    const counter = document.createElement('span');
-    counter.className = 'badge badge-sm badge-primary';
-    counter.textContent = `+${badges.length - 5}`;
-    container.appendChild(counter);
-  }
-}
 
 async function loadUserAvatars() {
   const avatarContainers = document.querySelectorAll('.player-avatar[data-user]');
 
-  // Load avatars sequentially with 100ms delay to avoid rate limiting
   for (const avatar of avatarContainers) {
     const username = avatar.getAttribute('data-user');
     try {
@@ -367,9 +686,7 @@ async function loadUserAvatars() {
         const data = await response.json();
         applyAvatarCustomization(avatar, data);
       } else if (response.status === 429) {
-        console.warn(`Rate limited for ${username}, retrying in 1s...`);
         await new Promise(resolve => setTimeout(resolve, 1000));
-        // Retry once after rate limit
         const retryResponse = await fetch(`/api/user/${username}/avatar`);
         if (retryResponse.ok) {
           const data = await retryResponse.json();
@@ -379,8 +696,6 @@ async function loadUserAvatars() {
     } catch (error) {
       console.error(`Failed to load avatar for ${username}:`, error);
     }
-
-    // Small delay between requests to avoid overwhelming the server
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 }
@@ -405,20 +720,24 @@ function applyAvatarCustomization(avatarElement, customization) {
       "mythic": { style: "4px solid #ec4899", glow: "0 0 25px rgba(236,72,153,1)" }
     },
     avatars: {
-      "cat_face": "🐱", "dog_face": "🐶", "panda_face": "🐼", "lion_face": "🦁",
-      "unicorn_face": "🦄", "office_worker": "🧑‍💼", "scientist": "🧑‍🔬",
-      "astronaut": "🧑‍🚀", "ninja": "🥷", "wizard": "🧙‍♂️", "vampire": "🧛‍♂️",
-      "robot": "🤖", "alien": "👽", "crown": "👑", "crystal_ball": "🔮", "diamond": "💎",
-      "developer_male": "👨‍💻", "developer_female": "👩‍💻",
-      "manager_male": "👨‍💼", "manager_female": "👩‍💼",
-      "artist_male": "👨‍🎨", "artist_female": "👩‍🎨",
-      "teacher_male": "👨‍🏫", "teacher_female": "👩‍🏫",
-      "student_male": "👨‍🎓", "student_female": "👩‍🎓",
-      "business_male": "🧑‍💼", "business_female": "👩‍💼"
+      "cat_face": "\u{1F431}", "dog_face": "\u{1F436}", "panda_face": "\u{1F43C}", "lion_face": "\u{1F981}",
+      "unicorn_face": "\u{1F984}", "office_worker": "\u{1F9D1}\u200D\u{1F4BC}", "scientist": "\u{1F9D1}\u200D\u{1F52C}",
+      "astronaut": "\u{1F9D1}\u200D\u{1F680}", "ninja": "\u{1F977}", "wizard": "\u{1F9D9}\u200D\u2642\uFE0F", "vampire": "\u{1F9DB}\u200D\u2642\uFE0F",
+      "robot": "\u{1F916}", "alien": "\u{1F47D}", "crown": "\u{1F451}", "crystal_ball": "\u{1F52E}", "diamond": "\u{1F48E}",
+      "developer_male": "\u{1F468}\u200D\u{1F4BB}", "developer_female": "\u{1F469}\u200D\u{1F4BB}",
+      "manager_male": "\u{1F468}\u200D\u{1F4BC}", "manager_female": "\u{1F469}\u200D\u{1F4BC}",
+      "artist_male": "\u{1F468}\u200D\u{1F3A8}", "artist_female": "\u{1F469}\u200D\u{1F3A8}",
+      "teacher_male": "\u{1F468}\u200D\u{1F3EB}", "teacher_female": "\u{1F469}\u200D\u{1F3EB}",
+      "student_male": "\u{1F468}\u200D\u{1F393}", "student_female": "\u{1F469}\u200D\u{1F393}",
+      "business_male": "\u{1F9D1}\u200D\u{1F4BC}", "business_female": "\u{1F469}\u200D\u{1F4BC}"
     }
   };
 
-  if (customization.avatar && components.avatars[customization.avatar]) {
+  if (customization.avatar_url) {
+    avatarElement.innerHTML = `<img src="${customization.avatar_url}" alt="Avatar" class="w-full h-full object-cover" loading="lazy">`;
+  } else if (avatarElement.querySelector('img')) {
+    // Image avatar already rendered server-side
+  } else if (customization.avatar && components.avatars[customization.avatar]) {
     avatarElement.textContent = components.avatars[customization.avatar];
   }
 
@@ -437,7 +756,7 @@ function applyAvatarCustomization(avatarElement, customization) {
 }
 
 // ============================================================================
-// INITIALIZE
+// INITIALIZE ICONS
 // ============================================================================
 setTimeout(() => {
   lucide.createIcons();
