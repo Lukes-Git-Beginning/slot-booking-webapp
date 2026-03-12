@@ -686,6 +686,22 @@ def my_calendar():
                         ev['hubspot_deal_amount'] = deal.get('amount')
                         deal_match_count += 1
 
+                # Batch-resolve telefonist IDs to human-readable names
+                raw_telefonist_values = set()
+                for ev in my_events:
+                    raw = ev.get('hubspot_telefonist', '')
+                    if raw:
+                        raw_telefonist_values.add(raw)
+
+                if raw_telefonist_values:
+                    resolved_names = {}
+                    for raw in raw_telefonist_values:
+                        resolved_names[raw] = hubspot_service._resolve_telefonist_name(raw)
+                    for ev in my_events:
+                        raw = ev.get('hubspot_telefonist', '')
+                        if raw and raw in resolved_names:
+                            ev['hubspot_telefonist'] = resolved_names[raw]
+
                 logger.info(f"MY-CALENDAR: HubSpot enrichment: {deal_match_count}/{len(my_events)} deals matched")
     except Exception as e:
         logger.debug(f"MY-CALENDAR: HubSpot enrichment skipped: {e}")

@@ -1,0 +1,8 @@
+<!-- Period Selector for Analytics pages -->
+<div class="btn-group">
+    {% for val, label in [(28, '4 Wochen'), (90, '3 Monate'), (180, '6 Monate'), (365, '1 Jahr')] %}
+    <a href="?days={{ val }}" class="btn btn-sm {{ 'btn-primary' if days == val else 'btn-ghost' }}">
+        {{ label }}
+    </a>
+    {% endfor %}
+</div>

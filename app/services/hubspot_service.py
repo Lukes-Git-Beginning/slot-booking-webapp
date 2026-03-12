@@ -1025,18 +1025,33 @@ class HubSpotService:
 
             results = self._search_deals(filters=filters, properties=campaign_props)
 
+            # Identify Rückholung stage ID for campaign splitting
+            rueckholung_stage_id = None
+            stages = self.get_pipeline_stages()
+            if stages:
+                for s in stages:
+                    if 'rückholung' in s['label'].lower() or 'rueckholung' in s['label'].lower():
+                        rueckholung_stage_id = s['id']
+                        break
+
             # Group by campaign source
             campaigns = {}
             for deal_obj in results:
                 props = deal_obj.properties or {}
-                # Use source_data_1 as campaign name (often contains campaign name)
-                # Fallback to hs_analytics_source
-                campaign = (
-                    props.get('hs_analytics_source_data_1')
-                    or props.get('hs_analytics_source')
-                    or 'Unbekannt'
-                )
-                campaign = campaign.strip() or 'Unbekannt'
+
+                # Rückholung deals get their own campaign category
+                dealstage = props.get('dealstage', '')
+                if rueckholung_stage_id and dealstage == rueckholung_stage_id:
+                    campaign = 'Rückholung'
+                else:
+                    # Use source_data_1 as campaign name (often contains campaign name)
+                    # Fallback to hs_analytics_source
+                    campaign = (
+                        props.get('hs_analytics_source_data_1')
+                        or props.get('hs_analytics_source')
+                        or 'Unbekannt'
+                    )
+                    campaign = campaign.strip() or 'Unbekannt'
 
                 if campaign not in campaigns:
                     campaigns[campaign] = {
@@ -1290,6 +1305,124 @@ class HubSpotService:
 
         except Exception as e:
             logger.error(f"HubSpot customer segments failed: {e}")
+            return None
+
+    def get_per_owner_conversion(self) -> Optional[Dict[str, float]]:
+        """Per-Owner Conversion Rates (Deals won / total Deals).
+
+        Loads all owners, then counts total and closed-won deals per owner.
+
+        Returns:
+            Dict mapping owner full name to conversion rate percentage, or None.
+        """
+        if not self.is_available:
+            return None
+
+        cached = self._cache_get('per_owner_conversion')
+        if cached is not None:
+            return cached
+
+        try:
+            # 1. Load all owners
+            owners_resp = self.client.crm.owners.owners_api.get_page(limit=100)
+            owners = {}
+            for owner in (owners_resp.results or []):
+                first = owner.first_name or ''
+                last = owner.last_name or ''
+                name = f"{first} {last}".strip()
+                if name and owner.id:
+                    owners[owner.id] = name
+
+            if not owners:
+                logger.warning("HubSpot per-owner conversion: no owners found")
+                return None
+
+            # 2. Get pipeline stages to identify closed-won
+            pipeline_response = self.client.crm.pipelines.pipeline_stages_api.get_all(
+                object_type="deals",
+                pipeline_id=self.config.HUBSPOT_PIPELINE_ID,
+            )
+            # Closed-won is typically the last stage or has metadata indicating won
+            won_stage_ids = set()
+            for stage in (pipeline_response.results or []):
+                metadata = stage.metadata or {}
+                if metadata.get('isClosed') == 'true' and metadata.get('probability', '0') == '1.0':
+                    won_stage_ids.add(stage.id)
+
+            # Fallback: if no metadata, use highest display_order with isClosed
+            if not won_stage_ids:
+                closed_stages = [
+                    s for s in (pipeline_response.results or [])
+                    if (s.metadata or {}).get('isClosed') == 'true'
+                ]
+                if closed_stages:
+                    # Take the one with probability closest to 1
+                    for s in closed_stages:
+                        prob = float((s.metadata or {}).get('probability', '0'))
+                        if prob > 0.5:
+                            won_stage_ids.add(s.id)
+
+            # 3. Count deals per owner
+            from hubspot.crm.deals import PublicObjectSearchRequest
+
+            owner_total = {}
+            owner_won = {}
+
+            for owner_id, owner_name in owners.items():
+                # Total deals for this owner in pipeline
+                req = PublicObjectSearchRequest(
+                    filter_groups=[{"filters": [
+                        {"propertyName": "pipeline", "operator": "EQ",
+                         "value": self.config.HUBSPOT_PIPELINE_ID},
+                        {"propertyName": "hubspot_owner_id", "operator": "EQ",
+                         "value": owner_id},
+                    ]}],
+                    limit=1,
+                    properties=["dealstage"],
+                )
+                resp = self.client.crm.deals.search_api.do_search(
+                    public_object_search_request=req
+                )
+                total = resp.total
+                if total == 0:
+                    continue
+
+                owner_total[owner_name] = total
+
+                # Won deals
+                if won_stage_ids:
+                    won_count = 0
+                    for stage_id in won_stage_ids:
+                        req_won = PublicObjectSearchRequest(
+                            filter_groups=[{"filters": [
+                                {"propertyName": "pipeline", "operator": "EQ",
+                                 "value": self.config.HUBSPOT_PIPELINE_ID},
+                                {"propertyName": "hubspot_owner_id", "operator": "EQ",
+                                 "value": owner_id},
+                                {"propertyName": "dealstage", "operator": "EQ",
+                                 "value": stage_id},
+                            ]}],
+                            limit=1,
+                            properties=["dealstage"],
+                        )
+                        resp_won = self.client.crm.deals.search_api.do_search(
+                            public_object_search_request=req_won
+                        )
+                        won_count += resp_won.total
+                    owner_won[owner_name] = won_count
+
+            # 4. Calculate conversion rates
+            rates = {}
+            for name, total in owner_total.items():
+                won = owner_won.get(name, 0)
+                rates[name] = round((won / total * 100), 1) if total > 0 else 0.0
+
+            self._cache_set('per_owner_conversion', rates)
+            logger.info(f"HubSpot per-owner conversion loaded: {len(rates)} owners")
+            return rates if rates else None
+
+        except Exception as e:
+            logger.error(f"HubSpot per-owner conversion failed: {e}")
             return None
 
 
