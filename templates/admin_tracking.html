@@ -140,7 +140,7 @@
                         <th class="text-white font-bold text-center"><span class="tooltip tooltip-bottom" data-tip="Termine die vor dem Termin abgesagt wurden">Abgesagt <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></span></th>
                         <th class="text-white font-bold text-center"><span class="tooltip tooltip-bottom" data-tip="Termine die der Kunde verschoben hat">Verschoben <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></span></th>
                         <th class="text-white font-bold text-center"><span class="tooltip tooltip-bottom" data-tip="Termine die wir verschieben mussten (mehr Kunden als Berater)">Überhang <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></span></th>
-                        <th class="text-white font-bold text-center"><span class="tooltip tooltip-bottom" data-tip="Erschienen / (Erschienen + Nicht erschienen + Ghosts) in %">Auftauchquote <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></span></th>
+                        <th class="text-white font-bold text-center"><span class="tooltip tooltip-bottom" data-tip="Erschienen / Gesamt-Termine in %">Auftauchquote <i data-lucide="info" class="w-3 h-3 inline text-white/40"></i></span></th>
                     </tr>
                 </thead>
                 <tbody id="daily-table-body">
@@ -249,7 +249,7 @@
                 <p id="ghosts" class="text-4xl font-bold text-sky-400">{{ since_golive.ghosts | default(0) }}</p>
             </div>
 
-            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Erschienen / (Erschienen + Nicht erschienen + Ghosts) in %">
+            <div class="stat-card glass rounded-xl p-6 tooltip tooltip-bottom" data-tip="Erschienen / Gesamt-Termine in %">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-white/60 text-sm font-medium">Auftauchquote</span>
                     <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
@@ -1158,7 +1158,7 @@
             document.getElementById('avgAchievement').textContent = summary.avg_achievement + '%';
             document.getElementById('totalT1Booked').textContent = summary.total_t1_booked || 0;
             document.getElementById('highPerformers').textContent = summary.high_performers;
-            document.getElementById('lowPerformers').textContent = summary.low_performers + summary.medium_performers;
+            document.getElementById('lowPerformers').textContent = summary.low_performers;
         }
 
         document.getElementById('rankingLoading').classList.add('hidden');

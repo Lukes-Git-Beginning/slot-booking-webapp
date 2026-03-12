@@ -92,6 +92,7 @@ class ConsultantRankingService:
                     "total_slots": show_data.get("total_slots", 0),
                     "completed": show_data.get("completed", 0),
                     "no_shows": show_data.get("no_shows", 0),
+                    "ghosts": show_data.get("ghosts", 0),
                     "cancelled": show_data.get("cancelled", 0),
                     "rescheduled": show_data.get("rescheduled", 0),
                     "overhang": show_data.get("overhang", 0),

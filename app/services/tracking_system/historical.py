@@ -732,9 +732,9 @@ def _get_consultant_performance_pg(start_date_str, end_date_str):
             ghosts = row.ghosts or 0
 
             appearance_rate = 0.0
-            denominator = completed + no_shows + ghosts
-            if denominator > 0:
-                appearance_rate = round((completed / denominator) * 100, 1)
+            total = row.total_slots or 0
+            if total > 0:
+                appearance_rate = round((completed / total) * 100, 1)
 
             result[consultant_name] = {
                 "total_slots": row.total_slots or 0,
@@ -885,9 +885,7 @@ def get_consultant_performance(tracker, start_date_str, end_date_str):
 
             appearance_rate = 0.0
             if total > 0:
-                denominator = completed + stats["no_shows"] + stats["ghosts"]
-                if denominator > 0:
-                    appearance_rate = round((completed / denominator) * 100, 1)
+                appearance_rate = round((completed / total) * 100, 1)
 
             result[consultant] = {
                 "total_slots": total,
