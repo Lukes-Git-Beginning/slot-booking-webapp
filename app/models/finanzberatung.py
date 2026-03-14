@@ -166,7 +166,12 @@ class FinanzSession(Base):
         DateTime, nullable=True
     )
     status: Mapped[str] = mapped_column(
-        SAEnum(SessionStatus, native_enum=False, name='finanz_session_status'),
+        SAEnum(
+            SessionStatus,
+            native_enum=False,
+            name='finanz_session_status',
+            values_callable=lambda e: [member.value for member in e],
+        ),
         default=SessionStatus.ACTIVE,
         nullable=False
     )
@@ -203,7 +208,7 @@ class FinanzSession(Base):
     )
     foerderfragebogen = relationship(
         'FinanzFoerderFragebogen', back_populates='session',
-        uselist=False, cascade='all, delete-orphan'
+        uselist=False, cascade='all, delete-orphan', lazy='joined'
     )
 
     # Valid status transitions
