@@ -106,7 +106,7 @@ def atomic_read_json(filepath: str, default: Any = None, compressed: bool = None
                 with open(filepath, 'r', encoding='utf-8') as f:
                     return json.load(f)
 
-    except (json.JSONDecodeError, FileNotFoundError) as e:
+    except (json.JSONDecodeError, FileNotFoundError, PermissionError, OSError) as e:
         logger.warning(f"JSON read error for {filepath}: {e}")
         return default
     except Exception as e:

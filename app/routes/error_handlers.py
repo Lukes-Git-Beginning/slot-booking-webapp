@@ -315,6 +315,11 @@ def log_error(status_code: int, error: Exception, error_id: str, include_traceba
         'timestamp': datetime.now().isoformat()
     }
 
+    # 429 is expected behavior (rate limiting working), log as warning only
+    if status_code == 429:
+        logger.warning(f"HTTP 429 Rate limited {error_id}: {ip_address} -> {url}")
+        return
+
     logger.error(f"HTTP {status_code} Error {error_id}: {error}", extra=error_context)
 
     if include_traceback:

@@ -38,15 +38,12 @@ def admin_dashboard():
             today_str = str(today)
 
             try:
-                import os
-                import json
-                if os.path.exists(tracking_system.metrics_file):
-                    with open(tracking_system.metrics_file, "r", encoding="utf-8") as f:
-                        all_metrics = json.load(f)
-                        if today_str in all_metrics:
-                            today_metrics = all_metrics[today_str]
-                            today_stats['total_appointments'] = today_metrics.get('total_slots', 0)
-                            today_stats['no_show_rate'] = today_metrics.get('no_show_rate', 0.0)
+                from app.utils.json_utils import atomic_read_json
+                all_metrics = atomic_read_json(tracking_system.metrics_file, default={})
+                if today_str in all_metrics:
+                    today_metrics = all_metrics[today_str]
+                    today_stats['total_appointments'] = today_metrics.get('total_slots', 0)
+                    today_stats['no_show_rate'] = today_metrics.get('no_show_rate', 0.0)
             except Exception as e:
                 logger.error(f"Error loading today's stats: {e}", exc_info=True)
 

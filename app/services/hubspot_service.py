@@ -1257,14 +1257,19 @@ class HubSpotService:
 
             segments = []
             for segment_name, filter_def in segment_props.items():
-                req = ContactSearch(
-                    filter_groups=[{"filters": [filter_def]}],
-                    limit=10,
-                    properties=["email", "lifecyclestage"],
-                )
-                resp = self.client.crm.contacts.search_api.do_search(
-                    public_object_search_request=req
-                )
+                try:
+                    req = ContactSearch(
+                        filter_groups=[{"filters": [filter_def]}],
+                        limit=10,
+                        properties=["email", "lifecyclestage"],
+                    )
+                    resp = self.client.crm.contacts.search_api.do_search(
+                        public_object_search_request=req
+                    )
+                except Exception as e:
+                    logger.warning(f"HubSpot segment '{segment_name}' skipped: {e}")
+                    continue
+
                 contact_count = resp.total
 
                 if contact_count == 0:
