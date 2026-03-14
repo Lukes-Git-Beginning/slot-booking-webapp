@@ -110,6 +110,7 @@ from app.models.finanzberatung import (
     FinanzExtractedData,
     FinanzScorecard,
     FinanzTaskTracking,
+    FinanzFoerderFragebogen,
 )
 
 __all__ = [
@@ -163,4 +164,5 @@ __all__ = [
     'FinanzExtractedData',
     'FinanzScorecard',
     'FinanzTaskTracking',
+    'FinanzFoerderFragebogen',
 ]

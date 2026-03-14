@@ -201,6 +201,10 @@ class FinanzSession(Base):
         'FinanzTaskTracking', back_populates='session',
         cascade='all, delete-orphan', lazy='dynamic'
     )
+    foerderfragebogen = relationship(
+        'FinanzFoerderFragebogen', back_populates='session',
+        uselist=False, cascade='all, delete-orphan'
+    )
 
     # Valid status transitions
     VALID_TRANSITIONS = {
@@ -481,6 +485,103 @@ class FinanzScorecard(Base):
         return (
             f"<FinanzScorecard(id={self.id}, category='{self.category}', "
             f"rating='{self.rating}')>"
+        )
+
+
+class FinanzFoerderFragebogen(Base):
+    """
+    Structured subsidy questionnaire for a financial advisory session.
+
+    Captures customer data needed to determine eligibility for German
+    subsidy programs (Riester, Rürup, BAV, VL, KfW, etc.).
+    """
+
+    __tablename__ = 'finanz_foerderfragebogen'
+
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey('finanz_sessions.id'), unique=True, nullable=False
+    )
+
+    # Step 1: Persoenliche Daten
+    geburtsdatum: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    familienstand: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    kinder_anzahl: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    kinder_geburtsjahre: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+
+    # Step 2: Berufliche Situation
+    beschaeftigung: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    rv_pflichtig: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    bruttojahreseinkommen: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    zve: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    arbeitgeber_vl: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    arbeitgeber_bav: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    # Step 3: Kinder & Familie
+    kinder_im_haushalt_u18: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    kinder_in_ausbildung: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    v0800_beantragt: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    schwangerschaft_geplant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    # Step 4: Wohnsituation
+    wohnsituation: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    immobilie_geplant: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    bausparvertrag: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    # Step 5: Bestehende Vorsorge
+    hat_riester: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    hat_ruerup: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    hat_bav: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    hat_bu: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    hat_pflegezusatz: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    hat_vl_vertrag: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    # Ergebnis
+    eligible_foerderungen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    potential_yearly_benefit: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    # Meta
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    # Relationship
+    session = relationship('FinanzSession', back_populates='foerderfragebogen')
+
+    __table_args__ = (
+        Index('idx_finanz_ffb_session', 'session_id'),
+    )
+
+    def to_answers_dict(self) -> dict:
+        """Convert model fields to dict for eligibility calculation."""
+        return {
+            'geburtsdatum': self.geburtsdatum,
+            'familienstand': self.familienstand,
+            'kinder_anzahl': self.kinder_anzahl,
+            'kinder_geburtsjahre': self.kinder_geburtsjahre,
+            'beschaeftigung': self.beschaeftigung,
+            'rv_pflichtig': self.rv_pflichtig,
+            'bruttojahreseinkommen': self.bruttojahreseinkommen,
+            'zve': self.zve,
+            'arbeitgeber_vl': self.arbeitgeber_vl,
+            'arbeitgeber_bav': self.arbeitgeber_bav,
+            'kinder_im_haushalt_u18': self.kinder_im_haushalt_u18,
+            'kinder_in_ausbildung': self.kinder_in_ausbildung,
+            'v0800_beantragt': self.v0800_beantragt,
+            'schwangerschaft_geplant': self.schwangerschaft_geplant,
+            'wohnsituation': self.wohnsituation,
+            'immobilie_geplant': self.immobilie_geplant,
+            'bausparvertrag': self.bausparvertrag,
+            'hat_riester': self.hat_riester,
+            'hat_ruerup': self.hat_ruerup,
+            'hat_bav': self.hat_bav,
+            'hat_bu': self.hat_bu,
+            'hat_pflegezusatz': self.hat_pflegezusatz,
+            'hat_vl_vertrag': self.hat_vl_vertrag,
+        }
+
+    def __repr__(self) -> str:
+        return (
+            f"<FinanzFoerderFragebogen(id={self.id}, session_id={self.session_id}, "
+            f"completed={'yes' if self.completed_at else 'no'})>"
         )
 
 

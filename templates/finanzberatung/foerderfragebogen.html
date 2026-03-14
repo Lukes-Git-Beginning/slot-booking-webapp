@@ -1,0 +1,640 @@
+{% extends "hub/base.html" %}
+
+{% block title %}Förderfragebogen — {{ session.customer_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Corporate clean overrides — no gaming elements */
+    #ffb-wizard .glass { background: rgba(255,255,255,0.03); backdrop-filter: none; }
+    #ffb-wizard { --ffb-primary: #d4af6a; --ffb-teal: #207487; --ffb-bg: #1a1c2e; }
+
+    /* Option cards */
+    .ffb-option {
+        @apply border-2 border-base-300 rounded-xl p-4 cursor-pointer transition-all duration-200;
+    }
+    .ffb-option:hover { @apply border-primary/50; }
+    .ffb-option.selected { @apply border-primary bg-primary/10; }
+
+    /* Step transitions */
+    .ffb-step-enter { animation: ffbSlideIn 0.3s ease-out; }
+    @keyframes ffbSlideIn {
+        from { opacity: 0; transform: translateX(30px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Result cards */
+    .ffb-result-card {
+        @apply border border-success/30 bg-success/5 rounded-xl p-5 transition-all duration-200;
+    }
+    .ffb-result-card:hover { @apply border-success/50 bg-success/10; }
+
+    /* Large readable text for screen sharing */
+    #ffb-wizard h2 { @apply text-2xl font-bold mb-6; }
+    #ffb-wizard label, #ffb-wizard .ffb-question { @apply text-lg font-medium mb-3 block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="ffb-wizard" class="min-h-screen py-8 px-4" x-data="ffbWizard()">
+    <div class="max-w-3xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold">Förderfragebogen</h1>
+                <p class="text-base-content/60 mt-1">{{ session.customer_name }}</p>
+            </div>
+            <a href="{{ url_for('finanzberatung.finanz_sessions.session_detail', session_id=session_id) }}"
+               class="btn btn-ghost btn-sm gap-2">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Zurück zur Session
+            </a>
+        </div>
+
+        <!-- Progress Steps -->
+        <ul class="steps steps-horizontal w-full mb-10">
+            <li class="step" :class="currentStep >= 1 ? 'step-primary' : ''" @click="goToStep(1)">
+                <span class="hidden md:inline">Persönliches</span>
+            </li>
+            <li class="step" :class="currentStep >= 2 ? 'step-primary' : ''" @click="currentStep > 2 && goToStep(2)">
+                <span class="hidden md:inline">Beruf</span>
+            </li>
+            <li class="step" :class="currentStep >= 3 ? 'step-primary' : ''" @click="currentStep > 3 && goToStep(3)">
+                <span class="hidden md:inline">Familie</span>
+            </li>
+            <li class="step" :class="currentStep >= 4 ? 'step-primary' : ''" @click="currentStep > 4 && goToStep(4)">
+                <span class="hidden md:inline">Wohnen</span>
+            </li>
+            <li class="step" :class="currentStep >= 5 ? 'step-primary' : ''" @click="currentStep > 5 && goToStep(5)">
+                <span class="hidden md:inline">Vorsorge</span>
+            </li>
+            <li class="step" :class="currentStep >= 6 ? 'step-primary' : ''">
+                <span class="hidden md:inline">Ergebnis</span>
+            </li>
+        </ul>
+
+        <form method="POST" action="{{ url_for('finanzberatung.finanz_questionnaire.save_foerderfragebogen', session_id=session_id) }}"
+              @submit.prevent="submitForm($event)">
+
+            <!-- ==================== STEP 1: Persönliche Daten ==================== -->
+            <div x-show="currentStep === 1" x-transition class="ffb-step-enter">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-8">
+                        <h2><i data-lucide="user" class="w-6 h-6 inline text-primary mr-2"></i>Persönliche Daten</h2>
+
+                        <div class="space-y-6">
+                            <div>
+                                <span class="ffb-question">Geburtsdatum</span>
+                                <input type="date" name="geburtsdatum" x-model="answers.geburtsdatum"
+                                       class="input input-bordered w-full max-w-xs text-lg">
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Familienstand</span>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <template x-for="opt in [{v:'ledig',l:'Ledig'},{v:'verheiratet',l:'Verheiratet'},{v:'eingetragene_lp',l:'Eingetragene LP'},{v:'geschieden',l:'Geschieden'},{v:'verwitwet',l:'Verwitwet'}]">
+                                        <div class="ffb-option text-center" :class="answers.familienstand === opt.v && 'selected'"
+                                             @click="answers.familienstand = opt.v">
+                                            <span class="text-lg" x-text="opt.l"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="familienstand" :value="answers.familienstand">
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Haben Sie Kinder?</span>
+                                <div class="flex gap-3">
+                                    <div class="ffb-option flex-1 text-center" :class="answers.kinder_anzahl > 0 && 'selected'"
+                                         @click="if(!answers.kinder_anzahl) answers.kinder_anzahl = 1">
+                                        <span class="text-lg">Ja</span>
+                                    </div>
+                                    <div class="ffb-option flex-1 text-center" :class="answers.kinder_anzahl === 0 && 'selected'"
+                                         @click="answers.kinder_anzahl = 0; answers.kinder_geburtsjahre = '[]'">
+                                        <span class="text-lg">Nein</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div x-show="answers.kinder_anzahl > 0" x-transition>
+                                <span class="ffb-question">Anzahl Kinder</span>
+                                <input type="number" name="kinder_anzahl" x-model.number="answers.kinder_anzahl"
+                                       min="1" max="15" class="input input-bordered w-24 text-lg"
+                                       @change="updateKinderJahre()">
+
+                                <div class="mt-4" x-show="answers.kinder_anzahl > 0">
+                                    <span class="ffb-question">Geburtsjahre der Kinder</span>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="(jahr, idx) in kinderJahre" :key="idx">
+                                            <input type="number" x-model.number="kinderJahre[idx]"
+                                                   :placeholder="'Kind ' + (idx+1)"
+                                                   min="1950" max="2026"
+                                                   class="input input-bordered w-28 text-center"
+                                                   @change="syncKinderJahre()">
+                                        </template>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="kinder_geburtsjahre" :value="JSON.stringify(kinderJahre)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== STEP 2: Berufliche Situation ==================== -->
+            <div x-show="currentStep === 2" x-transition class="ffb-step-enter">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-8">
+                        <h2><i data-lucide="briefcase" class="w-6 h-6 inline text-primary mr-2"></i>Berufliche Situation</h2>
+
+                        <div class="space-y-6">
+                            <div>
+                                <span class="ffb-question">Beschäftigungsstatus</span>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <template x-for="opt in [{v:'angestellt',l:'Angestellt',icon:'building-2'},{v:'selbstaendig',l:'Selbständig',icon:'rocket'},{v:'beamtet',l:'Beamtet',icon:'shield'},{v:'ausbildung',l:'Ausbildung',icon:'graduation-cap'},{v:'elternzeit',l:'Elternzeit',icon:'baby'},{v:'arbeitslos',l:'Arbeitssuchend',icon:'search'},{v:'rentner',l:'Rentner/in',icon:'armchair'}]">
+                                        <div class="ffb-option text-center" :class="answers.beschaeftigung === opt.v && 'selected'"
+                                             @click="answers.beschaeftigung = opt.v; autoSetRvPflichtig()">
+                                            <i :data-lucide="opt.icon" class="w-5 h-5 mx-auto mb-1"></i>
+                                            <span class="text-base" x-text="opt.l"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="beschaeftigung" :value="answers.beschaeftigung">
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Rentenversicherungspflichtig?</span>
+                                <div class="flex gap-3">
+                                    <template x-for="opt in [{v:true,l:'Ja'},{v:false,l:'Nein'}]">
+                                        <div class="ffb-option flex-1 text-center"
+                                             :class="answers.rv_pflichtig === opt.v && 'selected'"
+                                             @click="answers.rv_pflichtig = opt.v">
+                                            <span class="text-lg" x-text="opt.l"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="rv_pflichtig" :value="answers.rv_pflichtig">
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Bruttojahreseinkommen (ca.)</span>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" x-model.number="answers.bruttojahreseinkommen"
+                                           min="0" max="200000" step="1000"
+                                           class="range range-primary flex-1">
+                                    <div class="flex items-center gap-1">
+                                        <input type="number" name="bruttojahreseinkommen"
+                                               x-model.number="answers.bruttojahreseinkommen"
+                                               class="input input-bordered w-32 text-right text-lg"
+                                               min="0" step="1000">
+                                        <span class="text-lg">€</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Zu versteuerndes Einkommen <span class="text-sm font-normal text-base-content/50">(laut Steuerbescheid, optional)</span></span>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" name="zve" x-model.number="answers.zve"
+                                           class="input input-bordered w-40 text-right text-lg"
+                                           min="0" step="1000" placeholder="—">
+                                    <span class="text-lg">€</span>
+                                </div>
+                            </div>
+
+                            <div x-show="answers.beschaeftigung === 'angestellt' || answers.beschaeftigung === 'ausbildung'" x-transition>
+                                <span class="ffb-question">Bietet Ihr Arbeitgeber an:</span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="ffb-option text-center" :class="answers.arbeitgeber_vl === true && 'selected'"
+                                         @click="answers.arbeitgeber_vl = answers.arbeitgeber_vl === true ? null : true">
+                                        <span class="text-base">VL (Vermögenswirksame Leistungen)</span>
+                                    </div>
+                                    <div class="ffb-option text-center" :class="answers.arbeitgeber_bav === true && 'selected'"
+                                         @click="answers.arbeitgeber_bav = answers.arbeitgeber_bav === true ? null : true">
+                                        <span class="text-base">BAV (Betriebliche Altersvorsorge)</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="arbeitgeber_vl" :value="answers.arbeitgeber_vl">
+                                <input type="hidden" name="arbeitgeber_bav" :value="answers.arbeitgeber_bav">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== STEP 3: Kinder & Familie ==================== -->
+            <div x-show="currentStep === 3" x-transition class="ffb-step-enter">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-8">
+                        <h2><i data-lucide="heart" class="w-6 h-6 inline text-primary mr-2"></i>Kinder & Familie</h2>
+
+                        <template x-if="!answers.kinder_anzahl || answers.kinder_anzahl === 0">
+                            <div class="text-center py-8 text-base-content/50">
+                                <i data-lucide="info" class="w-8 h-8 mx-auto mb-3"></i>
+                                <p class="text-lg">Keine Kinder angegeben — dieser Schritt wird übersprungen.</p>
+                                <button type="button" class="btn btn-primary mt-4" @click="currentStep = 4">
+                                    Weiter zu Wohnsituation
+                                </button>
+                            </div>
+                        </template>
+
+                        <template x-if="answers.kinder_anzahl > 0">
+                            <div class="space-y-6">
+                                <div>
+                                    <span class="ffb-question">Kinder unter 18 im Haushalt?</span>
+                                    <input type="number" name="kinder_im_haushalt_u18"
+                                           x-model.number="answers.kinder_im_haushalt_u18"
+                                           min="0" :max="answers.kinder_anzahl"
+                                           class="input input-bordered w-24 text-lg">
+                                </div>
+
+                                <div>
+                                    <span class="ffb-question">Kinder in Ausbildung / Studium?</span>
+                                    <input type="number" name="kinder_in_ausbildung"
+                                           x-model.number="answers.kinder_in_ausbildung"
+                                           min="0" :max="answers.kinder_anzahl"
+                                           class="input input-bordered w-24 text-lg">
+                                </div>
+
+                                <div>
+                                    <span class="ffb-question">Kindererziehungszeiten bei der DRV beantragt (V0800)?</span>
+                                    <div class="flex gap-3">
+                                        <template x-for="opt in [{v:true,l:'Ja'},{v:false,l:'Nein'},{v:null,l:'Weiß nicht'}]">
+                                            <div class="ffb-option flex-1 text-center"
+                                                 :class="answers.v0800_beantragt === opt.v && 'selected'"
+                                                 @click="answers.v0800_beantragt = opt.v">
+                                                <span class="text-lg" x-text="opt.l"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <input type="hidden" name="v0800_beantragt" :value="answers.v0800_beantragt">
+                                </div>
+
+                                <div>
+                                    <span class="ffb-question">Schwangerschaft / Elternzeit geplant?</span>
+                                    <div class="flex gap-3">
+                                        <template x-for="opt in [{v:true,l:'Ja'},{v:false,l:'Nein'}]">
+                                            <div class="ffb-option flex-1 text-center"
+                                                 :class="answers.schwangerschaft_geplant === opt.v && 'selected'"
+                                                 @click="answers.schwangerschaft_geplant = opt.v">
+                                                <span class="text-lg" x-text="opt.l"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <input type="hidden" name="schwangerschaft_geplant" :value="answers.schwangerschaft_geplant">
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== STEP 4: Wohnsituation ==================== -->
+            <div x-show="currentStep === 4" x-transition class="ffb-step-enter">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-8">
+                        <h2><i data-lucide="home" class="w-6 h-6 inline text-primary mr-2"></i>Wohnsituation</h2>
+
+                        <div class="space-y-6">
+                            <div>
+                                <span class="ffb-question">Aktuelle Wohnsituation</span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="ffb-option text-center" :class="answers.wohnsituation === 'mieter' && 'selected'"
+                                         @click="answers.wohnsituation = 'mieter'">
+                                        <i data-lucide="building" class="w-6 h-6 mx-auto mb-2"></i>
+                                        <span class="text-lg">Mieter</span>
+                                    </div>
+                                    <div class="ffb-option text-center" :class="answers.wohnsituation === 'eigentuemer' && 'selected'"
+                                         @click="answers.wohnsituation = 'eigentuemer'">
+                                        <i data-lucide="home" class="w-6 h-6 mx-auto mb-2"></i>
+                                        <span class="text-lg">Eigentümer</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="wohnsituation" :value="answers.wohnsituation">
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Planen Sie eine Immobilie?</span>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <template x-for="opt in [{v:'keine',l:'Keine Pläne'},{v:'neubau',l:'Neubau'},{v:'kauf',l:'Kauf (Bestand)'},{v:'sanierung',l:'Sanierung'}]">
+                                        <div class="ffb-option text-center" :class="answers.immobilie_geplant === opt.v && 'selected'"
+                                             @click="answers.immobilie_geplant = opt.v">
+                                            <span class="text-base" x-text="opt.l"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="immobilie_geplant" :value="answers.immobilie_geplant">
+                            </div>
+
+                            <div>
+                                <span class="ffb-question">Bausparvertrag vorhanden?</span>
+                                <div class="flex gap-3">
+                                    <template x-for="opt in [{v:true,l:'Ja'},{v:false,l:'Nein'}]">
+                                        <div class="ffb-option flex-1 text-center"
+                                             :class="answers.bausparvertrag === opt.v && 'selected'"
+                                             @click="answers.bausparvertrag = opt.v">
+                                            <span class="text-lg" x-text="opt.l"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="bausparvertrag" :value="answers.bausparvertrag">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== STEP 5: Bestehende Vorsorge ==================== -->
+            <div x-show="currentStep === 5" x-transition class="ffb-step-enter">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-8">
+                        <h2><i data-lucide="shield-check" class="w-6 h-6 inline text-primary mr-2"></i>Bestehende Vorsorge & Versicherungen</h2>
+                        <p class="text-base-content/60 mb-4">Welche Vorsorgeprodukte haben Sie bereits?</p>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div class="ffb-option text-center" :class="answers.hat_riester && 'selected'"
+                                 @click="answers.hat_riester = !answers.hat_riester">
+                                <span class="text-base font-medium">Riester-Rente</span>
+                            </div>
+                            <div class="ffb-option text-center" :class="answers.hat_ruerup && 'selected'"
+                                 @click="answers.hat_ruerup = !answers.hat_ruerup">
+                                <span class="text-base font-medium">Rürup / Basisrente</span>
+                            </div>
+                            <div class="ffb-option text-center" :class="answers.hat_bav && 'selected'"
+                                 @click="answers.hat_bav = !answers.hat_bav">
+                                <span class="text-base font-medium">Betriebl. Altersvorsorge</span>
+                            </div>
+                            <div class="ffb-option text-center" :class="answers.hat_vl_vertrag && 'selected'"
+                                 @click="answers.hat_vl_vertrag = !answers.hat_vl_vertrag">
+                                <span class="text-base font-medium">VL-Vertrag</span>
+                            </div>
+                            <div class="ffb-option text-center" :class="answers.hat_pflegezusatz && 'selected'"
+                                 @click="answers.hat_pflegezusatz = !answers.hat_pflegezusatz">
+                                <span class="text-base font-medium">Pflegezusatz</span>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="hat_riester" :value="answers.hat_riester">
+                        <input type="hidden" name="hat_ruerup" :value="answers.hat_ruerup">
+                        <input type="hidden" name="hat_bav" :value="answers.hat_bav">
+                        <input type="hidden" name="hat_vl_vertrag" :value="answers.hat_vl_vertrag">
+                        <input type="hidden" name="hat_pflegezusatz" :value="answers.hat_pflegezusatz">
+
+                        <div class="mt-6">
+                            <span class="ffb-question">Berufsunfähigkeitsversicherung?</span>
+                            <div class="grid grid-cols-3 gap-3">
+                                <template x-for="opt in [{v:'keine',l:'Keine'},{v:'privat',l:'Privat'},{v:'bav',l:'Über BAV'}]">
+                                    <div class="ffb-option text-center" :class="answers.hat_bu === opt.v && 'selected'"
+                                         @click="answers.hat_bu = opt.v">
+                                        <span class="text-base" x-text="opt.l"></span>
+                                    </div>
+                                </template>
+                            </div>
+                            <input type="hidden" name="hat_bu" :value="answers.hat_bu">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== STEP 6: Ergebnis ==================== -->
+            <div x-show="currentStep === 6" x-transition class="ffb-step-enter">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-8">
+                        <h2><i data-lucide="sparkles" class="w-6 h-6 inline text-primary mr-2"></i>Ihre Fördermöglichkeiten</h2>
+
+                        <!-- Loading state -->
+                        <div x-show="calculating" class="text-center py-12">
+                            <span class="loading loading-spinner loading-lg text-primary"></span>
+                            <p class="mt-4 text-lg">Berechne Fördermöglichkeiten...</p>
+                        </div>
+
+                        <!-- Results -->
+                        <div x-show="!calculating && results.length > 0">
+                            <!-- Summary -->
+                            <div class="bg-primary/10 border border-primary/30 rounded-xl p-6 mb-8 text-center">
+                                <p class="text-base-content/60 text-lg">Geschätztes Förderpotenzial pro Jahr</p>
+                                <p class="text-4xl font-bold text-primary mt-2">
+                                    <span x-text="totalBenefit.toLocaleString('de-DE')"></span> €
+                                </p>
+                                <p class="text-base-content/60 mt-1">
+                                    aus <span x-text="results.length" class="font-semibold"></span> Förderprogrammen
+                                </p>
+                            </div>
+
+                            <!-- Individual results by category -->
+                            <template x-for="kategorie in uniqueCategories" :key="kategorie">
+                                <div class="mb-6">
+                                    <h3 class="text-lg font-semibold mb-3 text-primary" x-text="kategorie"></h3>
+                                    <div class="space-y-3">
+                                        <template x-for="result in results.filter(r => r.kategorie === kategorie)" :key="result.id">
+                                            <div class="ffb-result-card">
+                                                <div class="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 class="font-semibold text-lg" x-text="result.name"></h4>
+                                                        <p class="text-base-content/70 mt-1 text-sm" x-text="result.details"></p>
+                                                    </div>
+                                                    <div class="text-right ml-4 shrink-0">
+                                                        <span class="badge badge-success badge-lg" x-text="'~' + (result.schaetz_vorteil || 0).toLocaleString('de-DE') + ' €/Jahr'"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- No results -->
+                        <div x-show="!calculating && results.length === 0" class="text-center py-12">
+                            <i data-lucide="search-x" class="w-12 h-12 mx-auto text-base-content/30 mb-4"></i>
+                            <p class="text-lg text-base-content/60">Auf Basis der Angaben wurden keine passenden Förderprogramme gefunden.</p>
+                            <p class="text-sm text-base-content/40 mt-2">Bitte überprüfen Sie die Angaben oder gehen Sie zurück.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="mt-6 text-center" x-show="results.length > 0">
+                    <button type="submit" class="btn btn-primary btn-lg gap-2">
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                        Ergebnis speichern & zurück zur Session
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==================== Navigation Buttons ==================== -->
+            <div class="flex justify-between mt-8" x-show="currentStep < 6">
+                <button type="button" class="btn btn-ghost gap-2"
+                        x-show="currentStep > 1" @click="prevStep()">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Zurück
+                </button>
+                <div x-show="currentStep === 1"></div>
+                <button type="button" class="btn btn-primary gap-2" @click="nextStep()">
+                    Weiter
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Back button on results page -->
+            <div class="flex justify-center mt-4" x-show="currentStep === 6">
+                <button type="button" class="btn btn-ghost gap-2" @click="prevStep()">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Angaben bearbeiten
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function ffbWizard() {
+    // Load existing answers from server
+    const existing = {{ answers | tojson }};
+
+    // Parse kinder_geburtsjahre
+    let kinderJahre = [];
+    if (existing.kinder_geburtsjahre) {
+        try {
+            kinderJahre = JSON.parse(existing.kinder_geburtsjahre);
+        } catch(e) { kinderJahre = []; }
+    }
+
+    // Initialize kinder array to match count
+    const kinderAnzahl = existing.kinder_anzahl || 0;
+    while (kinderJahre.length < kinderAnzahl) kinderJahre.push(null);
+
+    // Check if we should show results
+    const showResults = new URLSearchParams(window.location.search).get('show_results') === 'true';
+
+    return {
+        currentStep: showResults ? 6 : 1,
+        calculating: false,
+        results: [],
+        totalBenefit: 0,
+
+        answers: {
+            geburtsdatum: existing.geburtsdatum || '',
+            familienstand: existing.familienstand || null,
+            kinder_anzahl: kinderAnzahl,
+            kinder_geburtsjahre: existing.kinder_geburtsjahre || '[]',
+            beschaeftigung: existing.beschaeftigung || null,
+            rv_pflichtig: existing.rv_pflichtig,
+            bruttojahreseinkommen: existing.bruttojahreseinkommen || 0,
+            zve: existing.zve || null,
+            arbeitgeber_vl: existing.arbeitgeber_vl,
+            arbeitgeber_bav: existing.arbeitgeber_bav,
+            kinder_im_haushalt_u18: existing.kinder_im_haushalt_u18 || 0,
+            kinder_in_ausbildung: existing.kinder_in_ausbildung || 0,
+            v0800_beantragt: existing.v0800_beantragt,
+            schwangerschaft_geplant: existing.schwangerschaft_geplant,
+            wohnsituation: existing.wohnsituation || null,
+            immobilie_geplant: existing.immobilie_geplant || 'keine',
+            bausparvertrag: existing.bausparvertrag,
+            hat_riester: existing.hat_riester || false,
+            hat_ruerup: existing.hat_ruerup || false,
+            hat_bav: existing.hat_bav || false,
+            hat_bu: existing.hat_bu || 'keine',
+            hat_pflegezusatz: existing.hat_pflegezusatz || false,
+            hat_vl_vertrag: existing.hat_vl_vertrag || false,
+        },
+
+        kinderJahre: kinderJahre,
+
+        init() {
+            // Re-initialize Lucide icons after Alpine renders
+            this.$nextTick(() => {
+                if (window.lucide) lucide.createIcons();
+            });
+
+            // If showing results, calculate immediately
+            if (showResults) {
+                this.calculateResults();
+            }
+        },
+
+        goToStep(step) {
+            this.currentStep = step;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        nextStep() {
+            if (this.currentStep === 3 && (!this.answers.kinder_anzahl || this.answers.kinder_anzahl === 0)) {
+                this.currentStep = 4;
+            } else {
+                this.currentStep++;
+            }
+
+            if (this.currentStep === 6) {
+                this.calculateResults();
+            }
+
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        prevStep() {
+            if (this.currentStep === 4 && (!this.answers.kinder_anzahl || this.answers.kinder_anzahl === 0)) {
+                this.currentStep = 2;
+            } else {
+                this.currentStep--;
+            }
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        autoSetRvPflichtig() {
+            const rvPflichtig = ['angestellt', 'ausbildung', 'beamtet'];
+            this.answers.rv_pflichtig = rvPflichtig.includes(this.answers.beschaeftigung);
+        },
+
+        updateKinderJahre() {
+            const count = this.answers.kinder_anzahl || 0;
+            while (this.kinderJahre.length < count) this.kinderJahre.push(null);
+            while (this.kinderJahre.length > count) this.kinderJahre.pop();
+        },
+
+        syncKinderJahre() {
+            this.answers.kinder_geburtsjahre = JSON.stringify(this.kinderJahre.filter(j => j));
+        },
+
+        async calculateResults() {
+            this.calculating = true;
+            this.results = [];
+            this.totalBenefit = 0;
+
+            try {
+                const resp = await fetch(`/finanzberatung/sessions/{{ session_id }}/foerderfragebogen/calculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    body: JSON.stringify(this.answers),
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    this.results = data.eligible || [];
+                    this.totalBenefit = data.total_yearly_benefit || 0;
+                }
+            } catch(e) {
+                console.error('Calculation failed:', e);
+            } finally {
+                this.calculating = false;
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            }
+        },
+
+        get uniqueCategories() {
+            return [...new Set(this.results.map(r => r.kategorie))];
+        },
+
+        submitForm(event) {
+            // Submit the actual form
+            event.target.submit();
+        },
+    };
+}
+</script>
+{% endblock %}

@@ -99,6 +99,12 @@ def init_app(app):
     except ImportError:
         app.logger.warning("Finanzberatung admin sub-blueprint not yet available")
 
+    try:
+        from .questionnaire import questionnaire_bp
+        finanzberatung_bp.register_blueprint(questionnaire_bp, url_prefix='')
+    except ImportError:
+        app.logger.warning("Finanzberatung questionnaire sub-blueprint not yet available")
+
     # Register parent blueprint with app
     app.register_blueprint(finanzberatung_bp)
 

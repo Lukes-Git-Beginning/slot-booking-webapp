@@ -121,6 +121,25 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Foerderfragebogen Button -->
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <a href="{{ url_for('finanzberatung.finanz_questionnaire.foerderfragebogen', session_id=session.id) }}"
+                   class="btn btn-primary w-full gap-2">
+                    <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                    {% if session.foerderfragebogen and session.foerderfragebogen.completed_at %}
+                        Förderfragebogen ansehen
+                    {% else %}
+                        Förderfragebogen starten
+                    {% endif %}
+                </a>
+                {% if session.foerderfragebogen and session.foerderfragebogen.completed_at %}
+                <p class="text-xs text-center mt-2 text-success">
+                    <i data-lucide="check-circle" class="w-3 h-3 inline"></i>
+                    Abgeschlossen — {{ session.foerderfragebogen.potential_yearly_benefit|default(0)|round|int }} EUR/Jahr Förderpotenzial
+                </p>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Notes Card -->
