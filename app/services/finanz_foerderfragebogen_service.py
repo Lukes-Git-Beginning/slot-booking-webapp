@@ -2,10 +2,8 @@
 """
 Foerderfragebogen Service - CRUD and Eligibility Calculation
 
-Manages the subsidy questionnaire lifecycle:
-- Create/update questionnaire for a session
-- Calculate eligibility based on answers
-- Mark questionnaire as completed
+Based on the ZFA Erfassungsbogen für Förderungen PDF.
+Manages the subsidy questionnaire lifecycle with JSON-based answers.
 """
 
 import json
@@ -13,7 +11,7 @@ import logging
 from datetime import datetime
 
 from app.models import get_db_session
-from app.models.finanzberatung import FinanzFoerderFragebogen, FinanzSession
+from app.models.finanzberatung import FinanzFoerderFragebogen
 from app.config.foerder_katalog import (
     get_eligible_foerderungen,
     get_total_yearly_benefit,
@@ -22,55 +20,40 @@ from app.config.foerder_katalog import (
 logger = logging.getLogger(__name__)
 
 
-# Fields that map from form data to model columns
-ANSWER_FIELDS = [
-    'geburtsdatum', 'familienstand', 'kinder_anzahl', 'kinder_geburtsjahre',
-    'beschaeftigung', 'rv_pflichtig', 'bruttojahreseinkommen', 'zve',
-    'arbeitgeber_vl', 'arbeitgeber_bav',
-    'kinder_im_haushalt_u18', 'kinder_in_ausbildung', 'v0800_beantragt',
-    'schwangerschaft_geplant',
-    'wohnsituation', 'immobilie_geplant', 'bausparvertrag',
-    'hat_riester', 'hat_ruerup', 'hat_bav', 'hat_bu', 'hat_pflegezusatz',
-    'hat_vl_vertrag',
+# Direct model columns (not in JSON answers)
+STAMM_FIELDS = [
+    'mandant_vorname', 'mandant_nachname', 'mandant_geburtsdatum', 'mandant_beruf',
+    'partner_vorname', 'partner_nachname', 'partner_geburtsdatum', 'partner_beruf',
+    'anschrift', 'anzahl_kindergeldberechtigt',
+    'brutto_mandant', 'brutto_partner',
+    'weitere_einkuenfte_mandant', 'weitere_einkuenfte_partner',
+    'staatsangehoerigkeit_mandant', 'staatsangehoerigkeit_partner',
+    'weitere_notizen',
 ]
 
-BOOL_FIELDS = {
-    'rv_pflichtig', 'arbeitgeber_vl', 'arbeitgeber_bav',
-    'v0800_beantragt', 'schwangerschaft_geplant', 'bausparvertrag',
-    'hat_riester', 'hat_ruerup', 'hat_bav', 'hat_pflegezusatz', 'hat_vl_vertrag',
-}
-
-INT_FIELDS = {
-    'kinder_anzahl', 'kinder_im_haushalt_u18', 'kinder_in_ausbildung',
-}
-
-FLOAT_FIELDS = {
-    'bruttojahreseinkommen', 'zve',
-}
+BOOL_STAMM = {'schufa_mandant', 'schufa_partner'}
+INT_STAMM = {'anzahl_kindergeldberechtigt'}
+FLOAT_STAMM = {'brutto_mandant', 'brutto_partner'}
 
 
-def _coerce_value(field: str, value):
-    """Coerce form value to correct Python type."""
+def _coerce_stamm(field, value):
+    """Coerce a stamm field value to correct type."""
     if value is None or value == '' or value == 'null':
         return None
-
-    if field in BOOL_FIELDS:
+    if field in BOOL_STAMM:
         if isinstance(value, bool):
             return value
         return str(value).lower() in ('true', '1', 'ja', 'yes', 'on')
-
-    if field in INT_FIELDS:
+    if field in INT_STAMM:
         try:
             return int(value)
         except (ValueError, TypeError):
             return None
-
-    if field in FLOAT_FIELDS:
+    if field in FLOAT_STAMM:
         try:
             return float(str(value).replace(',', '.'))
         except (ValueError, TypeError):
             return None
-
     return str(value)
 
 
@@ -84,14 +67,12 @@ class FinanzFoerderFragebogenService:
             ffb = db.query(FinanzFoerderFragebogen).filter_by(
                 session_id=session_id
             ).first()
-
             if not ffb:
                 ffb = FinanzFoerderFragebogen(session_id=session_id)
                 db.add(ffb)
                 db.commit()
                 db.refresh(ffb)
                 logger.info("Created new FFB for session %s", session_id)
-
             return ffb
         except Exception as e:
             db.rollback()
@@ -100,37 +81,52 @@ class FinanzFoerderFragebogenService:
         finally:
             db.close()
 
-    def save_answers(self, session_id: int, form_data: dict, username: str) -> FinanzFoerderFragebogen:
+    def save_answers(self, session_id: int, data: dict, username: str) -> FinanzFoerderFragebogen:
         """
-        Save questionnaire answers, calculate eligibility, and store results.
+        Save all questionnaire data, calculate eligibility, and store results.
 
         Args:
-            session_id: The session to save answers for
-            form_data: Dict of field_name -> value from the form
+            session_id: The session ID
+            data: Full form data dict (stamm fields + answers + kinder)
             username: Who completed the questionnaire
-
-        Returns:
-            Updated FinanzFoerderFragebogen
         """
         db = get_db_session()
         try:
             ffb = db.query(FinanzFoerderFragebogen).filter_by(
                 session_id=session_id
             ).first()
-
             if not ffb:
                 ffb = FinanzFoerderFragebogen(session_id=session_id)
                 db.add(ffb)
 
-            # Set answer fields
-            for field in ANSWER_FIELDS:
-                if field in form_data:
-                    setattr(ffb, field, _coerce_value(field, form_data[field]))
+            # Set stamm fields (direct columns)
+            for field in STAMM_FIELDS:
+                if field in data:
+                    setattr(ffb, field, _coerce_stamm(field, data[field]))
+            for field in BOOL_STAMM:
+                if field in data:
+                    setattr(ffb, field, _coerce_stamm(field, data[field]))
+
+            # Set kinder
+            if 'kinder' in data:
+                kinder = data['kinder']
+                if isinstance(kinder, str):
+                    ffb.kinder = kinder
+                else:
+                    ffb.kinder = json.dumps(kinder, ensure_ascii=False)
+
+            # All other fields go into JSON answers
+            answers = {}
+            skip_fields = set(STAMM_FIELDS) | BOOL_STAMM | {'kinder', 'csrf_token'}
+            for key, value in data.items():
+                if key not in skip_fields:
+                    answers[key] = value
+            ffb.set_answers(answers)
 
             # Calculate eligibility
-            answers = ffb.to_answers_dict()
-            eligible = get_eligible_foerderungen(answers)
-            total_benefit = get_total_yearly_benefit(answers)
+            full_data = ffb.to_full_dict()
+            eligible = get_eligible_foerderungen(full_data)
+            total_benefit = get_total_yearly_benefit(full_data)
 
             ffb.eligible_foerderungen = json.dumps(
                 [{'id': f['id'], 'name': f['name'], 'kategorie': f['kategorie'],
@@ -146,15 +142,55 @@ class FinanzFoerderFragebogenService:
             db.refresh(ffb)
 
             logger.info(
-                "FFB saved for session %s: %d eligible subsidies, %.0f EUR/year benefit",
+                "FFB saved for session %s: %d eligible, %.0f EUR/year",
                 session_id, len(eligible), total_benefit
             )
             return ffb
-
         except Exception as e:
             db.rollback()
             logger.error("Failed to save FFB for session %s: %s", session_id, e, exc_info=True)
             raise
+        finally:
+            db.close()
+
+    def autosave(self, session_id: int, data: dict):
+        """Save answers without eligibility calculation (called on step change)."""
+        db = get_db_session()
+        try:
+            ffb = db.query(FinanzFoerderFragebogen).filter_by(
+                session_id=session_id
+            ).first()
+            if not ffb:
+                ffb = FinanzFoerderFragebogen(session_id=session_id)
+                db.add(ffb)
+
+            # Set stamm fields
+            for field in STAMM_FIELDS:
+                if field in data:
+                    setattr(ffb, field, _coerce_stamm(field, data[field]))
+            for field in BOOL_STAMM:
+                if field in data:
+                    setattr(ffb, field, _coerce_stamm(field, data[field]))
+
+            # Kinder
+            if 'kinder' in data:
+                kinder = data['kinder']
+                ffb.kinder = json.dumps(kinder, ensure_ascii=False) if isinstance(kinder, list) else kinder
+
+            # JSON answers
+            answers = ffb.get_answers()
+            skip_fields = set(STAMM_FIELDS) | BOOL_STAMM | {'kinder', 'csrf_token'}
+            for key, value in data.items():
+                if key not in skip_fields:
+                    answers[key] = value
+            ffb.set_answers(answers)
+
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            logger.warning("FFB autosave failed for session %s: %s", session_id, e)
+            return False
         finally:
             db.close()
 
@@ -165,7 +201,6 @@ class FinanzFoerderFragebogenService:
             ffb = db.query(FinanzFoerderFragebogen).filter_by(
                 session_id=session_id
             ).first()
-
             if not ffb or not ffb.completed_at:
                 return None
 
@@ -187,5 +222,5 @@ class FinanzFoerderFragebogenService:
             db.close()
 
 
-# Singleton instance
+# Singleton
 foerderfragebogen_service = FinanzFoerderFragebogenService()

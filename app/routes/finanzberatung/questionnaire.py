@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Foerderfragebogen Routes - Subsidy Questionnaire Wizard
+Foerderfragebogen Routes - ZFA Subsidy Questionnaire Wizard
 
 Routes:
 - GET /sessions/<id>/foerderfragebogen: Render wizard form
 - POST /sessions/<id>/foerderfragebogen: Save answers and calculate eligibility
+- POST /sessions/<id>/foerderfragebogen/autosave: AJAX auto-save on step change
+- POST /sessions/<id>/foerderfragebogen/calculate: AJAX eligibility preview
 """
 
 import logging
@@ -46,9 +48,8 @@ def foerderfragebogen(session_id):
     if not fs:
         return redirect(url_for('finanzberatung.finanz_sessions.session_list'))
 
-    # Load existing answers if any
     ffb = foerderfragebogen_service.get_or_create(session_id)
-    existing = ffb.to_answers_dict() if ffb else {}
+    existing = ffb.to_full_dict() if ffb else {}
 
     return render_template(
         'finanzberatung/foerderfragebogen.html',
@@ -69,7 +70,7 @@ def save_foerderfragebogen(session_id):
 
     try:
         form_data = request.form.to_dict()
-        ffb = foerderfragebogen_service.save_answers(session_id, form_data, username)
+        foerderfragebogen_service.save_answers(session_id, form_data, username)
 
         flash("Förderfragebogen gespeichert — Ergebnisse berechnet!", "success")
         return redirect(url_for(
@@ -88,34 +89,14 @@ def save_foerderfragebogen(session_id):
 
 @questionnaire_bp.route('/sessions/<int:session_id>/foerderfragebogen/autosave', methods=['POST'])
 def autosave_foerderfragebogen(session_id):
-    """AJAX: Auto-save answers on step change without calculating eligibility."""
+    """AJAX: Auto-save answers on step change."""
     try:
         data = request.get_json()
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
-        username = flask_session.get('user', 'unknown')
-
-        from app.services.finanz_foerderfragebogen_service import ANSWER_FIELDS, _coerce_value
-        db = get_db_session()
-        try:
-            from app.models.finanzberatung import FinanzFoerderFragebogen
-            ffb = db.query(FinanzFoerderFragebogen).filter_by(session_id=session_id).first()
-            if not ffb:
-                ffb = FinanzFoerderFragebogen(session_id=session_id)
-                db.add(ffb)
-
-            for field in ANSWER_FIELDS:
-                if field in data:
-                    setattr(ffb, field, _coerce_value(field, data[field]))
-
-            db.commit()
-            return jsonify({'ok': True})
-        except Exception as e:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+        ok = foerderfragebogen_service.autosave(session_id, data)
+        return jsonify({'ok': ok})
     except Exception as e:
         logger.warning("FFB autosave failed for session %s: %s", session_id, e)
         return jsonify({'error': str(e)}), 500

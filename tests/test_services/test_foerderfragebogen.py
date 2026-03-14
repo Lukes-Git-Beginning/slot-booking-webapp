@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Tests for the Foerder-Katalog eligibility engine."""
+"""Tests for the Foerder-Katalog eligibility engine (v2 — ZFA PDF schema)."""
 
-import pytest
 from app.config.foerder_katalog import (
     calculate_eligibility,
     get_eligible_foerderungen,
@@ -10,133 +9,81 @@ from app.config.foerder_katalog import (
 
 
 def _base_data(**overrides):
-    """Create base test data with sensible defaults."""
+    """Create base test data matching ZFA PDF Mandant/Partner schema."""
     data = {
-        'geburtsdatum': '1990-06-15',
-        'familienstand': 'verheiratet',
-        'kinder_anzahl': 2,
-        'kinder_geburtsjahre': '[2018, 2021]',
-        'beschaeftigung': 'angestellt',
-        'rv_pflichtig': True,
-        'bruttojahreseinkommen': 45000,
-        'zve': 35000,
-        'arbeitgeber_vl': True,
-        'arbeitgeber_bav': True,
-        'kinder_im_haushalt_u18': 2,
-        'kinder_in_ausbildung': 0,
-        'v0800_beantragt': False,
-        'schwangerschaft_geplant': False,
-        'wohnsituation': 'mieter',
-        'immobilie_geplant': 'keine',
-        'bausparvertrag': False,
-        'hat_riester': False,
-        'hat_ruerup': False,
-        'hat_bav': False,
-        'hat_bu': 'keine',
-        'hat_pflegezusatz': False,
-        'hat_vl_vertrag': False,
+        'mandant_vorname': 'Max',
+        'mandant_nachname': 'Mustermann',
+        'mandant_geburtsdatum': '1990-06-15',
+        'partner_vorname': 'Anna',
+        'partner_nachname': 'Mustermann',
+        'brutto_mandant': 45000,
+        'brutto_partner': 30000,
+        'kinder': [{'name': 'Tim', 'alter': 5}, {'name': 'Lisa', 'alter': 2}],
+        'anzahl_kindergeldberechtigt': 2,
     }
     data.update(overrides)
     return data
 
 
 class TestEligibilityEngine:
-    """Test the core eligibility calculation."""
 
     def test_calculate_returns_all_programs(self):
+        results = calculate_eligibility(_base_data())
+        assert len(results) == 14  # 14 programs in ZFA PDF
+
+    def test_ja_nein_triggers_eligibility(self):
+        data = _base_data(bav_mandant_ja=True, bav_mandant_summe=1200)
+        eligible = get_eligible_foerderungen(data)
+        ids = [f['id'] for f in eligible]
+        assert 'bav' in ids
+
+    def test_partner_also_triggers(self):
+        data = _base_data(pflege_partner_ja=True, pflege_partner_summe=60)
+        eligible = get_eligible_foerderungen(data)
+        ids = [f['id'] for f in eligible]
+        assert 'pflege' in ids
+
+    def test_v0800_with_kinder_auto_eligible(self):
+        """V0800 should be eligible when children exist and no explicit answer."""
         data = _base_data()
-        results = calculate_eligibility(data)
-        assert len(results) == 16  # All programs checked
-
-    def test_angestellter_mit_kindern_gets_many(self):
-        data = _base_data()
         eligible = get_eligible_foerderungen(data)
         ids = [f['id'] for f in eligible]
+        assert 'v0800' in ids
 
-        assert 'riester' in ids  # RV-pflichtig, no existing Riester
-        assert 'v0800' in ids  # Kinder, not applied
-        assert 'pflege_bahr' in ids  # 18+, no existing Pflegezusatz
-        assert 'bav' in ids  # Angestellt, AG offers BAV
-
-    def test_riester_needs_rv_pflicht(self):
-        # Single self-employed: no Riester (not RV-pflichtig, no spouse)
-        data = _base_data(beschaeftigung='selbstaendig', rv_pflichtig=False, familienstand='ledig')
+    def test_summe_aggregation(self):
+        data = _base_data(
+            vl_mandant_ja=True, vl_mandant_summe=100,
+            vl_partner_ja=True, vl_partner_summe=80,
+        )
         eligible = get_eligible_foerderungen(data)
-        ids = [f['id'] for f in eligible]
+        vl = next(f for f in eligible if f['id'] == 'vl')
+        assert vl['schaetz_vorteil'] == 180
 
-        assert 'riester' not in ids
-        assert 'ruerup' in ids  # Selbständige get Rürup instead
-
-    def test_riester_mittelbar_berechtigt(self):
-        # Married self-employed: Riester via spouse (mittelbar berechtigt)
-        data = _base_data(beschaeftigung='selbstaendig', rv_pflichtig=False, familienstand='verheiratet')
-        eligible = get_eligible_foerderungen(data)
-        ids = [f['id'] for f in eligible]
-
-        assert 'riester' in ids  # Mittelbar berechtigt through spouse
-
-    def test_existing_riester_blocks_new(self):
-        data = _base_data(hat_riester=True)
-        eligible = get_eligible_foerderungen(data)
-        ids = [f['id'] for f in eligible]
-
-        assert 'riester' not in ids
-
-    def test_vl_sparzulage_income_limit(self):
-        # Under limit
-        data = _base_data(zve=35000, hat_vl_vertrag=False)
-        eligible = get_eligible_foerderungen(data)
-        assert 'vl_sparzulage' in [f['id'] for f in eligible]
-
-        # Over limit (married: 80k)
-        data = _base_data(zve=85000, hat_vl_vertrag=False)
-        eligible = get_eligible_foerderungen(data)
-        assert 'vl_sparzulage' not in [f['id'] for f in eligible]
-
-    def test_wohnungsbauspraemie_needs_bauspar(self):
-        data = _base_data(bausparvertrag=False)
-        eligible = get_eligible_foerderungen(data)
-        assert 'wohnungsbauspraemie' not in [f['id'] for f in eligible]
-
-        data = _base_data(bausparvertrag=True, zve=30000)
-        eligible = get_eligible_foerderungen(data)
-        assert 'wohnungsbauspraemie' in [f['id'] for f in eligible]
-
-    def test_kfw_needs_kinder_and_immobilie(self):
-        data = _base_data(immobilie_geplant='neubau', zve=80000)
-        eligible = get_eligible_foerderungen(data)
-        assert 'kfw_wef300' in [f['id'] for f in eligible]
-
-        data = _base_data(immobilie_geplant='keine')
-        eligible = get_eligible_foerderungen(data)
-        assert 'kfw_wef300' not in [f['id'] for f in eligible]
-
-    def test_v0800_already_applied(self):
-        data = _base_data(v0800_beantragt=True)
-        eligible = get_eligible_foerderungen(data)
-        assert 'v0800' not in [f['id'] for f in eligible]
-
-    def test_no_kinder_skips_family(self):
-        data = _base_data(kinder_anzahl=0, kinder_im_haushalt_u18=0)
-        eligible = get_eligible_foerderungen(data)
-        ids = [f['id'] for f in eligible]
-        assert 'v0800' not in ids
-        assert 'kinderzuschlag' not in ids
-
-    def test_berufseinsteigerbonus_under_25(self):
-        data = _base_data(geburtsdatum='2003-06-15')  # ~22 years old
-        eligible = get_eligible_foerderungen(data)
-        assert 'riester_berufseinsteiger' in [f['id'] for f in eligible]
-
-    def test_total_benefit_positive(self):
-        data = _base_data()
-        total = get_total_yearly_benefit(data)
-        assert total > 0
-
-    def test_empty_data_no_crash(self):
-        """Engine should not crash with empty/minimal data."""
+    def test_no_answers_minimal_eligible(self):
         results = calculate_eligibility({})
-        assert len(results) == 16
-        # With empty data, most should be not eligible
         eligible = [r for r in results if r['eligible']]
-        assert len(eligible) <= 2  # Maybe Pflege-Bahr if age check passes
+        # Without any Ja answers, only V0800 might trigger (if kinder present)
+        assert len(eligible) <= 1
+
+    def test_total_benefit_positive_with_answers(self):
+        data = _base_data(
+            bav_mandant_ja=True, bav_mandant_summe=1500,
+            pflege_mandant_ja=True, pflege_mandant_summe=60,
+        )
+        total = get_total_yearly_benefit(data)
+        assert total >= 1560
+
+    def test_multiple_categories(self):
+        data = _base_data(
+            tilgungszulage_mandant_ja=True, tilgungszulage_mandant_summe=500,
+            bav_mandant_ja=True, bav_mandant_summe=1000,
+            vl_mandant_ja=True, vl_mandant_summe=123,
+        )
+        eligible = get_eligible_foerderungen(data)
+        categories = set(f['kategorie'] for f in eligible)
+        assert len(categories) >= 2  # At least Immobilien + Altersvorsorge + Vermögen
+
+    def test_no_crash_on_bad_data(self):
+        """Engine should handle weird/invalid data gracefully."""
+        results = calculate_eligibility({'bav_mandant_ja': 'maybe', 'brutto_mandant': 'abc'})
+        assert len(results) == 14

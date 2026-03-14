@@ -298,7 +298,11 @@ class FinanzUploadToken(Base):
     @property
     def is_expired(self) -> bool:
         """Check if the token has expired."""
-        return datetime.now(timezone.utc) > self.expires_at
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return now > expires if expires else True
 
     @property
     def is_exhausted(self) -> bool:
@@ -497,8 +501,8 @@ class FinanzFoerderFragebogen(Base):
     """
     Structured subsidy questionnaire for a financial advisory session.
 
-    Captures customer data needed to determine eligibility for German
-    subsidy programs (Riester, Rürup, BAV, VL, KfW, etc.).
+    Based on the ZFA Erfassungsbogen für Förderungen PDF.
+    Uses a JSON answers field for flexibility (~80+ form fields).
     """
 
     __tablename__ = 'finanz_foerderfragebogen'
@@ -507,38 +511,41 @@ class FinanzFoerderFragebogen(Base):
         ForeignKey('finanz_sessions.id'), unique=True, nullable=False
     )
 
-    # Step 1: Persoenliche Daten
-    geburtsdatum: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
-    familienstand: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    kinder_anzahl: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    kinder_geburtsjahre: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # Stammdaten Mandant
+    mandant_vorname: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    mandant_nachname: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    mandant_geburtsdatum: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    mandant_beruf: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    # Step 2: Berufliche Situation
-    beschaeftigung: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    rv_pflichtig: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    bruttojahreseinkommen: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    zve: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    arbeitgeber_vl: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    arbeitgeber_bav: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    # Stammdaten Partner
+    partner_vorname: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    partner_nachname: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    partner_geburtsdatum: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    partner_beruf: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    # Step 3: Kinder & Familie
-    kinder_im_haushalt_u18: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    kinder_in_ausbildung: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    v0800_beantragt: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    schwangerschaft_geplant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    # Adresse
+    anschrift: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
 
-    # Step 4: Wohnsituation
-    wohnsituation: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    immobilie_geplant: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    bausparvertrag: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    # Kinder (JSON array: [{name, beruf_schule, alter}, ...])
+    kinder: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    anzahl_kindergeldberechtigt: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    # Step 5: Bestehende Vorsorge
-    hat_riester: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    hat_ruerup: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    hat_bav: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    hat_bu: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    hat_pflegezusatz: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    hat_vl_vertrag: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    # Einkuenfte
+    brutto_mandant: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    brutto_partner: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    weitere_einkuenfte_mandant: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    weitere_einkuenfte_partner: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    staatsangehoerigkeit_mandant: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    staatsangehoerigkeit_partner: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    schufa_mandant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    schufa_partner: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    # All subsidy answers as flexible JSON
+    # Keys follow pattern: <foerderung_id>_<mandant|partner>_<ja|summe|kriterium>
+    answers: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Notizen
+    weitere_notizen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Ergebnis
     eligible_foerderungen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -555,33 +562,57 @@ class FinanzFoerderFragebogen(Base):
         Index('idx_finanz_ffb_session', 'session_id'),
     )
 
-    def to_answers_dict(self) -> dict:
-        """Convert model fields to dict for eligibility calculation."""
-        return {
-            'geburtsdatum': self.geburtsdatum,
-            'familienstand': self.familienstand,
-            'kinder_anzahl': self.kinder_anzahl,
-            'kinder_geburtsjahre': self.kinder_geburtsjahre,
-            'beschaeftigung': self.beschaeftigung,
-            'rv_pflichtig': self.rv_pflichtig,
-            'bruttojahreseinkommen': self.bruttojahreseinkommen,
-            'zve': self.zve,
-            'arbeitgeber_vl': self.arbeitgeber_vl,
-            'arbeitgeber_bav': self.arbeitgeber_bav,
-            'kinder_im_haushalt_u18': self.kinder_im_haushalt_u18,
-            'kinder_in_ausbildung': self.kinder_in_ausbildung,
-            'v0800_beantragt': self.v0800_beantragt,
-            'schwangerschaft_geplant': self.schwangerschaft_geplant,
-            'wohnsituation': self.wohnsituation,
-            'immobilie_geplant': self.immobilie_geplant,
-            'bausparvertrag': self.bausparvertrag,
-            'hat_riester': self.hat_riester,
-            'hat_ruerup': self.hat_ruerup,
-            'hat_bav': self.hat_bav,
-            'hat_bu': self.hat_bu,
-            'hat_pflegezusatz': self.hat_pflegezusatz,
-            'hat_vl_vertrag': self.hat_vl_vertrag,
+    def get_answers(self) -> dict:
+        """Parse JSON answers field."""
+        import json
+        if not self.answers:
+            return {}
+        try:
+            return json.loads(self.answers)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    def set_answers(self, data: dict):
+        """Serialize answers dict to JSON."""
+        import json
+        self.answers = json.dumps(data, ensure_ascii=False)
+
+    def get_kinder(self) -> list:
+        """Parse JSON kinder field."""
+        import json
+        if not self.kinder:
+            return []
+        try:
+            return json.loads(self.kinder)
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    def to_full_dict(self) -> dict:
+        """Return all data as a flat dict for template rendering."""
+        data = {
+            'mandant_vorname': self.mandant_vorname,
+            'mandant_nachname': self.mandant_nachname,
+            'mandant_geburtsdatum': self.mandant_geburtsdatum,
+            'mandant_beruf': self.mandant_beruf,
+            'partner_vorname': self.partner_vorname,
+            'partner_nachname': self.partner_nachname,
+            'partner_geburtsdatum': self.partner_geburtsdatum,
+            'partner_beruf': self.partner_beruf,
+            'anschrift': self.anschrift,
+            'kinder': self.get_kinder(),
+            'anzahl_kindergeldberechtigt': self.anzahl_kindergeldberechtigt,
+            'brutto_mandant': self.brutto_mandant,
+            'brutto_partner': self.brutto_partner,
+            'weitere_einkuenfte_mandant': self.weitere_einkuenfte_mandant,
+            'weitere_einkuenfte_partner': self.weitere_einkuenfte_partner,
+            'staatsangehoerigkeit_mandant': self.staatsangehoerigkeit_mandant,
+            'staatsangehoerigkeit_partner': self.staatsangehoerigkeit_partner,
+            'schufa_mandant': self.schufa_mandant,
+            'schufa_partner': self.schufa_partner,
+            'weitere_notizen': self.weitere_notizen,
         }
+        data.update(self.get_answers())
+        return data
 
     def __repr__(self) -> str:
         return (

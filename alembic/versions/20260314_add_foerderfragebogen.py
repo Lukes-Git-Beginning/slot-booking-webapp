@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Add finanz_foerderfragebogen table
+"""Add finanz_foerderfragebogen table (v2 — ZFA PDF schema)
 
 Revision ID: e6f7a8b9c0d1
 Revises: d5e6f7a8b9c0
@@ -16,43 +16,48 @@ depends_on = None
 
 
 def upgrade():
+    # Drop old table if exists (v1 schema)
+    op.execute("DROP TABLE IF EXISTS finanz_foerderfragebogen CASCADE")
+
     op.create_table(
         'finanz_foerderfragebogen',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('session_id', sa.Integer(), sa.ForeignKey('finanz_sessions.id'), unique=True, nullable=False),
 
-        # Step 1: Persoenliche Daten
-        sa.Column('geburtsdatum', sa.String(10), nullable=True),
-        sa.Column('familienstand', sa.String(30), nullable=True),
-        sa.Column('kinder_anzahl', sa.Integer(), nullable=True),
-        sa.Column('kinder_geburtsjahre', sa.String(200), nullable=True),
+        # Stammdaten Mandant
+        sa.Column('mandant_vorname', sa.String(100), nullable=True),
+        sa.Column('mandant_nachname', sa.String(100), nullable=True),
+        sa.Column('mandant_geburtsdatum', sa.String(10), nullable=True),
+        sa.Column('mandant_beruf', sa.String(100), nullable=True),
 
-        # Step 2: Berufliche Situation
-        sa.Column('beschaeftigung', sa.String(30), nullable=True),
-        sa.Column('rv_pflichtig', sa.Boolean(), nullable=True),
-        sa.Column('bruttojahreseinkommen', sa.Float(), nullable=True),
-        sa.Column('zve', sa.Float(), nullable=True),
-        sa.Column('arbeitgeber_vl', sa.Boolean(), nullable=True),
-        sa.Column('arbeitgeber_bav', sa.Boolean(), nullable=True),
+        # Stammdaten Partner
+        sa.Column('partner_vorname', sa.String(100), nullable=True),
+        sa.Column('partner_nachname', sa.String(100), nullable=True),
+        sa.Column('partner_geburtsdatum', sa.String(10), nullable=True),
+        sa.Column('partner_beruf', sa.String(100), nullable=True),
 
-        # Step 3: Kinder & Familie
-        sa.Column('kinder_im_haushalt_u18', sa.Integer(), nullable=True),
-        sa.Column('kinder_in_ausbildung', sa.Integer(), nullable=True),
-        sa.Column('v0800_beantragt', sa.Boolean(), nullable=True),
-        sa.Column('schwangerschaft_geplant', sa.Boolean(), nullable=True),
+        # Adresse
+        sa.Column('anschrift', sa.String(300), nullable=True),
 
-        # Step 4: Wohnsituation
-        sa.Column('wohnsituation', sa.String(30), nullable=True),
-        sa.Column('immobilie_geplant', sa.String(30), nullable=True),
-        sa.Column('bausparvertrag', sa.Boolean(), nullable=True),
+        # Kinder (JSON array)
+        sa.Column('kinder', sa.Text(), nullable=True),
+        sa.Column('anzahl_kindergeldberechtigt', sa.Integer(), nullable=True),
 
-        # Step 5: Bestehende Vorsorge
-        sa.Column('hat_riester', sa.Boolean(), nullable=True),
-        sa.Column('hat_ruerup', sa.Boolean(), nullable=True),
-        sa.Column('hat_bav', sa.Boolean(), nullable=True),
-        sa.Column('hat_bu', sa.String(20), nullable=True),
-        sa.Column('hat_pflegezusatz', sa.Boolean(), nullable=True),
-        sa.Column('hat_vl_vertrag', sa.Boolean(), nullable=True),
+        # Einkuenfte
+        sa.Column('brutto_mandant', sa.Float(), nullable=True),
+        sa.Column('brutto_partner', sa.Float(), nullable=True),
+        sa.Column('weitere_einkuenfte_mandant', sa.String(200), nullable=True),
+        sa.Column('weitere_einkuenfte_partner', sa.String(200), nullable=True),
+        sa.Column('staatsangehoerigkeit_mandant', sa.String(50), nullable=True),
+        sa.Column('staatsangehoerigkeit_partner', sa.String(50), nullable=True),
+        sa.Column('schufa_mandant', sa.Boolean(), nullable=True),
+        sa.Column('schufa_partner', sa.Boolean(), nullable=True),
+
+        # Flexible JSON answers for all subsidy questions
+        sa.Column('answers', sa.Text(), nullable=True),
+
+        # Notizen
+        sa.Column('weitere_notizen', sa.Text(), nullable=True),
 
         # Ergebnis
         sa.Column('eligible_foerderungen', sa.Text(), nullable=True),
