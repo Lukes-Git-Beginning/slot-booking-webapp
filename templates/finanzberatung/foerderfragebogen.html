@@ -19,6 +19,27 @@
     .ffb-row label { font-weight: 500; }
     .ffb-kriterien { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid oklch(var(--b3) / 0.3); }
     .autosave-indicator { transition: opacity 0.3s; }
+
+    /* Input styling: Beige/Gold statt schwarzer Default */
+    #ffb-wizard input[type="text"],
+    #ffb-wizard input[type="number"],
+    #ffb-wizard input[type="date"],
+    #ffb-wizard textarea,
+    #ffb-wizard select {
+        background: rgba(212, 175, 106, 0.08);
+        border-color: rgba(212, 175, 106, 0.25);
+    }
+    #ffb-wizard input:focus,
+    #ffb-wizard textarea:focus,
+    #ffb-wizard select:focus {
+        background: rgba(212, 175, 106, 0.12);
+        border-color: rgba(212, 175, 106, 0.6);
+        outline-color: rgba(212, 175, 106, 0.4);
+    }
+    #ffb-wizard input::placeholder,
+    #ffb-wizard textarea::placeholder {
+        color: rgba(212, 175, 106, 0.35);
+    }
 </style>
 {% endblock %}
 
