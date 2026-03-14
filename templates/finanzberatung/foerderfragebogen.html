@@ -2,18 +2,21 @@
 
 {% block title %}Förderfragebogen — {{ session.customer_name }}{% endblock %}
 
-{% block extra_head %}
-<style>
-    /* Corporate clean overrides — no gaming elements */
+{% block area_css %}
+<style nonce="{{ csp_nonce }}">
+    /* Corporate clean overrides */
     #ffb-wizard .glass { background: rgba(255,255,255,0.03); backdrop-filter: none; }
-    #ffb-wizard { --ffb-primary: #d4af6a; --ffb-teal: #207487; --ffb-bg: #1a1c2e; }
 
     /* Option cards */
     .ffb-option {
-        @apply border-2 border-base-300 rounded-xl p-4 cursor-pointer transition-all duration-200;
+        border: 2px solid oklch(var(--b3));
+        border-radius: 0.75rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
     }
-    .ffb-option:hover { @apply border-primary/50; }
-    .ffb-option.selected { @apply border-primary bg-primary/10; }
+    .ffb-option:hover { border-color: oklch(var(--p) / 0.5); }
+    .ffb-option.selected { border-color: oklch(var(--p)); background: oklch(var(--p) / 0.1); }
 
     /* Step transitions */
     .ffb-step-enter { animation: ffbSlideIn 0.3s ease-out; }
@@ -24,13 +27,17 @@
 
     /* Result cards */
     .ffb-result-card {
-        @apply border border-success/30 bg-success/5 rounded-xl p-5 transition-all duration-200;
+        border: 1px solid oklch(var(--su) / 0.3);
+        background: oklch(var(--su) / 0.05);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
     }
-    .ffb-result-card:hover { @apply border-success/50 bg-success/10; }
+    .ffb-result-card:hover { border-color: oklch(var(--su) / 0.5); background: oklch(var(--su) / 0.1); }
 
     /* Large readable text for screen sharing */
-    #ffb-wizard h2 { @apply text-2xl font-bold mb-6; }
-    #ffb-wizard label, #ffb-wizard .ffb-question { @apply text-lg font-medium mb-3 block; }
+    #ffb-wizard h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
+    #ffb-wizard .ffb-question { font-size: 1.125rem; font-weight: 500; margin-bottom: 0.75rem; display: block; }
 </style>
 {% endblock %}
 
@@ -487,7 +494,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function ffbWizard() {
     // Load existing answers from server
     const existing = {{ answers | tojson }};
@@ -559,6 +566,8 @@ function ffbWizard() {
         },
 
         nextStep() {
+            this.autoSave();
+
             if (this.currentStep === 3 && (!this.answers.kinder_anzahl || this.answers.kinder_anzahl === 0)) {
                 this.currentStep = 4;
             } else {
@@ -574,6 +583,8 @@ function ffbWizard() {
         },
 
         prevStep() {
+            this.autoSave();
+
             if (this.currentStep === 4 && (!this.answers.kinder_anzahl || this.answers.kinder_anzahl === 0)) {
                 this.currentStep = 2;
             } else {
@@ -581,6 +592,21 @@ function ffbWizard() {
             }
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        async autoSave() {
+            try {
+                await fetch(`/finanzberatung/sessions/{{ session_id }}/foerderfragebogen/autosave`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    body: JSON.stringify(this.answers),
+                });
+            } catch(e) {
+                console.warn('Auto-save failed:', e);
+            }
         },
 
         autoSetRvPflichtig() {
