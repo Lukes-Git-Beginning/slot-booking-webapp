@@ -1,107 +1,138 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light">
     <title>Dokumente hochladen — ZFA</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: {
-                zfa: '#d4af6a',
-                'zfa-dark': '#c9a050',
-                'zfa-teal': '#207487',
-                'zfa-accent': '#294c5d',
-            }}}
-        }
-    </script>
     <style>
-        /* Force light mode everywhere */
-        html, body { background-color: #f9fafb !important; color: #1a1a1a !important; color-scheme: light !important; }
-        input, select, textarea { font-size: 16px !important; }
-        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        .upload-progress { transition: width 0.15s linear; }
-        /* Ensure SVGs never grow beyond their container */
-        svg { flex-shrink: 0; max-width: 100%; max-height: 100%; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: #f9fafb; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+        body { min-height: 100vh; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        .wrap { width: 100%; max-width: 448px; margin: 0 auto; padding: 0 16px; }
+        .header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 0; }
+        .header-inner { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .header-inner span { font-weight: 700; color: #294c5d; }
+        main { flex: 1; padding: 20px 0; }
+        .greeting h1 { font-size: 1.25rem; font-weight: 700; color: #294c5d; }
+        .greeting p { font-size: 0.875rem; color: #6b7280; margin-top: 2px; }
+        .status-bar { display: flex; gap: 12px; margin: 16px 0 20px; }
+        .badge { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e5e7eb; border-radius: 9999px; padding: 6px 12px; font-size: 0.875rem; color: #4b5563; }
+        .badge-expired { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+        .banner { border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; text-align: center; }
+        .banner-offline { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; display: flex; align-items: center; gap: 8px; text-align: left; font-size: 0.875rem; }
+        .banner-expired { background: #fef2f2; border: 1px solid #fecaca; }
+        .banner-expired .title { color: #b91c1c; font-weight: 500; font-size: 0.875rem; }
+        .banner-expired .sub { color: #ef4444; font-size: 0.75rem; margin-top: 4px; }
+        .banner-done { background: #f0fdf4; border: 1px solid #bbf7d0; }
+        .banner-done .title { color: #15803d; font-weight: 500; font-size: 0.875rem; }
+        .banner-done .sub { color: #22c55e; font-size: 0.75rem; margin-top: 4px; }
+        .btn-camera { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border-radius: 12px; background: linear-gradient(135deg, #d4af6a, #c9a050); color: #fff; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-file { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border-radius: 12px; background: #fff; color: #207487; font-weight: 600; font-size: 1rem; border: 2px solid #207487; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn-camera:active, .btn-file:active { opacity: 0.9; }
+        .controls { margin-bottom: 20px; }
+        .controls > * + * { margin-top: 12px; }
+        .controls .hint { text-align: center; font-size: 0.75rem; color: #9ca3af; }
+        .controls.disabled { opacity: 0.4; pointer-events: none; }
+        .file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+        .queue > * + * { margin-top: 8px; }
+        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .card-row { display: flex; align-items: center; gap: 12px; }
+        .card-icon { width: 36px; height: 36px; border-radius: 4px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .card-info { flex: 1; min-width: 0; }
+        .card-name { font-size: 0.875rem; font-weight: 500; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .card-size { font-size: 0.75rem; color: #9ca3af; }
+        .card-status { flex-shrink: 0; }
+        .progress-wrap { margin-top: 8px; }
+        .progress-bg { width: 100%; background: #f3f4f6; border-radius: 9999px; height: 6px; }
+        .progress-bar { height: 6px; border-radius: 9999px; background: #d4af6a; transition: width 0.15s linear; }
+        .progress-text { font-size: 0.75rem; color: #9ca3af; margin-top: 4px; }
+        .card-success { border-color: #bbf7d0; background: #f0fdf4; }
+        .card-success .progress-bar { background: #22c55e; }
+        .card-success .progress-text { color: #16a34a; }
+        .card-error { border-color: #fecaca; background: #fef2f2; }
+        .card-error .progress-bar { background: #f87171; }
+        .card-error .progress-text { color: #ef4444; }
+        .retry-btn { font-size: 0.75rem; font-weight: 500; color: #207487; padding: 4px 8px; border: 1px solid #207487; border-radius: 4px; background: transparent; cursor: pointer; }
+        .retry-btn:active { background: #207487; color: #fff; }
+        .toast { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; color: #dc2626; display: flex; align-items: center; gap: 8px; transition: opacity 0.3s; }
+        footer { padding: 12px; text-align: center; font-size: 0.75rem; color: #d1d5db; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col" style="background:#f9fafb;">
+<body>
 
     <!-- Header -->
-    <header class="border-b px-4 py-3" style="background:#fff; border-color:#e5e7eb;">
-        <div class="max-w-md mx-auto flex items-center justify-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            <span class="font-bold" style="color:#294c5d;">ZFA</span>
+    <div class="header">
+        <div class="wrap header-inner">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>ZFA</span>
         </div>
-    </header>
+    </div>
 
     <!-- Main -->
-    <main class="flex-1 px-4 py-5 max-w-md mx-auto w-full">
+    <main>
+        <div class="wrap">
 
-        <!-- Greeting -->
-        <div class="mb-4">
-            <h1 class="text-xl font-bold" style="color:#294c5d;">Hallo {{ customer_name }}</h1>
-            <p class="text-sm mt-0.5" style="color:#6b7280;">Bitte laden Sie Ihre Unterlagen hoch.</p>
-        </div>
-
-        <!-- Status Bar -->
-        <div class="flex items-center gap-3 mb-5">
-            <div id="timer-badge" class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm" style="background:#fff; border:1px solid #e5e7eb; color:#4b5563;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#207487" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="countdown">--:--:--</span>
+            <!-- Greeting -->
+            <div class="greeting">
+                <h1>Hallo {{ customer_name }}</h1>
+                <p>Bitte laden Sie Ihre Unterlagen hoch.</p>
             </div>
-            <div class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm" style="background:#fff; border:1px solid #e5e7eb; color:#4b5563;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span><span id="remaining">{{ remaining_uploads }}</span> verbleibend</span>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="badge" id="timer-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#207487" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="countdown">--:--:--</span>
+                </div>
+                <div class="badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span><span id="remaining">{{ remaining_uploads }}</span> verbleibend</span>
+                </div>
             </div>
+
+            <!-- Offline Banner -->
+            <div id="offline-banner" class="banner banner-offline" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                Keine Internetverbindung
+            </div>
+
+            <!-- Expired Banner -->
+            <div id="expired-banner" class="banner banner-expired" style="display:none;">
+                <p class="title">Link abgelaufen</p>
+                <p class="sub">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
+            </div>
+
+            <!-- Upload Buttons -->
+            <div id="upload-controls" class="controls">
+                <label class="btn-camera">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Foto aufnehmen</span>
+                    <input type="file" accept="image/*" capture="environment" class="file-input" onchange="app.handleFiles(this.files)">
+                </label>
+                <label class="btn-file">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#207487" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    <span>Datei auswaehlen</span>
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic" multiple class="file-input" onchange="app.handleFiles(this.files)">
+                </label>
+                <p class="hint">PDF, JPG, PNG, TIFF, HEIC — max. {{ max_file_size_mb }} MB</p>
+            </div>
+
+            <!-- Done Banner -->
+            <div id="done-banner" class="banner banner-done" style="display:none;">
+                <p class="title">Alle Uploads abgeschlossen</p>
+                <p class="sub">Vielen Dank! Ihr Berater wurde benachrichtigt.</p>
+            </div>
+
+            <!-- Upload Queue -->
+            <div id="queue" class="queue"></div>
+
         </div>
-
-        <!-- Offline Banner (hidden by default) -->
-        <div id="offline-banner" class="hidden rounded-lg px-3 py-2 mb-4 text-sm flex items-center gap-2" style="background:#fffbeb; border:1px solid #fde68a; color:#92400e;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-            Keine Internetverbindung
-        </div>
-
-        <!-- Expired Banner (hidden by default) -->
-        <div id="expired-banner" class="hidden rounded-lg px-4 py-3 mb-4 text-center" style="background:#fef2f2; border:1px solid #fecaca;">
-            <p class="font-medium text-sm" style="color:#b91c1c;">Link abgelaufen</p>
-            <p class="text-xs mt-1" style="color:#ef4444;">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
-        </div>
-
-        <!-- Upload Buttons -->
-        <div id="upload-controls" class="space-y-3 mb-5">
-            <label id="camera-btn" class="flex items-center justify-center gap-2 w-full rounded-xl font-semibold cursor-pointer" style="min-height:52px; background:linear-gradient(135deg,#d4af6a,#c9a050); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <span>Foto aufnehmen</span>
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="app.handleFiles(this.files)">
-            </label>
-            <label id="file-btn" class="flex items-center justify-center gap-2 w-full rounded-xl font-semibold cursor-pointer" style="min-height:52px; background:#fff; border:2px solid #207487; color:#207487; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#207487" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                <span>Datei auswaehlen</span>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic" multiple class="hidden" onchange="app.handleFiles(this.files)">
-            </label>
-            <p class="text-xs text-center" style="color:#9ca3af;">PDF, JPG, PNG, TIFF, HEIC — max. {{ max_file_size_mb }} MB</p>
-        </div>
-
-        <!-- Done Banner (hidden by default) -->
-        <div id="done-banner" class="hidden rounded-lg px-4 py-3 mb-4 text-center" style="background:#f0fdf4; border:1px solid #bbf7d0;">
-            <p class="font-medium text-sm" style="color:#15803d;">Alle Uploads abgeschlossen</p>
-            <p class="text-xs mt-1" style="color:#22c55e;">Vielen Dank! Ihr Berater wurde benachrichtigt.</p>
-        </div>
-
-        <!-- Upload Queue -->
-        <div id="queue" class="space-y-2"></div>
-
     </main>
 
-    <!-- Footer -->
-    <footer class="px-4 py-3 text-center text-xs" style="color:#d1d5db;">
-        ZFA GmbH
-    </footer>
+    <footer>ZFA GmbH</footer>
 
 <script>
 (function() {
@@ -123,7 +154,6 @@
     var doneBanner = document.getElementById('done-banner');
     var offlineBanner = document.getElementById('offline-banner');
 
-    // ── Countdown ──
     function updateCountdown() {
         if (expired) return;
         var diff = Math.max(0, Math.floor((EXPIRES_AT - Date.now()) / 1000));
@@ -132,43 +162,29 @@
         var m = Math.floor((diff % 3600) / 60);
         var s = diff % 60;
         countdownEl.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
-        if (diff <= 300) {
-            timerBadge.style.color = '#dc2626';
-            timerBadge.style.borderColor = '#fecaca';
-            timerBadge.style.background = '#fef2f2';
-        }
+        if (diff <= 300) timerBadge.className = 'badge badge-expired';
     }
     function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
     function setExpired() {
         expired = true;
         countdownEl.textContent = '00:00:00';
-        timerBadge.style.color = '#dc2626';
-        timerBadge.style.borderColor = '#fecaca';
-        timerBadge.style.background = '#fef2f2';
-        controls.style.opacity = '0.4';
-        controls.style.pointerEvents = 'none';
-        expiredBanner.classList.remove('hidden');
+        timerBadge.className = 'badge badge-expired';
+        controls.className = 'controls disabled';
+        expiredBanner.style.display = '';
     }
 
     function setDone() {
-        controls.style.opacity = '0.4';
-        controls.style.pointerEvents = 'none';
-        doneBanner.classList.remove('hidden');
+        controls.className = 'controls disabled';
+        doneBanner.style.display = '';
     }
 
-    // ── Offline Detection ──
     function updateOnlineStatus() {
-        if (navigator.onLine) {
-            offlineBanner.classList.add('hidden');
-        } else {
-            offlineBanner.classList.remove('hidden');
-        }
+        offlineBanner.style.display = navigator.onLine ? 'none' : '';
     }
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
 
-    // ── Token Polling ──
     function pollStatus() {
         if (expired) return;
         fetch('/finanzberatung/upload/' + TOKEN + '/status')
@@ -179,19 +195,17 @@
             remainingEl.textContent = remaining;
             if (remaining <= 0) setDone();
         })
-        .catch(function() { /* silent */ });
+        .catch(function() {});
     }
 
-    // ── Validation ──
     function validate(file) {
         var ext = (file.name.split('.').pop() || '').toLowerCase();
         if (ALLOWED.indexOf(ext) === -1) return 'Dateityp nicht erlaubt: .' + ext;
-        if (file.size > MAX_SIZE) return 'Datei zu gross: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB (max. ' + (MAX_SIZE / 1024 / 1024) + ' MB)';
+        if (file.size > MAX_SIZE) return 'Datei zu gross: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB';
         if (file.size === 0) return 'Leere Datei';
         return null;
     }
 
-    // ── File Handling ──
     function handleFiles(files) {
         if (expired || !files || files.length === 0) return;
         for (var i = 0; i < files.length; i++) {
@@ -202,10 +216,9 @@
         }
     }
 
-    // ── Upload ──
     function uploadFile(file) {
         var card = createCard(file);
-        queue.prepend(card);
+        queue.insertBefore(card, queue.firstChild);
 
         var formData = new FormData();
         formData.append('file', file);
@@ -215,8 +228,7 @@
 
         xhr.upload.onprogress = function(e) {
             if (!e.lengthComputable) return;
-            var pct = Math.round(e.loaded / e.total * 100);
-            setCardProgress(card, pct);
+            setCardProgress(card, Math.round(e.loaded / e.total * 100));
         };
 
         xhr.onload = function() {
@@ -228,106 +240,90 @@
                 remainingEl.textContent = remaining;
                 if (remaining <= 0) setDone();
             } else {
-                setCardError(card, file, resp.message || 'Upload fehlgeschlagen (HTTP ' + xhr.status + ')');
+                setCardError(card, file, resp.message || 'Fehler (HTTP ' + xhr.status + ')');
             }
         };
 
         xhr.onerror = function() {
-            setCardError(card, file, 'Netzwerkfehler — bitte Verbindung pruefen');
+            setCardError(card, file, 'Netzwerkfehler');
         };
 
         xhr.send(formData);
     }
 
-    // ── Card UI ──
     function createCard(file) {
         var card = document.createElement('div');
-        card.style.cssText = 'background:#fff; border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.75rem; box-shadow:0 1px 2px rgba(0,0,0,0.05);';
+        card.className = 'card';
+        var isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        var iconColor = isPdf ? '#f87171' : '#60a5fa';
+        var iconPath = isPdf
+            ? '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'
+            : '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>';
+
         card.innerHTML =
-            '<div style="display:flex; align-items:center; gap:0.75rem;">' +
-                '<div style="width:36px; height:36px; border-radius:0.25rem; background:#f3f4f6; display:flex; align-items:center; justify-content:center; flex-shrink:0;">' +
-                    fileIcon(file) +
-                '</div>' +
-                '<div style="flex:1; min-width:0;">' +
-                    '<p style="font-size:0.875rem; font-weight:500; color:#1f2937; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(file.name) + '</p>' +
-                    '<p style="font-size:0.75rem; color:#9ca3af;">' + formatSize(file.size) + '</p>' +
-                '</div>' +
-                '<div class="card-status" style="flex-shrink:0;">' +
-                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2" style="animation:spin 1s linear infinite;"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.49 8.49l2.83 2.83"/></svg>' +
-                '</div>' +
+            '<div class="card-row">' +
+                '<div class="card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="2">' + iconPath + '</svg></div>' +
+                '<div class="card-info"><div class="card-name">' + esc(file.name) + '</div><div class="card-size">' + formatSize(file.size) + '</div></div>' +
+                '<div class="card-status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2" class="spinner"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.49 8.49l2.83 2.83"/></svg></div>' +
             '</div>' +
-            '<div style="margin-top:0.5rem;">' +
-                '<div style="width:100%; background:#f3f4f6; border-radius:9999px; height:6px;">' +
-                    '<div class="upload-progress" style="width:0%; height:6px; border-radius:9999px; background:#d4af6a;"></div>' +
-                '</div>' +
-                '<p class="card-pct" style="font-size:0.75rem; color:#9ca3af; margin-top:0.25rem;">Wird hochgeladen...</p>' +
-            '</div>';
+            '<div class="progress-wrap"><div class="progress-bg"><div class="progress-bar" style="width:0%"></div></div><div class="progress-text">Wird hochgeladen...</div></div>';
         return card;
     }
 
     function setCardProgress(card, pct) {
-        var bar = card.querySelector('.upload-progress');
-        var txt = card.querySelector('.card-pct');
+        var bar = card.querySelector('.progress-bar');
+        var txt = card.querySelector('.progress-text');
         if (bar) bar.style.width = pct + '%';
         if (txt) txt.textContent = pct + '% hochgeladen';
     }
 
     function setCardSuccess(card) {
-        var bar = card.querySelector('.upload-progress');
-        var txt = card.querySelector('.card-pct');
+        card.className = 'card card-success';
+        var bar = card.querySelector('.progress-bar');
+        var txt = card.querySelector('.progress-text');
         var status = card.querySelector('.card-status');
-        if (bar) { bar.style.width = '100%'; bar.style.background = '#22c55e'; }
-        if (txt) { txt.textContent = 'Erfolgreich hochgeladen'; txt.style.color = '#16a34a'; }
-        if (status) { status.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'; }
-        card.style.borderColor = '#bbf7d0';
-        card.style.background = '#f0fdf4';
+        if (bar) bar.style.width = '100%';
+        if (txt) txt.textContent = 'Erfolgreich hochgeladen';
+        if (status) status.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
     }
 
     function setCardError(card, file, message) {
-        var bar = card.querySelector('.upload-progress');
-        var txt = card.querySelector('.card-pct');
+        card.className = 'card card-error';
+        var bar = card.querySelector('.progress-bar');
+        var txt = card.querySelector('.progress-text');
         var status = card.querySelector('.card-status');
-        if (bar) { bar.style.width = '100%'; bar.style.background = '#f87171'; }
-        if (txt) { txt.textContent = message; txt.style.color = '#ef4444'; }
+        if (bar) bar.style.width = '100%';
+        if (txt) txt.textContent = message;
         if (status) {
             var btn = document.createElement('button');
+            btn.className = 'retry-btn';
             btn.textContent = 'Erneut';
-            btn.style.cssText = 'font-size:0.75rem; font-weight:500; color:#207487; padding:0.25rem 0.5rem; border:1px solid #207487; border-radius:0.25rem; background:transparent; cursor:pointer;';
-            btn.onclick = function() { card.remove(); uploadFile(file); };
+            btn.onclick = function() { card.parentNode.removeChild(card); uploadFile(file); };
             status.innerHTML = '';
             status.appendChild(btn);
         }
-        card.style.borderColor = '#fecaca';
-        card.style.background = '#fef2f2';
     }
 
-    // ── Inline Error Toast ──
     function showError(msg) {
         var toast = document.createElement('div');
-        toast.style.cssText = 'background:#fef2f2; border:1px solid #fecaca; border-radius:0.5rem; padding:0.5rem 0.75rem; margin-bottom:0.5rem; font-size:0.875rem; color:#dc2626; display:flex; align-items:center; gap:0.5rem;';
+        toast.className = 'toast';
         toast.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' + esc(msg);
-        queue.prepend(toast);
-        setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(function() { toast.remove(); }, 300); }, 4000);
+        queue.insertBefore(toast, queue.firstChild);
+        setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300); }, 4000);
     }
 
-    // ── Helpers ──
-    function fileIcon(file) {
-        var isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        if (isPdf) return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
-    }
     function formatSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-    }
-    function esc(str) {
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+        if (bytes < 1048576) return (bytes / 1024).toFixed(0) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
     }
 
-    // ── Init ──
+    function esc(str) {
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
     updateCountdown();
     setInterval(updateCountdown, 1000);
     setInterval(pollStatus, 30000);
@@ -336,6 +332,5 @@
     window.app = { handleFiles: handleFiles };
 })();
 </script>
-<style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
 </body>
 </html>
