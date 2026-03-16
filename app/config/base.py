@@ -325,7 +325,7 @@ class FinanzConfig:
 
     # Upload limits
     FINANZ_MAX_FILE_SIZE_MB: int = int(os.getenv("FINANZ_MAX_FILE_SIZE_MB", "50"))
-    FINANZ_MAX_UPLOADS_PER_TOKEN: int = int(os.getenv("FINANZ_MAX_UPLOADS_PER_TOKEN", "20"))
+    FINANZ_MAX_UPLOADS_PER_TOKEN: int = int(os.getenv("FINANZ_MAX_UPLOADS_PER_TOKEN", "150"))
     FINANZ_ALLOWED_EXTENSIONS: list = get_env_list(
         "FINANZ_ALLOWED_EXTENSIONS", ["pdf", "jpg", "jpeg", "png", "tiff", "heic"]
     )

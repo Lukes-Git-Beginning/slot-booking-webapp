@@ -139,7 +139,8 @@
     'use strict';
 
     var TOKEN = '{{ token_value }}';
-    var EXPIRES_AT = new Date('{{ expires_at }}').getTime();
+    var _exp = new Date({{ expires_at | tojson }});
+    var EXPIRES_AT = isNaN(_exp.getTime()) ? 0 : _exp.getTime();
     var MAX_SIZE = {{ max_file_size_mb }} * 1024 * 1024;
     var ALLOWED = ['pdf','jpg','jpeg','png','tiff','heic'];
 
