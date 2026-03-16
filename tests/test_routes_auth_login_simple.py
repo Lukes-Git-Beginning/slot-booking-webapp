@@ -194,8 +194,8 @@ class TestLoginIntegration:
         """Test account lockout service tracks failed attempts"""
         from app.services.account_lockout import account_lockout
 
-        # Mock data persistence
-        with patch('app.services.data_persistence.data_persistence') as mock_dp:
+        # Mock data persistence (account_lockout imports from app.core.extensions)
+        with patch('app.services.account_lockout.data_persistence') as mock_dp:
             mock_dp.load_data.return_value = {}
 
             # First attempt should not lock
@@ -206,8 +206,8 @@ class TestLoginIntegration:
         """Test audit service can log events"""
         from app.services.audit_service import audit_service
 
-        # Mock data persistence
-        with patch('app.services.data_persistence.data_persistence') as mock_dp:
+        # Mock data persistence (audit_service imports from app.core.extensions)
+        with patch('app.services.audit_service.data_persistence') as mock_dp:
             mock_dp.load_data.return_value = []
 
             # Should not raise exception
