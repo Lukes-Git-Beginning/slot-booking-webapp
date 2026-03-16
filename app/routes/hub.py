@@ -624,12 +624,6 @@ def has_tool_access(username, tool_id):
     # Finanzberatung: Opener + Closer + Admin (Feature Flag FINANZ_ENABLED steuert Sichtbarkeit)
     if tool_id == 'finanzberatung':
         finanz_access = [
-            # Opener
-            'jose.torspecken', 'alexander.nehm', 'david.nehm',
-            'tim.kreisel', 'christian.mast', 'daniel.herbort',
-            'sonja.mast', 'simon.mast', 'dominik.mikic',
-            'ann-kathrin.welge', 'sara.mast',
-            # Dev
             'luke.hoppe',
         ]
         return is_admin or username in finanz_access

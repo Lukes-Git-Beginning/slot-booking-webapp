@@ -118,7 +118,11 @@
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic" multiple class="file-input" onchange="app.handleFiles(this.files)">
                 </label>
                 <p class="hint">PDF, JPG, PNG, TIFF, HEIC — max. {{ max_file_size_mb }} MB</p>
-                <a href="/static/docs/erstinformation.pdf" target="_blank" style="display:block; text-align:center; font-size:0.75rem; color:#207487; margin-top:8px; text-decoration:underline;">Erstinformation herunterladen</a>
+                <div style="text-align:center; margin-top:8px;">
+                    <a href="/static/docs/erstinformation.pdf" target="_blank" style="display:block; font-size:0.75rem; color:#207487; text-decoration:underline;">Erstinformation herunterladen</a>
+                    <a href="/static/docs/V0800.pdf" target="_blank" style="display:block; font-size:0.75rem; color:#207487; margin-top:4px; text-decoration:underline;">V0800 — Kindererziehungszeiten</a>
+                    <a href="/static/docs/V0510.pdf" target="_blank" style="display:block; font-size:0.75rem; color:#207487; margin-top:4px; text-decoration:underline;">V0510 — Schulzeitbescheinigung</a>
+                </div>
             </div>
 
             <!-- Done Banner -->
