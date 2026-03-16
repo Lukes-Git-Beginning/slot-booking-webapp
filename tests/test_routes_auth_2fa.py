@@ -404,7 +404,7 @@ class Test2FAIntegration:
         from app.services.security_service import security_service
 
         # Mock data persistence
-        with patch('app.services.data_persistence.data_persistence') as mock_dp:
+        with patch('app.services.security_service.data_persistence') as mock_dp:
             mock_dp.load_data.return_value = {}
 
             # Setup should return secret and codes
