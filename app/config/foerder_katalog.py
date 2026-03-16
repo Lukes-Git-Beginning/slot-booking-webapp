@@ -100,19 +100,6 @@ FOERDER_KATALOG = [
             + (_float(d, 'kfw_darlehen_partner_summe') or 0)
         ),
     },
-    {
-        'id': 'baukindergeld',
-        'name': 'Baukindergeld',
-        'kategorie': 'Immobilienförderung',
-        'paragraph': 'Zuschuss 424 BM des Inneren',
-        'check': lambda d: _bool(d, 'baukindergeld_mandant_ja') or _bool(d, 'baukindergeld_partner_ja'),
-        'details': lambda d: "Hinweis: Baukindergeld ist seit 2022 ausgelaufen. Nachfolger: KfW WEF 300 / Jung kauft Alt.",
-        'schaetz_vorteil': lambda d: (
-            (_float(d, 'baukindergeld_mandant_summe') or 0)
-            + (_float(d, 'baukindergeld_partner_summe') or 0)
-        ),
-    },
-
     # === ALTERSVORSORGE ===
     {
         'id': 'v0800',

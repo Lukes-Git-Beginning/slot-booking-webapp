@@ -29,7 +29,7 @@ class TestEligibilityEngine:
 
     def test_calculate_returns_all_programs(self):
         results = calculate_eligibility(_base_data())
-        assert len(results) == 14  # 14 programs in ZFA PDF
+        assert len(results) == 13  # 13 programs (Baukindergeld entfernt)
 
     def test_ja_nein_triggers_eligibility(self):
         data = _base_data(bav_mandant_ja=True, bav_mandant_summe=1200)
@@ -86,4 +86,4 @@ class TestEligibilityEngine:
     def test_no_crash_on_bad_data(self):
         """Engine should handle weird/invalid data gracefully."""
         results = calculate_eligibility({'bav_mandant_ja': 'maybe', 'brutto_mandant': 'abc'})
-        assert len(results) == 14
+        assert len(results) == 13

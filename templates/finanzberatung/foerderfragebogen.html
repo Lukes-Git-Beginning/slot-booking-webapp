@@ -4,22 +4,42 @@
 
 {% block area_css %}
 <style nonce="{{ csp_nonce }}">
+    /* Beige Card-Hintergrund */
+    #ffb-wizard .card { background: #f5e6c8 !important; border-color: #d4af6a40; }
+    #ffb-wizard .card, #ffb-wizard .card * { color: #1a1a1a; }
+
+    /* Weiße Inputs für Kontrast auf Beige */
+    #ffb-wizard input[type="text"],
+    #ffb-wizard input[type="number"],
+    #ffb-wizard input[type="date"],
+    #ffb-wizard textarea,
+    #ffb-wizard select {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+        border-color: #c9a050;
+    }
+    #ffb-wizard input:focus, #ffb-wizard textarea:focus, #ffb-wizard select:focus {
+        border-color: #d4af6a;
+        outline-color: #d4af6a80;
+    }
+    #ffb-wizard input::placeholder, #ffb-wizard textarea::placeholder { color: #999; }
+
     #ffb-wizard h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: 1.5rem; }
     #ffb-wizard .ffb-q { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; display: block; }
-    .ffb-foerder-card { border: 1px solid oklch(var(--b3)); border-radius: 0.5rem; padding: 1.25rem; margin-bottom: 1rem; }
+    .ffb-foerder-card { background: rgba(255,255,255,0.3); border: 1px solid #d4af6a30; border-radius: 0.5rem; padding: 1.25rem; margin-bottom: 1rem; }
     .ffb-foerder-card h3 { font-size: 1rem; font-weight: 600; }
     .ffb-foerder-card .paragraph { font-size: 0.8rem; opacity: 0.5; }
     .ffb-row { display: grid; grid-template-columns: 100px 1fr 1fr; gap: 0.75rem; align-items: center; }
     .ffb-row label { font-weight: 500; }
-    .ffb-kriterien { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid oklch(var(--b3) / 0.3); }
+    .ffb-kriterien { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #d4af6a30; }
     .autosave-indicator { transition: opacity 0.3s; }
-    .ffb-result-card { border: 1px solid oklch(var(--b3)); border-radius: 0.5rem; padding: 1rem; }
+    .ffb-result-card { background: rgba(255,255,255,0.3); border: 1px solid #d4af6a30; border-radius: 0.5rem; padding: 1rem; }
     .ffb-radio-group { display: flex; gap: 1rem; align-items: center; }
     .ffb-radio-group label { display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.9rem; }
-    .ffb-radio-group input[type="radio"] { accent-color: oklch(var(--bc) / 0.7); }
+    .ffb-radio-group input[type="radio"] { accent-color: #c9a050; }
     .ffb-step-indicator { font-size: 0.85rem; color: oklch(var(--bc) / 0.5); }
     .ffb-step-indicator span { font-weight: 600; color: oklch(var(--bc) / 0.8); }
-    .ffb-hint-box { background: oklch(var(--b2)); border: 1px solid oklch(var(--b3)); border-radius: 0.5rem; padding: 0.75rem; font-size: 0.875rem; }
+    .ffb-hint-box { background: rgba(255,255,255,0.4); border: 1px solid #d4af6a30; border-radius: 0.5rem; padding: 0.75rem; font-size: 0.875rem; }
 </style>
 {% endblock %}
 
@@ -100,7 +120,7 @@
                                 <div class="grid grid-cols-12 gap-2 mb-2 items-center">
                                     <input type="text" x-model="kind.name" :placeholder="'Kind ' + (idx+1) + ' Name'" class="input input-bordered input-sm col-span-5">
                                     <input type="text" x-model="kind.beruf_schule" placeholder="Beruf/Schule" class="input input-bordered input-sm col-span-4">
-                                    <input type="number" x-model.number="kind.alter" placeholder="Alter" class="input input-bordered input-sm col-span-2" min="0" max="99">
+                                    <input type="date" x-model="kind.geburtsdatum" class="input input-bordered input-sm col-span-2">
                                     <button type="button" class="btn btn-ghost btn-sm btn-square col-span-1" @click="d.kinder.splice(idx, 1)">×</button>
                                 </div>
                             </template>
@@ -505,12 +525,6 @@ function ffbWizard() {
             { key: 'kfw_restschuld', label: 'Restschuld' },
             { key: 'kfw_zinsbindung', label: 'Zinsbindungsfrist' },
         ]},
-        { id: 'baukindergeld', name: 'Baukindergeld', para: 'Zuschuss 424', kat: 'Immobilienförderung', kriterien: [
-            { key: 'bkg_eigentuemer', label: 'Alleiniger Eigentümer?' },
-            { key: 'bkg_anzahl_immobilien', label: 'Anzahl Immobilien' },
-            { key: 'bkg_datum_kaufvertrag', label: 'Datum Kaufvertrag' },
-            { key: 'bkg_datum_einzug', label: 'Datum Einzug' },
-        ]},
         { id: 'v0800', name: 'Kindererziehungszeiten (V0800)', para: '§56 SGB VI', kat: 'Altersvorsorge', kriterien: [] },
         { id: 'bav', name: 'Betriebliche Altersvorsorge', para: '§3 Nr. 63 EStG', kat: 'Altersvorsorge', kriterien: [
             { key: 'bav_unternehmensgroesse', label: 'Größe des Unternehmens' },
@@ -611,7 +625,7 @@ function ffbWizard() {
         },
 
         addKind() {
-            this.d.kinder.push({ name: '', beruf_schule: '', alter: null });
+            this.d.kinder.push({ name: '', beruf_schule: '', geburtsdatum: '' });
         },
 
         async autoSave() {
