@@ -183,11 +183,11 @@ class TestSlotStatus:
 
         mock_calendar_service.get_events.return_value = {'items': []}
 
-        # Wednesday (Mo-Do): 2 per consultant (SLOTS_PER_BERATER_9AM_MON_THU)
+        # Wednesday (Mo-Do): 1 per consultant (SLOTS_PER_BERATER_9AM_MON_THU)
         slot_list, booked, total, free, overbooked = get_slot_status(
             '2025-01-15', '09:00', 3  # Wednesday
         )
-        assert total == 6  # 3 consultants * 2 slots each (9am Mo-Do)
+        assert total == 3  # 3 consultants * 1 slot each (9am Mo-Do)
 
         # Friday: 2 per consultant (SLOTS_PER_BERATER_9AM)
         slot_list, booked, total, free, overbooked = get_slot_status(

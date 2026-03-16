@@ -4,15 +4,15 @@
 
 {% block content %}
 <!-- Breadcrumb -->
-<div class="flex items-center gap-2 text-sm text-gray-400 mb-6" data-aos="fade-down">
-    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}" class="hover:text-primary transition-colors">Sessions</a>
+<div class="flex items-center gap-2 text-sm text-base-content/50 mb-6">
+    <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}" class="hover:text-base-content transition-colors">Sessions</a>
     <i data-lucide="chevron-right" class="w-4 h-4"></i>
-    <span class="text-white">{{ session.customer_name }}</span>
+    <span>{{ session.customer_name }}</span>
 </div>
 
 <!-- Page Title -->
-<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down" data-aos-delay="50">
-    <h1 class="text-3xl font-bold">{{ session.customer_name }}</h1>
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+    <h1 class="text-2xl font-semibold">{{ session.customer_name }}</h1>
     <div class="flex items-center gap-2">
         {% if session.status == 'active' %}
             <span class="badge badge-success">Aktiv</span>
@@ -35,19 +35,19 @@
     <div class="space-y-6">
 
         <!-- Session Info Card -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="info" class="w-5 h-5"></i>
                 Session-Details
             </h2>
 
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-400">Kunde</span>
+                    <span class="text-base-content/50">Kunde</span>
                     <span class="font-semibold">{{ session.customer_name }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-400">Art</span>
+                    <span class="text-base-content/50">Art</span>
                     <span>
                         {% if session.session_type == 'erstberatung' %}Erstberatung
                         {% elif session.session_type == 'folgeberatung' %}Folgeberatung
@@ -55,27 +55,27 @@
                     </span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-400">Termin</span>
+                    <span class="text-base-content/50">Termin</span>
                     <span>
                         {% if session.appointment_date %}
                             {{ session.appointment_date.strftime('%d.%m.%Y') }}
                         {% else %}
-                            <span class="text-gray-500">Nicht festgelegt</span>
+                            <span class="text-base-content/30">Nicht festgelegt</span>
                         {% endif %}
                     </span>
                 </div>
                 <div class="divider my-1"></div>
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-400">Opener</span>
+                    <span class="text-base-content/50">Opener</span>
                     <span>{{ session.opener_username }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-400">Closer</span>
+                    <span class="text-base-content/50">Closer</span>
                     <span>
                         {% if session.closer_username %}
                             {{ session.closer_username }}
                         {% else %}
-                            <span class="text-gray-500">Nicht zugewiesen</span>
+                            <span class="text-base-content/30">Nicht zugewiesen</span>
                         {% endif %}
                     </span>
                 </div>
@@ -83,7 +83,7 @@
 
             <!-- Assign Closer Form (if opener and no closer assigned) -->
             {% if not session.closer_username and current_user == session.opener_username %}
-            <div class="mt-4 pt-4 border-t border-white/10">
+            <div class="mt-4 pt-4 border-t border-base-300">
                 <form method="POST"
                       action="{{ url_for('finanzberatung.finanz_sessions.assign_closer', session_id=session.id) }}"
                       class="flex gap-2">
@@ -93,7 +93,7 @@
                            placeholder="Closer-Username"
                            class="input input-bordered input-sm flex-1"
                            required>
-                    <button type="submit" class="btn btn-secondary btn-sm gap-1">
+                    <button type="submit" class="btn btn-sm gap-1">
                         <i data-lucide="user-plus" class="w-4 h-4"></i>
                         Zuweisen
                     </button>
@@ -103,8 +103,8 @@
 
             <!-- Status Transition Buttons -->
             {% if allowed_transitions %}
-            <div class="mt-4 pt-4 border-t border-white/10">
-                <p class="text-sm text-gray-400 mb-2">Status ändern:</p>
+            <div class="mt-4 pt-4 border-t border-base-300">
+                <p class="text-sm text-base-content/50 mb-2">Status ändern:</p>
                 <div class="flex flex-wrap gap-2" id="status-buttons">
                     {% for transition in allowed_transitions %}
                     <button class="btn btn-sm btn-outline"
@@ -123,7 +123,7 @@
             {% endif %}
 
             <!-- Foerderfragebogen Button -->
-            <div class="mt-4 pt-4 border-t border-white/10">
+            <div class="mt-4 pt-4 border-t border-base-300">
                 <a href="{{ url_for('finanzberatung.finanz_questionnaire.foerderfragebogen', session_id=session.id) }}"
                    class="btn btn-primary w-full gap-2">
                     <i data-lucide="clipboard-list" class="w-5 h-5"></i>
@@ -134,7 +134,7 @@
                     {% endif %}
                 </a>
                 {% if session.foerderfragebogen and session.foerderfragebogen.completed_at %}
-                <p class="text-xs text-center mt-2 text-success">
+                <p class="text-xs text-center mt-2 text-base-content/50">
                     <i data-lucide="check-circle" class="w-3 h-3 inline"></i>
                     Abgeschlossen — {{ session.foerderfragebogen.potential_yearly_benefit|default(0)|round|int }} EUR/Jahr Förderpotenzial
                 </p>
@@ -143,17 +143,17 @@
         </div>
 
         <!-- Notes Card -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="notebook-pen" class="w-5 h-5 text-primary"></i>
+        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="notebook-pen" class="w-5 h-5"></i>
                 Notizen
             </h2>
 
             <!-- T1 Notes -->
             <div class="mb-4">
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-semibold text-gray-300">T1 Notizen (Opener)</label>
-                    <span class="text-xs text-gray-500" id="t1-notes-status"></span>
+                    <label class="text-sm font-semibold">T1 Notizen (Opener)</label>
+                    <span class="text-xs text-base-content/40" id="t1-notes-status"></span>
                 </div>
                 {% if current_user == session.opener_username %}
                 <textarea id="t1-notes"
@@ -161,7 +161,7 @@
                           placeholder="Notizen zum ersten Termin..."
                           data-field="t1_notes">{{ session.t1_notes or '' }}</textarea>
                 {% else %}
-                <div class="bg-white/5 rounded-lg p-3 min-h-[80px] text-sm">
+                <div class="bg-base-200 rounded-lg p-3 min-h-[80px] text-sm">
                     {{ session.t1_notes or 'Keine T1-Notizen vorhanden.' }}
                 </div>
                 {% endif %}
@@ -170,8 +170,8 @@
             <!-- T2 Notes -->
             <div>
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-semibold text-gray-300">T2 Notizen (Closer)</label>
-                    <span class="text-xs text-gray-500" id="t2-notes-status"></span>
+                    <label class="text-sm font-semibold">T2 Notizen (Closer)</label>
+                    <span class="text-xs text-base-content/40" id="t2-notes-status"></span>
                 </div>
                 {% if session.closer_username and current_user == session.closer_username %}
                 <textarea id="t2-notes"
@@ -179,7 +179,7 @@
                           placeholder="Notizen zum zweiten Termin..."
                           data-field="t2_notes">{{ session.t2_notes or '' }}</textarea>
                 {% else %}
-                <div class="bg-white/5 rounded-lg p-3 min-h-[80px] text-sm">
+                <div class="bg-base-200 rounded-lg p-3 min-h-[80px] text-sm">
                     {{ session.t2_notes or 'Keine T2-Notizen vorhanden.' }}
                 </div>
                 {% endif %}
@@ -187,12 +187,12 @@
         </div>
 
         <!-- Documents Card -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="files" class="w-5 h-5 text-primary"></i>
+        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="files" class="w-5 h-5"></i>
                 Dokumente
                 {% if documents %}
-                <span class="badge badge-sm">{{ documents|length }}</span>
+                <span class="badge badge-sm badge-ghost">{{ documents|length }}</span>
                 {% endif %}
             </h2>
 
@@ -200,19 +200,19 @@
                 {% if documents %}
                 <div class="space-y-2">
                     {% for doc in documents %}
-                    <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-base-200 flex items-center justify-center flex-shrink-0">
                             {% if 'pdf' in doc.mime_type %}
                                 <i data-lucide="file-text" class="w-5 h-5 text-red-400"></i>
                             {% elif 'image' in doc.mime_type %}
                                 <i data-lucide="image" class="w-5 h-5 text-blue-400"></i>
                             {% else %}
-                                <i data-lucide="file" class="w-5 h-5 text-gray-400"></i>
+                                <i data-lucide="file" class="w-5 h-5 text-base-content/40"></i>
                             {% endif %}
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold truncate">{{ doc.original_filename }}</p>
-                            <p class="text-xs text-gray-400">
+                            <p class="text-xs text-base-content/40">
                                 {{ (doc.file_size / 1024)|round(1) }} KB
                                 {% if doc.created_at %}
                                 &middot; {{ doc.created_at.strftime('%d.%m.%Y %H:%M') }}
@@ -238,7 +238,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="text-center py-6 text-gray-400">
+                <div class="text-center py-6 text-base-content/40">
                     <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
                     <p class="text-sm">Noch keine Dokumente hochgeladen</p>
                 </div>
@@ -252,9 +252,9 @@
     <div class="space-y-6">
 
         <!-- QR Code Card -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="50" id="qr-card">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="qr-code" class="w-5 h-5 text-primary"></i>
+        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6" id="qr-card">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="qr-code" class="w-5 h-5"></i>
                 Upload-Token
             </h2>
 
@@ -272,18 +272,18 @@
                 <!-- Token Type Badge -->
                 <div class="flex justify-center mb-3">
                     {% if active_token.token_type == 't1' %}
-                        <span class="badge badge-success">T1 Token</span>
+                        <span class="badge badge-ghost">T1 Token</span>
                     {% elif active_token.token_type == 'followup' %}
-                        <span class="badge badge-warning">Folge-Token</span>
+                        <span class="badge badge-ghost">Folge-Token</span>
                     {% elif active_token.token_type == 't2' %}
-                        <span class="badge badge-info">T2 Token</span>
+                        <span class="badge badge-ghost">T2 Token</span>
                     {% endif %}
                 </div>
 
                 <!-- Countdown Timer -->
                 <div class="text-center mb-4" id="countdown-container">
-                    <p class="text-sm text-gray-400 mb-1">Gueltig noch:</p>
-                    <p class="text-3xl font-mono font-bold" id="countdown-timer"
+                    <p class="text-sm text-base-content/50 mb-1">Gueltig noch:</p>
+                    <p class="text-2xl font-mono font-semibold" id="countdown-timer"
                        data-expires="{{ active_token.expires_at.isoformat() }}">
                         --:--:--
                     </p>
@@ -291,11 +291,11 @@
 
                 <!-- Upload Count -->
                 <div class="text-center mb-4">
-                    <p class="text-sm text-gray-400">
-                        <span class="font-semibold text-white">{{ active_token.upload_count }}</span>
+                    <p class="text-sm text-base-content/50">
+                        <span class="font-semibold">{{ active_token.upload_count }}</span>
                         / {{ active_token.max_uploads }} Uploads
                     </p>
-                    <progress class="progress progress-primary w-full mt-1"
+                    <progress class="progress w-full mt-1"
                               value="{{ active_token.upload_count }}"
                               max="{{ active_token.max_uploads }}"></progress>
                 </div>
@@ -332,17 +332,17 @@
             {% else %}
             <!-- No Active Token State -->
             <div id="token-none-state" class="text-center py-6">
-                <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="qr-code" class="w-8 h-8 text-gray-500"></i>
+                <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="qr-code" class="w-8 h-8 text-base-content/30"></i>
                 </div>
-                <p class="text-gray-400 mb-4">Kein aktiver Token</p>
+                <p class="text-base-content/50 mb-4">Kein aktiver Token</p>
                 <div class="flex flex-col gap-2 items-center">
                     <button class="btn btn-primary gap-2" data-action="generateToken" data-type="t1">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         T1 Token erstellen
                     </button>
                     {% if can_followup %}
-                    <button class="btn btn-secondary btn-sm gap-2" data-action="generateToken" data-type="followup">
+                    <button class="btn btn-outline btn-sm gap-2" data-action="generateToken" data-type="followup">
                         <i data-lucide="repeat" class="w-4 h-4"></i>
                         Folge-Token erstellen
                     </button>
@@ -353,17 +353,17 @@
         </div>
 
         <!-- Upload Feed Card (SSE Live Feed) -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150">
+        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold flex items-center gap-2">
-                    <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
                     Upload-Feed
                 </h2>
                 <div class="flex items-center gap-2">
                     <!-- Connection Status -->
                     <div id="finanz-sse-status" class="flex items-center gap-1">
                         <span class="status-dot w-2 h-2 rounded-full bg-gray-500 inline-block"></span>
-                        <span class="status-text text-xs text-gray-500">Verbinde...</span>
+                        <span class="status-text text-xs text-base-content/40">Verbinde...</span>
                     </div>
                     <!-- Sound Toggle -->
                     <button id="finanz-sound-toggle"
@@ -378,16 +378,16 @@
                 <div class="space-y-2">
                     {% for doc in documents %}
                     <div class="flex items-center gap-2 text-sm py-1">
-                        <span class="text-gray-500">
+                        <span class="text-base-content/40">
                             {% if doc.created_at %}{{ doc.created_at.strftime('%H:%M') }}{% endif %}
                         </span>
-                        <span class="text-gray-300">{{ doc.original_filename }}</span>
-                        <span class="text-xs text-gray-500">{{ (doc.file_size / 1024)|round(1) }} KB</span>
+                        <span class="text-base-content/60">{{ doc.original_filename }}</span>
+                        <span class="text-xs text-base-content/30">{{ (doc.file_size / 1024)|round(1) }} KB</span>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-sm text-gray-400 text-center py-4">Noch keine Uploads</p>
+                <p class="text-sm text-base-content/40 text-center py-4">Noch keine Uploads</p>
                 {% endif %}
             </div>
         </div>
@@ -399,10 +399,10 @@
 
 {% if scorecard_data %}
 <!-- Scorecard Overview -->
-<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold flex items-center gap-2">
-            <i data-lucide="gauge" class="w-5 h-5 text-primary"></i>
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+            <i data-lucide="gauge" class="w-5 h-5"></i>
             Scorecard
         </h2>
         <button class="btn btn-ghost btn-sm gap-1" data-action="regenerateScorecard">
@@ -413,11 +413,11 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         {% for sc in scorecard_data %}
         {% if not sc.is_overall %}
-        <div class="rounded-xl p-4
+        <div class="rounded-lg p-4
             {% if sc.rating == 'green' %}bg-success/10 border border-success/30
             {% elif sc.rating == 'yellow' %}bg-warning/10 border border-warning/30
             {% elif sc.rating == 'red' %}bg-error/10 border border-error/30
-            {% else %}bg-white/5 border border-white/10{% endif %}">
+            {% else %}bg-base-200 border border-base-300{% endif %}">
             <div class="flex items-center gap-2 mb-2">
                 <span class="w-3 h-3 rounded-full
                     {% if sc.rating == 'green' %}bg-success
@@ -433,21 +433,21 @@
                     {% else %}{{ sc.category }}{% endif %}
                 </span>
             </div>
-            <p class="text-xs text-gray-400 line-clamp-2">{{ sc.assessment or '' }}</p>
+            <p class="text-xs text-base-content/50 line-clamp-2">{{ sc.assessment or '' }}</p>
         </div>
         {% endif %}
         {% endfor %}
     </div>
     {% for sc in scorecard_data %}
     {% if sc.is_overall %}
-    <div class="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
+    <div class="mt-4 pt-4 border-t border-base-300 flex items-center gap-3">
         <span class="w-4 h-4 rounded-full
             {% if sc.rating == 'green' %}bg-success
             {% elif sc.rating == 'yellow' %}bg-warning
             {% elif sc.rating == 'red' %}bg-error{% endif %}">
         </span>
         <span class="text-sm font-semibold">Gesamt:</span>
-        <span class="text-sm text-gray-300">{{ sc.assessment or '' }}</span>
+        <span class="text-sm text-base-content/60">{{ sc.assessment or '' }}</span>
     </div>
     {% endif %}
     {% endfor %}
@@ -456,16 +456,16 @@
 
 {% if checklist_data %}
 <!-- Completeness Overview -->
-<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold flex items-center gap-2">
-            <i data-lucide="clipboard-check" class="w-5 h-5 text-primary"></i>
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
             Vertrags-Checkliste
-            <span class="badge badge-sm">{{ checklist_data|length }}</span>
+            <span class="badge badge-sm badge-ghost">{{ checklist_data|length }}</span>
         </h2>
         <div class="flex items-center gap-2">
             {% if is_closer %}
-            <button class="btn btn-secondary btn-sm gap-1" data-action="openManualAdd">
+            <button class="btn btn-sm btn-outline gap-1" data-action="openManualAdd">
                 <i data-lucide="plus" class="w-4 h-4"></i>
                 Vertrag hinzufügen
             </button>
@@ -479,7 +479,7 @@
     {% set pct = ((filled_muss / total_muss * 100)|round|int) if total_muss > 0 else 100 %}
     <div class="mb-4">
         <div class="flex items-center justify-between text-sm mb-1">
-            <span class="text-gray-400">Pflichtfelder gesamt</span>
+            <span class="text-base-content/50">Pflichtfelder gesamt</span>
             <span class="font-semibold
                 {% if pct == 100 %}text-success{% elif pct >= 50 %}text-warning{% else %}text-error{% endif %}">
                 {{ filled_muss }}/{{ total_muss }} ({{ pct }}%)
@@ -499,18 +499,18 @@
 </div>
 {% elif documents %}
 <!-- No analyzed documents yet — show analysis trigger -->
-<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold flex items-center gap-2">
-            <i data-lucide="clipboard-check" class="w-5 h-5 text-primary"></i>
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
             Vertrags-Checkliste
         </h2>
     </div>
     <div class="text-center py-8">
-        <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <i data-lucide="scan-search" class="w-8 h-8 text-gray-500"></i>
+        <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="scan-search" class="w-8 h-8 text-base-content/30"></i>
         </div>
-        <p class="text-gray-400 mb-4">Dokumente noch nicht analysiert</p>
+        <p class="text-base-content/50 mb-4">Dokumente noch nicht analysiert</p>
         <button class="btn btn-primary gap-2" data-action="startAnalysis" id="start-analysis-btn">
             <i data-lucide="play" class="w-4 h-4"></i>
             Analyse starten
@@ -521,7 +521,7 @@
 
 <!-- Action Bar: Export + Scorecard -->
 {% if checklist_data %}
-<div class="glass rounded-2xl p-6 mt-6" data-aos="fade-up">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
     <div class="flex flex-wrap items-center gap-3">
         {% if is_closer %}
         <button class="btn btn-primary btn-sm gap-1" data-action="regenerateScorecard">
@@ -530,12 +530,12 @@
         </button>
         {% endif %}
         <a href="{{ url_for('finanzberatung.finanz_sessions.export_excel', session_id=session.id) }}"
-           class="btn btn-secondary btn-sm gap-1">
+           class="btn btn-outline btn-sm gap-1">
             <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
             Excel Export
         </a>
         <a href="{{ url_for('finanzberatung.finanz_sessions.export_pdf', session_id=session.id) }}"
-           class="btn btn-secondary btn-sm gap-1">
+           class="btn btn-outline btn-sm gap-1">
             <i data-lucide="file-text" class="w-4 h-4"></i>
             PDF Export
         </a>
@@ -553,14 +553,14 @@
 <dialog id="manual-contract-modal" class="modal">
     <div class="modal-box max-w-2xl bg-base-200">
         <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-            <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
             Vertrag manuell hinzufügen
         </h3>
 
         <div id="manual-step-1">
-            <p class="text-sm text-gray-400 mb-3">Vertragsart waehlen:</p>
+            <p class="text-sm text-base-content/50 mb-3">Vertragsart waehlen:</p>
             <div id="contract-type-list" class="space-y-2 max-h-96 overflow-y-auto">
-                <p class="text-gray-500 text-sm">Lade Vertragsarten...</p>
+                <p class="text-base-content/40 text-sm">Lade Vertragsarten...</p>
             </div>
         </div>
 
@@ -633,7 +633,7 @@
                 // Token expired
                 clearInterval(timerInterval);
                 timerEl.textContent = '00:00:00';
-                timerEl.className = 'text-3xl font-mono font-bold text-error';
+                timerEl.className = 'text-2xl font-mono font-semibold text-error';
                 if (activeState) activeState.classList.add('hidden');
                 if (expiredState) expiredState.classList.remove('hidden');
                 return;
@@ -651,11 +651,11 @@
             // Color transitions
             var totalMinutes = remaining / 60;
             if (totalMinutes <= 5) {
-                timerEl.className = 'text-3xl font-mono font-bold text-error';
+                timerEl.className = 'text-2xl font-mono font-semibold text-error';
             } else if (totalMinutes <= 15) {
-                timerEl.className = 'text-3xl font-mono font-bold text-warning';
+                timerEl.className = 'text-2xl font-mono font-semibold text-warning';
             } else {
-                timerEl.className = 'text-3xl font-mono font-bold text-success';
+                timerEl.className = 'text-2xl font-mono font-semibold';
             }
         }
 
@@ -701,7 +701,7 @@
                     }
                     setTimeout(function() {
                         statusEl.textContent = '';
-                        statusEl.className = 'text-xs text-gray-500';
+                        statusEl.className = 'text-xs text-base-content/40';
                     }, 3000);
                 }
             })
@@ -718,7 +718,7 @@
             if (saveTimers[field]) clearTimeout(saveTimers[field]);
             if (statusEl) {
                 statusEl.textContent = 'Aenderungen...';
-                statusEl.className = 'text-xs text-gray-500';
+                statusEl.className = 'text-xs text-base-content/40';
             }
             saveTimers[field] = setTimeout(saveNotes, 1500);
         });
@@ -969,7 +969,7 @@
                     var catDiv = document.createElement('div');
                     catDiv.className = 'mb-3';
                     var catLabel = document.createElement('p');
-                    catLabel.className = 'text-xs font-semibold text-gray-400 mb-1';
+                    catLabel.className = 'text-xs font-semibold text-base-content/50 mb-1';
                     catLabel.textContent = cat.label;
                     catDiv.appendChild(catLabel);
                     var grid = document.createElement('div');
@@ -1094,11 +1094,4 @@
     });
 })();
 </script>
-
-<style nonce="{{ csp_nonce }}">
-@keyframes slideInFromTop {
-    0% { opacity: 0; transform: translateY(-10px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-</style>
 {% endblock %}

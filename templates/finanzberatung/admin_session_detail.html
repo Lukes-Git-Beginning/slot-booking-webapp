@@ -4,10 +4,10 @@
 
 {% block content %}
 <!-- Page Header -->
-<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down">
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
     <div>
-        <h1 class="text-3xl font-bold">Session #{{ session.id }} - {{ session.customer_name }}</h1>
-        <p class="text-gray-400 mt-1">Admin-Ansicht (Readonly)</p>
+        <h1 class="text-2xl font-semibold">Session #{{ session.id }} - {{ session.customer_name }}</h1>
+        <p class="text-base-content/50 mt-1">Admin-Ansicht (Readonly)</p>
     </div>
     <a href="{{ url_for('finanzberatung.finanz_admin.admin_session_list') }}"
        class="btn btn-ghost gap-2">
@@ -18,23 +18,23 @@
 
 <!-- Session Info -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <div class="glass rounded-2xl p-6" data-aos="fade-up">
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
         <h2 class="text-lg font-semibold mb-4">Session-Details</h2>
         <div class="space-y-3">
             <div class="flex justify-between">
-                <span class="text-gray-400">Kunde</span>
+                <span class="text-base-content/50">Kunde</span>
                 <span class="font-semibold">{{ session.customer_name }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Opener</span>
+                <span class="text-base-content/50">Opener</span>
                 <span>{{ session.opener_username }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Closer</span>
+                <span class="text-base-content/50">Closer</span>
                 <span>{{ session.closer_username or '-' }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Status</span>
+                <span class="text-base-content/50">Status</span>
                 <span>
                     {% if session.status == 'active' %}
                         <span class="badge badge-success">Aktiv</span>
@@ -54,44 +54,44 @@
                 </span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Typ</span>
+                <span class="text-base-content/50">Typ</span>
                 <span>{{ session.session_type }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Erstellt</span>
+                <span class="text-base-content/50">Erstellt</span>
                 <span>{{ session.created_at.strftime('%d.%m.%Y %H:%M') if session.created_at else '-' }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Termin</span>
+                <span class="text-base-content/50">Termin</span>
                 <span>{{ session.appointment_date.strftime('%d.%m.%Y %H:%M') if session.appointment_date else '-' }}</span>
             </div>
         </div>
     </div>
 
-    <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
         <h2 class="text-lg font-semibold mb-4">DSGVO-Status</h2>
         <div class="space-y-3">
             <div class="flex justify-between">
-                <span class="text-gray-400">Loeschung markiert</span>
+                <span class="text-base-content/50">Loeschung markiert</span>
                 <span>
                     {% if session.deletion_requested_at %}
                         {{ session.deletion_requested_at.strftime('%d.%m.%Y %H:%M') }}
                     {% else %}
-                        <span class="text-gray-500">Nein</span>
+                        <span class="text-base-content/30">Nein</span>
                     {% endif %}
                 </span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Markiert von</span>
+                <span class="text-base-content/50">Markiert von</span>
                 <span>{{ session.deletion_requested_by or '-' }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-400">Dateien geloescht</span>
+                <span class="text-base-content/50">Dateien geloescht</span>
                 <span>
                     {% if session.files_deleted_at %}
                         {{ session.files_deleted_at.strftime('%d.%m.%Y %H:%M') }}
                     {% else %}
-                        <span class="text-gray-500">Nein</span>
+                        <span class="text-base-content/30">Nein</span>
                     {% endif %}
                 </span>
             </div>
@@ -100,8 +100,8 @@
 </div>
 
 <!-- Documents -->
-<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="200">
-    <div class="p-4 border-b border-white/10">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+    <div class="p-4 border-b border-base-300">
         <h2 class="text-lg font-semibold">Dokumente ({{ documents|length }})</h2>
     </div>
     <div class="overflow-x-auto">
@@ -126,7 +126,7 @@
                         {% if doc.document_type %}
                             <span class="badge badge-sm">{{ doc.document_type }}</span>
                         {% else %}
-                            <span class="text-gray-500">-</span>
+                            <span class="text-base-content/30">-</span>
                         {% endif %}
                     </td>
                     <td>
@@ -147,7 +147,7 @@
                 {% endfor %}
                 {% if not documents %}
                 <tr>
-                    <td colspan="7" class="text-center text-gray-400 py-8">
+                    <td colspan="7" class="text-center text-base-content/50 py-8">
                         Keine Dokumente vorhanden.
                     </td>
                 </tr>

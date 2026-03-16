@@ -4,10 +4,10 @@
 
 {% block content %}
 <!-- Page Header -->
-<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" data-aos="fade-down">
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8" >
     <div>
-        <h1 class="text-3xl font-bold">Finanzberatung - Administration</h1>
-        <p class="text-gray-400 mt-1">Session-Verwaltung & DSGVO</p>
+        <h1 class="text-2xl font-semibold">Finanzberatung - Administration</h1>
+        <p class="text-base-content/50 mt-1">Session-Verwaltung & DSGVO</p>
     </div>
     <a href="{{ url_for('finanzberatung.finanz_sessions.session_list') }}"
        class="btn btn-ghost gap-2">
@@ -17,27 +17,27 @@
 </div>
 
 <!-- Stats Header -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up">
-    <div class="glass rounded-2xl p-4 text-center">
-        <div class="text-2xl font-bold text-primary">{{ stats.total }}</div>
-        <div class="text-sm text-gray-400">Gesamt</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" >
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-4 text-center">
+        <div class="text-xl font-semibold">{{ stats.total }}</div>
+        <div class="text-sm text-base-content/50">Gesamt</div>
     </div>
-    <div class="glass rounded-2xl p-4 text-center">
-        <div class="text-2xl font-bold text-success">{{ stats.active }}</div>
-        <div class="text-sm text-gray-400">Aktiv</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-4 text-center">
+        <div class="text-xl font-semibold text-success">{{ stats.active }}</div>
+        <div class="text-sm text-base-content/50">Aktiv</div>
     </div>
-    <div class="glass rounded-2xl p-4 text-center">
-        <div class="text-2xl font-bold text-warning">{{ stats.in_analysis }}</div>
-        <div class="text-sm text-gray-400">In Analyse</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-4 text-center">
+        <div class="text-xl font-semibold text-warning">{{ stats.in_analysis }}</div>
+        <div class="text-sm text-base-content/50">In Analyse</div>
     </div>
-    <div class="glass rounded-2xl p-4 text-center">
-        <div class="text-2xl font-bold text-error">{{ stats.deletion_queue }}</div>
-        <div class="text-sm text-gray-400">Loesch-Queue</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-4 text-center">
+        <div class="text-xl font-semibold text-error">{{ stats.deletion_queue }}</div>
+        <div class="text-sm text-base-content/50">Loesch-Queue</div>
     </div>
 </div>
 
 <!-- Filter Bar -->
-<div class="glass rounded-2xl p-4 mb-6" data-aos="fade-up" data-aos-delay="100">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-4 mb-6" >
     <form method="GET" class="flex flex-wrap items-end gap-4">
         <div class="form-control w-full max-w-xs">
             <label class="label"><span class="label-text">Status</span></label>
@@ -76,8 +76,8 @@
 </div>
 
 <!-- Session Table -->
-<div class="glass rounded-2xl overflow-hidden mb-8" data-aos="fade-up" data-aos-delay="200">
-    <div class="p-4 border-b border-white/10">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-hidden mb-8" >
+    <div class="p-4 border-b border-base-300">
         <h2 class="text-lg font-semibold">Sessions ({{ sessions|length }})</h2>
     </div>
     <div class="overflow-x-auto">
@@ -96,7 +96,7 @@
             </thead>
             <tbody>
                 {% for s in sessions %}
-                <tr class="hover:bg-white/5">
+                <tr class="hover:bg-base-200/50">
                     <td class="font-mono text-sm">{{ s.id }}</td>
                     <td class="font-semibold">{{ s.customer_name }}</td>
                     <td>{{ s.opener_username }}</td>
@@ -143,7 +143,7 @@
                 {% endfor %}
                 {% if not sessions %}
                 <tr>
-                    <td colspan="8" class="text-center text-gray-400 py-8">
+                    <td colspan="8" class="text-center text-base-content/50 py-8">
                         Keine Sessions gefunden.
                     </td>
                 </tr>
@@ -155,8 +155,8 @@
 
 <!-- Deletion Queue -->
 {% if deletion_queue %}
-<div class="glass rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="300">
-    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-hidden" >
+    <div class="p-4 border-b border-base-300 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-error">
             <i data-lucide="alert-triangle" class="w-5 h-5 inline mr-2"></i>
             Loesch-Queue ({{ deletion_queue|length }})
@@ -185,7 +185,7 @@
             </thead>
             <tbody>
                 {% for item in deletion_queue %}
-                <tr class="hover:bg-white/5">
+                <tr class="hover:bg-base-200/50">
                     <td class="font-mono text-sm">{{ item.session_id }}</td>
                     <td class="font-semibold">{{ item.customer_name }}</td>
                     <td>{{ item.opener_username }}</td>
