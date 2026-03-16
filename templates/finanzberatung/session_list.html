@@ -2,6 +2,13 @@
 
 {% block hub_title %}Finanzberatung - Sessions{% endblock %}
 
+{% block area_css %}
+<style nonce="{{ csp_nonce }}">
+    .finanz-card { background: #f5e6c8 !important; border-color: #d4af6a40 !important; }
+    .finanz-card, .finanz-card * { color: #1a1a1a; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Page Header -->
 <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
@@ -30,7 +37,7 @@
 
 {% if sessions and sessions|length > 0 %}
 <!-- Session Table -->
-<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+<div class="finanz-card rounded-lg shadow-sm border overflow-hidden">
     <div class="overflow-x-auto">
         <table class="table table-zebra w-full" id="sessions-table">
             <thead>
@@ -81,11 +88,9 @@
                         {% if s.status == 'active' %}
                             <span class="badge badge-success badge-sm">Aktiv</span>
                         {% elif s.status == 'in_analysis' %}
-                            <span class="badge badge-warning badge-sm">In Analyse</span>
-                        {% elif s.status == 'analyzed' %}
-                            <span class="badge badge-info badge-sm">Analysiert</span>
-                        {% elif s.status == 'verified' %}
-                            <span class="badge badge-primary badge-sm">Verifiziert</span>
+                            <span class="badge badge-warning badge-sm">In Bearbeitung</span>
+                        {% elif s.status in ('analyzed', 'verified') %}
+                            <span class="badge badge-info badge-sm">Abgeschlossen</span>
                         {% elif s.status == 'archived' %}
                             <span class="badge badge-ghost badge-sm">Archiviert</span>
                         {% else %}
@@ -124,7 +129,7 @@
 
 {% else %}
 <!-- Empty State -->
-<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-12 text-center">
+<div class="finanz-card rounded-lg shadow-sm border p-12 text-center">
     <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mx-auto mb-4">
         <i data-lucide="folder-open" class="w-8 h-8 text-base-content/40"></i>
     </div>

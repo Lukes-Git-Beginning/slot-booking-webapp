@@ -200,6 +200,7 @@ def session_detail(session_id):
         # Get active token and generate QR if exists
         active_token = upload_service.get_active_token(session_id)
         qr_code = None
+        upload_url = None
         if active_token:
             # Regenerate QR for display
             import base64
@@ -273,6 +274,7 @@ def session_detail(session_id):
             qr_code=qr_code,
             documents=documents,
             can_followup=can_followup,
+            upload_url=upload_url,
             allowed_transitions=allowed_transitions,
             SessionStatus=SessionStatus,
             checklist_data=checklist_data,

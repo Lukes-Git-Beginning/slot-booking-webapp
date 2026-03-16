@@ -2,6 +2,18 @@
 
 {% block hub_title %}Neue Session erstellen{% endblock %}
 
+{% block area_css %}
+<style nonce="{{ csp_nonce }}">
+    .finanz-card { background: #f5e6c8 !important; border-color: #d4af6a40 !important; }
+    .finanz-card, .finanz-card * { color: #1a1a1a; }
+    .finanz-card input, .finanz-card textarea, .finanz-card select {
+        background: #ffffff !important; color: #1a1a1a !important; border-color: #c9a050;
+    }
+    .finanz-card input:focus, .finanz-card textarea:focus, .finanz-card select:focus { border-color: #d4af6a; outline-color: #d4af6a80; }
+    .finanz-card input::placeholder { color: #999; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Page Header -->
 <div class="mb-8">
@@ -15,7 +27,7 @@
 
 <!-- Creation Form -->
 <div class="max-w-xl mx-auto">
-    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+    <div class="finanz-card rounded-lg shadow-sm border p-6">
         <form method="POST" action="{{ url_for('finanzberatung.finanz_sessions.session_create') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 

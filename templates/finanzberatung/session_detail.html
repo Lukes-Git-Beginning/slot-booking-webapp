@@ -2,6 +2,18 @@
 
 {% block hub_title %}Session: {{ session.customer_name }}{% endblock %}
 
+{% block area_css %}
+<style nonce="{{ csp_nonce }}">
+    .finanz-card { background: #f5e6c8 !important; border-color: #d4af6a40 !important; }
+    .finanz-card, .finanz-card * { color: #1a1a1a; }
+    .finanz-card input, .finanz-card textarea, .finanz-card select {
+        background: #ffffff !important; color: #1a1a1a !important; border-color: #c9a050;
+    }
+    .finanz-card input:focus, .finanz-card textarea:focus { border-color: #d4af6a; outline-color: #d4af6a80; }
+    .finanz-card input::placeholder, .finanz-card textarea::placeholder { color: #999; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Breadcrumb -->
 <div class="flex items-center gap-2 text-sm text-base-content/50 mb-6">
@@ -17,11 +29,9 @@
         {% if session.status == 'active' %}
             <span class="badge badge-success">Aktiv</span>
         {% elif session.status == 'in_analysis' %}
-            <span class="badge badge-warning">In Analyse</span>
-        {% elif session.status == 'analyzed' %}
-            <span class="badge badge-info">Analysiert</span>
-        {% elif session.status == 'verified' %}
-            <span class="badge badge-primary">Verifiziert</span>
+            <span class="badge badge-warning">In Bearbeitung</span>
+        {% elif session.status in ('analyzed', 'verified') %}
+            <span class="badge badge-info">Abgeschlossen</span>
         {% elif session.status == 'archived' %}
             <span class="badge badge-ghost">Archiviert</span>
         {% endif %}
@@ -35,7 +45,7 @@
     <div class="space-y-6">
 
         <!-- Session Info Card -->
-        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+        <div class="finanz-card rounded-lg shadow-sm border p-6">
             <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
                 <i data-lucide="info" class="w-5 h-5"></i>
                 Session-Details
@@ -69,37 +79,7 @@
                     <span class="text-base-content/50">Opener</span>
                     <span>{{ session.opener_username }}</span>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-base-content/50">Closer</span>
-                    <span>
-                        {% if session.closer_username %}
-                            {{ session.closer_username }}
-                        {% else %}
-                            <span class="text-base-content/30">Nicht zugewiesen</span>
-                        {% endif %}
-                    </span>
-                </div>
             </div>
-
-            <!-- Assign Closer Form (if opener and no closer assigned) -->
-            {% if not session.closer_username and current_user == session.opener_username %}
-            <div class="mt-4 pt-4 border-t border-base-300">
-                <form method="POST"
-                      action="{{ url_for('finanzberatung.finanz_sessions.assign_closer', session_id=session.id) }}"
-                      class="flex gap-2">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="text"
-                           name="closer_username"
-                           placeholder="Closer-Username"
-                           class="input input-bordered input-sm flex-1"
-                           required>
-                    <button type="submit" class="btn btn-sm gap-1">
-                        <i data-lucide="user-plus" class="w-4 h-4"></i>
-                        Zuweisen
-                    </button>
-                </form>
-            </div>
-            {% endif %}
 
             <!-- Status Transition Buttons -->
             {% if allowed_transitions %}
@@ -110,9 +90,9 @@
                     <button class="btn btn-sm btn-outline"
                             data-action="transitionStatus"
                             data-status="{{ transition.value }}">
-                        {% if transition == SessionStatus.IN_ANALYSIS %}In Analyse
-                        {% elif transition == SessionStatus.ANALYZED %}Analysiert
-                        {% elif transition == SessionStatus.VERIFIED %}Verifiziert
+                        {% if transition == SessionStatus.IN_ANALYSIS %}In Bearbeitung
+                        {% elif transition == SessionStatus.ANALYZED %}Abgeschlossen
+                        {% elif transition == SessionStatus.VERIFIED %}Abgeschlossen
                         {% elif transition == SessionStatus.ARCHIVED %}Archivieren
                         {% elif transition == SessionStatus.ACTIVE %}Reaktivieren
                         {% else %}{{ transition.value }}{% endif %}
@@ -143,51 +123,33 @@
         </div>
 
         <!-- Notes Card -->
-        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+        <div class="finanz-card rounded-lg shadow-sm border p-6">
             <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
                 <i data-lucide="notebook-pen" class="w-5 h-5"></i>
                 Notizen
             </h2>
 
-            <!-- T1 Notes -->
-            <div class="mb-4">
+            <!-- Notes -->
+            <div>
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-semibold">T1 Notizen (Opener)</label>
+                    <label class="text-sm font-semibold">Notizen</label>
                     <span class="text-xs text-base-content/40" id="t1-notes-status"></span>
                 </div>
                 {% if current_user == session.opener_username %}
                 <textarea id="t1-notes"
-                          class="textarea textarea-bordered w-full h-32 resize-y"
+                          class="textarea textarea-bordered w-full min-h-[120px] resize-y"
                           placeholder="Notizen zum ersten Termin..."
                           data-field="t1_notes">{{ session.t1_notes or '' }}</textarea>
                 {% else %}
                 <div class="bg-base-200 rounded-lg p-3 min-h-[80px] text-sm">
-                    {{ session.t1_notes or 'Keine T1-Notizen vorhanden.' }}
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- T2 Notes -->
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-semibold">T2 Notizen (Closer)</label>
-                    <span class="text-xs text-base-content/40" id="t2-notes-status"></span>
-                </div>
-                {% if session.closer_username and current_user == session.closer_username %}
-                <textarea id="t2-notes"
-                          class="textarea textarea-bordered w-full h-32 resize-y"
-                          placeholder="Notizen zum zweiten Termin..."
-                          data-field="t2_notes">{{ session.t2_notes or '' }}</textarea>
-                {% else %}
-                <div class="bg-base-200 rounded-lg p-3 min-h-[80px] text-sm">
-                    {{ session.t2_notes or 'Keine T2-Notizen vorhanden.' }}
+                    {{ session.t1_notes or 'Keine Notizen vorhanden.' }}
                 </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Documents Card -->
-        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+        <div class="finanz-card rounded-lg shadow-sm border p-6">
             <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
                 <i data-lucide="files" class="w-5 h-5"></i>
                 Dokumente
@@ -252,7 +214,7 @@
     <div class="space-y-6">
 
         <!-- QR Code Card -->
-        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6" id="qr-card">
+        <div class="finanz-card rounded-lg shadow-sm border p-6" id="qr-card">
             <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
                 <i data-lucide="qr-code" class="w-5 h-5"></i>
                 Upload-Token
@@ -268,6 +230,17 @@
                          class="w-64 h-64 rounded-lg bg-white p-2"
                          id="qr-image">
                 </div>
+
+                <!-- Upload Link -->
+                {% if upload_url %}
+                <div class="text-center mb-3">
+                    <p class="text-xs text-base-content/50 mb-1">Upload-Link:</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <input type="text" value="{{ upload_url }}" id="upload-link-input" class="input input-bordered input-xs text-xs w-64" readonly>
+                        <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('upload-link-input').value); this.textContent='Kopiert!'; setTimeout(function(){document.querySelector('[data-copy-btn]').textContent='Kopieren';},2000);" data-copy-btn>Kopieren</button>
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Token Type Badge -->
                 <div class="flex justify-center mb-3">
@@ -353,7 +326,7 @@
         </div>
 
         <!-- Upload Feed Card (SSE Live Feed) -->
-        <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6">
+        <div class="finanz-card rounded-lg shadow-sm border p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold flex items-center gap-2">
                     <i data-lucide="activity" class="w-5 h-5"></i>
@@ -399,7 +372,7 @@
 
 {% if scorecard_data %}
 <!-- Scorecard Overview -->
-<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
+<div class="finanz-card rounded-lg shadow-sm border p-6 mt-6">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold flex items-center gap-2">
             <i data-lucide="gauge" class="w-5 h-5"></i>
@@ -456,7 +429,7 @@
 
 {% if checklist_data %}
 <!-- Completeness Overview -->
-<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
+<div class="finanz-card rounded-lg shadow-sm border p-6 mt-6">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold flex items-center gap-2">
             <i data-lucide="clipboard-check" class="w-5 h-5"></i>
@@ -499,7 +472,7 @@
 </div>
 {% elif documents %}
 <!-- No analyzed documents yet — show analysis trigger -->
-<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
+<div class="finanz-card rounded-lg shadow-sm border p-6 mt-6">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold flex items-center gap-2">
             <i data-lucide="clipboard-check" class="w-5 h-5"></i>
@@ -521,7 +494,7 @@
 
 <!-- Action Bar: Export + Scorecard -->
 {% if checklist_data %}
-<div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-6 mt-6">
+<div class="finanz-card rounded-lg shadow-sm border p-6 mt-6">
     <div class="flex flex-wrap items-center gap-3">
         {% if is_closer %}
         <button class="btn btn-primary btn-sm gap-1" data-action="regenerateScorecard">
@@ -731,7 +704,6 @@
     }
 
     setupAutoSave('t1-notes', 't1_notes');
-    setupAutoSave('t2-notes', 't2_notes');
 
     // =========================================================================
     // 3. TOKEN GENERATION
