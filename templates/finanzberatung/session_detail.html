@@ -95,6 +95,7 @@
                         {% elif transition == SessionStatus.VERIFIED %}Abgeschlossen
                         {% elif transition == SessionStatus.ARCHIVED %}Archivieren
                         {% elif transition == SessionStatus.ACTIVE %}Reaktivieren
+                        {% elif transition == SessionStatus.DELETION_PENDING %}Zur Löschung markieren
                         {% else %}{{ transition.value }}{% endif %}
                     </button>
                     {% endfor %}
