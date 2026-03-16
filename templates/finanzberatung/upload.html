@@ -2,411 +2,341 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Dokumente hochladen - ZFA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dokumente hochladen — ZFA</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#d4af6a',
-                        secondary: '#207487',
-                        accent: '#294c5d',
-                        'zfa-gray': '#77726d',
-                    }
-                }
-            }
+            theme: { extend: { colors: {
+                zfa: '#d4af6a',
+                'zfa-dark': '#c9a050',
+                'zfa-teal': '#207487',
+                'zfa-accent': '#294c5d',
+            }}}
         }
     </script>
     <style>
-        /* Prevent iOS zoom on input focus */
         input, select, textarea { font-size: 16px !important; }
-        /* Safe area for notch devices */
         body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        .upload-card { transition: all 0.3s ease; }
+        .upload-progress { transition: width 0.15s linear; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Tailwind CDN Safelist (hidden, ensures JS-generated classes are available) -->
-    <div class="hidden w-10 h-10 sm:w-14 sm:h-14 w-8 h-8 sm:w-10 sm:h-10 w-5 h-5 sm:w-6 sm:h-6"></div>
+<body class="bg-gray-50 min-h-screen flex flex-col">
 
     <!-- Header -->
-    <div class="bg-white shadow-sm border-b border-gray-100">
-        <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-center gap-2">
-            <svg class="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
+    <header class="bg-white border-b border-gray-200 px-4 py-3">
+        <div class="max-w-md mx-auto flex items-center justify-center gap-2">
+            <svg class="w-5 h-5 text-zfa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
-            <span class="text-lg font-bold text-accent">ZFA</span>
+            <span class="font-bold text-zfa-accent">ZFA</span>
         </div>
-    </div>
+    </header>
 
-    <!-- Main Content -->
-    <div class="max-w-lg mx-auto px-4 py-6">
+    <!-- Main -->
+    <main class="flex-1 px-4 py-5 max-w-md mx-auto w-full">
 
         <!-- Greeting -->
-        <div class="text-center mb-5">
-            <h1 class="text-xl sm:text-2xl font-bold text-accent mb-1">Hallo {{ customer_name }}</h1>
-            <p class="text-zfa-gray text-sm">Laden Sie Ihre Unterlagen hoch</p>
+        <div class="mb-4">
+            <h1 class="text-xl font-bold text-zfa-accent">Hallo {{ customer_name }}</h1>
+            <p class="text-gray-500 text-sm mt-0.5">Bitte laden Sie Ihre Unterlagen hoch.</p>
         </div>
 
-        <!-- Status Pills -->
-        <div class="flex items-center justify-center gap-3 mb-6">
-            <div id="countdown" class="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-sm text-zfa-gray shadow-sm">
-                <svg class="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span id="countdown-text">Wird berechnet...</span>
+        <!-- Status Bar -->
+        <div class="flex items-center gap-3 mb-5">
+            <div id="timer-badge" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-sm text-gray-600 shadow-sm">
+                <svg class="w-4 h-4 text-zfa-teal flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="countdown">--:--:--</span>
             </div>
-            <div class="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-sm text-zfa-gray shadow-sm">
-                <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span><span id="remaining-count">{{ remaining_uploads }}</span> verbleibend</span>
+            <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-sm text-gray-600 shadow-sm">
+                <svg class="w-4 h-4 text-zfa flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span><span id="remaining">{{ remaining_uploads }}</span> verbleibend</span>
             </div>
+        </div>
+
+        <!-- Offline Banner (hidden by default) -->
+        <div id="offline-banner" class="hidden bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 text-sm text-amber-700 flex items-center gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            Keine Internetverbindung
+        </div>
+
+        <!-- Expired Banner (hidden by default) -->
+        <div id="expired-banner" class="hidden bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 text-center">
+            <p class="text-red-700 font-medium text-sm">Link abgelaufen</p>
+            <p class="text-red-500 text-xs mt-1">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
         </div>
 
         <!-- Upload Buttons -->
-        <div id="upload-controls" class="space-y-3 mb-6">
-            <!-- Camera Button (Primary / Hero) -->
-            <label class="btn w-full flex items-center justify-center gap-2 sm:gap-3 text-white border-0 shadow-lg transition-colors cursor-pointer rounded-2xl"
-                   style="min-height: 52px; background: linear-gradient(135deg, #d4af6a 0%, #c9a050 100%);">
-                <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                </svg>
-                <span class="text-sm sm:text-base font-semibold">Foto aufnehmen</span>
-                <input type="file" accept="image/*" capture="environment" class="hidden" id="camera-input"
-                       onchange="handleFileSelect(this)">
+        <div id="upload-controls" class="space-y-3 mb-5">
+            <label id="camera-btn" class="flex items-center justify-center gap-2 w-full rounded-xl text-white font-semibold cursor-pointer shadow-sm"
+                   style="min-height: 52px; background: linear-gradient(135deg, #d4af6a, #c9a050);">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Foto aufnehmen
+                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="app.handleFiles(this.files)">
             </label>
-
-            <!-- File Picker Button (Secondary) -->
-            <label class="btn btn-outline w-full flex items-center justify-center gap-2 sm:gap-3 cursor-pointer rounded-2xl transition-colors"
+            <label id="file-btn" class="flex items-center justify-center gap-2 w-full rounded-xl font-semibold cursor-pointer border-2 shadow-sm bg-white"
                    style="min-height: 52px; border-color: #207487; color: #207487;">
-                <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span class="text-sm sm:text-base font-semibold">Datei auswaehlen</span>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic,image/*,application/pdf" multiple class="hidden" id="file-input"
-                       onchange="handleFileSelect(this)">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Datei auswaehlen
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.heic" multiple class="hidden" onchange="app.handleFiles(this.files)">
             </label>
+            <p class="text-xs text-gray-400 text-center">PDF, JPG, PNG, TIFF, HEIC — max. {{ max_file_size_mb }} MB</p>
+        </div>
 
-            <!-- Format Hint -->
-            <p class="text-center text-xs text-zfa-gray/70 pt-1">PDF, JPG, PNG, TIFF, HEIC &mdash; max. {{ max_file_size_mb }} MB</p>
+        <!-- Done Banner (hidden by default) -->
+        <div id="done-banner" class="hidden bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-4 text-center">
+            <p class="text-green-700 font-medium text-sm">Alle Uploads abgeschlossen</p>
+            <p class="text-green-500 text-xs mt-1">Vielen Dank! Ihr Berater wurde benachrichtigt.</p>
         </div>
 
         <!-- Upload Queue -->
-        <div id="upload-queue" class="space-y-3"></div>
+        <div id="queue" class="space-y-2"></div>
 
-        <!-- Expired Overlay (hidden by default) -->
-        <div id="expired-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:p-6">
-            <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-xl">
-                <svg class="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-3 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <h2 class="text-lg font-bold text-accent mb-2">Link abgelaufen</h2>
-                <p class="text-zfa-gray text-sm">Bitte wenden Sie sich an Ihren Berater fuer einen neuen Link.</p>
-            </div>
-        </div>
+    </main>
 
-        <!-- All Done Overlay (hidden by default) -->
-        <div id="done-overlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:p-6">
-            <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-xl">
-                <svg class="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <h2 class="text-lg font-bold text-accent mb-2">Alles hochgeladen</h2>
-                <p class="text-zfa-gray text-sm">Ihre Dokumente wurden erfolgreich uebermittelt. Vielen Dank!</p>
-            </div>
-        </div>
+    <!-- Footer -->
+    <footer class="px-4 py-3 text-center text-xs text-gray-300">
+        ZFA GmbH
+    </footer>
 
-    </div>
+<script>
+(function() {
+    'use strict';
 
-    <script>
-    (function() {
-        'use strict';
+    var TOKEN = '{{ token_value }}';
+    var EXPIRES_AT = new Date('{{ expires_at }}').getTime();
+    var MAX_SIZE = {{ max_file_size_mb }} * 1024 * 1024;
+    var ALLOWED = ['pdf','jpg','jpeg','png','tiff','heic'];
 
-        // Configuration from server
-        var TOKEN_VALUE = '{{ token_value }}';
-        var EXPIRES_AT = new Date('{{ expires_at }}');
-        var MAX_FILE_SIZE_MB = {{ max_file_size_mb }};
-        var MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-        var ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'heic'];
-        var remainingUploads = {{ remaining_uploads }};
+    var remaining = {{ remaining_uploads }};
+    var expired = false;
+    var queue = document.getElementById('queue');
+    var countdownEl = document.getElementById('countdown');
+    var remainingEl = document.getElementById('remaining');
+    var timerBadge = document.getElementById('timer-badge');
+    var controls = document.getElementById('upload-controls');
+    var expiredBanner = document.getElementById('expired-banner');
+    var doneBanner = document.getElementById('done-banner');
+    var offlineBanner = document.getElementById('offline-banner');
 
-        // DOM elements
-        var uploadQueue = document.getElementById('upload-queue');
-        var countdownText = document.getElementById('countdown-text');
-        var remainingCount = document.getElementById('remaining-count');
-        var uploadControls = document.getElementById('upload-controls');
-        var expiredOverlay = document.getElementById('expired-overlay');
-        var doneOverlay = document.getElementById('done-overlay');
+    // ── Countdown ──
+    function updateCountdown() {
+        if (expired) return;
+        var diff = Math.max(0, Math.floor((EXPIRES_AT - Date.now()) / 1000));
+        if (diff <= 0) { setExpired(); return; }
+        var h = Math.floor(diff / 3600);
+        var m = Math.floor((diff % 3600) / 60);
+        var s = diff % 60;
+        countdownEl.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+        if (diff <= 300) {
+            timerBadge.classList.remove('text-gray-600', 'border-gray-200');
+            timerBadge.classList.add('text-red-600', 'border-red-200', 'bg-red-50');
+        }
+    }
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
-        // ---- Countdown Timer ----
-        function updateCountdown() {
-            var now = new Date();
-            var diff = EXPIRES_AT - now;
+    function setExpired() {
+        expired = true;
+        countdownEl.textContent = '00:00:00';
+        timerBadge.classList.add('text-red-600', 'border-red-200', 'bg-red-50');
+        controls.classList.add('opacity-40', 'pointer-events-none');
+        expiredBanner.classList.remove('hidden');
+    }
 
-            if (diff <= 0) {
-                countdownText.textContent = 'Abgelaufen';
-                disableUploads();
-                expiredOverlay.classList.remove('hidden');
+    function setDone() {
+        controls.classList.add('opacity-40', 'pointer-events-none');
+        doneBanner.classList.remove('hidden');
+    }
+
+    // ── Offline Detection ──
+    function updateOnlineStatus() {
+        if (navigator.onLine) {
+            offlineBanner.classList.add('hidden');
+        } else {
+            offlineBanner.classList.remove('hidden');
+        }
+    }
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // ── Token Polling ──
+    function pollStatus() {
+        if (expired) return;
+        fetch('/finanzberatung/upload/' + TOKEN + '/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.valid) { setExpired(); return; }
+            remaining = data.remaining_uploads;
+            remainingEl.textContent = remaining;
+            if (remaining <= 0) setDone();
+        })
+        .catch(function() { /* silent */ });
+    }
+
+    // ── Validation ──
+    function validate(file) {
+        var ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (ALLOWED.indexOf(ext) === -1) return 'Dateityp nicht erlaubt: .' + ext;
+        if (file.size > MAX_SIZE) return 'Datei zu gross: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB (max. ' + (MAX_SIZE / 1024 / 1024) + ' MB)';
+        if (file.size === 0) return 'Leere Datei';
+        return null;
+    }
+
+    // ── File Handling ──
+    function handleFiles(files) {
+        if (expired || !files || files.length === 0) return;
+        for (var i = 0; i < files.length; i++) {
+            if (remaining <= 0) {
+                showError('Upload-Limit erreicht');
                 return;
             }
-
-            var hours = Math.floor(diff / 3600000);
-            var minutes = Math.floor((diff % 3600000) / 60000);
-            var seconds = Math.floor((diff % 60000) / 1000);
-
-            var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
-            countdownText.textContent = pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
-        }
-
-        updateCountdown();
-        setInterval(updateCountdown, 1000);
-
-        // ---- Helpers ----
-        function disableUploads() {
-            uploadControls.style.opacity = '0.4';
-            uploadControls.style.pointerEvents = 'none';
-            var inputs = uploadControls.querySelectorAll('input[type="file"]');
-            for (var i = 0; i < inputs.length; i++) {
-                inputs[i].disabled = true;
+            var err = validate(files[i]);
+            if (err) {
+                showError(err);
+                continue;
             }
+            uploadFile(files[i]);
         }
+    }
 
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        }
+    // ── Upload ──
+    function uploadFile(file) {
+        var card = createCard(file);
+        queue.prepend(card);
 
-        function getFileExtension(filename) {
-            var parts = filename.split('.');
-            return parts.length > 1 ? parts.pop().toLowerCase() : '';
-        }
+        var formData = new FormData();
+        formData.append('file', file);
 
-        function truncateFilename(name, maxLen) {
-            if (name.length <= maxLen) return name;
-            var ext = getFileExtension(name);
-            var base = name.substring(0, name.length - ext.length - 1);
-            var keep = maxLen - ext.length - 4; // 4 for "..." + "."
-            return base.substring(0, keep) + '...' + (ext ? '.' + ext : '');
-        }
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/finanzberatung/upload/' + TOKEN + '/submit', true);
 
-        function isPDF(file) {
-            return file.type === 'application/pdf' || getFileExtension(file.name) === 'pdf';
-        }
-
-        // ---- Client-side Validation ----
-        function validateFile(file) {
-            // Check extension
-            var ext = getFileExtension(file.name);
-            if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
-                return 'Dateityp nicht erlaubt: .' + ext + '. Erlaubt: PDF, JPG, PNG, TIFF, HEIC';
-            }
-
-            // Check file size
-            if (file.size > MAX_FILE_SIZE_BYTES) {
-                return 'Datei zu gross: ' + formatFileSize(file.size) + ' (max. ' + MAX_FILE_SIZE_MB + ' MB)';
-            }
-
-            return null; // Valid
-        }
-
-        // ---- Create Upload Card ----
-        function createUploadCard(file) {
-            var card = document.createElement('div');
-            card.className = 'upload-card bg-white rounded-2xl shadow-sm border border-gray-100 p-4';
-
-            var iconHTML;
-            if (isPDF(file)) {
-                iconHTML = '<div class="w-10 h-10 sm:w-14 sm:h-14 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">' +
-                    '<svg class="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
-                    '<polyline points="14 2 14 8 20 8"/>' +
-                    '<line x1="16" y1="13" x2="8" y2="13"/>' +
-                    '<line x1="16" y1="17" x2="8" y2="17"/>' +
-                    '</svg></div>';
-            } else {
-                // Image: show thumbnail preview
-                iconHTML = '<div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">' +
-                    '<img class="w-full h-full object-cover" data-preview="true" alt="Vorschau"></div>';
-            }
-
-            card.innerHTML =
-                '<div class="flex items-center gap-3 mb-3">' +
-                    iconHTML +
-                    '<div class="flex-1 min-w-0">' +
-                        '<p class="font-medium text-accent text-sm truncate">' + truncateFilename(file.name, 35) + '</p>' +
-                        '<p class="text-xs text-zfa-gray mt-0.5">' + formatFileSize(file.size) + '</p>' +
-                    '</div>' +
-                    '<div data-status-icon class="flex-shrink-0"></div>' +
-                '</div>' +
-                '<div data-progress-wrap>' +
-                    '<progress class="progress progress-primary w-full h-2" value="0" max="100" data-progress></progress>' +
-                    '<p class="text-xs text-zfa-gray mt-1" data-status-text>Wird hochgeladen...</p>' +
-                '</div>';
-
-            uploadQueue.appendChild(card);
-
-            // Generate image thumbnail if applicable
-            if (!isPDF(file)) {
-                var imgEl = card.querySelector('[data-preview]');
-                if (imgEl && typeof FileReader !== 'undefined') {
-                    var reader = new FileReader();
-                    reader.onload = function(e) { imgEl.src = e.target.result; };
-                    reader.readAsDataURL(file);
-                }
-            }
-
-            return card;
-        }
-
-        // ---- Upload File via XHR ----
-        function uploadFile(file, card) {
-            var progressBar = card.querySelector('[data-progress]');
-            var statusText = card.querySelector('[data-status-text]');
-            var statusIcon = card.querySelector('[data-status-icon]');
-            var progressWrap = card.querySelector('[data-progress-wrap]');
-
-            var formData = new FormData();
-            formData.append('file', file);
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/finanzberatung/upload/' + TOKEN_VALUE + '/submit', true);
-
-            // Progress handler
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    var pct = Math.round((e.loaded / e.total) * 100);
-                    progressBar.value = pct;
-                    statusText.textContent = pct + '% hochgeladen...';
-                }
-            };
-
-            // Success handler
-            xhr.onload = function() {
-                var response;
-                try {
-                    response = JSON.parse(xhr.responseText);
-                } catch (e) {
-                    showCardError(card, 'Serverfehler');
-                    return;
-                }
-
-                if (xhr.status >= 200 && xhr.status < 300 && response.success) {
-                    // Success
-                    progressBar.value = 100;
-                    progressBar.classList.remove('progress-primary');
-                    progressBar.classList.add('progress-success');
-                    statusText.textContent = 'Erfolgreich hochgeladen';
-                    statusText.classList.remove('text-zfa-gray');
-                    statusText.classList.add('text-green-600');
-                    statusIcon.innerHTML =
-                        '<svg class="w-6 h-6 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                        '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>' +
-                        '<polyline points="22 4 12 14.01 9 11.01"/></svg>';
-
-                    // Update remaining count
-                    remainingUploads = Math.max(0, remainingUploads - 1);
-                    remainingCount.textContent = remainingUploads;
-
-                    if (remainingUploads <= 0) {
-                        disableUploads();
-                        doneOverlay.classList.remove('hidden');
-                    }
-                } else {
-                    showCardError(card, response.message || 'Upload fehlgeschlagen');
-                }
-            };
-
-            // Error handler
-            xhr.onerror = function() {
-                showCardError(card, 'Netzwerkfehler - bitte pruefen Sie Ihre Verbindung');
-            };
-
-            xhr.send(formData);
-        }
-
-        function showCardError(card, message) {
-            var progressBar = card.querySelector('[data-progress]');
-            var statusText = card.querySelector('[data-status-text]');
-            var statusIcon = card.querySelector('[data-status-icon]');
-
-            progressBar.classList.remove('progress-primary');
-            progressBar.classList.add('progress-error');
-            statusText.textContent = message;
-            statusText.classList.remove('text-zfa-gray');
-            statusText.classList.add('text-red-600');
-            statusIcon.innerHTML =
-                '<svg class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                '<circle cx="12" cy="12" r="10"/>' +
-                '<line x1="15" y1="9" x2="9" y2="15"/>' +
-                '<line x1="9" y1="9" x2="15" y2="15"/></svg>';
-        }
-
-        function showInlineError(message) {
-            var card = document.createElement('div');
-            card.className = 'upload-card bg-red-50 rounded-2xl border border-red-200 p-4';
-            card.innerHTML =
-                '<div class="flex items-center gap-3">' +
-                    '<svg class="w-6 h-6 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                    '<circle cx="12" cy="12" r="10"/>' +
-                    '<line x1="12" y1="8" x2="12" y2="12"/>' +
-                    '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-                    '<p class="text-sm text-red-700">' + message + '</p>' +
-                '</div>';
-            uploadQueue.appendChild(card);
-
-            // Auto-remove after 5 seconds
-            setTimeout(function() {
-                if (card.parentNode) {
-                    card.style.opacity = '0';
-                    setTimeout(function() { card.remove(); }, 300);
-                }
-            }, 5000);
-        }
-
-        // ---- File Select Handler ----
-        window.handleFileSelect = function(input) {
-            var files = input.files;
-            if (!files || files.length === 0) return;
-
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-
-                // Check remaining uploads
-                if (remainingUploads <= 0) {
-                    showInlineError('Upload-Limit erreicht. Keine weiteren Uploads moeglich.');
-                    break;
-                }
-
-                // Client-side validation
-                var error = validateFile(file);
-                if (error) {
-                    showInlineError(file.name + ': ' + error);
-                    continue;
-                }
-
-                // Create card and upload
-                var card = createUploadCard(file);
-                uploadFile(file, card);
-            }
-
-            // Reset file input so same file can be selected again
-            input.value = '';
+        // Progress
+        xhr.upload.onprogress = function(e) {
+            if (!e.lengthComputable) return;
+            var pct = Math.round(e.loaded / e.total * 100);
+            setCardProgress(card, pct);
         };
 
-    })();
-    </script>
+        // Success
+        xhr.onload = function() {
+            var resp;
+            try { resp = JSON.parse(xhr.responseText); } catch(e) { resp = {}; }
 
+            if (xhr.status >= 200 && xhr.status < 300 && resp.success) {
+                setCardSuccess(card, resp.document);
+                remaining = Math.max(0, remaining - 1);
+                remainingEl.textContent = remaining;
+                if (remaining <= 0) setDone();
+            } else {
+                setCardError(card, file, resp.message || 'Upload fehlgeschlagen (HTTP ' + xhr.status + ')');
+            }
+        };
+
+        // Network Error
+        xhr.onerror = function() {
+            setCardError(card, file, 'Netzwerkfehler — bitte Verbindung pruefen');
+        };
+
+        xhr.send(formData);
+    }
+
+    // ── Card UI ──
+    function createCard(file) {
+        var card = document.createElement('div');
+        card.className = 'bg-white border border-gray-200 rounded-lg p-3 shadow-sm';
+        card.innerHTML =
+            '<div class="flex items-center gap-3">' +
+                '<div class="w-9 h-9 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">' +
+                    fileIcon(file) +
+                '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<p class="text-sm font-medium text-gray-800 truncate">' + escapeHtml(file.name) + '</p>' +
+                    '<p class="text-xs text-gray-400">' + formatSize(file.size) + '</p>' +
+                '</div>' +
+                '<div class="card-status flex-shrink-0">' +
+                    '<svg class="w-5 h-5 text-gray-300 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.49 8.49l2.83 2.83"/></svg>' +
+                '</div>' +
+            '</div>' +
+            '<div class="mt-2">' +
+                '<div class="w-full bg-gray-100 rounded-full h-1.5">' +
+                    '<div class="upload-progress bg-zfa h-1.5 rounded-full" style="width: 0%"></div>' +
+                '</div>' +
+                '<p class="card-pct text-xs text-gray-400 mt-1">Wird hochgeladen...</p>' +
+            '</div>';
+        return card;
+    }
+
+    function setCardProgress(card, pct) {
+        var bar = card.querySelector('.upload-progress');
+        var txt = card.querySelector('.card-pct');
+        if (bar) bar.style.width = pct + '%';
+        if (txt) txt.textContent = pct + '% hochgeladen';
+    }
+
+    function setCardSuccess(card, doc) {
+        var bar = card.querySelector('.upload-progress');
+        var txt = card.querySelector('.card-pct');
+        var status = card.querySelector('.card-status');
+        if (bar) { bar.style.width = '100%'; bar.classList.remove('bg-zfa'); bar.classList.add('bg-green-500'); }
+        if (txt) { txt.textContent = 'Erfolgreich hochgeladen'; txt.classList.remove('text-gray-400'); txt.classList.add('text-green-600'); }
+        if (status) { status.innerHTML = '<svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'; }
+        card.classList.remove('border-gray-200');
+        card.classList.add('border-green-200', 'bg-green-50/50');
+    }
+
+    function setCardError(card, file, message) {
+        var bar = card.querySelector('.upload-progress');
+        var txt = card.querySelector('.card-pct');
+        var status = card.querySelector('.card-status');
+        if (bar) { bar.style.width = '100%'; bar.classList.remove('bg-zfa'); bar.classList.add('bg-red-400'); }
+        if (txt) { txt.textContent = message; txt.classList.remove('text-gray-400'); txt.classList.add('text-red-500'); }
+        if (status) {
+            status.innerHTML = '<button class="retry-btn text-xs text-zfa-teal font-medium px-2 py-1 border border-zfa-teal rounded hover:bg-zfa-teal hover:text-white transition-colors">Erneut</button>';
+            status.querySelector('.retry-btn').onclick = function() {
+                card.remove();
+                uploadFile(file);
+            };
+        }
+        card.classList.remove('border-gray-200');
+        card.classList.add('border-red-200', 'bg-red-50/50');
+    }
+
+    // ── Inline Error Toast ──
+    function showError(msg) {
+        var toast = document.createElement('div');
+        toast.className = 'bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2 text-sm text-red-600 flex items-center gap-2';
+        toast.innerHTML = '<svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' + escapeHtml(msg);
+        queue.prepend(toast);
+        setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(function() { toast.remove(); }, 300); }, 4000);
+    }
+
+    // ── Helpers ──
+    function fileIcon(file) {
+        var isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        if (isPdf) return '<svg class="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        return '<svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+    }
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ── Init ──
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    setInterval(pollStatus, 30000);
+    updateOnlineStatus();
+
+    // Expose for inline onchange handlers
+    window.app = { handleFiles: handleFiles };
+})();
+</script>
 </body>
 </html>
