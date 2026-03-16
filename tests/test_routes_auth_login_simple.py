@@ -183,10 +183,13 @@ class TestLoginIntegration:
         """Test security service password verification works"""
         from app.services.security_service import security_service
 
-        # Mock userlist
-        with patch('app.services.security_service.get_userlist', return_value={'test_user': 'test_pass'}):
-            # Correct password
-            assert security_service.verify_password('test_user', 'test_pass') is True
+        # Mock data persistence and userlist
+        with patch('app.services.security_service.data_persistence') as mock_dp, \
+             patch('app.services.security_service.get_userlist', return_value={'test_user': 'test_pass'}):
+            mock_dp.load_data.return_value = {}
+
+            # Correct password — user in USERLIST but not in custom_passwords → returns False (migration incomplete)
+            assert security_service.verify_password('test_user', 'test_pass') is False
             # Wrong password
             assert security_service.verify_password('test_user', 'wrong_pass') is False
 
