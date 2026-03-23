@@ -148,7 +148,11 @@ def backfill_audit_logs(session, dry_run=False):
             continue
 
         try:
-            ts = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            # Strip trailing Z (may duplicate offset if +00:00Z)
+            clean_ts = timestamp_str.rstrip('Z')
+            if not clean_ts[-6:].startswith(('+', '-')):
+                clean_ts += '+00:00'
+            ts = datetime.fromisoformat(clean_ts)
             # Offset-aware -> offset-naive fuer PG (ohne Timezone)
             if ts.tzinfo is not None:
                 ts = ts.replace(tzinfo=None)
