@@ -317,6 +317,34 @@ class HubSpotConfig:
     HUBSPOT_CACHE_TTL: int = int(os.getenv("HUBSPOT_CACHE_TTL", "1800"))  # 30 Minuten
 
 
+# ========== GOOGLE CALENDAR API KONFIGURATION ==========
+class GoogleCalendarConfig:
+    """Zentralisierte Konstanten fuer Google Calendar API"""
+    DEFAULT_CACHE_DURATION: int = int(os.getenv("GCAL_CACHE_DURATION", "1800"))  # 30 Minuten
+    RATE_LIMIT_DELAY: float = float(os.getenv("GCAL_RATE_LIMIT_DELAY", "0.5"))  # 500ms zwischen API-Calls
+    QUOTA_RESET_SECONDS: int = 86400  # 24 Stunden
+    DAILY_QUOTA_LIMIT: int = int(os.getenv("GCAL_DAILY_QUOTA", "5000"))  # Konservativ (50% von Googles 10k)
+    MAX_RETRIES: int = 3
+    RETRY_DELAY_SECONDS: float = 1.0
+    RETRYABLE_STATUS_CODES: List[int] = [500, 502, 503, 504]
+    MAX_PAGES: int = 10  # Pagination Safety Limit
+
+
+# ========== NOTIFICATION KONFIGURATION ==========
+class NotificationConfig:
+    """Zentralisierte Konstanten fuer Discord/Notification Services"""
+    DISCORD_WEBHOOK_TIMEOUT: int = int(os.getenv("DISCORD_TIMEOUT", "10"))
+    DISCORD_MAX_RETRIES: int = 3
+    DISCORD_BACKOFF_BASE: int = 2  # Exponential: 2^attempt
+
+
+# ========== DUAL-WRITE KONFIGURATION ==========
+class DataPersistenceConfig:
+    """Zentralisierte Konstanten fuer Dual-Write (JSON + PostgreSQL)"""
+    DUAL_WRITE_MAX_RETRIES: int = 3
+    DUAL_WRITE_RETRY_DELAYS: List[float] = [0.5, 1.0]
+
+
 # ========== FINANZBERATUNG KONFIGURATION ==========
 class FinanzConfig:
     """Konfiguration fuer Finanzberatungs-Modul"""

@@ -187,6 +187,11 @@ def check_daily_outcomes(tracker, check_date=None):
                                 db_session.add(pg_outcome)
                         pg_write_ok = True
                         break
+                    except RuntimeError as e:
+                        # Database not initialized - log clearly and skip retries
+                        pg_failed_count += 1
+                        logger.error(f"PG outcome write SKIPPED (DB not initialized): {e}")
+                        break
                     except Exception as e:
                         if attempt == 0:
                             import time as time_mod

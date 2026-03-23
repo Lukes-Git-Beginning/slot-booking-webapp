@@ -57,8 +57,9 @@ def track_booking(tracker, customer_name, date, time_slot, user, color_id, descr
         }
 
         # ========== DUAL-WRITE with AUTO-RETRY ==========
-        max_retries = 3
-        retry_delays = [0.5, 1.0]  # seconds between attempt 1→2 and 2→3
+        from app.config.base import DataPersistenceConfig
+        max_retries = DataPersistenceConfig.DUAL_WRITE_MAX_RETRIES
+        retry_delays = DataPersistenceConfig.DUAL_WRITE_RETRY_DELAYS
 
         for attempt in range(max_retries):
             postgres_error = None

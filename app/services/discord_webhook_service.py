@@ -20,8 +20,9 @@ class DiscordWebhookService:
     def __init__(self):
         self.webhook_url = os.getenv('DISCORD_WEBHOOK_URL', '').strip()
         self.enabled = os.getenv('DISCORD_NOTIFICATIONS_ENABLED', 'true').lower() == 'true'
-        self.timeout = 10  # Sekunden
-        self.max_retries = 3
+        from app.config.base import NotificationConfig
+        self.timeout = NotificationConfig.DISCORD_WEBHOOK_TIMEOUT
+        self.max_retries = NotificationConfig.DISCORD_MAX_RETRIES
 
         if not self.webhook_url:
             logger.info("Discord notifications disabled (no webhook URL configured)")

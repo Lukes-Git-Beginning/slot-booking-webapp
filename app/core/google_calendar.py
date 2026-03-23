@@ -21,15 +21,16 @@ class GoogleCalendarService:
     """Singleton service for Google Calendar API interactions with rate limiting"""
 
     def __init__(self):
+        from app.config.base import GoogleCalendarConfig as gcal_config
         self.service = None
         self.timezone = pytz.timezone(slot_config.TIMEZONE)
         self._event_cache = {}  # Cache: {cache_key: (data, expiry_time)}
-        self._cache_duration = 1800  # 30 minutes default cache
-        self._rate_limit_delay = 0.5  # 500ms between API calls
+        self._cache_duration = gcal_config.DEFAULT_CACHE_DURATION
+        self._rate_limit_delay = gcal_config.RATE_LIMIT_DELAY
         self._last_api_call = 0
         self._daily_quota_used = 0
-        self._quota_reset_time = time.time() + 86400  # Reset in 24h
-        self._quota_limit = 5000  # Conservative daily limit (50% of 10,000 Google default)
+        self._quota_reset_time = time.time() + gcal_config.QUOTA_RESET_SECONDS
+        self._quota_limit = gcal_config.DAILY_QUOTA_LIMIT
         self._dry_run = os.getenv("CALENDAR_DRY_RUN", "false").lower() in ["true", "1", "yes"]
         if self._dry_run:
             calendar_logger.warning("CALENDAR_DRY_RUN=true — all write operations will be skipped")
@@ -134,8 +135,9 @@ class GoogleCalendarService:
         # Enforce rate limiting
         self._enforce_rate_limit()
 
-        max_retries = 3
-        retry_delay = 1
+        from app.config.base import GoogleCalendarConfig as gcal_config
+        max_retries = gcal_config.MAX_RETRIES
+        retry_delay = gcal_config.RETRY_DELAY_SECONDS
 
         for attempt in range(max_retries):
             try:
@@ -197,7 +199,7 @@ class GoogleCalendarService:
 
                     # Return empty dict for graceful degradation
                     return {}
-                elif e.resp.status in [500, 502, 503, 504] and attempt < max_retries - 1:
+                elif e.resp.status in gcal_config.RETRYABLE_STATUS_CODES and attempt < max_retries - 1:
                     calendar_logger.warning(f"Calendar API HTTP error (attempt {attempt + 1}): {e}")
                     time.sleep(retry_delay * (2 ** attempt))
                     continue
@@ -303,7 +305,8 @@ class GoogleCalendarService:
         page_token = None
         page_count = 0
         page_ssl_retries = 0
-        max_pages = 10  # Safety limit (2500 × 10 = 25,000 events max)
+        from app.config.base import GoogleCalendarConfig as gcal_config
+        max_pages = gcal_config.MAX_PAGES  # Safety limit (2500 × max_pages events max)
 
         calendar_logger.info(f"PAGINATION: Starting paginated fetch for {calendar_id} ({time_min} to {time_max})")
 
@@ -451,8 +454,9 @@ class GoogleCalendarService:
             ).execute()
 
         # Try with enhanced error tracking
-        max_retries = 3
-        retry_delay = 1
+        from app.config.base import GoogleCalendarConfig as gcal_config
+        max_retries = gcal_config.MAX_RETRIES
+        retry_delay = gcal_config.RETRY_DELAY_SECONDS
 
         for attempt in range(max_retries):
             try:
@@ -488,7 +492,7 @@ class GoogleCalendarService:
                     }
                     return None, error_context
 
-                elif status_code in [500, 502, 503, 504]:
+                elif status_code in gcal_config.RETRYABLE_STATUS_CODES:
                     wait_time = retry_delay * (2 ** attempt)
                     error_context = {
                         'category': 'CALENDAR_UNAVAILABLE',
