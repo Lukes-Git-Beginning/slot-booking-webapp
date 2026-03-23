@@ -12,7 +12,11 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(project_root))
+
+from dotenv import load_dotenv
+load_dotenv(project_root / '.env')
 
 
 def backfill_from_booking_outcomes(session, existing_dates, dry_run=False):
