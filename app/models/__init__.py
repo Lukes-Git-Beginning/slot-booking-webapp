@@ -12,7 +12,7 @@ Architektur:
 - tracking.py: DailyMetrics, CustomerProfile
 - security.py: AccountLockout, AuditLog
 
-JSON-Mapping (26 Dateien → 29 Models):
+JSON-Mapping (27 Dateien → 30 Models):
 1. scores.json → Score
 2. user_badges.json → UserBadge
 3. user_profiles.json → User
@@ -33,6 +33,7 @@ JSON-Mapping (26 Dateien → 29 Models):
 18. user_coins.json → User.total_coins
 19. bookings.jsonl → Booking
 20. outcomes.jsonl → BookingOutcome
+21. user_notifications.json → Notification
 """
 
 # Base & Database
@@ -109,6 +110,9 @@ from app.models.security import (
     AuditLog
 )
 
+# Notification Models
+from app.models.notification import Notification
+
 # Finanzberatung Models
 from app.models.finanzberatung import (
     FinanzSession,
@@ -175,4 +179,6 @@ __all__ = [
     # Security
     'AccountLockout',
     'AuditLog',
+    # Notification
+    'Notification',
 ]

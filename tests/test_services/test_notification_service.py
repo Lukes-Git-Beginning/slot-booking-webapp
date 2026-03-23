@@ -351,3 +351,190 @@ class TestUnreadCount:
             count = notification_service.get_unread_count('new.user')
 
             assert count == 0
+
+
+# ========== POSTGRESQL DUAL-WRITE TESTS ==========
+
+@pytest.mark.service
+class TestPostgresIntegration:
+    """Tests for PostgreSQL dual-write path (mocked PG session)"""
+
+    def test_create_notification_pg_dual_write(self, notification_service):
+        """Test that create_notification writes to both PG and JSON"""
+        import app.services.notification_service as svc_module
+
+        mock_session = MagicMock()
+        mock_session.__enter__ = MagicMock(return_value=mock_session)
+        mock_session.__exit__ = MagicMock(return_value=False)
+
+        with patch.object(notification_service, '_load_all_notifications', return_value={}):
+            with patch.object(notification_service, '_save_all_notifications') as mock_save:
+                with patch.object(svc_module, 'USE_POSTGRES', True):
+                    with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                        with patch.object(svc_module, 'db_session_scope', return_value=mock_session):
+                            result = notification_service.create_notification(
+                                roles=['admin'],
+                                title='PG Test',
+                                message='Testing dual-write',
+                                notification_type='info'
+                            )
+
+                            # JSON write must always happen
+                            assert mock_save.called
+                            # Result contains admin users
+                            assert isinstance(result, dict)
+                            assert len(result) == 4
+
+    def test_create_notification_pg_failure_falls_back_to_json(self, notification_service):
+        """Test that create_notification still saves JSON when PG write fails"""
+        import app.services.notification_service as svc_module
+
+        with patch.object(notification_service, '_load_all_notifications', return_value={}):
+            with patch.object(notification_service, '_save_all_notifications') as mock_save:
+                with patch.object(svc_module, 'USE_POSTGRES', True):
+                    with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                        with patch.object(svc_module, 'db_session_scope', side_effect=Exception("PG unavailable")):
+                            result = notification_service.create_notification(
+                                roles=['coach'],
+                                title='Fallback Test',
+                                message='PG is down'
+                            )
+
+                            # JSON write must still happen even if PG fails
+                            assert mock_save.called
+                            assert isinstance(result, dict)
+
+    def test_get_user_notifications_pg_primary(self, notification_service):
+        """Test that get_user_notifications uses PG when available"""
+        import app.services.notification_service as svc_module
+
+        mock_row = MagicMock()
+        mock_row.notification_id = 'abc12345-test.user'
+        mock_row.notification_type = 'info'
+        mock_row.title = 'PG Notification'
+        mock_row.message = 'From PostgreSQL'
+        mock_row.created_at = datetime(2026, 1, 15, 10, 0, 0)
+        mock_row.is_read = False
+        mock_row.is_dismissed = False
+        mock_row.show_popup = True
+        mock_row.roles = ['admin']
+        mock_row.actions = []
+
+        mock_session = MagicMock()
+        mock_session.__enter__ = MagicMock(return_value=mock_session)
+        mock_session.__exit__ = MagicMock(return_value=False)
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.order_by.return_value = mock_query
+        mock_query.all.return_value = [mock_row]
+
+        with patch.object(svc_module, 'USE_POSTGRES', True):
+            with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                with patch.object(svc_module, 'db_session_scope', return_value=mock_session):
+                    result = notification_service.get_user_notifications('test.user')
+
+                    assert len(result) == 1
+                    assert result[0]['title'] == 'PG Notification'
+                    assert result[0]['id'] == 'abc12345'
+
+    def test_get_user_notifications_pg_failure_uses_json_fallback(self, notification_service, mock_notifications_data):
+        """Test that get_user_notifications falls back to JSON when PG fails"""
+        import app.services.notification_service as svc_module
+
+        with patch.object(svc_module, 'USE_POSTGRES', True):
+            with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                with patch.object(svc_module, 'db_session_scope', side_effect=Exception("PG down")):
+                    with patch.object(notification_service, '_load_all_notifications', return_value=mock_notifications_data):
+                        result = notification_service.get_user_notifications('test.user')
+
+                        # Should fall back and return JSON data (2 non-dismissed)
+                        assert len(result) == 2
+
+    def test_get_unread_count_pg_count_query(self, notification_service):
+        """Test that get_unread_count uses PG COUNT query"""
+        import app.services.notification_service as svc_module
+
+        mock_session = MagicMock()
+        mock_session.__enter__ = MagicMock(return_value=mock_session)
+        mock_session.__exit__ = MagicMock(return_value=False)
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.count.return_value = 3
+
+        with patch.object(svc_module, 'USE_POSTGRES', True):
+            with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                with patch.object(svc_module, 'db_session_scope', return_value=mock_session):
+                    count = notification_service.get_unread_count('test.user')
+
+                    assert count == 3
+
+    def test_mark_as_read_pg_dual_write(self, notification_service, mock_notifications_data):
+        """Test that mark_as_read updates PG and JSON"""
+        import app.services.notification_service as svc_module
+
+        mock_row = MagicMock()
+        mock_session = MagicMock()
+        mock_session.__enter__ = MagicMock(return_value=mock_session)
+        mock_session.__exit__ = MagicMock(return_value=False)
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.first.return_value = mock_row
+
+        with patch.object(notification_service, '_load_all_notifications', return_value=mock_notifications_data.copy()):
+            with patch.object(notification_service, '_save_all_notifications'):
+                with patch.object(svc_module, 'USE_POSTGRES', True):
+                    with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                        with patch.object(svc_module, 'db_session_scope', return_value=mock_session):
+                            result = notification_service.mark_as_read('test.user', 'notif-001')
+
+                            assert result is True
+                            # PG row should be updated
+                            assert mock_row.is_read is True
+
+    def test_row_to_dict_extracts_base_id(self, notification_service):
+        """Test that _row_to_dict correctly extracts base notification ID"""
+        mock_row = MagicMock()
+        mock_row.notification_id = 'abc12345-some.user'
+        mock_row.notification_type = 'success'
+        mock_row.title = 'Test'
+        mock_row.message = 'Message'
+        mock_row.created_at = datetime(2026, 3, 1, 9, 0, 0)
+        mock_row.is_read = True
+        mock_row.is_dismissed = False
+        mock_row.show_popup = False
+        mock_row.roles = ['admin']
+        mock_row.actions = [{'text': 'Click', 'url': '/path'}]
+
+        result = notification_service._row_to_dict(mock_row)
+
+        assert result['id'] == 'abc12345'
+        assert result['type'] == 'success'
+        assert result['title'] == 'Test'
+        assert result['read'] is True
+        assert result['dismissed'] is False
+        assert result['timestamp'] == '2026-03-01T09:00:00'
+
+    def test_mark_all_as_read_pg_bulk_update(self, notification_service, mock_notifications_data):
+        """Test that mark_all_as_read uses PG bulk UPDATE"""
+        import app.services.notification_service as svc_module
+
+        mock_session = MagicMock()
+        mock_session.__enter__ = MagicMock(return_value=mock_session)
+        mock_session.__exit__ = MagicMock(return_value=False)
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.update.return_value = 2  # 2 rows updated
+
+        with patch.object(notification_service, '_load_all_notifications', return_value=mock_notifications_data.copy()):
+            with patch.object(notification_service, '_save_all_notifications'):
+                with patch.object(svc_module, 'USE_POSTGRES', True):
+                    with patch.object(svc_module, 'POSTGRES_AVAILABLE', True):
+                        with patch.object(svc_module, 'db_session_scope', return_value=mock_session):
+                            count = notification_service.mark_all_as_read('test.user')
+
+                            # Should return PG count when PG is available
+                            assert count == 2

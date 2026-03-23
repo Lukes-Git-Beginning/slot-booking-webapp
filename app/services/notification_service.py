@@ -2,15 +2,30 @@
 """
 Notification Service
 Zentrale Verwaltung für Benachrichtigungen mit Rollenbasierung
+
+PostgreSQL Dual-Write: Neue Notifications werden in beide Systeme geschrieben.
+Reads sind PG-first mit JSON-Fallback.
 """
 
 import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
 from app.core.extensions import data_persistence
 
 logger = logging.getLogger(__name__)
+
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.notification import Notification as NotificationModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 
 class NotificationService:
@@ -29,12 +44,59 @@ class NotificationService:
             'service': ['alexandra.börner', 'vanessa.wagner', 'simon.mast']
         }
 
+    def _row_to_dict(self, row) -> Dict:
+        """Konvertiert eine NotificationModel-Row zu einem Dict (JSON-kompatibel)"""
+        # notification_id hat Format "{base_id}-{username}" — wir extrahieren die base_id
+        notif_id = row.notification_id
+        if '-' in notif_id:
+            # Trenne am letzten Bindestrich-Segment, das den Username enthält
+            # Format: {uuid8}-{username} — uuid8 selbst enthält keine Bindestriche
+            # Verwende daher das erste Segment (8 Zeichen UUID)
+            parts = notif_id.split('-', 1)
+            base_id = parts[0]
+        else:
+            base_id = notif_id
+
+        return {
+            'id': base_id,
+            'type': row.notification_type,
+            'title': row.title,
+            'message': row.message,
+            'timestamp': row.created_at.isoformat() if row.created_at else '',
+            'read': row.is_read,
+            'dismissed': row.is_dismissed,
+            'show_popup': row.show_popup,
+            'roles': row.roles or [],
+            'actions': row.actions or []
+        }
+
     def _load_all_notifications(self) -> Dict[str, List[Dict]]:
-        """Lade alle Benachrichtigungen"""
+        """
+        Lade alle Benachrichtigungen.
+
+        PG-first: Liest aus PostgreSQL (nur nicht-dismissed).
+        JSON-Fallback bei PG-Fehler.
+        """
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(NotificationModel).filter(
+                        NotificationModel.is_dismissed == False  # noqa: E712
+                    ).order_by(NotificationModel.created_at.desc()).all()
+
+                    result: Dict[str, List[Dict]] = {}
+                    for row in rows:
+                        if row.username not in result:
+                            result[row.username] = []
+                        result[row.username].append(self._row_to_dict(row))
+                    return result
+            except Exception as e:
+                logger.warning(f"PG notification read failed, falling back to JSON: {e}")
+
         return data_persistence.load_data(self.notifications_file, {})
 
     def _save_all_notifications(self, notifications: Dict[str, List[Dict]]):
-        """Speichere alle Benachrichtigungen"""
+        """Speichere alle Benachrichtigungen (JSON-Fallback-Store)"""
         data_persistence.save_data(self.notifications_file, notifications)
 
     def _get_users_by_roles(self, roles: List[str]) -> List[str]:
@@ -96,7 +158,7 @@ class NotificationService:
             logger.warning(f"No users found for roles: {roles}")
             return {}
 
-        # Lade alle Notifications
+        # Lade alle Notifications (JSON-Store für Dual-Write)
         all_notifications = self._load_all_notifications()
 
         # Erstelle Notification-Objekt
@@ -116,7 +178,7 @@ class NotificationService:
             'actions': actions
         }
 
-        # Füge Notification zu jedem Target-User hinzu
+        # Füge Notification zu jedem Target-User hinzu (JSON-Store)
         created_count = {}
         for username in target_users:
             if username not in all_notifications:
@@ -127,7 +189,28 @@ class NotificationService:
 
             logger.info(f"Created notification '{title}' for {username} (popup={show_popup})")
 
-        # Speichere alle Notifications
+        # PostgreSQL Dual-Write: Jeder User bekommt seine eigene Row
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    for username in target_users:
+                        notif_row = NotificationModel(
+                            notification_id=f"{notification_id}-{username}",
+                            username=username,
+                            title=title,
+                            message=message,
+                            notification_type=notification_type,
+                            is_read=False,
+                            is_dismissed=False,
+                            show_popup=show_popup,
+                            roles=roles,
+                            actions=actions
+                        )
+                        session.add(notif_row)
+            except Exception as e:
+                logger.error(f"PG notification create failed: {e}")
+
+        # JSON write (immer)
         self._save_all_notifications(all_notifications)
 
         return created_count
@@ -149,6 +232,24 @@ class NotificationService:
         Returns:
             Liste von Notifications
         """
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    query = session.query(NotificationModel).filter(
+                        NotificationModel.username == username,
+                        NotificationModel.is_dismissed == False  # noqa: E712
+                    )
+                    if show_popup_only:
+                        query = query.filter(NotificationModel.show_popup == True)  # noqa: E712
+                    if unread_only:
+                        query = query.filter(NotificationModel.is_read == False)  # noqa: E712
+                    query = query.order_by(NotificationModel.created_at.desc())
+                    rows = query.all()
+                    return [self._row_to_dict(row) for row in rows]
+            except Exception as e:
+                logger.warning(f"PG notification query failed for {username}: {e}")
+
+        # JSON fallback
         all_notifications = self._load_all_notifications()
         user_notifications = all_notifications.get(username, [])
 
@@ -174,11 +275,27 @@ class NotificationService:
 
         Args:
             username: Username
-            notification_id: Notification ID
+            notification_id: Notification ID (base_id ohne Username-Suffix)
 
         Returns:
             True wenn erfolgreich, False wenn nicht gefunden
         """
+        # PostgreSQL Dual-Write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    # Prefix-Match: notification_id hat Format "{base_id}-{username}"
+                    row = session.query(NotificationModel).filter(
+                        NotificationModel.username == username,
+                        NotificationModel.notification_id.like(f"{notification_id}%")
+                    ).first()
+                    if row:
+                        row.is_read = True
+                        row.read_at = datetime.now()
+            except Exception as e:
+                logger.error(f"PG mark_as_read failed for {username}/{notification_id}: {e}")
+
+        # JSON write (bestehende Logik)
         all_notifications = self._load_all_notifications()
         user_notifications = all_notifications.get(username, [])
 
@@ -198,11 +315,25 @@ class NotificationService:
 
         Args:
             username: Username
-            notification_id: Notification ID
+            notification_id: Notification ID (base_id ohne Username-Suffix)
 
         Returns:
             True wenn erfolgreich, False wenn nicht gefunden
         """
+        # PostgreSQL Dual-Write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    row = session.query(NotificationModel).filter(
+                        NotificationModel.username == username,
+                        NotificationModel.notification_id.like(f"{notification_id}%")
+                    ).first()
+                    if row:
+                        row.is_dismissed = True
+            except Exception as e:
+                logger.error(f"PG dismiss_notification failed for {username}/{notification_id}: {e}")
+
+        # JSON write (bestehende Logik)
         all_notifications = self._load_all_notifications()
         user_notifications = all_notifications.get(username, [])
 
@@ -218,7 +349,7 @@ class NotificationService:
 
     def get_unread_count(self, username: str) -> int:
         """
-        Anzahl ungelesener Benachrichtigungen
+        Anzahl ungelesener Benachrichtigungen — PG-first mit COUNT-Query
 
         Args:
             username: Username
@@ -226,6 +357,19 @@ class NotificationService:
         Returns:
             Anzahl ungelesener Notifications
         """
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    count = session.query(NotificationModel).filter(
+                        NotificationModel.username == username,
+                        NotificationModel.is_read == False,  # noqa: E712
+                        NotificationModel.is_dismissed == False  # noqa: E712
+                    ).count()
+                    return count
+            except Exception as e:
+                logger.warning(f"PG unread count failed for {username}: {e}")
+
+        # JSON fallback
         notifications = self.get_user_notifications(username, unread_only=True)
         return len(notifications)
 
@@ -239,6 +383,21 @@ class NotificationService:
         Returns:
             Anzahl markierter Notifications
         """
+        pg_count = 0
+
+        # PostgreSQL Dual-Write (Bulk-Update)
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    pg_count = session.query(NotificationModel).filter(
+                        NotificationModel.username == username,
+                        NotificationModel.is_read == False,  # noqa: E712
+                        NotificationModel.is_dismissed == False  # noqa: E712
+                    ).update({'is_read': True, 'read_at': datetime.now()})
+            except Exception as e:
+                logger.error(f"PG mark_all_as_read failed for {username}: {e}")
+
+        # JSON write (bestehende Logik)
         all_notifications = self._load_all_notifications()
         user_notifications = all_notifications.get(username, [])
 
@@ -252,7 +411,8 @@ class NotificationService:
             self._save_all_notifications(all_notifications)
             logger.info(f"Marked {count} notifications as read for {username}")
 
-        return count
+        # Gib PG-Count zurück wenn verfügbar, sonst JSON-Count
+        return pg_count if (USE_POSTGRES and POSTGRES_AVAILABLE and pg_count > 0) else count
 
 
 # Singleton-Instanz
