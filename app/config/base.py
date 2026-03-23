@@ -132,6 +132,17 @@ class SlotConfig:
         4: ["09:00", "11:00", "14:00"]  # Freitag
     }
 
+    # Potential-Typen: Einkommensstufen + Buchungstypen
+    POTENTIAL_TYPES: Dict[str, Dict[str, str]] = {
+        "hoch": {"label": "Hoch (>5.000€)", "color_id": "7", "category": "income"},
+        "gut": {"label": "Gut (3.500-5.000€)", "color_id": "2", "category": "income"},
+        "ok": {"label": "Ok (2.500-3.500€)", "color_id": "2", "category": "income"},
+        "niedrig": {"label": "Niedrig (1.500-2.500€)", "color_id": "2", "category": "income"},
+        "gering": {"label": "Gering (<1.500€)", "color_id": "2", "category": "income"},
+        "closer": {"label": "Closer needed", "color_id": "5", "category": "booking_type"},
+        "rueckholung": {"label": "Rückholung", "color_id": "3", "category": "booking_type"},
+    }
+
     # Sonderbuchungen (T1.5/UL)
     SPECIAL_BOOKING_COLOR_ID: str = "8"  # Pekoe — non-blocking
     SPECIAL_BOOKING_TYPES: List[str] = ["T1.5", "UL"]

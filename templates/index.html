@@ -494,13 +494,28 @@
                             class="textarea textarea-bordered w-full" rows="3"></textarea>
                 </div>
 
-                <div class="form-control">
-                  <select name="color" required class="select select-bordered w-full">
-                    <option value="2">🟢 Normales Potential</option>
-                    <option value="7">🔵 Top Potential</option>
-                    <option value="5">🟡 Closer nötig</option>
-                    <option value="3">🟣 Rückholung</option>
-                  </select>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="form-control">
+                    <select name="color" required class="select select-bordered w-full">
+                      <optgroup label="Einkommens-Potential">
+                        <option value="hoch">Hoch (&gt;5.000&euro;)</option>
+                        <option value="gut" selected>Gut (3.500-5.000&euro;)</option>
+                        <option value="ok">Ok (2.500-3.500&euro;)</option>
+                        <option value="niedrig">Niedrig (1.500-2.500&euro;)</option>
+                        <option value="gering">Gering (&lt;1.500&euro;)</option>
+                      </optgroup>
+                      <optgroup label="Buchungstyp">
+                        <option value="closer">Closer needed</option>
+                        <option value="rueckholung">R&uuml;ckholung</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div class="form-control">
+                    <input type="text" name="campaign" list="campaign-suggestions"
+                           placeholder="Kampagne (optional)" maxlength="100"
+                           class="input input-bordered w-full">
+                    <datalist id="campaign-suggestions"></datalist>
+                  </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-full gap-2 mt-2">
@@ -531,6 +546,20 @@ let achievementSystem;
 {% if user_level %}
 achievementSystem = new AchievementSystem();
 {% endif %}
+
+// Campaign autocomplete
+fetch("{{ url_for('booking.get_campaigns') }}")
+  .then(r => r.json())
+  .then(campaigns => {
+    document.querySelectorAll('#campaign-suggestions').forEach(dl => {
+      campaigns.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        dl.appendChild(opt);
+      });
+    });
+  })
+  .catch(() => {});
 
 // Navigation function with template date
 function navigateDay(direction) {

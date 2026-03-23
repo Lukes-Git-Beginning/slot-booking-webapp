@@ -6,7 +6,7 @@ Slot booking functionality and related endpoints
 
 import pytz
 from datetime import datetime, timedelta
-from flask import Blueprint, request, redirect, url_for, flash, session
+from flask import Blueprint, request, redirect, url_for, flash, session, jsonify
 
 from app.config.base import config, slot_config
 from app.core.extensions import csrf
@@ -55,7 +55,15 @@ def book():
         description = request.form.get("description", "").strip()
         date = request.form.get("date", "")
         hour = request.form.get("hour", "")
-        color_id = request.form.get("color", "9")
+        campaign = request.form.get("campaign", "").strip() or None
+        potential_key = request.form.get("color", "gut")
+
+        # Map potential key to color_id via config
+        potential_config = slot_config.POTENTIAL_TYPES.get(potential_key)
+        if potential_config:
+            color_id = potential_config["color_id"]
+        else:
+            color_id = "2"  # Default: Grün
 
         # Input validation
         if not all([first, last, date, hour]):
@@ -223,10 +231,38 @@ def book():
             color_id=color_id,
             description=description,
             points=points,
-            calendar_event_id=result.get('id', 'unknown')
+            calendar_event_id=result.get('id', 'unknown'),
+            campaign=campaign,
+            potential_type=potential_key
         )
 
         for msg, category in chain["flash_messages"]:
             flash(msg, category)
 
         return redirect(url_for("main.day_view", date_str=date))
+
+
+@booking_bp.route("/api/campaigns")
+@require_login
+def get_campaigns():
+    """Return unique campaign names for autocomplete"""
+    try:
+        from app.models import is_postgres_enabled
+        from app.models.booking import Booking
+
+        if is_postgres_enabled():
+            from app.utils.db_utils import db_session_scope_no_commit
+            from sqlalchemy import distinct
+
+            cutoff = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+            with db_session_scope_no_commit() as db_session:
+                rows = db_session.query(distinct(Booking.campaign)).filter(
+                    Booking.campaign.isnot(None),
+                    Booking.campaign != '',
+                    Booking.date >= cutoff
+                ).all()
+                return jsonify(sorted([r[0] for r in rows]))
+
+        return jsonify([])
+    except Exception:
+        return jsonify([])

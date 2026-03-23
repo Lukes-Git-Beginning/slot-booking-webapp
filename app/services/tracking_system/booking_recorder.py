@@ -23,7 +23,8 @@ import pytz
 TZ = pytz.timezone("Europe/Berlin")
 
 
-def track_booking(tracker, customer_name, date, time_slot, user, color_id, description=""):
+def track_booking(tracker, customer_name, date, time_slot, user, color_id, description="",
+                  campaign=None, potential_type=None):
     """
     Tracke eine neue Buchung mit Dual-Write Pattern + Auto-Retry
 
@@ -47,8 +48,9 @@ def track_booking(tracker, customer_name, date, time_slot, user, color_id, descr
             "weekday": booking_date.strftime("%A"),
             "week_number": booking_date.isocalendar()[1],
             "user": user,
-            "potential_type": _get_potential_type(color_id),
+            "potential_type": potential_type or _get_potential_type(color_id),
             "color_id": color_id,
+            "campaign": campaign,
             "description_length": len(description) if description else 0,
             "has_description": bool(description),
             "booking_lead_time": (booking_date.date() - datetime.now(TZ).date()).days,
@@ -88,6 +90,7 @@ def track_booking(tracker, customer_name, date, time_slot, user, color_id, descr
                                 username=user,
                                 potential_type=booking_data["potential_type"],
                                 color_id=color_id,
+                                campaign=campaign,
                                 description_length=booking_data["description_length"],
                                 has_description=booking_data["has_description"],
                                 booking_lead_time=booking_data["booking_lead_time"],

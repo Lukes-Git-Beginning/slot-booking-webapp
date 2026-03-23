@@ -41,9 +41,11 @@ class BookingTracker:
         self.service = build("calendar", "v3", credentials=creds)
 
     # ---- booking_recorder ----
-    def track_booking(self, customer_name, date, time_slot, user, color_id, description=""):
+    def track_booking(self, customer_name, date, time_slot, user, color_id, description="",
+                      campaign=None, potential_type=None):
         from app.services.tracking_system.booking_recorder import track_booking
-        return track_booking(self, customer_name, date, time_slot, user, color_id, description)
+        return track_booking(self, customer_name, date, time_slot, user, color_id, description,
+                           campaign=campaign, potential_type=potential_type)
 
     def _queue_failed_booking(self, booking_data):
         from app.services.tracking_system.booking_recorder import _queue_failed_booking

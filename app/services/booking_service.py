@@ -1064,7 +1064,8 @@ def award_booking_points(user, points):
 
 
 def execute_post_booking_chain(user, customer_name, date, hour, color_id,
-                                description, points, calendar_event_id):
+                                description, points, calendar_event_id,
+                                campaign=None, potential_type=None):
     """Orchestrate the post-booking chain: Tracking -> Points -> Quests -> Stats -> Audit.
 
     Args:
@@ -1076,6 +1077,8 @@ def execute_post_booking_chain(user, customer_name, date, hour, color_id,
         description: Booking description
         points: Points to award
         calendar_event_id: Google Calendar event ID
+        campaign: Optional campaign name
+        potential_type: Optional potential type key (e.g. "hoch", "gut")
 
     Returns:
         dict with keys: tracking_ok, new_badges, flash_messages
@@ -1096,7 +1099,9 @@ def execute_post_booking_chain(user, customer_name, date, hour, color_id,
                 time_slot=hour,
                 user=user or "unknown",
                 color_id=color_id,
-                description=description
+                description=description,
+                campaign=campaign,
+                potential_type=potential_type
             )
             if booking_data is None:
                 error_id = generate_error_id("TRK")

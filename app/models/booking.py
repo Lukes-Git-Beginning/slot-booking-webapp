@@ -48,6 +48,9 @@ class Booking(Base):
     booked_at_hour: Mapped[int] = mapped_column(Integer, nullable=False)  # Stunde der Buchung (0-23)
     booked_on_weekday: Mapped[str] = mapped_column(String(20), nullable=False)  # Wochentag der Buchung
 
+    # Kampagne (Freitext, optional)
+    campaign: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
     # Timestamp (wann wurde Booking getrackt)
     booking_timestamp: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)
 
@@ -57,6 +60,7 @@ class Booking(Base):
         Index('idx_booking_date', 'date'),
         Index('idx_booking_customer', 'customer'),
         Index('idx_booking_week', 'week_number'),
+        Index('idx_booking_campaign', 'campaign'),
     )
 
     def __repr__(self) -> str:
