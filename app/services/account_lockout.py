@@ -4,6 +4,7 @@ Account Lockout Service
 Verhindert Brute-Force-Angriffe durch temporäre Konto-Sperrung
 """
 
+import os
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
@@ -11,6 +12,17 @@ from app.config.base import SecurityConfig
 from app.core.extensions import data_persistence
 
 logger = logging.getLogger(__name__)
+
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.security import AccountLockout as AccountLockoutModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 
 class AccountLockoutService:
@@ -33,11 +45,77 @@ class AccountLockoutService:
         self.lockout_duration_tier3 = SecurityConfig.LOCKOUT_DURATION_TIER3
 
     def _load_lockout_data(self) -> Dict:
-        """Lade Lockout-Daten"""
+        """Lade Lockout-Daten — PG-first mit JSON-Fallback"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(AccountLockoutModel).all()
+                    data = {}
+                    for row in rows:
+                        data[row.username] = {
+                            'failed_attempts': row.failed_attempts,
+                            'first_attempt': row.first_attempt.isoformat() if row.first_attempt else None,
+                            'last_attempt': row.last_attempt.isoformat() if row.last_attempt else None,
+                            'locked_until': row.locked_until.isoformat() if row.locked_until else None
+                        }
+                    return data
+            except Exception as e:
+                logger.warning(f"PG lockout read failed, falling back to JSON: {e}")
         return data_persistence.load_data(self.lockout_file, {})
 
     def _save_lockout_data(self, data: Dict):
-        """Speichere Lockout-Daten"""
+        """Speichere Lockout-Daten — Dual-Write (PG + JSON)"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    # Delete removed entries
+                    existing_usernames = {
+                        row.username
+                        for row in session.query(AccountLockoutModel.username).all()
+                    }
+                    for username in existing_usernames - set(data.keys()):
+                        session.query(AccountLockoutModel).filter_by(username=username).delete()
+
+                    # Upsert current entries
+                    for username, user_data in data.items():
+                        existing = session.query(AccountLockoutModel).filter_by(username=username).first()
+                        if existing:
+                            existing.failed_attempts = user_data.get('failed_attempts', 0)
+                            existing.first_attempt = (
+                                datetime.fromisoformat(user_data['first_attempt'])
+                                if user_data.get('first_attempt') else None
+                            )
+                            existing.last_attempt = (
+                                datetime.fromisoformat(user_data['last_attempt'])
+                                if user_data.get('last_attempt') else None
+                            )
+                            existing.locked_until = (
+                                datetime.fromisoformat(user_data['locked_until'])
+                                if user_data.get('locked_until') else None
+                            )
+                        else:
+                            new_row = AccountLockoutModel(
+                                username=username,
+                                failed_attempts=user_data.get('failed_attempts', 0),
+                                first_attempt=(
+                                    datetime.fromisoformat(user_data['first_attempt'])
+                                    if user_data.get('first_attempt') else None
+                                ),
+                                last_attempt=(
+                                    datetime.fromisoformat(user_data['last_attempt'])
+                                    if user_data.get('last_attempt') else None
+                                ),
+                                locked_until=(
+                                    datetime.fromisoformat(user_data['locked_until'])
+                                    if user_data.get('locked_until') else None
+                                )
+                            )
+                            session.add(new_row)
+            except Exception as e:
+                logger.error(f"PG lockout save failed: {e}")
+
+        # 2. JSON write (always)
         data_persistence.save_data(self.lockout_file, data)
 
     def is_locked_out(self, username: str) -> Tuple[bool, Optional[int]]:

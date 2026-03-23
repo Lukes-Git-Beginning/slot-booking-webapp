@@ -10,8 +10,9 @@ Architektur:
 - weekly.py: WeeklyPointsParticipant, WeeklyPoints, WeeklyActivity, PrestigeData, MinigameData, PersistentData
 - booking.py: Booking, BookingOutcome
 - tracking.py: DailyMetrics, CustomerProfile
+- security.py: AccountLockout, AuditLog
 
-JSON-Mapping (24 Dateien → 27 Models):
+JSON-Mapping (26 Dateien → 29 Models):
 1. scores.json → Score
 2. user_badges.json → UserBadge
 3. user_profiles.json → User
@@ -102,6 +103,12 @@ from app.models.t2_bucket import (
 # T2 Booking Model
 from app.models.t2_booking import T2Booking
 
+# Security Models
+from app.models.security import (
+    AccountLockout,
+    AuditLog
+)
+
 # Finanzberatung Models
 from app.models.finanzberatung import (
     FinanzSession,
@@ -165,4 +172,7 @@ __all__ = [
     'FinanzScorecard',
     'FinanzTaskTracking',
     'FinanzFoerderFragebogen',
+    # Security
+    'AccountLockout',
+    'AuditLog',
 ]
