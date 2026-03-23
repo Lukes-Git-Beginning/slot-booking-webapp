@@ -16,6 +16,16 @@ from app.utils.json_utils import atomic_read_json, atomic_write_json
 
 logger = logging.getLogger(__name__)
 
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.gamification import LootboxData as LootboxDataModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
 TZ = pytz.timezone("Europe/Berlin")
 
 CRATE_TYPES = {
@@ -106,15 +116,51 @@ class LootboxService:
     # ------------------------------------------------------------------
 
     def _load_data(self):
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(LootboxDataModel).all()
+                    data = {}
+                    for row in rows:
+                        data[row.username] = {
+                            "crates": row.crates or [],
+                            "history": row.history or [],
+                            "pity_counter": row.pity_counter
+                        }
+                    return data
+            except Exception as e:
+                logger.warning(f"PG lootbox read failed: {e}")
+        # JSON fallback
         try:
             data = atomic_read_json(self.lootbox_file)
-            if data is not None:
-                return data
-        except Exception as e:
-            logger.warning(f"Could not load lootbox data: {e}")
-        return {}
+            return data if data is not None else {}
+        except Exception:
+            return {}
 
     def _save_data(self, data):
+        # 1. PostgreSQL
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    for username, user_data in data.items():
+                        existing = session.query(LootboxDataModel).filter_by(
+                            username=username
+                        ).first()
+                        if existing:
+                            existing.crates = user_data.get("crates", [])
+                            existing.history = user_data.get("history", [])
+                            existing.pity_counter = user_data.get("pity_counter", 0)
+                        else:
+                            session.add(LootboxDataModel(
+                                username=username,
+                                crates=user_data.get("crates", []),
+                                history=user_data.get("history", []),
+                                pity_counter=user_data.get("pity_counter", 0)
+                            ))
+            except Exception as e:
+                logger.error(f"PG lootbox save failed: {e}")
+
+        # 2. JSON
         try:
             atomic_write_json(self.lootbox_file, data)
         except Exception as e:

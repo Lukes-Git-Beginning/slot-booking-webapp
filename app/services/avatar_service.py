@@ -12,6 +12,16 @@ from markupsafe import Markup
 
 logger = logging.getLogger(__name__)
 
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.cosmetics import UserCosmetic as UserCosmeticModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
 # Size presets for avatar HTML rendering
 AVATAR_SIZES = {
     'xs': {'css': 'w-6 h-6', 'px': 24, 'font': 'text-xs'},
@@ -45,7 +55,26 @@ class AvatarService:
                 json.dump({}, f)
 
     def _load_avatars(self):
-        """Load avatar data from JSON"""
+        """Load avatar data — PG-first mit JSON-Fallback"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(UserCosmeticModel).filter(
+                        UserCosmeticModel.item_type == 'avatar_custom',
+                        UserCosmeticModel.is_active == True
+                    ).all()
+                    data = {}
+                    for row in rows:
+                        config = row.config or {}
+                        data[row.username] = {
+                            "type": config.get("type", "shop"),
+                            "path": config.get("url", ""),
+                            "updated_at": row.updated_at.isoformat() if hasattr(row, 'updated_at') and row.updated_at else ""
+                        }
+                    return data
+            except Exception as e:
+                logger.warning(f"PG avatar read failed: {e}")
+        # JSON fallback
         try:
             with open(self.avatars_file, "r", encoding="utf-8") as f:
                 return json.load(f)

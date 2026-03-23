@@ -5,7 +5,7 @@ Gamification Models - Scores, Badges, Achievements, Quests
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, JSON, Text, Float, Index, Date
+from sqlalchemy import String, Integer, Boolean, JSON, Text, Float, Index, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
@@ -285,3 +285,19 @@ class MasteryData(Base):
 
     def __repr__(self) -> str:
         return f"<MasteryData(username='{self.username}', skill='{self.skill_name}', level={self.current_level})>"
+
+
+class LootboxData(Base):
+    """
+    Lootbox/Crate System - User crate inventory and history
+    Ersetzt: data/persistent/lootboxes.json
+    """
+    __tablename__ = 'lootbox_data'
+
+    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    crates: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # List of crate dicts
+    history: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # List of opened crate dicts
+    pity_counter: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<LootboxData(username='{self.username}', pity={self.pity_counter})>"

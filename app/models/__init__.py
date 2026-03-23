@@ -5,7 +5,7 @@ SQLAlchemy Data Models für PostgreSQL Migration
 Architektur:
 - base.py: Base Model, Database Engine, Session Management
 - user.py: User, UserStats, UserPrediction, BehaviorPattern, PersonalInsight
-- gamification.py: Score, UserBadge, DailyQuest, QuestProgress, PersonalGoal, Champion, MasteryData
+- gamification.py: Score, UserBadge, DailyQuest, QuestProgress, PersonalGoal, Champion, MasteryData, LootboxData
 - cosmetics.py: UserCosmetic, CustomizationAchievement
 - weekly.py: WeeklyPointsParticipant, WeeklyPoints, WeeklyActivity, PrestigeData, MinigameData, PersistentData
 - booking.py: Booking, BookingOutcome
@@ -60,7 +60,8 @@ from app.models.gamification import (
     QuestProgress,
     PersonalGoal,
     Champion,
-    MasteryData
+    MasteryData,
+    LootboxData
 )
 
 # Cosmetics Models
@@ -134,6 +135,7 @@ __all__ = [
     'PersonalGoal',
     'Champion',
     'MasteryData',
+    'LootboxData',
     # Cosmetics
     'UserCosmetic',
     'CustomizationAchievement',

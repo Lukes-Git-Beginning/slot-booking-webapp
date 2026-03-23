@@ -15,6 +15,17 @@ logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.cosmetics import UserCosmetic as UserCosmeticModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
 # Lustige Titel Shop
 TITLE_SHOP = {
     # Günstige Titel (50-100 Coins)
@@ -621,30 +632,134 @@ class CosmeticsShop:
             logger.debug(f"PG cosmetic unequip sync skipped: {e}")
     
     def load_purchases(self):
-        """Lade gekaufte Kosmetik-Items"""
+        """Lade gekaufte Kosmetik-Items — PG-first mit JSON-Fallback"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(UserCosmeticModel).filter(
+                        UserCosmeticModel.is_owned == True
+                    ).all()
+                    purchases = {}
+                    for row in rows:
+                        if row.username not in purchases:
+                            purchases[row.username] = {
+                                "titles": [], "themes": [], "avatars": [],
+                                "effects": [], "frames": [], "purchase_history": []
+                            }
+                        # Map item_type to list key
+                        if row.item_type == "effect":
+                            list_key = "effects"
+                        else:
+                            list_key = row.item_type + "s"
+                        if list_key in purchases[row.username]:
+                            if row.item_id not in purchases[row.username][list_key]:
+                                purchases[row.username][list_key].append(row.item_id)
+                    return purchases
+            except Exception as e:
+                logger.warning(f"PG cosmetics read failed, falling back to JSON: {e}")
+        # JSON fallback
         try:
             with open(self.purchases_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-            logger.warning(f"Could not load purchases file", extra={'error': str(e)})
+        except (FileNotFoundError, json.JSONDecodeError, IOError):
             return {}
-    
+
     def save_purchases(self, data):
-        """Speichere gekaufte Kosmetik-Items"""
+        """Speichere gekaufte Kosmetik-Items — Dual-Write PG + JSON"""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    for username, user_data in data.items():
+                        for list_key in ["titles", "themes", "avatars", "effects", "frames"]:
+                            item_type = "effect" if list_key == "effects" else list_key.rstrip("s")
+                            for item_id in user_data.get(list_key, []):
+                                existing = session.query(UserCosmeticModel).filter_by(
+                                    username=username, item_id=item_id
+                                ).first()
+                                if not existing:
+                                    session.add(UserCosmeticModel(
+                                        username=username,
+                                        item_id=item_id,
+                                        item_type=item_type,
+                                        item_category="visual",
+                                        name=item_id,
+                                        rarity="common",
+                                        is_owned=True,
+                                        is_active=False,
+                                        purchase_price=0
+                                    ))
+            except Exception as e:
+                logger.error(f"PG cosmetics save failed: {e}")
+
+        # 2. JSON write (always)
         with open(self.purchases_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-    
+
     def load_active_cosmetics(self):
-        """Lade aktive Kosmetik-Items"""
+        """Lade aktive Kosmetik-Items — PG-first mit JSON-Fallback"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(UserCosmeticModel).filter(
+                        UserCosmeticModel.is_active == True
+                    ).all()
+                    active = {}
+                    for row in rows:
+                        if row.username not in active:
+                            active[row.username] = {
+                                "title": None, "theme": "default",
+                                "avatar": None, "effects": [], "frame": None
+                            }
+                        if row.item_type == "title":
+                            active[row.username]["title"] = row.item_id
+                        elif row.item_type == "theme":
+                            active[row.username]["theme"] = row.item_id
+                        elif row.item_type == "avatar":
+                            active[row.username]["avatar"] = row.item_id
+                        elif row.item_type == "effect":
+                            active[row.username]["effects"].append(row.item_id)
+                        elif row.item_type == "frame":
+                            active[row.username]["frame"] = row.item_id
+                    return active
+            except Exception as e:
+                logger.warning(f"PG active cosmetics read failed: {e}")
+        # JSON fallback
         try:
             with open(self.active_cosmetics_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError, IOError) as e:
-            logger.warning(f"Could not load active cosmetics file", extra={'error': str(e)})
+        except (FileNotFoundError, json.JSONDecodeError, IOError):
             return {}
-    
+
     def save_active_cosmetics(self, data):
-        """Speichere aktive Kosmetik-Items"""
+        """Speichere aktive Kosmetik-Items — Dual-Write PG + JSON"""
+        # 1. PostgreSQL write (UPDATE is_active flags)
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    for username, user_active in data.items():
+                        # Deactivate all for this user first
+                        session.query(UserCosmeticModel).filter_by(
+                            username=username, is_active=True
+                        ).update({"is_active": False})
+                        # Activate items listed in data
+                        for item_type_key, value in user_active.items():
+                            if value is None:
+                                continue
+                            if item_type_key == "effects":
+                                item_type = "effect"
+                                item_ids = value if isinstance(value, list) else []
+                            else:
+                                item_type = item_type_key
+                                item_ids = [value] if value else []
+                            for item_id in item_ids:
+                                session.query(UserCosmeticModel).filter_by(
+                                    username=username, item_id=item_id
+                                ).update({"is_active": True})
+            except Exception as e:
+                logger.error(f"PG active cosmetics save failed: {e}")
+
+        # 2. JSON write (always)
         with open(self.active_cosmetics_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     
