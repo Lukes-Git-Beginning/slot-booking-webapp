@@ -4,6 +4,7 @@ User Management Service
 CRUD-Operationen und Datenanreicherung für die Admin-Benutzerverwaltung
 """
 
+import os
 import secrets
 import logging
 from datetime import datetime
@@ -17,6 +18,17 @@ from app.utils.helpers import get_userlist
 from app.services.security_service import security_service
 from app.services.activity_tracking import activity_tracking
 from app.services.audit_service import audit_service
+
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.user import User as UserModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone(slot_config.TIMEZONE)
@@ -36,6 +48,27 @@ class UserManagementService:
     """Service für User-CRUD und Datenanreicherung"""
 
     def _load_registry(self) -> dict:
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    users = session.query(UserModel).all()
+                    registry = {
+                        'added_users': {},
+                        'deleted_users': [],
+                        'admin_overrides': {},
+                        'roles': {}
+                    }
+                    for user in users:
+                        registry['added_users'][user.username] = True
+                        if not user.is_active:
+                            registry['deleted_users'].append(user.username)
+                        if user.is_admin:
+                            registry['admin_overrides'][user.username] = True
+                        if user.role:
+                            registry['roles'][user.username] = user.role
+                    return registry
+            except Exception as e:
+                logger.warning(f"PG registry read failed, falling back to JSON: {e}")
         return data_persistence.load_data(REGISTRY_FILE, default={
             'added_users': {},
             'deleted_users': [],
@@ -44,6 +77,28 @@ class UserManagementService:
         })
 
     def _save_registry(self, registry: dict):
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    deleted_users = set(registry.get('deleted_users', []))
+                    admin_overrides = registry.get('admin_overrides', {})
+                    roles = registry.get('roles', {})
+
+                    all_usernames = set(list(admin_overrides.keys()) + list(roles.keys()) + list(deleted_users))
+                    for username in all_usernames:
+                        existing = session.query(UserModel).filter_by(username=username).first()
+                        if existing:
+                            existing.is_active = username not in deleted_users
+                            if username in admin_overrides:
+                                existing.is_admin = admin_overrides[username]
+                            if username in roles:
+                                existing.role = roles[username]
+                        # Neue User werden separat in add_user() erstellt
+            except Exception as e:
+                logger.error(f"PG registry save failed: {e}")
+
+        # 2. JSON write (always)
         data_persistence.save_data(REGISTRY_FILE, registry)
 
     def _get_all_usernames(self) -> list:
@@ -308,6 +363,27 @@ class UserManagementService:
         custom_passwords[username] = hashed
         data_persistence.save_data('user_passwords', custom_passwords)
 
+        # Sync to PostgreSQL
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    existing = session.query(UserModel).filter_by(username=username).first()
+                    if not existing:
+                        session.add(UserModel(
+                            username=username,
+                            password_hash=hashed,
+                            is_admin=is_admin or role == 'admin',
+                            is_active=True,
+                            role=role
+                        ))
+                    else:
+                        existing.is_active = True
+                        existing.is_admin = is_admin or role == 'admin'
+                        existing.role = role
+                        existing.password_hash = hashed
+            except Exception as e:
+                logger.error(f"PG user create failed: {e}")
+
         audit_service.log_user_created(username, admin_username)
         logger.info(f"User '{username}' created by {admin_username} with role '{role}'")
 
@@ -348,6 +424,16 @@ class UserManagementService:
             registry['deleted_users'].append(username)
         self._save_registry(registry)
 
+        # Sync to PostgreSQL
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    pg_user = session.query(UserModel).filter_by(username=username).first()
+                    if pg_user:
+                        pg_user.is_active = False
+            except Exception as e:
+                logger.error(f"PG user delete failed: {e}")
+
         audit_service.log_user_deleted(username, admin_username)
         logger.info(f"User '{username}' deleted by {admin_username}")
 
@@ -367,6 +453,16 @@ class UserManagementService:
         custom_passwords = data_persistence.load_data('user_passwords', {})
         custom_passwords[username] = hashed
         data_persistence.save_data('user_passwords', custom_passwords)
+
+        # Sync to PostgreSQL
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    pg_user = session.query(UserModel).filter_by(username=username).first()
+                    if pg_user:
+                        pg_user.password_hash = hashed
+            except Exception as e:
+                logger.error(f"PG password reset failed: {e}")
 
         audit_service.log_admin_action('password_reset', {
             'target_user': username,
@@ -410,7 +506,7 @@ class UserManagementService:
             if active_admins == 0:
                 return False, "Letzter Admin kann nicht entfernt werden"
 
-        # Save override
+        # Save override — _save_registry() syncs is_admin to PG automatically
         registry.setdefault('admin_overrides', {})[username] = new_admin_status
         self._save_registry(registry)
 
@@ -441,6 +537,7 @@ class UserManagementService:
         elif new_role != 'admin' and registry.get('roles', {}).get(username) == 'admin':
             registry.setdefault('admin_overrides', {})[username] = False
 
+        # _save_registry() syncs role + is_admin to PG automatically
         self._save_registry(registry)
 
         role_label = USER_ROLES[new_role]['label']

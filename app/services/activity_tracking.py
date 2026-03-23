@@ -4,12 +4,24 @@ Activity Tracking Service
 Tracks user login activity and online status for admin monitoring
 """
 
+import os
 from datetime import datetime, timedelta
 import pytz
 from typing import Dict, List, Optional
 import logging
 
 from app.services.data_persistence import data_persistence
+
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.user import User as UserModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone('Europe/Berlin')
@@ -61,6 +73,16 @@ class ActivityTrackingService:
 
             logger.info(f"Login tracked for {username} from {ip_address}")
 
+            # Sync last_login to PostgreSQL
+            if USE_POSTGRES and POSTGRES_AVAILABLE and success:
+                try:
+                    with db_session_scope() as session:
+                        pg_user = session.query(UserModel).filter_by(username=username).first()
+                        if pg_user:
+                            pg_user.last_login = datetime.now(TZ).replace(tzinfo=None)
+                except Exception as e:
+                    logger.debug(f"PG login sync failed: {e}")
+
         except Exception as e:
             logger.error(f"Error tracking login for {username}: {e}")
 
@@ -91,6 +113,16 @@ class ActivityTrackingService:
             # Speichere
             data_persistence.save_data(self.online_sessions_file, online_sessions)
 
+            # Sync last_activity to PostgreSQL
+            if USE_POSTGRES and POSTGRES_AVAILABLE and action == 'active':
+                try:
+                    with db_session_scope() as session:
+                        pg_user = session.query(UserModel).filter_by(username=username).first()
+                        if pg_user:
+                            pg_user.last_activity = datetime.now(TZ).replace(tzinfo=None)
+                except Exception as e:
+                    logger.debug(f"PG activity sync failed: {e}")
+
         except Exception as e:
             logger.error(f"Error updating online status for {username}: {e}")
 
@@ -104,6 +136,27 @@ class ActivityTrackingService:
         Returns:
             Liste von Dicts mit User-Info und letzter Aktivität
         """
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                cutoff = datetime.now(TZ).replace(tzinfo=None) - timedelta(minutes=timeout_minutes)
+                with db_session_scope() as session:
+                    users = session.query(UserModel).filter(
+                        UserModel.last_activity != None,
+                        UserModel.last_activity >= cutoff,
+                        UserModel.is_active == True
+                    ).order_by(UserModel.last_activity.desc()).all()
+
+                    now = datetime.now(TZ).replace(tzinfo=None)
+                    return [{
+                        'username': u.username,
+                        'last_activity': u.last_activity.isoformat() if u.last_activity else '',
+                        'minutes_ago': int((now - u.last_activity).total_seconds() / 60) if u.last_activity else 0,
+                        'status': 'online'
+                    } for u in users]
+            except Exception as e:
+                logger.warning(f"PG online users query failed: {e}")
+
+        # JSON fallback
         try:
             online_sessions = data_persistence.load_data(self.online_sessions_file, default={})
             current_time = datetime.now(TZ)
