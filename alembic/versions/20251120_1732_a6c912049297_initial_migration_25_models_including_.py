@@ -1,7 +1,7 @@
 """Add Booking and BookingOutcome models
 
 Revision ID: a6c912049297
-Revises: 12292c1c1ed7
+Revises: None
 Create Date: 2025-11-20 17:32:20.191779+00:00
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'a6c912049297'
-down_revision = '12292c1c1ed7'  # Depends on previous migration
+down_revision = None
 branch_labels = None
 depends_on = None
 
