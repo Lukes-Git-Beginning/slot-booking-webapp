@@ -929,6 +929,11 @@ def book_slot_for_user(user: str, date_str: str, time_str: str, berater: str,
         except ValueError as e:
             return {'success': False, 'error': f'Invalid date/time format: {e}'}
 
+        # Safety-net: Block bookings on blocked dates
+        from app.services.holiday_service import holiday_service
+        if holiday_service.is_blocked_date(slot_start.date(), check_time=time_str):
+            return {'success': False, 'error': 'Datum ist gesperrt'}
+
         # Create booking description with [Booked by:] tag for tracking
         booking_description = description
         if user and user != "unknown":

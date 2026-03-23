@@ -347,7 +347,7 @@ class HolidayService:
         now = datetime.now()
         if (self._blocked_dates_cache is None or
             self._cache_timestamp is None or
-            (now - self._cache_timestamp).seconds > 300):  # 5 min cache
+            (now - self._cache_timestamp).total_seconds() > 300):  # 5 min cache
 
             # Import here to avoid circular imports
             from app.core.extensions import data_persistence

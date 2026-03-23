@@ -337,6 +337,13 @@
       {% endfor %}
     </div>
 
+    {% if is_blocked %}
+    <!-- Gesperrt-Banner -->
+    <div class="alert alert-error shadow-lg mb-6">
+      <i data-lucide="lock" class="w-6 h-6"></i>
+      <span class="font-semibold">Dieser Tag ist gesperrt: {{ blocked_reason or 'Gesperrt' }}</span>
+    </div>
+    {% else %}
     <!-- Quick Actions -->
     <div class="flex flex-wrap gap-2 mb-6">
       <button data-action="expandAll" class="btn btn-sm btn-ghost gap-2">
@@ -352,6 +359,7 @@
         Zu Abendterminen
       </button>
     </div>
+    {% endif %}
 
     <!-- Slots -->
     <div class="space-y-3">

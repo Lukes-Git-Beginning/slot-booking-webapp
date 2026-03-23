@@ -1458,6 +1458,15 @@ def api_reschedule_booking():
         if not all([old_event_id, customer_name, new_date, new_time]):
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
+        # Block rescheduling to blocked dates
+        from app.services.holiday_service import holiday_service
+        try:
+            check_date = dt_module.strptime(new_date, '%Y-%m-%d').date()
+            if holiday_service.is_blocked_date(check_date, check_time=new_time):
+                return jsonify({'success': False, 'error': 'Zieldatum ist gesperrt'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Ungültiges Datumsformat'}), 400
+
         # Parse customer name (format: "Nachname, Vorname" or "Vorname Nachname")
         if ',' in customer_name:
             parts = customer_name.split(',', 1)

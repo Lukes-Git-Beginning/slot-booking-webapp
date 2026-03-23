@@ -47,6 +47,11 @@ def day_view(date_str):
     except ValueError:
         return redirect(url_for("main.day_view", date_str=datetime.today().strftime("%Y-%m-%d")))
 
+    # Check if date is blocked
+    from app.services.holiday_service import holiday_service
+    is_blocked = holiday_service.is_blocked_date(date_obj)
+    blocked_reason = holiday_service.get_blocked_reason(date_obj) if is_blocked else None
+
     # Load availability data (needed for summary calculations regardless of caching)
     availability = load_availability()
 
@@ -123,5 +128,7 @@ def day_view(date_str):
         timedelta=timedelta,
         get_week_start=get_week_start,
         slot_suggestions=get_slot_suggestions(availability),
-        user_level=user_level
+        user_level=user_level,
+        is_blocked=is_blocked,
+        blocked_reason=blocked_reason
     )

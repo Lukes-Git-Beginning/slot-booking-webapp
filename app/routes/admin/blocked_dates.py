@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta
 import pytz
 
 from app.config.base import slot_config, APIConfig
+from app.core.extensions import cache_manager
 from app.services.holiday_service import holiday_service
 from app.utils.decorators import require_admin
 from app.routes.admin import admin_bp
@@ -146,6 +147,7 @@ def add_blocked_date():
             return jsonify({"success": False, "error": f"Unbekannter Block-Typ: {block_type}"}), 400
 
         if success:
+            cache_manager.clear_all()
             return jsonify({"success": True, "message": message})
         else:
             return jsonify({"success": False, "error": "Fehler beim Speichern der Sperrung"}), 500
@@ -190,6 +192,7 @@ def remove_blocked_date():
             message = f"Sperrung entfernt"
 
         if success:
+            cache_manager.clear_all()
             return jsonify({"success": True, "message": message})
         else:
             return jsonify({"success": False, "error": "Fehler beim Entfernen der Sperrung"}), 500
