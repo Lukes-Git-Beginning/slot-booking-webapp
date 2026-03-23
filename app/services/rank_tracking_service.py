@@ -21,7 +21,8 @@ TZ = pytz.timezone("Europe/Berlin")
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
 
 try:
-    from app.models.base import get_db_session
+    from app.models.gamification import RankHistory as RankHistoryModel
+    from app.utils.db_utils import db_session_scope
     POSTGRES_AVAILABLE = True
 except ImportError:
     POSTGRES_AVAILABLE = False
@@ -39,7 +40,20 @@ class RankTrackingService:
                 json.dump({}, f)
 
     def _load_history(self):
-        """Load rank history from JSON"""
+        """Load rank history — PG-first with JSON fallback"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(RankHistoryModel).order_by(RankHistoryModel.date).all()
+                    history = {}
+                    for row in rows:
+                        if row.date not in history:
+                            history[row.date] = {}
+                        history[row.date][row.username] = row.rank_position
+                    return history
+            except Exception as e:
+                logger.warning(f"PG rank history read failed: {e}")
+        # JSON fallback
         try:
             with open(self.history_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -156,6 +170,19 @@ class RankTrackingService:
         Returns:
             list: [{date, rank}, ...] sortiert nach Datum
         """
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                cutoff = (datetime.now(TZ) - timedelta(days=days)).strftime("%Y-%m-%d")
+                with db_session_scope() as session:
+                    rows = session.query(RankHistoryModel).filter(
+                        RankHistoryModel.username == username,
+                        RankHistoryModel.date >= cutoff
+                    ).order_by(RankHistoryModel.date).all()
+                    return [{"date": row.date, "rank": row.rank_position} for row in rows]
+            except Exception as e:
+                logger.warning(f"PG rank history query failed: {e}")
+
+        # JSON fallback (bestehender Code)
         history = self._load_history()
         cutoff = (datetime.now(TZ) - timedelta(days=days)).strftime("%Y-%m-%d")
 
@@ -170,36 +197,24 @@ class RankTrackingService:
         return user_history
 
     def _pg_sync_ranks(self, date_str, rank_snapshot):
-        """Dual-Write: Rang-Daten in PostgreSQL syncen"""
+        """Dual-Write: Rang-Daten in PostgreSQL syncen (Model-basiert)"""
         if not USE_POSTGRES or not POSTGRES_AVAILABLE:
             return
 
         try:
-            from sqlalchemy import text
-            session = get_db_session()
-            try:
-                # Prüfe ob Tabelle existiert, erstelle sie ggf.
-                session.execute(text("""
-                    CREATE TABLE IF NOT EXISTS rank_history (
-                        id SERIAL PRIMARY KEY,
-                        date VARCHAR(10) NOT NULL,
-                        username VARCHAR(100) NOT NULL,
-                        rank_position INTEGER NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(date, username)
-                    )
-                """))
-
+            with db_session_scope() as session:
                 for username, rank_pos in rank_snapshot.items():
-                    session.execute(text("""
-                        INSERT INTO rank_history (date, username, rank_position)
-                        VALUES (:date, :username, :rank)
-                        ON CONFLICT (date, username) DO UPDATE SET rank_position = :rank
-                    """), {"date": date_str, "username": username, "rank": rank_pos})
-
-                session.commit()
-            finally:
-                session.close()
+                    existing = session.query(RankHistoryModel).filter_by(
+                        date=date_str, username=username
+                    ).first()
+                    if existing:
+                        existing.rank_position = rank_pos
+                    else:
+                        session.add(RankHistoryModel(
+                            date=date_str,
+                            username=username,
+                            rank_position=rank_pos
+                        ))
         except Exception as e:
             logger.debug(f"PG rank sync skipped: {e}")
 

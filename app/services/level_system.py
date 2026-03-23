@@ -16,17 +16,30 @@ logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.gamification import UserLevel as UserLevelModel, LevelHistory as LevelHistoryModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
+
 class LevelSystem:
     def __init__(self):
-        self.levels_file = "static/user_levels.json"
-        self.level_history_file = "static/level_history.json"
-        os.makedirs("static", exist_ok=True)
-        
-        # Initialisiere Files wenn nicht vorhanden
+        persist_base = os.getenv("PERSIST_BASE", "data")
+        static_dir = os.path.join(persist_base, "static")
+        os.makedirs(static_dir, exist_ok=True)
+        self.levels_file = os.path.join(static_dir, "user_levels.json")
+        self.level_history_file = os.path.join(static_dir, "level_history.json")
+
         if not os.path.exists(self.levels_file):
             with open(self.levels_file, "w", encoding="utf-8") as f:
                 json.dump({}, f)
-        
+
         if not os.path.exists(self.level_history_file):
             with open(self.level_history_file, "w", encoding="utf-8") as f:
                 json.dump({}, f)
@@ -99,7 +112,29 @@ class LevelSystem:
             "level_up": level_up_info
         }
 
-        # Persistiere aktuellen Level-Stand in user_levels.json
+        # Persistiere Level-Stand (Dual-Write: PG + JSON)
+        # 1. PostgreSQL
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    existing = session.query(UserLevelModel).filter_by(username=user).first()
+                    if existing:
+                        existing.level = level
+                        existing.xp = xp
+                        existing.level_title = level_title
+                        existing.updated_at = datetime.now(TZ).replace(tzinfo=None)
+                    else:
+                        session.add(UserLevelModel(
+                            username=user,
+                            level=level,
+                            xp=xp,
+                            level_title=level_title,
+                            updated_at=datetime.now(TZ).replace(tzinfo=None)
+                        ))
+            except Exception as e:
+                logger.debug(f"PG level sync failed for {user}: {e}")
+
+        # 2. JSON (bestehendes Pattern beibehalten)
         try:
             with open(self.levels_file, "r", encoding="utf-8") as f:
                 levels = json.load(f)
@@ -117,7 +152,7 @@ class LevelSystem:
         except Exception:
             pass
 
-        # Dual-Write: Sync Level + XP in PostgreSQL User-Tabelle
+        # 3. Sync Level + XP in User-Tabelle (bestehendes Pattern beibehalten)
         try:
             from app.models.user import User
             from app.core.extensions import db
@@ -127,19 +162,38 @@ class LevelSystem:
                 pg_user.experience = xp
                 db.session.commit()
         except Exception as e:
-            logger.debug(f"PG level sync skipped for {user}: {e}")
+            logger.debug(f"PG user level sync skipped for {user}: {e}")
 
         return result
     
     def check_level_up(self, user, new_level, new_xp):
         """Prüfe ob User ein Level aufgestiegen ist"""
-        try:
-            # Lade Level-Historie
-            with open(self.level_history_file, "r", encoding="utf-8") as f:
-                level_history = json.load(f)
-        except:
-            level_history = {}
-        
+        # PG-first: Lade aktuelle Level-Info
+        level_history = None
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    ul = session.query(UserLevelModel).filter_by(username=user).first()
+                    if ul:
+                        level_history = {
+                            user: {
+                                "current_level": ul.level,
+                                "current_xp": ul.xp,
+                                "level_ups": [],
+                                "last_check": ul.updated_at.isoformat() if ul.updated_at else ""
+                            }
+                        }
+            except Exception:
+                pass
+
+        # JSON fallback
+        if level_history is None:
+            try:
+                with open(self.level_history_file, "r", encoding="utf-8") as f:
+                    level_history = json.load(f)
+            except Exception:
+                level_history = {}
+
         if user not in level_history:
             level_history[user] = {
                 "current_level": 1,
@@ -166,6 +220,22 @@ class LevelSystem:
             }
             level_history[user]["level_ups"].append(level_up_info)
             logger.info(f"LEVEL UP! {user} ist von Level {old_level} auf Level {new_level} aufgestiegen!")
+
+            # PG: LevelHistory Record
+            if USE_POSTGRES and POSTGRES_AVAILABLE:
+                try:
+                    with db_session_scope() as session:
+                        session.add(LevelHistoryModel(
+                            username=user,
+                            old_level=old_level,
+                            new_level=new_level,
+                            old_xp=old_xp,
+                            new_xp=new_xp,
+                            xp_gained=new_xp - old_xp,
+                            leveled_up_at=datetime.now(TZ).replace(tzinfo=None)
+                        ))
+                except Exception as e:
+                    logger.debug(f"PG level history write failed: {e}")
 
             # Send level-up notification
             try:
@@ -335,33 +405,61 @@ class LevelSystem:
 
     def get_level_statistics(self, user):
         """Bekomme Level-Statistiken für User"""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    ul = session.query(UserLevelModel).filter_by(username=user).first()
+                    level_ups = session.query(LevelHistoryModel).filter_by(
+                        username=user
+                    ).order_by(LevelHistoryModel.leveled_up_at.desc()).all()
+
+                    if ul:
+                        level_up_list = [{
+                            'old_level': lh.old_level,
+                            'new_level': lh.new_level,
+                            'old_xp': lh.old_xp,
+                            'new_xp': lh.new_xp,
+                            'xp_gained': lh.xp_gained,
+                            'timestamp': lh.leveled_up_at.isoformat() if lh.leveled_up_at else ''
+                        } for lh in level_ups]
+
+                        return {
+                            "current_level": ul.level,
+                            "current_xp": ul.xp,
+                            "total_level_ups": len(level_up_list),
+                            "recent_level_ups": level_up_list[:5],
+                            "fastest_level_up": min(level_up_list, key=lambda x: x.get("xp_gained", 0)) if level_up_list else None,
+                            "average_xp_per_level": sum(l.get("xp_gained", 0) for l in level_up_list) / len(level_up_list) if level_up_list else 0
+                        }
+            except Exception as e:
+                logger.debug(f"PG level stats failed: {e}")
+
+        # JSON fallback (bestehender Code)
         try:
             with open(self.level_history_file, "r", encoding="utf-8") as f:
                 level_history = json.load(f)
-        except:
+        except Exception:
             return {}
-        
+
         user_history = level_history.get(user, {})
-        
+
         stats = {
             "current_level": user_history.get("current_level", 1),
             "current_xp": user_history.get("current_xp", 0),
             "total_level_ups": len(user_history.get("level_ups", [])),
-            "recent_level_ups": user_history.get("level_ups", [])[-5:],  # Letzte 5 Level-Ups
+            "recent_level_ups": user_history.get("level_ups", [])[-5:],
             "fastest_level_up": None,
             "average_xp_per_level": 0
         }
-        
+
         level_ups = user_history.get("level_ups", [])
         if level_ups:
-            # Schnellster Level-Up
             fastest = min(level_ups, key=lambda x: x.get("xp_gained", 0))
             stats["fastest_level_up"] = fastest
-            
-            # Durchschnittliche XP pro Level
+
             total_xp_gained = sum(up.get("xp_gained", 0) for up in level_ups)
             stats["average_xp_per_level"] = total_xp_gained / len(level_ups)
-        
+
         return stats
 
 # Globale Instanz
