@@ -11,7 +11,7 @@ Architektur:
 - booking.py: Booking, BookingOutcome
 - tracking.py: DailyMetrics, CustomerProfile
 
-JSON-Mapping (24 Dateien → 27 Models):
+JSON-Mapping (25 Dateien → 28 Models):
 1. scores.json → Score
 2. user_badges.json → UserBadge
 3. user_profiles.json → User
@@ -32,6 +32,7 @@ JSON-Mapping (24 Dateien → 27 Models):
 18. user_coins.json → User.total_coins
 19. bookings.jsonl → Booking
 20. outcomes.jsonl → BookingOutcome
+21. user_notifications.json → Notification
 """
 
 # Base & Database
@@ -102,6 +103,9 @@ from app.models.t2_bucket import (
 # T2 Booking Model
 from app.models.t2_booking import T2Booking
 
+# Notification Models
+from app.models.notification import Notification
+
 # Finanzberatung Models
 from app.models.finanzberatung import (
     FinanzSession,
@@ -165,4 +169,6 @@ __all__ = [
     'FinanzScorecard',
     'FinanzTaskTracking',
     'FinanzFoerderFragebogen',
+    # Notification
+    'Notification',
 ]
