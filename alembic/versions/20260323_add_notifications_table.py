@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """Add notifications table
 
-Revision ID: a1b2c3d4e5f6
-Revises: f7a8b9c0d1e2
+Revision ID: b2_notificat01
+Revises: b1_security_01
 Create Date: 2026-03-23
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
-down_revision = 'f7a8b9c0d1e2'
+revision = 'b2_notificat01'
+down_revision = 'b1_security_01'
 branch_labels = None
 depends_on = None
 

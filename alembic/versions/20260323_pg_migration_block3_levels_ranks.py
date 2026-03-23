@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """PG-Migration Block 3 — Level-System + Rank-Tracking Dual-Write
 
-Revision ID: a1b2c3d4e5f6
-Revises: f7a8b9c0d1e2
+Revision ID: b3_levels_rk01
+Revises: b2_notificat01
 Create Date: 2026-03-23
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
-down_revision = 'f7a8b9c0d1e2'
+revision = 'b3_levels_rk01'
+down_revision = 'b2_notificat01'
 branch_labels = None
 depends_on = None
 

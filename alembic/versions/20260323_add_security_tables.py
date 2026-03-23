@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Add security tables: account_lockouts, audit_logs
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: b1_security_01
 Revises: f7a8b9c0d1e2
 Create Date: 2026-03-23
 """
@@ -9,7 +9,7 @@ Create Date: 2026-03-23
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
+revision = 'b1_security_01'
 down_revision = 'f7a8b9c0d1e2'
 branch_labels = None
 depends_on = None
