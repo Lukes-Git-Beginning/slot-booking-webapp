@@ -5,7 +5,7 @@ Gamification Models - Scores, Badges, Achievements, Quests
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, JSON, Text, Float, Index, Date
+from sqlalchemy import String, Integer, Boolean, JSON, Text, Float, Index, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
@@ -285,3 +285,64 @@ class MasteryData(Base):
 
     def __repr__(self) -> str:
         return f"<MasteryData(username='{self.username}', skill='{self.skill_name}', level={self.current_level})>"
+
+
+class UserLevel(Base):
+    """
+    User-Level-System
+    Ersetzt: static/user_levels.json
+    """
+    __tablename__ = 'user_levels'
+
+    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    level_title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<UserLevel(username='{self.username}', level={self.level}, xp={self.xp})>"
+
+
+class LevelHistory(Base):
+    """
+    Level-Up History
+    Ersetzt: static/level_history.json (level_ups Array)
+    """
+    __tablename__ = 'level_history'
+
+    username: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    old_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    new_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    old_xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    new_xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    xp_gained: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    leveled_up_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    rewards_granted: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    __table_args__ = (
+        Index('idx_level_history_username', 'username'),
+    )
+
+    def __repr__(self) -> str:
+        return f"<LevelHistory(username='{self.username}', {self.old_level}->{self.new_level})>"
+
+
+class RankHistory(Base):
+    """
+    Daily Rank Snapshots
+    Ersetzt: data/persistent/rank_history.json
+    ACHTUNG: rank_history Table existiert moeglicherweise schon per Raw SQL
+    """
+    __tablename__ = 'rank_history'
+
+    date: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    username: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    rank_position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        Index('idx_rank_date_username', 'date', 'username', unique=True),
+    )
+
+    def __repr__(self) -> str:
+        return f"<RankHistory(date='{self.date}', username='{self.username}', rank={self.rank_position})>"
