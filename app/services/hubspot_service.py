@@ -216,6 +216,28 @@ class HubSpotService:
     # DEAL OPERATIONS
     # ================================================================
 
+    def get_deal(self, deal_id: str) -> Optional[Dict[str, Any]]:
+        """Hole einen einzelnen Deal per ID.
+
+        Args:
+            deal_id: HubSpot Deal ID
+
+        Returns:
+            Normalisiertes Deal-Dict oder None
+        """
+        if not self.is_available:
+            return None
+
+        try:
+            deal = self.client.crm.deals.basic_api.get_by_id(
+                deal_id=deal_id,
+                properties=DEAL_PROPERTIES,
+            )
+            return self._normalize_deal(deal)
+        except Exception as e:
+            logger.error(f"HubSpot get_deal failed for {deal_id}: {e}")
+            return None
+
     def find_deal_by_contact_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Suche einen HubSpot-Deal über die E-Mail des Kontakts.
 

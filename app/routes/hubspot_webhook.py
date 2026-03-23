@@ -4,6 +4,7 @@ HubSpot Webhook Endpoint
 
 Empfängt Deal-Stage-Änderungen von HubSpot für bidirektionalen Sync.
 Validiert die Signatur des Requests und verarbeitet Events.
+Erstellt Queue-Items für Admin-Review (gleicher Ansatz wie G.2).
 """
 
 import hashlib
@@ -66,12 +67,92 @@ def validate_hubspot_signature(req) -> bool:
     return hmac.compare_digest(signature, expected)
 
 
+def handle_stage_change(deal_id: str, new_stage: str, previous_stage: str) -> bool:
+    """Verarbeite eine HubSpot Deal-Stage-Änderung.
+
+    Holt Deal-Details via API, mappt die Stage auf einen lokalen Outcome-Typ,
+    und erstellt ein Queue-Item für Admin-Review.
+
+    Args:
+        deal_id: HubSpot Deal ID
+        new_stage: Neue Stage-ID
+        previous_stage: Vorherige Stage-ID
+
+    Returns:
+        True wenn erfolgreich verarbeitet
+    """
+    from app.config.base import hubspot_config
+    from app.services.hubspot_service import hubspot_service
+    from app.services.hubspot_queue_service import hubspot_queue_service
+    from app.services.audit_service import audit_service
+
+    # Deal-Details von HubSpot holen
+    deal_info = hubspot_service.get_deal(deal_id)
+    if not deal_info:
+        logger.warning(f"Could not fetch deal {deal_id} from HubSpot, skipping")
+        return False
+
+    # Stage → lokaler Outcome-Typ mappen
+    reverse_mapping = hubspot_config.REVERSE_STAGE_MAPPING
+    suggested_outcome = reverse_mapping.get(new_stage, 'unknown')
+
+    # Outcome-Daten aus Deal extrahieren
+    customer_name = deal_info.get('dealname', '')
+    datum_t1 = deal_info.get('datum_t1', '')
+    uhrzeit_t1 = deal_info.get('uhrzeit_t1', '')
+
+    outcome_data = {
+        'customer': customer_name,
+        'date': datum_t1 or '',
+        'time': uhrzeit_t1 or '',
+        'outcome': suggested_outcome,
+        'consultant': deal_info.get('telefonist', ''),
+    }
+
+    # Queue-Item erstellen (Admin-Review, wie G.2)
+    note = f"HubSpot Stage-Change: {previous_stage} → {new_stage}"
+
+    try:
+        queue_item = hubspot_queue_service.add_to_queue(
+            outcome_data=outcome_data,
+            deal_info=deal_info,
+            suggested_action=suggested_outcome,
+            stage=new_stage,
+            note=note,
+        )
+
+        logger.info(
+            f"HubSpot webhook queued: deal {deal_id} → "
+            f"{suggested_outcome} (queue item {queue_item.get('id')})"
+        )
+
+        # Audit-Log
+        audit_service.log(
+            'hubspot_webhook_processed',
+            'webhook',
+            {
+                'deal_id': deal_id,
+                'new_stage': new_stage,
+                'previous_stage': previous_stage,
+                'suggested_outcome': suggested_outcome,
+                'queue_item_id': queue_item.get('id'),
+                'customer': customer_name,
+            }
+        )
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to queue HubSpot stage change for deal {deal_id}: {e}")
+        return False
+
+
 @hubspot_webhook_bp.route('/api/hubspot/webhook', methods=['POST'])
 def handle_webhook():
     """Empfängt HubSpot Deal-Stage-Änderungen.
 
     Event-Typen die verarbeitet werden:
-    - deal.propertyChange (dealstage) → Lokale Datenbank aktualisieren
+    - deal.propertyChange (dealstage) → Queue-Item für Admin-Review
     """
     # Signatur validieren
     if not validate_hubspot_signature(request):
@@ -103,9 +184,8 @@ def handle_webhook():
                         f"{previous_stage} → {new_stage}"
                     )
 
-                    # TODO: Phase 4 - Lokale DB aktualisieren
-                    # handle_stage_change(deal_id, new_stage, previous_stage)
-                    processed += 1
+                    if handle_stage_change(deal_id, new_stage, previous_stage):
+                        processed += 1
 
         except Exception as e:
             logger.error(f"Error processing HubSpot webhook event: {e}")

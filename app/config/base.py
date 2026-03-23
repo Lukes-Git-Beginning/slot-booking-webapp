@@ -307,6 +307,12 @@ class HubSpotConfig:
         "rueckholung": "349476306",       # Alias für was_deal_in_stage() Lookup
     }
 
+    # Reverse Stage-Mapping: HubSpot Stage ID → lokaler Outcome-Typ (für Webhooks)
+    REVERSE_STAGE_MAPPING: Dict[str, str] = {
+        "349476306": "rescheduled",       # Rückholung
+        "680987595": "lost",              # Verloren vor T1
+    }
+
     # Cache-TTL für HubSpot-Daten (Sekunden)
     HUBSPOT_CACHE_TTL: int = int(os.getenv("HUBSPOT_CACHE_TTL", "1800"))  # 30 Minuten
 
