@@ -1,6 +1,6 @@
 # Central Business Tool Hub
 
-**Version:** 3.3.18 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
+**Version:** 3.3.19 | **Status:** Production | **Server:** https://berater.zfa.gmbh/
 
 Professional multi-tool platform combining slot booking, T2 appointment management, gamification, and business analytics.
 
@@ -425,7 +425,7 @@ Proprietary - Internal use only
 **Development:** Luke Hoppe
 **Organization:** ZFA GmbH
 **Infrastructure:** Hetzner VPS
-**Version:** 3.3.18 (2026-02-15)
+**Version:** 3.3.19 (2026-02-15)
 
 ---
 

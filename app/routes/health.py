@@ -204,7 +204,7 @@ def health_check():
         'status': 'healthy' if overall_healthy else 'unhealthy',
         'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
         'checks': checks,
-        'version': '3.3.17',  # Business Tool Hub version
+        'version': '3.3.19',  # Business Tool Hub version
         'uptime': get_uptime()
     }
 
@@ -363,7 +363,7 @@ def health_detailed():
 
         return jsonify({
             'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
-            'version': '3.3.17',
+            'version': '3.3.19',
             'details': details
         }), 200
     except Exception as e:

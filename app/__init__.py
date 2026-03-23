@@ -113,7 +113,7 @@ def create_app(config_object: Optional[str] = None) -> Flask:
         health_status = {
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'version': '3.3.18',
+            'version': '3.3.19',
             'tools': {
                 'slots': 'healthy',
                 'analytics': 'not_ready',
@@ -165,7 +165,7 @@ def init_sentry(app: Flask) -> None:
                 integrations=[FlaskIntegration()],
                 traces_sample_rate=0.1,  # 10% Performance Monitoring
                 environment='production' if not app.debug else 'development',
-                release=f"business-hub@{app.config.get('VERSION', '3.3.15')}",
+                release=f"business-hub@{app.config.get('VERSION', '3.3.19')}",
                 # User context für besseres Debugging
                 send_default_pii=True,
                 # Logs zu Sentry senden
