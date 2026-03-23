@@ -16,6 +16,17 @@ logger = logging.getLogger(__name__)
 
 TZ = pytz.timezone("Europe/Berlin")
 
+# PostgreSQL dual-write support
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+
+try:
+    from app.models.gamification import UserBadge as UserBadgeModel
+    from app.utils.db_utils import db_session_scope
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+    USE_POSTGRES = False
+
 # Raritäts-Farben für konsistente Darstellung
 RARITY_COLORS = {
     "common": "#10b981",
@@ -283,15 +294,17 @@ RARITY_COLORS = {
 
 class AchievementSystem:
     def __init__(self):
-        self.badges_file = "static/user_badges.json"
-        self.mvp_file = "static/mvp_badges.json"
-        os.makedirs("static", exist_ok=True)
-        
+        persist_base = os.getenv("PERSIST_BASE", "data")
+        self.badges_file = os.path.join(persist_base, "persistent", "user_badges.json")
+        self.mvp_file = os.path.join(persist_base, "persistent", "mvp_badges.json")
+
+        os.makedirs(os.path.dirname(self.badges_file), exist_ok=True)
+
         # Initialisiere Files wenn nicht vorhanden
         if not os.path.exists(self.badges_file):
             with open(self.badges_file, "w", encoding="utf-8") as f:
                 json.dump({}, f)
-        
+
         if not os.path.exists(self.mvp_file):
             with open(self.mvp_file, "w", encoding="utf-8") as f:
                 json.dump({}, f)
@@ -326,7 +339,37 @@ class AchievementSystem:
                 logger.error(f"Auch Fallback-Speicherung fehlgeschlagen: {e2}")
     
     def load_mvp_badges(self):
-        """Lade MVP-Badges"""
+        """Lade MVP-Badges — PG-first mit JSON-Fallback."""
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    rows = session.query(UserBadgeModel).filter(
+                        UserBadgeModel.category == 'mvp'
+                    ).all()
+                    mvp_data = {}
+                    for row in rows:
+                        if row.username not in mvp_data:
+                            mvp_data[row.username] = {"badges": [], "periods": {}}
+                        badge_meta = row.badge_metadata or {}
+                        badge_dict = {
+                            "id": row.badge_id,
+                            "name": row.name,
+                            "description": row.description,
+                            "emoji": row.emoji,
+                            "rarity": row.rarity,
+                            "category": "mvp",
+                            "earned_date": row.earned_date.strftime("%Y-%m-%d %H:%M:%S") if row.earned_date else "",
+                            "period": badge_meta.get("period", ""),
+                            "color": row.color or RARITY_COLORS.get(row.rarity, "#10b981")
+                        }
+                        mvp_data[row.username]["badges"].append(badge_dict)
+                        period = badge_meta.get("period", "")
+                        if period:
+                            mvp_data[row.username]["periods"][period] = badge_dict["earned_date"]
+                    return mvp_data
+            except Exception as e:
+                logger.warning(f"PG MVP badges read failed, falling back to JSON: {e}")
+        # JSON fallback
         try:
             with open(self.mvp_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -335,17 +378,46 @@ class AchievementSystem:
             return {}
     
     def save_mvp_badges(self, mvp_data):
-        """Speichere MVP-Badges über data_persistence für Deployment-Sicherheit"""
+        """Speichere MVP-Badges — Dual-Write: PostgreSQL + JSON."""
+        # 1. PostgreSQL write
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    for username, user_data in mvp_data.items():
+                        for badge in user_data.get("badges", []):
+                            badge_id = badge.get("id", "")
+                            if not badge_id:
+                                continue
+                            existing = session.query(UserBadgeModel).filter_by(
+                                username=username, badge_id=badge_id
+                            ).first()
+                            if not existing:
+                                earned_str = badge.get("earned_date", "")
+                                try:
+                                    earned_date = datetime.strptime(earned_str, "%Y-%m-%d %H:%M:%S") if earned_str else datetime.now(TZ)
+                                except (ValueError, TypeError):
+                                    earned_date = datetime.now(TZ)
+                                session.add(UserBadgeModel(
+                                    username=username,
+                                    badge_id=badge_id,
+                                    name=badge.get("name", badge_id),
+                                    description=badge.get("description", ""),
+                                    emoji=badge.get("emoji", "🏅"),
+                                    rarity=badge.get("rarity", "epic"),
+                                    category="mvp",
+                                    color=badge.get("color", "#f59e0b"),
+                                    earned_date=earned_date,
+                                    badge_metadata={"period": badge.get("period", "")}
+                                ))
+            except Exception as e:
+                logger.error(f"PG MVP badges save failed: {e}")
+
+        # 2. JSON write (immer)
         try:
-            from app.core.extensions import data_persistence
-            # MVP badges werden als Teil der normalen badges gespeichert
-            # oder wir können eine separate MVP-Speicherfunktion hinzufügen
             with open(self.mvp_file, "w", encoding="utf-8") as f:
                 json.dump(mvp_data, f, ensure_ascii=False, indent=2)
-            # Backup über data_persistence erstellen
-            data_persistence._create_backup("mvp_badges.json", mvp_data)
         except Exception as e:
-            logger.error(f"Fehler beim Speichern der MVP-Badges: {e}")
+            logger.error(f"JSON MVP badges save failed: {e}")
     
     def load_daily_stats(self):
         """Lade tägliche User-Statistiken über data_persistence"""
@@ -602,6 +674,28 @@ class AchievementSystem:
         badges_data[user]["total_badges"] += 1
 
         logger.info(f"Badge verliehen: {user} erhaelt '{definition['name']}'")
+
+        # Direkter PG-Write (zusätzlich zum Dual-Write in save_badges)
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                with db_session_scope() as session:
+                    existing = session.query(UserBadgeModel).filter_by(
+                        username=user, badge_id=badge_id
+                    ).first()
+                    if not existing:
+                        session.add(UserBadgeModel(
+                            username=user,
+                            badge_id=badge_id,
+                            name=definition["name"],
+                            description=definition["description"],
+                            emoji=definition["emoji"],
+                            rarity=definition["rarity"],
+                            category=definition["category"],
+                            color=RARITY_COLORS.get(definition["rarity"], "#10b981"),
+                            earned_date=datetime.now(TZ)
+                        ))
+            except Exception as e:
+                logger.debug(f"PG badge award skipped: {e}")
 
         # Send notification for new badge
         try:
@@ -946,19 +1040,67 @@ class AchievementSystem:
         return badges
     
     def get_badge_leaderboard(self):
-        """Erstelle Rangliste nach Badge-Anzahl basierend auf persistent gespeicherten Badges."""
-        try:
-            badges_data = self.load_badges()
-        except Exception:
-            badges_data = {}
-
+        """Erstelle Rangliste nach Badge-Anzahl — PG-first mit JSON-Fallback."""
         # Username-Normalisierung importieren
         try:
             from app.utils.helpers import normalize_username
         except ImportError:
-            # Fallback wenn Import fehlschlägt
             def normalize_username(username):
                 return username
+
+        if USE_POSTGRES and POSTGRES_AVAILABLE:
+            try:
+                from sqlalchemy import func
+                weights_map = {
+                    "common": 1,
+                    "uncommon": 2,
+                    "rare": 4,
+                    "epic": 6,
+                    "legendary": 10,
+                    "mythic": 20
+                }
+                with db_session_scope() as session:
+                    rows = session.query(UserBadgeModel).all()
+                    # Aggregiere per Username
+                    user_map = defaultdict(list)
+                    for row in rows:
+                        user_map[row.username].append(row)
+
+                    leaderboard = []
+                    for username, badges in user_map.items():
+                        rarity_counts = defaultdict(int)
+                        rarity_points = 0
+                        badge_dicts = []
+                        for b in badges:
+                            rarity_counts[b.rarity] += 1
+                            rarity_points += weights_map.get(b.rarity, 1)
+                            badge_dicts.append({
+                                "id": b.badge_id,
+                                "name": b.name,
+                                "description": b.description,
+                                "emoji": b.emoji,
+                                "rarity": b.rarity,
+                                "category": b.category,
+                                "earned_date": b.earned_date.strftime("%Y-%m-%d %H:%M:%S") if b.earned_date else "",
+                                "color": b.color or RARITY_COLORS.get(b.rarity, "#10b981"),
+                            })
+                        leaderboard.append({
+                            "user": normalize_username(username),
+                            "total_badges": len(badges),
+                            "rarity_points": rarity_points,
+                            "rarity_breakdown": dict(rarity_counts),
+                            "badges": badge_dicts
+                        })
+                    leaderboard.sort(key=lambda x: (x["rarity_points"], x["total_badges"]), reverse=True)
+                    return leaderboard
+            except Exception as e:
+                logger.warning(f"PG badge leaderboard failed, falling back to JSON: {e}")
+
+        # JSON fallback
+        try:
+            badges_data = self.load_badges()
+        except Exception:
+            badges_data = {}
 
         leaderboard = []
         for user, entry in badges_data.items():
@@ -980,7 +1122,6 @@ class AchievementSystem:
                 }
                 rarity_points += weights.get(rarity, 1)
 
-            # Normalisiere den Username bevor er zur Leaderboard hinzugefügt wird
             normalized_user = normalize_username(user)
 
             leaderboard.append({
