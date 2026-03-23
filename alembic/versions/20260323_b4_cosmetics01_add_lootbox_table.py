@@ -2,7 +2,7 @@
 """Add lootbox_data table (Block 4 Cosmetics/Avatar/Lootbox migration)
 
 Revision ID: b4_cosmetics01
-Revises: f7a8b9c0d1e2
+Revises: b3_levels_rk01
 Create Date: 2026-03-23
 """
 
@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'b4_cosmetics01'
-down_revision = 'f7a8b9c0d1e2'
+down_revision = 'b3_levels_rk01'
 branch_labels = None
 depends_on = None
 
