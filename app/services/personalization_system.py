@@ -25,7 +25,7 @@ try:
     from app.models.cosmetics import UserCosmetic, CustomizationAchievement
     from app.models.gamification import PersonalGoal as PersonalGoalModel
     from app.models.user import User as UserModel
-    from app.models.base import get_db_session
+    from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
     POSTGRES_AVAILABLE = True
 except ImportError:
     logger.warning("PostgreSQL models not available for personalization, using JSON-only")
@@ -236,8 +236,7 @@ class PersonalizationSystem:
         # PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     db_user = session.query(UserModel).filter_by(username=user).first()
                     if db_user and db_user.profile_data:
                         profile = db_user.profile_data.copy()
@@ -246,16 +245,10 @@ class PersonalizationSystem:
                         # Update last_active in DB
                         db_user.profile_data = profile
                         db_user.last_activity = datetime.now(TZ).replace(tzinfo=None)
-                        session.commit()
                         logger.debug(f"Loaded profile for {user} from PostgreSQL")
                         return profile
-                except Exception as e:
-                    session.rollback()
-                    logger.warning(f"PostgreSQL profile load failed for {user}: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.warning(f"PostgreSQL connection failed for profile load: {e}")
+                logger.warning(f"PostgreSQL profile load failed for {user}: {e}")
 
         # JSON fallback
         profiles = self._load_json(self.profiles_file)
@@ -284,24 +277,17 @@ class PersonalizationSystem:
         # PostgreSQL Dual-Write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     db_user = session.query(UserModel).filter_by(username=user).first()
                     if db_user:
                         db_user.profile_data = profile
                         db_user.last_activity = datetime.now(TZ).replace(tzinfo=None)
-                        session.commit()
                         logger.debug(f"Profile for {user} saved to PostgreSQL")
                     else:
                         # User existiert noch nicht in PG — nur JSON
                         logger.debug(f"User {user} not found in PostgreSQL, saving profile to JSON only")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL profile save failed for {user}: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for profile save: {e}")
+                logger.error(f"PostgreSQL profile save failed for {user}: {e}")
 
         # JSON always
         profiles = self._load_json(self.profiles_file)
@@ -329,16 +315,13 @@ class PersonalizationSystem:
         # PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     row = session.query(UserCosmetic).filter_by(
                         username=user, item_id='avatar_config', item_type='avatar_config'
                     ).first()
                     if row and row.config:
                         logger.debug(f"Loaded customization for {user} from PostgreSQL")
                         return row.config
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL customization load failed for {user}: {e}")
 
@@ -351,8 +334,7 @@ class PersonalizationSystem:
         if not (USE_POSTGRES and POSTGRES_AVAILABLE):
             return
         try:
-            session = get_db_session()
-            try:
+            with db_session_scope() as session:
                 row = session.query(UserCosmetic).filter_by(
                     username=user, item_id='avatar_config', item_type='avatar_config'
                 ).first()
@@ -372,15 +354,9 @@ class PersonalizationSystem:
                         config=customization_data
                     )
                     session.add(row)
-                session.commit()
                 logger.debug(f"Customization for {user} saved to PostgreSQL")
-            except Exception as e:
-                session.rollback()
-                logger.error(f"PostgreSQL customization save failed for {user}: {e}")
-            finally:
-                session.close()
         except Exception as e:
-            logger.error(f"PostgreSQL connection failed for customization save: {e}")
+            logger.error(f"PostgreSQL customization save failed for {user}: {e}")
 
     def update_user_customization(self, user, customization_data):
         """Update User Avatar-Customization"""
@@ -530,8 +506,7 @@ class PersonalizationSystem:
         # PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(PersonalGoalModel).filter_by(
                         username=user, is_active=True
                     ).all()
@@ -556,8 +531,6 @@ class PersonalizationSystem:
                                 goal["claimed_at"] = row.milestones["claimed_at"]
                             user_goals.append(goal)
                         logger.debug(f"Loaded {len(user_goals)} goals for {user} from PostgreSQL")
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL goals load failed for {user}: {e}")
 
@@ -608,8 +581,7 @@ class PersonalizationSystem:
         # PostgreSQL Dual-Write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     db_goal = PersonalGoalModel(
                         username=user,
                         goal_id=goal_id,
@@ -633,15 +605,9 @@ class PersonalizationSystem:
                     except (ValueError, TypeError):
                         pass
                     session.add(db_goal)
-                    session.commit()
                     logger.debug(f"Goal {goal_id} for {user} saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL goal save failed for {user}: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for goal save: {e}")
+                logger.error(f"PostgreSQL goal save failed for {user}: {e}")
 
         # JSON always
         goals = self._load_json(self.goals_file)
@@ -775,8 +741,7 @@ class PersonalizationSystem:
         # PostgreSQL Dual-Write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     db_goal = session.query(PersonalGoalModel).filter_by(
                         username=user, goal_id=goal_id
                     ).first()
@@ -787,15 +752,9 @@ class PersonalizationSystem:
                         milestones["claimed"] = True
                         milestones["claimed_at"] = goal["claimed_at"]
                         db_goal.milestones = milestones
-                        session.commit()
                         logger.debug(f"Goal {goal_id} claimed in PostgreSQL for {user}")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL goal claim failed for {user}: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for goal claim: {e}")
+                logger.error(f"PostgreSQL goal claim failed for {user}: {e}")
 
         # JSON always
         goals = self._load_json(self.goals_file)
