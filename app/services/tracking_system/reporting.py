@@ -179,8 +179,12 @@ def _get_hourly_distribution_json(tracker, start_date_str, end_date_str):
     all_cells = []
 
     if os.path.exists(tracker.metrics_file):
-        with open(tracker.metrics_file, "r", encoding="utf-8") as f:
-            all_metrics = json.load(f)
+        try:
+            with open(tracker.metrics_file, "r", encoding="utf-8") as f:
+                all_metrics = json.load(f)
+        except (PermissionError, json.JSONDecodeError) as e:
+            logger.error(f"Fehler bei get_stats_for_period: {e}")
+            return all_cells
 
         current_date = start_date
         while current_date <= end_date:
@@ -520,8 +524,12 @@ def get_stats_for_period(tracker, start_date_str, end_date_str):
 
         # Lade daily_metrics.json
         if os.path.exists(tracker.metrics_file):
-            with open(tracker.metrics_file, "r", encoding="utf-8") as f:
-                all_metrics = json.load(f)
+            try:
+                with open(tracker.metrics_file, "r", encoding="utf-8") as f:
+                    all_metrics = json.load(f)
+            except (PermissionError, json.JSONDecodeError) as e:
+                logger.error(f"Fehler bei get_stats_for_period: {e}")
+                return {"totals": totals, "daily_data": [], "days_with_data": 0}
 
             current_date = start_date
             while current_date <= end_date:

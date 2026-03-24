@@ -49,6 +49,10 @@ def init_middleware(app: Flask) -> None:
         if request.path.startswith('/finanzberatung/sse/'):
             return
 
+        # Logout clears the session itself — middleware must not interfere
+        if request.path == '/logout':
+            return
+
         # Check if user is logged in
         if 'user' not in session or not session.get('user'):
             sid = getattr(session, 'sid', 'unknown')

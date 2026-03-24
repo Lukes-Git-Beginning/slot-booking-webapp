@@ -32,16 +32,24 @@ def backfill_cosmetics(session, dry_run=False):
     active = {}
 
     if purchases_file.exists():
-        with open(purchases_file, "r", encoding="utf-8") as f:
-            purchases = json.load(f)
-        print(f"Loaded purchases for {len(purchases)} users from {purchases_file}")
+        try:
+            with open(purchases_file, "r", encoding="utf-8") as f:
+                purchases = json.load(f)
+            print(f"Loaded purchases for {len(purchases)} users from {purchases_file}")
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse {purchases_file}: {e}")
+            return 0
     else:
         print(f"WARNING: {purchases_file} not found, skipping purchases backfill")
 
     if active_file.exists():
-        with open(active_file, "r", encoding="utf-8") as f:
-            active = json.load(f)
-        print(f"Loaded active cosmetics for {len(active)} users from {active_file}")
+        try:
+            with open(active_file, "r", encoding="utf-8") as f:
+                active = json.load(f)
+            print(f"Loaded active cosmetics for {len(active)} users from {active_file}")
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse {active_file}: {e}")
+            return 0
     else:
         print(f"WARNING: {active_file} not found, skipping active backfill")
 

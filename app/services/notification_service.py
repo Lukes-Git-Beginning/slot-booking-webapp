@@ -93,10 +93,16 @@ class NotificationService:
             except Exception as e:
                 logger.warning(f"PG notification read failed, falling back to JSON: {e}")
 
+        if data_persistence is None:
+            logger.warning("data_persistence not initialized, returning empty notifications")
+            return {}
         return data_persistence.load_data(self.notifications_file, {})
 
     def _save_all_notifications(self, notifications: Dict[str, List[Dict]]):
         """Speichere alle Benachrichtigungen (JSON-Fallback-Store)"""
+        if data_persistence is None:
+            logger.warning("data_persistence not initialized, skipping JSON save")
+            return
         data_persistence.save_data(self.notifications_file, notifications)
 
     def _get_users_by_roles(self, roles: List[str]) -> List[str]:

@@ -325,7 +325,7 @@ def generate_token(session_id):
             'token_value': token.token,
             'qr_base64': qr_base64,
             'expires_at': token.expires_at.isoformat(),
-            'token_type': token.token_type,
+            'token_type': token.token_type.value if hasattr(token.token_type, 'value') else str(token.token_type),
         })
 
     except Exception as e:

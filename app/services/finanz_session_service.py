@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 
 from app.models import get_db_session
 from app.models.finanzberatung import (
@@ -94,7 +95,10 @@ class FinanzSessionService:
         """
         db = get_db_session()
         try:
-            query = db.query(FinanzSession).filter(FinanzSession.id == session_id)
+            query = db.query(FinanzSession).options(
+                joinedload(FinanzSession.foerderfragebogen),
+                joinedload(FinanzSession.tokens),
+            ).filter(FinanzSession.id == session_id)
             if username is not None:
                 query = query.filter(
                     or_(
@@ -102,7 +106,10 @@ class FinanzSessionService:
                         FinanzSession.closer_username == username,
                     )
                 )
-            return query.first()
+            result = query.first()
+            if result:
+                db.expunge(result)
+            return result
         except Exception as e:
             logger.error("Failed to get session %s: %s", session_id, e, exc_info=True)
             return None
@@ -126,7 +133,9 @@ class FinanzSessionService:
         """
         db = get_db_session()
         try:
-            query = db.query(FinanzSession)
+            query = db.query(FinanzSession).options(
+                joinedload(FinanzSession.foerderfragebogen),
+            )
             if username is not None:
                 query = query.filter(
                     or_(
@@ -136,7 +145,9 @@ class FinanzSessionService:
                 )
             if status is not None:
                 query = query.filter(FinanzSession.status == status)
-            return query.order_by(FinanzSession.appointment_date.desc()).all()
+            results = query.order_by(FinanzSession.appointment_date.desc()).all()
+            db.expunge_all()
+            return results
         except Exception as e:
             logger.error("Failed to list sessions: %s", e, exc_info=True)
             return []

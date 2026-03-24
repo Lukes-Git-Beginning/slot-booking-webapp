@@ -97,7 +97,7 @@ class AuditService:
 
             # Event erstellen
             event = {
-                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'event_type': event_type,
                 'action': action,
                 'user': user,
@@ -112,7 +112,7 @@ class AuditService:
                 try:
                     with db_session_scope() as pg_session:
                         audit_row = AuditLogModel(
-                            timestamp=datetime.fromisoformat(event['timestamp'].replace('Z', '+00:00')),
+                            timestamp=datetime.fromisoformat(event['timestamp'].rstrip('Z')),
                             event_type=event_type,
                             action=action,
                             user=user,
