@@ -97,7 +97,6 @@ class FinanzSessionService:
         try:
             query = db.query(FinanzSession).options(
                 joinedload(FinanzSession.foerderfragebogen),
-                joinedload(FinanzSession.tokens),
             ).filter(FinanzSession.id == session_id)
             if username is not None:
                 query = query.filter(

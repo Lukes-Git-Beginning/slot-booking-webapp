@@ -201,7 +201,10 @@ def _install_save_session_guard(app: Flask) -> None:
                 str(sid)[:8] + '...',
             )
             return
-        return original_save(sa_app, sa_session, response)
+        try:
+            return original_save(sa_app, sa_session, response)
+        except Exception as e:
+            logger.error("Redis session save failed (session data preserved in-memory): %s", e)
 
     iface.save_session = guarded_save_session
     logger.info("Session save guard installed — empty sessions will not overwrite Redis")
