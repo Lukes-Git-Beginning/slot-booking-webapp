@@ -57,6 +57,7 @@ from .utils import (
 import logging
 import uuid
 import pytz
+from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -311,17 +312,14 @@ def api_cancel_booking():
         all_bookings[booking_index]['cancelled_by'] = user
 
         # 3. PostgreSQL Update (if enabled)
-        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        from app.models import T2Booking, is_postgres_enabled
         if is_postgres_enabled():
             try:
-                db_session = get_db_session()
-                if db_session:
+                with db_session_scope() as db_session:
                     db_booking = db_session.query(T2Booking).filter_by(booking_id=booking_id).first()
                     if db_booking:
                         db_booking.status = 'cancelled'
-                        db_session.commit()
                         logger.info(f"✅ Updated T2 booking status in PostgreSQL: {booking_id}")
-                    db_session.close()
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL update failed for T2 booking {booking_id}: {e}")
                 # Continue with JSON update anyway
@@ -448,17 +446,14 @@ def api_reschedule_booking():
         all_bookings[booking_index]['rescheduled_to'] = new_date_str
 
         # 1a. PostgreSQL Update für alte Buchung (if enabled)
-        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        from app.models import T2Booking, is_postgres_enabled
         if is_postgres_enabled():
             try:
-                db_session = get_db_session()
-                if db_session:
+                with db_session_scope() as db_session:
                     old_booking = db_session.query(T2Booking).filter_by(booking_id=booking_id).first()
                     if old_booking:
                         old_booking.status = 'rescheduled'
-                        db_session.commit()
                         logger.info(f"✅ Updated old T2 booking status in PostgreSQL: {booking_id}")
-                    db_session.close()
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL update failed for old booking {booking_id}: {e}")
                 # Continue anyway
@@ -540,21 +535,35 @@ def api_reschedule_booking():
             'calendar_id': reschedule_calendar_id
         }
 
-        # 3. Neue Buchung speichern (DUAL-WRITE: PostgreSQL + JSON)
-        save_t2_booking(new_booking)
+        # 3. Neue Buchung speichern (DUAL-WRITE: PostgreSQL + JSON) — with compensating action
+        try:
+            save_t2_booking(new_booking)
 
-        # 3a. Alte Buchung JSON Update (nur für Rescheduled-Status)
-        data_persistence.save_data('t2_bookings', {'bookings': all_bookings})
+            # 3a. Alte Buchung JSON Update (nur für Rescheduled-Status)
+            data_persistence.save_data('t2_bookings', {'bookings': all_bookings})
 
-        # Tracking (PostgreSQL + JSONL)
-        tracking_system.track_booking(
-            customer_name=customer,
-            date=new_date_str,
-            time_slot=new_time_str,
-            user=booking.get('user'),
-            color_id='4',
-            description=f"T2 - Coach: {coach} | Berater: {berater} | {topic} (UMGEBUCHT)"
-        )
+            # Tracking (PostgreSQL + JSONL)
+            tracking_system.track_booking(
+                customer_name=customer,
+                date=new_date_str,
+                time_slot=new_time_str,
+                user=booking.get('user'),
+                color_id='4',
+                description=f"T2 - Coach: {coach} | Berater: {berater} | {topic} (UMGEBUCHT)"
+            )
+
+        except Exception as save_error:
+            # Compensating Action: Calendar Event loeschen wenn DB-Write fehlschlaegt
+            if reschedule_event_id and reschedule_calendar_id:
+                try:
+                    calendar_service = GoogleCalendarService()
+                    calendar_service.delete_event(reschedule_calendar_id, reschedule_event_id)
+                    logger.warning(f"Compensating action: deleted calendar event {reschedule_event_id} after reschedule save failure")
+                except Exception as del_error:
+                    logger.error(f"Failed to delete orphaned calendar event {reschedule_event_id}: {del_error}")
+
+            logger.error(f"Reschedule save failed, calendar event rolled back: {save_error}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Umbuchung konnte nicht gespeichert werden.'}), 500
 
         # Cache invalidieren (alte + neue Slots)
         try:
@@ -1074,41 +1083,54 @@ def api_book_2h_slot():
         else:
             logger.info(f"Mock booking for {berater} (no write access yet)")
 
-        # 5. Tracking (Dual-Write)
+        # 5. Tracking (Dual-Write) — with compensating action for calendar event
+        try:
+            # A) T2-JSON speichern
+            booking_id = f"T2-{uuid.uuid4().hex[:8].upper()}"
 
-        # A) T2-JSON speichern
-        booking_id = f"T2-{uuid.uuid4().hex[:8].upper()}"
+            t2_booking_data = {
+                'id': booking_id,
+                'coach': coach,
+                'berater': berater,
+                'customer': customer_name,
+                'date': data['date'],
+                'time': data['time'],
+                'topic': data.get('topic', ''),
+                'email': data.get('email', ''),
+                'user': user,
+                'created_at': datetime.now().isoformat(),
+                # NEW: Store event_id for deletion
+                'event_id': event_id,
+                'calendar_id': event_calendar_id
+            }
 
-        t2_booking_data = {
-            'id': booking_id,
-            'coach': coach,
-            'berater': berater,
-            'customer': customer_name,
-            'date': data['date'],
-            'time': data['time'],
-            'topic': data.get('topic', ''),
-            'email': data.get('email', ''),
-            'user': user,
-            'created_at': datetime.now().isoformat(),
-            # NEW: Store event_id for deletion
-            'event_id': event_id,
-            'calendar_id': event_calendar_id
-        }
+            save_t2_booking(t2_booking_data)
 
-        save_t2_booking(t2_booking_data)
+            # B) PostgreSQL + JSONL via tracking_system
+            tracking_system.track_booking(
+                customer_name=customer_name,
+                date=data['date'],
+                time_slot=data['time'],
+                user=user,
+                color_id='4',  # T2-Farbe
+                description=f"T2 - Coach: {coach} | Berater: {berater} | {data.get('topic', '')}"
+            )
 
-        # B) PostgreSQL + JSONL via tracking_system
-        tracking_system.track_booking(
-            customer_name=customer_name,
-            date=data['date'],
-            time_slot=data['time'],
-            user=user,
-            color_id='4',  # T2-Farbe
-            description=f"T2 - Coach: {coach} | Berater: {berater} | {data.get('topic', '')}"
-        )
+            # 6. Ticket verbrauchen
+            consume_user_ticket(user)
 
-        # 6. Ticket verbrauchen
-        consume_user_ticket(user)
+        except Exception as save_error:
+            # Compensating Action: Calendar Event loeschen wenn DB-Write fehlschlaegt
+            if event_id and event_calendar_id:
+                try:
+                    calendar_service = GoogleCalendarService()
+                    calendar_service.delete_event(event_calendar_id, event_id)
+                    logger.warning(f"Compensating action: deleted calendar event {event_id} after save failure")
+                except Exception as del_error:
+                    logger.error(f"Failed to delete orphaned calendar event {event_id}: {del_error}")
+
+            logger.error(f"Booking save failed, calendar event rolled back: {save_error}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Buchung konnte nicht gespeichert werden.'}), 500
 
         # 7. Cache invalidieren
         t2_dynamic_availability.clear_cache_for_berater(calendar_id, booking_date)

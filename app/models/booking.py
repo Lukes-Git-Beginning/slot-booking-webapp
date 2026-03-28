@@ -7,7 +7,7 @@ Ersetzt: bookings.jsonl, outcomes.jsonl
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, Text, Date, Time, Index
+from sqlalchemy import String, Integer, Boolean, Text, Date, Time, Index, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
@@ -81,7 +81,9 @@ class BookingOutcome(Base):
     outcome_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
 
     # Referenz zum Booking (falls vorhanden)
-    booking_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    booking_id: Mapped[Optional[str]] = mapped_column(
+        String(255), ForeignKey('bookings.booking_id', ondelete='SET NULL'), nullable=True, index=True
+    )
 
     # Outcome-Details
     customer: Mapped[str] = mapped_column(String(255), nullable=False, index=True)

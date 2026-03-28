@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from app.utils.json_utils import atomic_write_json, atomic_read_json, atomic_update_json
+from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -70,8 +71,7 @@ class DataPersistence:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, months in scores_data.items():
                         if not isinstance(months, dict):
                             continue
@@ -90,15 +90,9 @@ class DataPersistence:
                                     bookings_count=0
                                 )
                                 session.add(new_row)
-                    session.commit()
                     logger.debug("Scores saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL scores save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for scores: {e}")
+                logger.error(f"PostgreSQL scores save failed: {e}")
 
         # 2. JSON write (always, as backup)
         try:
@@ -122,8 +116,7 @@ class DataPersistence:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(ScoreModel).all()
                     if rows:
                         data = {}
@@ -133,8 +126,6 @@ class DataPersistence:
                             data[row.username][row.month] = row.points
                         logger.debug(f"Loaded scores from PostgreSQL ({len(data)} users)")
                         return self._normalize_usernames_in_data(data)
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL scores load failed: {e}, falling back to JSON")
 
@@ -163,8 +154,7 @@ class DataPersistence:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, user_data in badges_data.items():
                         badges_list = user_data.get("badges", []) if isinstance(user_data, dict) else []
                         for badge in badges_list:
@@ -209,15 +199,9 @@ class DataPersistence:
                                     earned_date=earned_date
                                 )
                                 session.add(new_row)
-                    session.commit()
                     logger.debug("Badges saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL badges save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for badges: {e}")
+                logger.error(f"PostgreSQL badges save failed: {e}")
 
         # 2. JSON write (always, as backup)
         try:
@@ -242,8 +226,7 @@ class DataPersistence:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(UserBadgeModel).all()
                     if rows:
                         data = {}
@@ -270,8 +253,6 @@ class DataPersistence:
                             data[username]["total_badges"] = len(data[username]["badges"])
                         logger.debug(f"Loaded badges from PostgreSQL ({len(data)} users)")
                         return self._normalize_usernames_in_data(data)
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL badges load failed: {e}, falling back to JSON")
 
@@ -301,8 +282,7 @@ class DataPersistence:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for period, champ_data in champions_data.items():
                         if not isinstance(champ_data, dict):
                             continue
@@ -332,15 +312,9 @@ class DataPersistence:
                                 stats_data={k: v for k, v in champ_data.items() if k not in ("user", "score")}
                             )
                             session.add(new_row)
-                    session.commit()
                     logger.debug("Champions saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL champions save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for champions: {e}")
+                logger.error(f"PostgreSQL champions save failed: {e}")
 
         # 2. JSON write (always, as backup)
         try:
@@ -369,8 +343,7 @@ class DataPersistence:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(UserStatsModel).filter_by(stat_type='daily').all()
                     if rows:
                         data = {}
@@ -388,8 +361,6 @@ class DataPersistence:
                                 data[date_str][row.username].update(row.metrics_data)
                         logger.debug(f"Loaded daily user stats from PostgreSQL ({len(data)} dates)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL daily stats load failed: {e}, falling back to JSON")
 
@@ -417,8 +388,7 @@ class DataPersistence:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for date_str, users in stats_data.items():
                         if not isinstance(users, dict):
                             continue
@@ -457,15 +427,9 @@ class DataPersistence:
                                     metrics_data=extra if extra else None
                                 )
                                 session.add(new_row)
-                    session.commit()
                     logger.debug("Daily user stats saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL daily stats save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for daily stats: {e}")
+                logger.error(f"PostgreSQL daily stats save failed: {e}")
 
         # 2. JSON write (always, as backup)
         try:
@@ -490,8 +454,7 @@ class DataPersistence:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(ChampionModel).filter_by(rank=1).all()
                     if rows:
                         data = {}
@@ -506,8 +469,6 @@ class DataPersistence:
                             data[row.period] = entry
                         logger.debug(f"Loaded champions from PostgreSQL ({len(data)} periods)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL champions load failed: {e}, falling back to JSON")
 

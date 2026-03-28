@@ -83,11 +83,11 @@ def init_db(app=None) -> None:
         _engine = create_engine(
             database_url,
             poolclass=QueuePool,
-            pool_size=10,  # Max 10 simultane Connections
-            max_overflow=20,  # Max 20 zusätzliche Connections
-            pool_timeout=30,  # 30s Timeout für Connection aus Pool
-            pool_recycle=3600,  # Connections nach 1h recyceln
-            echo=os.getenv('SQL_ECHO', 'false').lower() == 'true'  # SQL-Logging
+            pool_size=int(os.getenv('DB_POOL_SIZE', '10')),
+            max_overflow=int(os.getenv('DB_MAX_OVERFLOW', '20')),
+            pool_timeout=int(os.getenv('DB_POOL_TIMEOUT', '30')),
+            pool_recycle=int(os.getenv('DB_POOL_RECYCLE', '3600')),
+            echo=os.getenv('SQL_ECHO', 'false').lower() == 'true'
         )
 
         # Session Factory erstellen

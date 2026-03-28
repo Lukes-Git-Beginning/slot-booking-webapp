@@ -26,6 +26,7 @@ def _parse_ts(ts: str) -> datetime:
 # PostgreSQL Imports (for draw history migration)
 try:
     from app.models import T2DrawHistory, T2Booking, get_db_session, is_postgres_enabled
+    from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
     POSTGRES_IMPORTS_AVAILABLE = True
 except ImportError:
     POSTGRES_IMPORTS_AVAILABLE = False
@@ -74,10 +75,9 @@ class T2AnalyticsService:
         # Try PostgreSQL first
         if POSTGRES_IMPORTS_AVAILABLE and is_postgres_enabled():
             try:
-                session = get_db_session()
-                bookings = session.query(T2Booking).all()
-                result = [booking.to_dict() for booking in bookings]
-                session.close()
+                with db_session_scope_no_commit() as session:
+                    bookings = session.query(T2Booking).all()
+                    result = [booking.to_dict() for booking in bookings]
                 logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL (analytics)")
                 return result
             except Exception as e:
@@ -141,8 +141,7 @@ class T2AnalyticsService:
         if POSTGRES_IMPORTS_AVAILABLE:
             try:
                 if is_postgres_enabled():
-                    session = get_db_session()
-                    if session:
+                    with db_session_scope_no_commit() as session:
                         # Build query
                         query = session.query(T2DrawHistory).filter(
                             T2DrawHistory.username == username
@@ -196,18 +195,16 @@ class T2AnalyticsService:
 
                             paginated_draws.append(draw_dict)
 
-                        session.close()
+                    logger.info(f"✅ Loaded {len(paginated_draws)}/{total_count} draws from PostgreSQL for {username}")
 
-                        logger.info(f"✅ Loaded {len(paginated_draws)}/{total_count} draws from PostgreSQL for {username}")
-
-                        return {
-                            "draws": paginated_draws,
-                            "total_count": total_count,
-                            "returned_count": len(paginated_draws),
-                            "offset": offset,
-                            "limit": limit,
-                            "has_more": (offset + limit) < total_count
-                        }
+                    return {
+                        "draws": paginated_draws,
+                        "total_count": total_count,
+                        "returned_count": len(paginated_draws),
+                        "offset": offset,
+                        "limit": limit,
+                        "has_more": (offset + limit) < total_count
+                    }
             except Exception as e:
                 logger.warning(f"PostgreSQL read failed, using JSON fallback: {e}", exc_info=True)
 

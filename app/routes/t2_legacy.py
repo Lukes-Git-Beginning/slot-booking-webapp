@@ -13,6 +13,7 @@ import uuid
 from typing import Dict, List, Optional
 from collections import defaultdict
 from app.core.extensions import csrf
+from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
 
 t2_bp = Blueprint('t2', __name__, url_prefix='/t2')
 logger = logging.getLogger(__name__)
@@ -546,8 +547,7 @@ def save_t2_booking(booking_data: Dict):
         postgres_success = False
         if is_postgres_enabled():
             try:
-                session = get_db_session()
-                if session:
+                with db_session_scope() as session:
                     # Convert booking_data to T2Booking model
                     booking = T2Booking(
                         booking_id=booking_data['id'],
@@ -567,10 +567,8 @@ def save_t2_booking(booking_data: Dict):
                     )
 
                     session.add(booking)
-                    session.commit()
                     postgres_success = True
                     logger.info(f"✅ T2 booking saved to PostgreSQL: {booking_data['id']}")
-                    session.close()
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL save failed for T2 booking {booking_data['id']}: {e}")
                 # Continue to JSON fallback
@@ -611,15 +609,12 @@ def load_t2_bookings() -> List[Dict]:
         # TRY POSTGRESQL FIRST
         if is_postgres_enabled():
             try:
-                session = get_db_session()
-                if session:
+                with db_session_scope_no_commit() as session:
                     bookings = session.query(T2Booking).all()
-                    session.close()
-
                     # Convert to dict format
                     result = [booking.to_dict() for booking in bookings]
-                    logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL")
-                    return result
+                logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL")
+                return result
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL load failed for T2 bookings: {e}")
                 # Fallback to JSON
@@ -1854,17 +1849,14 @@ def api_cancel_booking():
         all_bookings[booking_index]['cancelled_by'] = user
 
         # 3. PostgreSQL Update (if enabled)
-        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        from app.models import T2Booking, is_postgres_enabled
         if is_postgres_enabled():
             try:
-                db_session = get_db_session()
-                if db_session:
+                with db_session_scope() as db_session:
                     db_booking = db_session.query(T2Booking).filter_by(booking_id=booking_id).first()
                     if db_booking:
                         db_booking.status = 'cancelled'
-                        db_session.commit()
                         logger.info(f"✅ Updated T2 booking status in PostgreSQL: {booking_id}")
-                    db_session.close()
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL update failed for T2 booking {booking_id}: {e}")
                 # Continue with JSON update anyway
@@ -1989,17 +1981,14 @@ def api_reschedule_booking():
         all_bookings[booking_index]['rescheduled_to'] = new_date_str
 
         # 1a. PostgreSQL Update für alte Buchung (if enabled)
-        from app.models import T2Booking, get_db_session, is_postgres_enabled
+        from app.models import T2Booking, is_postgres_enabled
         if is_postgres_enabled():
             try:
-                db_session = get_db_session()
-                if db_session:
+                with db_session_scope() as db_session:
                     old_booking = db_session.query(T2Booking).filter_by(booking_id=booking_id).first()
                     if old_booking:
                         old_booking.status = 'rescheduled'
-                        db_session.commit()
                         logger.info(f"✅ Updated old T2 booking status in PostgreSQL: {booking_id}")
-                    db_session.close()
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL update failed for old booking {booking_id}: {e}")
                 # Continue anyway

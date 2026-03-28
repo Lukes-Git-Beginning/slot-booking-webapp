@@ -270,7 +270,7 @@ class FinanzUploadToken(Base):
     __tablename__ = 'finanz_upload_tokens'
 
     session_id: Mapped[int] = mapped_column(
-        ForeignKey('finanz_sessions.id'), nullable=False
+        ForeignKey('finanz_sessions.id', ondelete='CASCADE'), nullable=False
     )
     token: Mapped[str] = mapped_column(
         String(64), unique=True, nullable=False
@@ -337,10 +337,10 @@ class FinanzDocument(Base):
     __tablename__ = 'finanz_documents'
 
     session_id: Mapped[int] = mapped_column(
-        ForeignKey('finanz_sessions.id'), nullable=False
+        ForeignKey('finanz_sessions.id', ondelete='CASCADE'), nullable=False
     )
     token_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey('finanz_upload_tokens.id'), nullable=True
+        ForeignKey('finanz_upload_tokens.id', ondelete='SET NULL'), nullable=True
     )
     original_filename: Mapped[str] = mapped_column(
         String(255), nullable=False
@@ -407,7 +407,7 @@ class FinanzExtractedData(Base):
     __tablename__ = 'finanz_extracted_data'
 
     document_id: Mapped[int] = mapped_column(
-        ForeignKey('finanz_documents.id'), nullable=False
+        ForeignKey('finanz_documents.id', ondelete='CASCADE'), nullable=False
     )
     field_name: Mapped[str] = mapped_column(
         String(100), nullable=False
@@ -463,7 +463,7 @@ class FinanzScorecard(Base):
     __tablename__ = 'finanz_scorecards'
 
     session_id: Mapped[int] = mapped_column(
-        ForeignKey('finanz_sessions.id'), nullable=False
+        ForeignKey('finanz_sessions.id', ondelete='CASCADE'), nullable=False
     )
     category: Mapped[str] = mapped_column(
         SAEnum(ScorecardCategory, native_enum=False, name='finanz_scorecard_category'),
@@ -508,7 +508,7 @@ class FinanzFoerderFragebogen(Base):
     __tablename__ = 'finanz_foerderfragebogen'
 
     session_id: Mapped[int] = mapped_column(
-        ForeignKey('finanz_sessions.id'), unique=True, nullable=False
+        ForeignKey('finanz_sessions.id', ondelete='CASCADE'), unique=True, nullable=False
     )
 
     # Stammdaten Mandant
@@ -632,7 +632,7 @@ class FinanzTaskTracking(Base):
     __tablename__ = 'finanz_tasks'
 
     session_id: Mapped[int] = mapped_column(
-        ForeignKey('finanz_sessions.id'), nullable=False
+        ForeignKey('finanz_sessions.id', ondelete='CASCADE'), nullable=False
     )
     task_id: Mapped[str] = mapped_column(
         String(255), nullable=False

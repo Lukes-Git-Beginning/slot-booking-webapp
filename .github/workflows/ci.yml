@@ -34,6 +34,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Dependency audit (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit --strict --desc on 2>&1 || echo "::warning::pip-audit found vulnerabilities"
+
       - name: Run tests
         run: pytest -x -v --tb=short
 

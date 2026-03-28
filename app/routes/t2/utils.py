@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import Dict, Optional, Tuple, List
 import pytz
+from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone("Europe/Berlin")
@@ -290,8 +291,7 @@ def save_t2_booking(booking_data: Dict):
         postgres_success = False
         if is_postgres_enabled():
             try:
-                session = get_db_session()
-                if session:
+                with db_session_scope() as session:
                     # Convert booking_data to T2Booking model
                     booking = T2Booking(
                         booking_id=booking_data['id'],
@@ -311,10 +311,8 @@ def save_t2_booking(booking_data: Dict):
                     )
 
                     session.add(booking)
-                    session.commit()
                     postgres_success = True
                     logger.info(f"✅ T2 booking saved to PostgreSQL: {booking_data['id']}")
-                    session.close()
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL save failed for T2 booking {booking_data['id']}: {e}")
                 # Continue to JSON fallback
@@ -357,15 +355,12 @@ def load_t2_bookings() -> List[Dict]:
         # TRY POSTGRESQL FIRST
         if is_postgres_enabled():
             try:
-                session = get_db_session()
-                if session:
+                with db_session_scope_no_commit() as session:
                     bookings = session.query(T2Booking).all()
-                    session.close()
-
                     # Convert to dict format
                     result = [booking.to_dict() for booking in bookings]
-                    logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL")
-                    return result
+                logger.debug(f"✅ Loaded {len(result)} T2 bookings from PostgreSQL")
+                return result
             except Exception as e:
                 logger.error(f"⚠️ PostgreSQL load failed for T2 bookings: {e}")
                 # Fallback to JSON

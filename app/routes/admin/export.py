@@ -8,22 +8,14 @@ import os
 import io
 import zipfile
 from datetime import datetime
-from flask import session, send_file, jsonify
+from flask import send_file, jsonify
 from app.routes.admin import admin_bp
+from app.utils.decorators import require_admin
 from app.services.data_persistence import data_persistence
 
 
-def require_admin():
-    """Check if user is admin"""
-    user = session.get("user")
-    admin_users = os.getenv("ADMIN_USERS", "Admin").split(",")
-
-    if not user or user not in admin_users:
-        return False
-    return True
-
-
 @admin_bp.route("/export-all-data")
+@require_admin
 def export_all_data():
     """
     Export all persistent data as ZIP file
@@ -32,13 +24,6 @@ def export_all_data():
     Returns:
         ZIP file with all JSON files from data/persistent/
     """
-    # Security check
-    if not require_admin():
-        return jsonify({
-            "error": "Unauthorized",
-            "message": "Admin access required"
-        }), 403
-
     try:
         # Get persistent data directory
         persist_dir = str(data_persistence.data_dir)
@@ -87,16 +72,11 @@ def export_all_data():
 
 
 @admin_bp.route("/export-info")
+@require_admin
 def export_info():
     """
     Get information about exportable data
     """
-    # Security check
-    if not require_admin():
-        return jsonify({
-            "error": "Unauthorized"
-        }), 403
-
     try:
         persist_dir = str(data_persistence.data_dir)
 

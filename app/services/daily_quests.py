@@ -25,6 +25,7 @@ try:
     from app.models.gamification import DailyQuest as DailyQuestModel, QuestProgress as QuestProgressModel
     from app.models.weekly import MinigameData as MinigameDataModel
     from app.models.base import get_db_session
+    from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
     POSTGRES_AVAILABLE = True
 except ImportError:
     logger.warning("PostgreSQL models not available for daily_quests, using JSON-only mode")
@@ -189,8 +190,7 @@ class DailyQuestSystem:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(DailyQuestModel).all()
                     if rows:
                         data = {}
@@ -220,8 +220,6 @@ class DailyQuestSystem:
                             })
                         logger.debug(f"Loaded daily quests from PostgreSQL ({len(data)} dates)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL daily quests load failed: {e}, falling back to JSON")
 
@@ -237,8 +235,7 @@ class DailyQuestSystem:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for date_str, day_data in data.items():
                         if not isinstance(day_data, dict):
                             continue
@@ -283,15 +280,9 @@ class DailyQuestSystem:
                                     is_active=True
                                 )
                                 session.add(new_row)
-                    session.commit()
                     logger.debug("Daily quests saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL daily quests save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for daily quests: {e}")
+                logger.error(f"PostgreSQL daily quests save failed: {e}")
 
         # 2. JSON write (always, as backup)
         with open(self.quests_file, "w", encoding="utf-8") as f:
@@ -302,8 +293,7 @@ class DailyQuestSystem:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(QuestProgressModel).all()
                     if rows:
                         data = {}
@@ -321,8 +311,6 @@ class DailyQuestSystem:
                             }
                         logger.debug(f"Loaded quest progress from PostgreSQL ({len(data)} users)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL quest progress load failed: {e}, falling back to JSON")
 
@@ -338,8 +326,7 @@ class DailyQuestSystem:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, dates in data.items():
                         if not isinstance(dates, dict):
                             continue
@@ -388,15 +375,9 @@ class DailyQuestSystem:
                                         last_progress_at=datetime.now(timezone.utc)
                                     )
                                     session.add(new_row)
-                    session.commit()
                     logger.debug("Quest progress saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL quest progress save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for quest progress: {e}")
+                logger.error(f"PostgreSQL quest progress save failed: {e}")
 
         # 2. JSON write (always, as backup)
         with open(self.user_progress_file, "w", encoding="utf-8") as f:
@@ -407,15 +388,12 @@ class DailyQuestSystem:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(UserModel.username, UserModel.total_coins).all()
                     if rows:
                         data = {row.username: row.total_coins for row in rows}
                         logger.debug(f"Loaded user coins from PostgreSQL ({len(data)} users)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL coins load failed: {e}, falling back to JSON")
 
@@ -431,23 +409,16 @@ class DailyQuestSystem:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, coins in data.items():
                         existing = session.query(UserModel).filter_by(username=username).first()
                         if existing:
                             existing.total_coins = int(coins)
                         else:
                             logger.debug(f"User {username} not found in PostgreSQL, skipping coins update")
-                    session.commit()
                     logger.debug("User coins saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL coins save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for coins: {e}")
+                logger.error(f"PostgreSQL coins save failed: {e}")
 
         # 2. JSON write (always, as backup)
         with open(self.coins_file, "w", encoding="utf-8") as f:
@@ -1183,8 +1154,7 @@ class DailyQuestSystem:
         # 1. PostgreSQL-first
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(MinigameDataModel).filter_by(minigame_id="wheel_spin").all()
                     if rows:
                         data = {}
@@ -1197,8 +1167,6 @@ class DailyQuestSystem:
                         _wp_logger = logging.getLogger(__name__)
                         _wp_logger.debug(f"Loaded minigame data from PostgreSQL ({len(data)} users)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logging.getLogger(__name__).warning(f"PostgreSQL minigame load failed: {e}, falling back to JSON")
 
@@ -1214,8 +1182,7 @@ class DailyQuestSystem:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, user_data in data.items():
                         if not isinstance(user_data, dict):
                             continue
@@ -1245,15 +1212,9 @@ class DailyQuestSystem:
                                 last_played=datetime.now(timezone.utc)
                             )
                             session.add(new_row)
-                    session.commit()
                     logger.debug("Minigame data saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL minigame save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for minigame: {e}")
+                logger.error(f"PostgreSQL minigame save failed: {e}")
 
         # 2. JSON write (always, as backup)
         with open(self.minigame_file, "w", encoding="utf-8") as f:

@@ -28,6 +28,7 @@ USE_POSTGRES = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
 try:
     from app.models.weekly import WeeklyPoints as WeeklyPointsModel
     from app.models.base import get_db_session
+    from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
     POSTGRES_AVAILABLE = True
 except ImportError:
     _wp_logger.warning("PostgreSQL models not available for weekly_points, using JSON-only mode")
@@ -91,8 +92,7 @@ def load_data() -> Dict:
     # 1. PostgreSQL-first
     if USE_POSTGRES and POSTGRES_AVAILABLE:
         try:
-            session = get_db_session()
-            try:
+            with db_session_scope_no_commit() as session:
                 rows = session.query(WeeklyPointsModel).all()
                 if rows:
                     # Sammle participants aus DB
@@ -121,8 +121,6 @@ def load_data() -> Dict:
                     data = {"participants": all_participants, "weeks": weeks}
                     _wp_logger.debug(f"Loaded weekly points from PostgreSQL ({len(rows)} rows, {len(weeks)} weeks)")
                     return data
-            finally:
-                session.close()
         except Exception as e:
             _wp_logger.warning(f"PostgreSQL weekly points load failed: {e}, falling back to JSON")
 
@@ -157,8 +155,7 @@ def save_data(data: Dict) -> None:
     # 1. PostgreSQL write
     if USE_POSTGRES and POSTGRES_AVAILABLE:
         try:
-            session = get_db_session()
-            try:
+            with db_session_scope() as session:
                 for week_id, week_data in data.get("weeks", {}).items():
                     if not isinstance(week_data, dict):
                         continue
@@ -195,15 +192,9 @@ def save_data(data: Dict) -> None:
                                 audit=user_data.get("audit", [])
                             )
                             session.add(new_row)
-                session.commit()
                 _wp_logger.debug("Weekly points saved to PostgreSQL")
-            except Exception as e:
-                session.rollback()
-                _wp_logger.error(f"PostgreSQL weekly points save failed: {e}")
-            finally:
-                session.close()
         except Exception as e:
-            _wp_logger.error(f"PostgreSQL connection failed for weekly points: {e}")
+            _wp_logger.error(f"PostgreSQL weekly points save failed: {e}")
 
     # 2. JSON write (always, as backup)
     with open(DATA_FILE, "w", encoding="utf-8") as f:

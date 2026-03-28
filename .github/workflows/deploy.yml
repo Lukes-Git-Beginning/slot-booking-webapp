@@ -23,13 +23,29 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /opt/business-hub
+
+            # Save current hash for rollback
+            PREV_HASH=$(git rev-parse HEAD)
+            echo "Previous hash: $PREV_HASH"
+
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt --quiet
             chown -R www-data:www-data /opt/business-hub/data/
             systemctl restart business-hub
             sleep 3
-            curl -sf https://berater.zfa.gmbh/health || exit 1
+
+            # Health-Check with auto-rollback
+            if ! curl -sf https://berater.zfa.gmbh/health; then
+              echo "Health-Check FAILED — rolling back to $PREV_HASH"
+              git checkout $PREV_HASH
+              pip install -r requirements.txt --quiet
+              systemctl restart business-hub
+              sleep 3
+              exit 1
+            fi
+
+            echo "Deploy successful: $(git rev-parse HEAD)"
 
       - name: Discord notification (success)
         if: success() && env.DISCORD_WEBHOOK_URL != ''

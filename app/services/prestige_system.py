@@ -22,6 +22,7 @@ try:
     from app.models.weekly import PrestigeData as PrestigeDataModel
     from app.models.gamification import MasteryData as MasteryDataModel
     from app.models.base import get_db_session
+    from app.utils.db_utils import db_session_scope, db_session_scope_no_commit
     POSTGRES_AVAILABLE = True
 except ImportError:
     logger.warning("PostgreSQL models not available for prestige_system, using JSON-only mode")
@@ -120,8 +121,7 @@ class PrestigeSystem:
         """Lade Prestige-Daten aller User (PostgreSQL-first, JSON-fallback)"""
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(PrestigeDataModel).all()
                     if rows:
                         data = {}
@@ -137,8 +137,6 @@ class PrestigeSystem:
                             }
                         logger.debug(f"Loaded prestige data from PostgreSQL ({len(data)} users)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL prestige load failed: {e}, falling back to JSON")
         # JSON Fallback
@@ -153,8 +151,7 @@ class PrestigeSystem:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, user_data in data.items():
                         existing = session.query(PrestigeDataModel).filter_by(username=username).first()
                         if existing:
@@ -185,15 +182,9 @@ class PrestigeSystem:
                                 last_prestige_date=last_date,
                             )
                             session.add(new_row)
-                    session.commit()
                     logger.debug("Prestige data saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL prestige save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for prestige: {e}")
+                logger.error(f"PostgreSQL prestige save failed: {e}")
         # 2. JSON write (always, as backup)
         with open(self.prestige_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -202,8 +193,7 @@ class PrestigeSystem:
         """Lade Mastery-Daten aller User (PostgreSQL-first, JSON-fallback)"""
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope_no_commit() as session:
                     rows = session.query(MasteryDataModel).all()
                     if rows:
                         data = {}
@@ -216,8 +206,6 @@ class PrestigeSystem:
                             }
                         logger.debug(f"Loaded mastery data from PostgreSQL ({len(data)} users)")
                         return data
-                finally:
-                    session.close()
             except Exception as e:
                 logger.warning(f"PostgreSQL mastery load failed: {e}, falling back to JSON")
         # JSON Fallback
@@ -232,8 +220,7 @@ class PrestigeSystem:
         # 1. PostgreSQL write
         if USE_POSTGRES and POSTGRES_AVAILABLE:
             try:
-                session = get_db_session()
-                try:
+                with db_session_scope() as session:
                     for username, categories in data.items():
                         for category_id, cat_data in categories.items():
                             category_info = MASTERY_CATEGORIES.get(category_id, {})
@@ -255,15 +242,9 @@ class PrestigeSystem:
                                     unlocked_abilities=cat_data.get("upgraded_at", []),
                                 )
                                 session.add(new_row)
-                    session.commit()
                     logger.debug("Mastery data saved to PostgreSQL")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"PostgreSQL mastery save failed: {e}")
-                finally:
-                    session.close()
             except Exception as e:
-                logger.error(f"PostgreSQL connection failed for mastery: {e}")
+                logger.error(f"PostgreSQL mastery save failed: {e}")
         # 2. JSON write (always, as backup)
         with open(self.mastery_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

@@ -62,11 +62,29 @@ class AuditService:
 
     def _save_audit_log(self, log_data: List[Dict]):
         """Speichere Audit-Log mit Auto-Rotation (nur JSON — PG-Write erfolgt in log_event)"""
-        # Limitiere auf max_entries (älteste zuerst löschen)
-        if len(log_data) > self.max_entries:
-            log_data = log_data[-self.max_entries:]
+        # JSON-Limit: 2000 Eintraege wenn PG aktiv (PG ist Primary), sonst max_entries
+        json_limit = min(2000, self.max_entries) if (USE_POSTGRES and POSTGRES_AVAILABLE) else self.max_entries
+
+        if len(log_data) > json_limit:
+            # Archiviere ueberschuessige Eintraege vor dem Trimmen
+            overflow = log_data[:-json_limit]
+            if overflow:
+                self._archive_audit_entries(overflow)
+            log_data = log_data[-json_limit:]
 
         data_persistence.save_data(self.audit_file, log_data)
+
+    def _archive_audit_entries(self, entries: List[Dict]):
+        """Archiviere alte Audit-Eintraege in separate Datei (audit_log_archive)"""
+        try:
+            archive = data_persistence.load_data('audit_log_archive', [])
+            archive.extend(entries)
+            # Archive auf 50.000 begrenzen
+            if len(archive) > 50000:
+                archive = archive[-50000:]
+            data_persistence.save_data('audit_log_archive', archive)
+        except Exception as e:
+            logger.warning(f"Audit archive write failed: {e}")
 
     def log_event(
         self,

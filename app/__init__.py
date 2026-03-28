@@ -516,8 +516,10 @@ def register_request_hooks(app: Flask) -> None:
         """Nach jedem Request ausführen"""
         # Security-Headers setzen
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=(), payment=()'
 
         # Content Security Policy (CSP) - Nonce-based
         nonce = getattr(g, 'csp_nonce', '')
