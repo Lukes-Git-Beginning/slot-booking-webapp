@@ -11,11 +11,33 @@ import hashlib
 import hmac
 import logging
 import time
+from collections import OrderedDict
 from flask import Blueprint, request, jsonify
 
 logger = logging.getLogger(__name__)
 
 hubspot_webhook_bp = Blueprint('hubspot_webhook', __name__)
+
+# Idempotency: track processed event hashes to prevent replay (max 1000 entries)
+_processed_events = OrderedDict()
+_MAX_PROCESSED = 1000
+
+
+def _event_key(event: dict) -> str:
+    """Generate a unique key for deduplication."""
+    return f"{event.get('objectId')}:{event.get('propertyName')}:{event.get('propertyValue')}:{event.get('occurredAt', '')}"
+
+
+def _is_duplicate(event: dict) -> bool:
+    """Check if this event was already processed."""
+    key = _event_key(event)
+    if key in _processed_events:
+        return True
+    _processed_events[key] = time.time()
+    # Evict oldest entries if over limit
+    while len(_processed_events) > _MAX_PROCESSED:
+        _processed_events.popitem(last=False)
+    return False
 
 
 def validate_hubspot_signature(req) -> bool:
@@ -175,6 +197,9 @@ def handle_webhook():
                 property_name = event.get('propertyName', '')
 
                 if property_name == 'dealstage':
+                    if _is_duplicate(event):
+                        logger.info(f"Skipping duplicate HubSpot event: {_event_key(event)}")
+                        continue
                     deal_id = str(event.get('objectId', ''))
                     new_stage = event.get('propertyValue', '')
                     previous_stage = event.get('previousPropertyValue', '')

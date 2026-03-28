@@ -221,17 +221,17 @@ class Test2FADisable:
         assert response.status_code in [200, 302, 400]
 
     def test_2fa_disable_calls_security_service(self, logged_in_client, mock_security_service_2fa):
-        """Test 2FA disable calls security service"""
+        """Test 2FA disable calls security service with password and totp_code"""
         with logged_in_client.session_transaction() as sess:
             sess['user'] = 'test_user'
 
         response = logged_in_client.post('/security/2fa/disable',
-                                         json={'password': 'test_pass'},
+                                         json={'password': 'test_pass', 'totp_code': '123456'},
                                          content_type='application/json')
 
         if response.status_code == 200:
-            # Verify service was called
-            mock_security_service_2fa.disable_2fa.assert_called_once_with('test_user', 'test_pass')
+            # Verify service was called with all 3 arguments
+            mock_security_service_2fa.disable_2fa.assert_called_once_with('test_user', 'test_pass', '123456')
         elif response.status_code == 302:
             pytest.skip("Session handling issue")
 

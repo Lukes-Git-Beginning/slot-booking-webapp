@@ -16,7 +16,7 @@ from app.services.booking_service import (
     get_effective_availability, get_slot_status, get_slot_points,
     execute_post_booking_chain
 )
-from app.utils.decorators import require_login
+from app.utils.decorators import require_login, validate_same_origin
 from app.utils.error_handler import raise_validation_error
 from app.utils.request_deduplication import request_deduplicator, SlotLockContext
 from app.utils.logging import booking_logger, log_request
@@ -34,14 +34,15 @@ def apply_rate_limit(route_func):
 
 
 def apply_csrf_exempt(route_func):
-    """Apply CSRF exemption for JSON-API routes (uses session-based auth)"""
+    """Apply CSRF exemption for JSON-API routes with Origin validation"""
+    route_func = validate_same_origin(route_func)
     if csrf:
         return csrf.exempt(route_func)
     return route_func
 
 
 @booking_bp.route("/book", methods=["POST"])
-@apply_csrf_exempt  # JSON-API uses session-based auth, CSRF exempt per CSRF_STRATEGY.md
+@apply_csrf_exempt  # JSON-API uses session-based auth + Origin validation
 @require_login
 @apply_rate_limit
 @memory_guard(max_retries=1, cleanup_on_error=True)

@@ -166,8 +166,8 @@ def init_sentry(app: Flask) -> None:
                 traces_sample_rate=0.1,  # 10% Performance Monitoring
                 environment='production' if not app.debug else 'development',
                 release=f"business-hub@{app.config.get('VERSION', '3.3.19')}",
-                # User context für besseres Debugging
-                send_default_pii=True,
+                # PII disabled — no usernames/IPs sent to external Sentry service
+                send_default_pii=False,
                 # Logs zu Sentry senden
                 enable_tracing=True,
                 # Exclude health check endpoints from monitoring

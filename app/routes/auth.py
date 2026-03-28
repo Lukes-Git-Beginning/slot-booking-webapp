@@ -6,6 +6,7 @@ Login, logout, and session management
 
 import logging
 import hashlib
+from urllib.parse import urlparse
 from flask import Blueprint, request, render_template, redirect, url_for, flash, session
 from app.utils.helpers import get_userlist
 from app.core.extensions import data_persistence  # limiter wird zur Laufzeit importiert
@@ -91,8 +92,12 @@ def login():
                     # Show 2FA input
                     return render_template("login.html", show_2fa=True, username=username)
 
-                # Verify 2FA code
+                # Verify 2FA code (failed attempts count toward account lockout)
                 if not security_service.verify_2fa(username, totp_code):
+                    status, minutes = account_lockout.check_and_record_failure(username)
+                    if status in ('locked', 'now_locked'):
+                        flash(f"Zu viele fehlgeschlagene Versuche. Account für {minutes} Minuten gesperrt.", "danger")
+                        return redirect(url_for("auth.login"))
                     flash("Ungültiger 2FA-Code.", "danger")
                     return render_template("login.html", show_2fa=True, username=username)
 
@@ -128,10 +133,12 @@ def login():
             if champ == username:
                 flash("🏆 Glückwunsch! Du warst Top-Telefonist des letzten Monats!", "success")
 
-            # Redirect to next page or hub dashboard
+            # Redirect to next page or hub dashboard (validate to prevent open redirect)
             next_page = request.args.get('next')
             if next_page:
-                return redirect(next_page)
+                parsed = urlparse(next_page)
+                if not parsed.netloc and not parsed.scheme:
+                    return redirect(next_page)
             return redirect(url_for("hub.dashboard"))
 
         # Audit-Log: Fehlgeschlagener Login

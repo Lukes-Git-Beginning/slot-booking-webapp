@@ -6,6 +6,7 @@ Neue Routes für Prestige, Daily Quests, Analytics und Customization
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from app.core.extensions import csrf
+from app.utils.decorators import validate_same_origin
 from functools import wraps
 import traceback
 import logging
@@ -894,7 +895,8 @@ def admin_unlock_all_cosmetics():
         return jsonify({"success": False, "message": "Fehler beim Admin-Unlock"})
 
 def _csrf_exempt(route_func):
-    """Apply CSRF exemption for file upload and API routes (session-based auth)"""
+    """Apply CSRF exemption for API routes (session-based auth) with Origin validation"""
+    route_func = validate_same_origin(route_func)
     if csrf:
         return csrf.exempt(route_func)
     return route_func

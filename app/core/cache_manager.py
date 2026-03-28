@@ -13,7 +13,6 @@ import time
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Union
-import pickle
 from app.config.base import slot_config
 
 # Setup logger
@@ -85,7 +84,7 @@ class CacheManager:
                 if cached_data_bytes is None:
                     return None
 
-                cached_data = pickle.loads(cached_data_bytes)
+                cached_data = json.loads(cached_data_bytes)
                 logger.debug(f"Redis cache hit: {cache_type}_{key}")
                 return cached_data
 
@@ -101,14 +100,13 @@ class CacheManager:
             if not self._is_cache_valid(cache_path, max_age):
                 return None
 
-            # Verwende optimierte Pickle-Einstellungen für bessere Performance
-            with open(cache_path, 'rb') as f:
-                cached_data = pickle.load(f)
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                cached_data = json.load(f)
 
             logger.debug(f"Cache hit: {cache_type}_{key}")
             return cached_data
 
-        except (FileNotFoundError, pickle.PickleError):
+        except (FileNotFoundError, json.JSONDecodeError):
             # Stumm für normale Cache-Misses
             return None
         except Exception as e:
@@ -123,11 +121,10 @@ class CacheManager:
                 redis_key = f"{cache_type}:{key}"
                 max_age = self.cache_times.get(cache_type, 300)
 
-                # Pickle-Serialisierung
-                pickled_data = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+                serialized = json.dumps(data, default=str).encode('utf-8')
 
                 # Mit TTL speichern
-                self.redis_client.setex(redis_key, max_age, pickled_data)
+                self.redis_client.setex(redis_key, max_age, serialized)
                 logger.debug(f"Redis cached: {cache_type}_{key} (TTL: {max_age}s)")
                 return True
 
@@ -139,9 +136,8 @@ class CacheManager:
         try:
             cache_path = self._get_cache_path(cache_type, key)
 
-            # Verwende höchstes Protokoll für bessere Performance und kleinere Dateien
-            with open(cache_path, 'wb') as f:
-                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, default=str)
 
             logger.debug(f"Cached: {cache_type}_{key}")
             return True

@@ -4,6 +4,8 @@ Security Service
 Passwort-Management und Zwei-Faktor-Authentifizierung
 """
 
+import os
+import hashlib
 import pyotp
 import qrcode
 import io
@@ -12,10 +14,20 @@ import secrets
 import bcrypt
 import logging
 from typing import Dict, Optional, Tuple, List
+from cryptography.fernet import Fernet, InvalidToken
 from app.core.extensions import data_persistence
 from app.utils.helpers import get_userlist
 
 logger = logging.getLogger(__name__)
+
+
+def _get_fernet() -> Optional[Fernet]:
+    """Derive a Fernet key from SECRET_KEY for encrypting 2FA secrets."""
+    secret_key = os.getenv('SECRET_KEY', '')
+    if not secret_key:
+        return None
+    key = base64.urlsafe_b64encode(hashlib.sha256(secret_key.encode()).digest())
+    return Fernet(key)
 
 
 class SecurityService:
@@ -51,13 +63,43 @@ class SecurityService:
         """Prüfe ob String ein bcrypt-Hash ist (beginnt mit $2b$)"""
         return password_str.startswith('$2b$') or password_str.startswith('$2a$')
 
+    def _encrypt_secret(self, plaintext: str) -> str:
+        """Encrypt a 2FA secret with Fernet. Returns 'fernet:...' prefixed string."""
+        f = _get_fernet()
+        if f:
+            encrypted = f.encrypt(plaintext.encode()).decode()
+            return f"fernet:{encrypted}"
+        return plaintext
+
+    def _decrypt_secret(self, stored: str) -> str:
+        """Decrypt a 2FA secret. Handles both encrypted and legacy plaintext."""
+        if stored.startswith('fernet:'):
+            f = _get_fernet()
+            if f:
+                try:
+                    return f.decrypt(stored[7:].encode()).decode()
+                except InvalidToken:
+                    logger.error("Failed to decrypt 2FA secret (invalid key?)")
+                    return ''
+            return ''
+        return stored  # Legacy plaintext
+
     def _load_2fa_data(self) -> Dict[str, dict]:
-        """Lade 2FA-Daten"""
-        return data_persistence.load_data(self.twofa_file, {})
+        """Lade 2FA-Daten (decrypts secrets on load)"""
+        raw = data_persistence.load_data(self.twofa_file, {})
+        for username, user_data in raw.items():
+            if 'secret' in user_data:
+                user_data['secret'] = self._decrypt_secret(user_data['secret'])
+        return raw
 
     def _save_2fa_data(self, data: Dict[str, dict]):
-        """Speichere 2FA-Daten"""
-        data_persistence.save_data(self.twofa_file, data)
+        """Speichere 2FA-Daten (encrypts secrets before save)"""
+        save_data = {}
+        for username, user_data in data.items():
+            save_data[username] = dict(user_data)
+            if 'secret' in save_data[username]:
+                save_data[username]['secret'] = self._encrypt_secret(save_data[username]['secret'])
+        data_persistence.save_data(self.twofa_file, save_data)
 
     def migrate_userlist_passwords(self):
         """Pre-hash alle USERLIST-Passwoerter die noch nicht in custom_passwords sind"""
@@ -106,8 +148,8 @@ class SecurityService:
         Returns: (success, message)
         """
         # Validierung
-        if not new_password or len(new_password) < 6:
-            return False, "Neues Passwort muss mindestens 6 Zeichen lang sein"
+        if not new_password or len(new_password) < 10:
+            return False, "Neues Passwort muss mindestens 10 Zeichen lang sein"
 
         if len(new_password) > 100:
             return False, "Passwort zu lang (max 100 Zeichen)"
@@ -185,14 +227,17 @@ class SecurityService:
         else:
             return False, "Ungültiger Verifizierungscode"
 
-    def disable_2fa(self, username: str, password: str) -> Tuple[bool, str]:
+    def disable_2fa(self, username: str, password: str, totp_code: str = '') -> Tuple[bool, str]:
         """
-        Deaktiviere 2FA
+        Deaktiviere 2FA — erfordert Passwort UND gueltigen TOTP/Backup-Code
         Returns: (success, message)
         """
-        # Passwort verifizieren
         if not self.verify_password(username, password):
             return False, "Passwort ist falsch"
+
+        # Require 2FA code to disable (prevents disabling with stolen password alone)
+        if not self.verify_2fa(username, totp_code):
+            return False, "Ungültiger 2FA-Code oder Backup-Code"
 
         twofa_data = self._load_2fa_data()
 

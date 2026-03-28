@@ -4,6 +4,7 @@ Analytics Blueprint
 Business Intelligence Dashboard für Admins
 """
 
+import os
 import logging
 from flask import Blueprint, render_template, session, jsonify, request
 from app.utils.decorators import require_login
@@ -16,6 +17,9 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 
 ALLOWED_DAYS = {28, 90, 180, 365}
 DEFAULT_DAYS = 28
+
+# Analytics access from env: comma-separated usernames (beyond admins)
+ANALYTICS_ACCESS = [u.strip() for u in os.getenv('ANALYTICS_ACCESS', 'moritz.schimanko').split(',') if u.strip()]
 
 
 def _get_days() -> int:
@@ -31,10 +35,7 @@ def require_analytics_access():
     if not user:
         from flask import abort
         abort(403)
-    analytics_access = [
-        'moritz.schimanko',
-    ]
-    if not is_admin(user) and user not in analytics_access:
+    if not is_admin(user) and user not in ANALYTICS_ACCESS:
         from flask import abort
         abort(403)
 

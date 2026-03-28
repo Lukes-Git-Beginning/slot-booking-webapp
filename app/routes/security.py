@@ -78,8 +78,9 @@ def disable_2fa():
     data = request.get_json()
     username = session.get("user")
     password = data.get("password", "")
+    totp_code = data.get("totp_code", "")
 
-    success, message = security_service.disable_2fa(username, password)
+    success, message = security_service.disable_2fa(username, password, totp_code)
 
     if success:
         return jsonify({"success": True, "message": message})

@@ -75,8 +75,10 @@ def admin_users_reset_password(username):
     success, message, new_password = user_management_service.reset_password(username, admin_username)
     status_code = 200 if success else 400
     result = {'success': success, 'message': message}
-    if success:
+    if success and new_password:
+        # Show password once — not logged, not cached
         result['new_password'] = new_password
+        result['warning'] = 'Passwort wird nur einmalig angezeigt. Bitte sicher weitergeben.'
     return jsonify(result), status_code
 
 

@@ -87,13 +87,15 @@ def init_extensions(app: Flask) -> None:
         logger.info(f"HubSpot integration not initialized: {e}")
         hubspot_service = None
 
-    # Initialize CSRF Protection (Security Critical)
+    # Initialize CSRF Protection (Security Critical — app MUST NOT run without it)
     try:
         from flask_wtf.csrf import CSRFProtect
         csrf = CSRFProtect(app)
         logger.info("CSRF protection initialized successfully")
     except Exception as e:
         logger.error(f"CRITICAL: Could not initialize CSRF protection: {e}")
+        if not app.testing:
+            raise RuntimeError(f"CSRF protection failed to initialize: {e}")
         csrf = None
 
     # Initialize Flask-Limiter for rate limiting (security)

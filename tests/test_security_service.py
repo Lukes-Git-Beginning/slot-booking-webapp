@@ -219,7 +219,7 @@ class TestSecurityServicePassword:
             )
 
             assert success is False
-            assert '6 Zeichen' in message
+            assert '10 Zeichen' in message
 
     @pytest.mark.unit
     def test_change_password_too_long(self, mock_data_persistence):
@@ -427,8 +427,9 @@ class TestSecurityService2FA:
                 totp = pyotp.TOTP(secret)
                 service.enable_2fa('test_user', totp.now())
 
-                # Disable 2FA
-                success, message = service.disable_2fa('test_user', 'password123')
+                # Disable 2FA (requires password + valid TOTP code)
+                current_code = totp.now()
+                success, message = service.disable_2fa('test_user', 'password123', current_code)
 
                 assert success is True
                 assert 'deaktiviert' in message

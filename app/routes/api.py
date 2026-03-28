@@ -32,7 +32,8 @@ def api_user_badges():
         user_badges = achievement_system.get_user_badges(user)
         return jsonify(user_badges)
     except Exception as e:
-        return jsonify({"error": str(e), "badges": []}), 500
+        logger.error(f"Badge API error: {e}")
+        return jsonify({"error": "Internal server error", "badges": []}), 500
 
 
 @api_bp.route("/user/<username>/badges")
@@ -48,7 +49,7 @@ def api_user_badges_by_username(username):
         return jsonify({"badges": [], "total_badges": 0, "error": "Achievement system not available"}), 503
     except Exception as e:
         logger.error(f"Badge API error for {username}: {e}")
-        return jsonify({"badges": [], "total_badges": 0, "error": str(e)}), 500
+        return jsonify({"badges": [], "total_badges": 0, "error": "Internal server error"}), 500
 
 
 @api_bp.route("/user/<username>/avatar")
@@ -87,7 +88,8 @@ def api_mark_badges_seen():
         # This would integrate with your badge system
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"API error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @api_bp.route("/user/badges/check-new")
@@ -106,7 +108,8 @@ def api_check_new_badges():
             "new_badges": new_badges
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"API error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @api_bp.route("/badges/check-new")
@@ -135,7 +138,8 @@ def check_level_up():
         else:
             return jsonify({"error": "Level system not available"}), 503
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"API error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @api_bp.route("/stream/updates")

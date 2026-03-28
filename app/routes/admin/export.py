@@ -6,12 +6,16 @@ Exports all persistent data as ZIP for migration purposes
 
 import os
 import io
+import logging
 import zipfile
 from datetime import datetime
-from flask import send_file, jsonify
+from flask import send_file, jsonify, session
 from app.routes.admin import admin_bp
 from app.utils.decorators import require_admin
 from app.services.data_persistence import data_persistence
+from app.services.audit_service import audit_service
+
+logger = logging.getLogger(__name__)
 
 
 @admin_bp.route("/export-all-data")
@@ -25,6 +29,11 @@ def export_all_data():
         ZIP file with all JSON files from data/persistent/
     """
     try:
+        # Audit-log data export
+        admin_user = session.get('user', 'unknown')
+        audit_service.log('admin_data_export', admin_user, {'action': 'full_data_export'})
+        logger.info(f"Admin data export initiated by {admin_user}")
+
         # Get persistent data directory
         persist_dir = str(data_persistence.data_dir)
 
