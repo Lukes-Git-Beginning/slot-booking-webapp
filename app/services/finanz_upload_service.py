@@ -82,6 +82,18 @@ class FinanzUploadService:
         db = db_session or get_db_session()
         owns_session = db_session is None
         try:
+            # Deactivate any existing active tokens for this session
+            old_tokens = (
+                db.query(FinanzUploadToken)
+                .filter(
+                    FinanzUploadToken.session_id == session_id,
+                    FinanzUploadToken.is_active == True,
+                )
+                .all()
+            )
+            for old_token in old_tokens:
+                old_token.is_active = False
+
             # Generate crypto-secure token
             token_value = secrets.token_urlsafe(48)
 

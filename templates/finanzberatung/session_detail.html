@@ -4,8 +4,9 @@
 
 {% block area_css %}
 <style nonce="{{ csp_nonce }}">
-    .finanz-card { background: #f5e6c8 !important; border-color: #d4af6a40 !important; }
+    .finanz-card { background: #f5e6c8 !important; border-color: #d4af6a40 !important; font-family: 'DM Sans', 'Inter', sans-serif; }
     .finanz-card, .finanz-card * { color: #1a1a1a; }
+    .finanz-card h1, .finanz-card h2, .finanz-card h3 { font-family: 'DM Serif Display', Georgia, serif; }
     .finanz-card input, .finanz-card textarea, .finanz-card select {
         background: #ffffff !important; color: #1a1a1a !important; border-color: #c9a050;
     }
@@ -723,22 +724,47 @@
                 },
                 body: JSON.stringify({ token_type: tokenType }),
             })
-            .then(function(resp) { return resp.json(); })
+            .then(function(resp) {
+                if (!resp.ok) {
+                    throw new Error('Server responded with ' + resp.status);
+                }
+                return resp.json();
+            })
             .then(function(data) {
                 btn.classList.remove('loading');
                 btn.disabled = false;
 
                 if (data.success) {
-                    // Reload the page to show new token + QR
-                    window.location.reload();
+                    // Update QR code in-place if possible, otherwise reload
+                    var qrImg = document.getElementById('qr-image');
+                    if (data.qr_base64 && qrImg) {
+                        qrImg.src = 'data:image/png;base64,' + data.qr_base64;
+                        qrImg.style.opacity = '1';
+                        qrImg.style.filter = 'none';
+                        if (activeState) activeState.classList.remove('hidden');
+                        if (expiredState) expiredState.classList.add('hidden');
+                    } else {
+                        window.location.reload();
+                    }
+                    // Always reload to get fresh countdown + token details
+                    setTimeout(function() { window.location.reload(); }, 300);
                 } else {
-                    alert(data.message || 'Token konnte nicht erstellt werden.');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Fehler', text: data.message || 'Token konnte nicht erstellt werden.' });
+                    } else {
+                        alert(data.message || 'Token konnte nicht erstellt werden.');
+                    }
                 }
             })
-            .catch(function() {
+            .catch(function(err) {
                 btn.classList.remove('loading');
                 btn.disabled = false;
-                alert('Fehler bei der Token-Erstellung.');
+                console.error('Token generation failed:', err);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Fehler', text: 'Token-Erstellung fehlgeschlagen. Bitte Seite neu laden und erneut versuchen.' });
+                } else {
+                    alert('Fehler bei der Token-Erstellung. Bitte Seite neu laden.');
+                }
             });
         });
     });
@@ -786,27 +812,62 @@
     var deactivateBtn = document.querySelector('[data-action="deactivateToken"]');
     if (deactivateBtn) {
         deactivateBtn.addEventListener('click', function() {
-            if (!confirm('Token wirklich deaktivieren?')) return;
-            var tokenId = this.getAttribute('data-token-id');
-            fetch(baseUrl + '/deactivate-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ token_id: parseInt(tokenId) }),
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Fehler beim Deaktivieren des Tokens.');
-                }
-            })
-            .catch(function() {
-                alert('Fehler beim Deaktivieren des Tokens.');
-            });
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Token deaktivieren?',
+                    text: 'Der Upload-Link wird ungültig.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ja, deaktivieren',
+                    cancelButtonText: 'Abbrechen',
+                }).then(function(result) {
+                    if (result.isConfirmed) doDeactivate();
+                });
+            } else {
+                if (confirm('Token wirklich deaktivieren?')) doDeactivate();
+            }
+
+            var self = this;
+            function doDeactivate() {
+                var tokenId = self.getAttribute('data-token-id');
+                self.classList.add('loading');
+                self.disabled = true;
+                fetch(baseUrl + '/deactivate-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ token_id: parseInt(tokenId) }),
+                })
+                .then(function(resp) {
+                    if (!resp.ok) throw new Error('Server responded with ' + resp.status);
+                    return resp.json();
+                })
+                .then(function(data) {
+                    self.classList.remove('loading');
+                    self.disabled = false;
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'error', title: 'Fehler', text: data.message || 'Fehler beim Deaktivieren.' });
+                        } else {
+                            alert(data.message || 'Fehler beim Deaktivieren des Tokens.');
+                        }
+                    }
+                })
+                .catch(function(err) {
+                    self.classList.remove('loading');
+                    self.disabled = false;
+                    console.error('Token deactivation failed:', err);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Fehler', text: 'Deaktivierung fehlgeschlagen.' });
+                    } else {
+                        alert('Fehler beim Deaktivieren des Tokens.');
+                    }
+                });
+            }
         });
     }
 

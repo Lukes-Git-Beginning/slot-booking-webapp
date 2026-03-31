@@ -12,9 +12,9 @@ Das System scannt NICHT via Cronjob, sondern nur wenn User aktiv bucht:
 1. Step 2 (Monats-Kalender):
    - API: /t2/api/month-availability/<berater>/<year>/<month>
    - Funktion: get_month_availability()
-   - Scannt alle Tage im Monat (max 31 Tage, nur Mo-Fr)
-   - Cache: 10 Minuten pro Tag
-   - Google API Calls: ~22 (Arbeitstage pro Monat)
+   - 1 API-Call fuer gesamten Monat, Slots lokal berechnet
+   - Cache: 30 Minuten (Monatsdaten) + pro-Tag Cache fuer Einzelabfragen
+   - Google API Calls: 1 (statt ~22)
 
 2. Step 3 (Zeitslot-Auswahl):
    - API: /t2/api/day-slots/<berater>/<date>
@@ -42,13 +42,14 @@ CACHE-INVALIDIERUNG:
 - Optional: Admin-Funktion zum kompletten Cache-Clear
 
 QUOTA-USAGE Beispiel (1 Buchung):
-- Monat-Scan: ~22 API-Calls (gecached 10 Min)
+- Monat-Scan: 1 API-Call (gecached 30 Min, paginiert)
 - Tag-Scan: 1 API-Call (gecached 10 Min)
 - Live-Check: 1 API-Call (kein Cache)
-- Total: ~24 API-Calls pro Buchung
-- Google Limit: 10,000/Tag → ~416 Buchungen/Tag möglich
+- Total: ~3 API-Calls pro Buchung
+- Google Limit: 10,000/Tag → ~3333 Buchungen/Tag möglich
 """
 
+import calendar as cal_module
 import logging
 from datetime import datetime, time, timedelta, date
 from typing import Dict, List, Optional, Tuple
@@ -177,6 +178,45 @@ class T2DynamicAvailability:
         else:
             return "evening"
 
+    def _compute_slots_for_day(
+        self,
+        check_date: date,
+        events: List[dict]
+    ) -> Dict[str, List[str]]:
+        """
+        Berechnet freie 2h-Slots fuer einen Tag aus vorgeladenen Events.
+
+        Gleicher Algorithmus wie find_2h_slots_non_overlapping, aber OHNE API-Call.
+        Events muessen bereits fuer diesen Tag gefiltert sein.
+
+        Returns:
+            {"morning": [...], "midday": [...], "evening": [...]}
+        """
+        day_start = datetime.combine(check_date, time(self.work_start_hour, 0))
+        day_start = self.timezone.localize(day_start)
+        day_end = datetime.combine(check_date, time(self.work_end_hour, 0))
+        day_end = self.timezone.localize(day_end)
+
+        slots = []
+        current = day_start
+
+        while current <= day_end - timedelta(hours=self.slot_duration_hours):
+            slot_end = current + timedelta(hours=self.slot_duration_hours)
+
+            if self._check_slot_overlap(current, slot_end, events):
+                time_str = current.strftime("%H:%M")
+                slots.append(time_str)
+                current += timedelta(hours=self.slot_duration_hours)
+            else:
+                current += timedelta(minutes=self.step_minutes)
+
+        grouped = {"morning": [], "midday": [], "evening": []}
+        for slot_time in slots:
+            category = self._categorize_slot(slot_time)
+            grouped[category].append(slot_time)
+
+        return grouped
+
     def find_2h_slots_non_overlapping(
         self,
         calendar_id: str,
@@ -238,38 +278,11 @@ class T2DynamicAvailability:
         events = response.get('items', [])
         logger.info(f"Found {len(events)} events for {check_date}")
 
-        # Freie Slots finden (nicht-überlappend)
-        slots = []
-        current = day_start
+        grouped = self._compute_slots_for_day(check_date, events)
 
-        while current <= day_end - timedelta(hours=self.slot_duration_hours):
-            slot_end = current + timedelta(hours=self.slot_duration_hours)
-
-            # Prüfe ob 2h-Fenster komplett frei
-            if self._check_slot_overlap(current, slot_end, events):
-                time_str = current.strftime("%H:%M")
-                slots.append(time_str)
-                logger.debug(f"✓ Free slot found: {time_str} - {slot_end.strftime('%H:%M')}")
-
-                # WICHTIG: Spring 2h weiter um Überlappung zu vermeiden!
-                current += timedelta(hours=self.slot_duration_hours)
-            else:
-                # Slot belegt, nur 30min weiter
-                current += timedelta(minutes=self.step_minutes)
-
-        # Gruppieren nach Tageszeit
-        grouped = {
-            "morning": [],
-            "midday": [],
-            "evening": []
-        }
-
-        for slot_time in slots:
-            category = self._categorize_slot(slot_time)
-            grouped[category].append(slot_time)
-
+        total = sum(len(v) for v in grouped.values())
         logger.info(
-            f"Scan complete: {len(slots)} total slots "
+            f"Scan complete: {total} total slots "
             f"(morning: {len(grouped['morning'])}, "
             f"midday: {len(grouped['midday'])}, "
             f"evening: {len(grouped['evening'])})"
@@ -287,7 +300,10 @@ class T2DynamicAvailability:
         month: int
     ) -> Dict[str, int]:
         """
-        Scannt Verfügbarkeit für ganzen Monat.
+        Scannt Verfügbarkeit für ganzen Monat mit 1 API-Call.
+
+        Lädt alle Events des Monats in einem einzigen Google Calendar API-Call
+        und berechnet Slots lokal pro Tag.
 
         Args:
             calendar_id: Google Calendar ID
@@ -301,29 +317,104 @@ class T2DynamicAvailability:
                 ...
             }
         """
-        logger.info(f"Scanning month availability: {year}-{month:02d}")
-
-        availability = {}
-
-        # Alle Tage im Monat durchgehen (max 31)
+        # Check ob alle Tage bereits im Cache sind
+        workdays = []
         for day in range(1, 32):
             try:
                 check_date = date(year, month, day)
-
-                # Skip Wochenende (Samstag=5, Sonntag=6)
-                if check_date.weekday() >= 5:
-                    continue
-
-                # Scan Tag
-                slots = self.find_2h_slots_non_overlapping(calendar_id, check_date)
-                total_slots = len(slots['morning']) + len(slots['midday']) + len(slots['evening'])
-
-                if total_slots > 0:
-                    availability[check_date.isoformat()] = total_slots
-
+                if check_date.weekday() < 5:
+                    workdays.append(check_date)
             except ValueError:
-                # Ungültiger Tag (z.B. 31. Februar)
                 continue
+
+        # Prüfe Cache für alle Tage
+        cached_results = {}
+        uncached_days = []
+        for check_date in workdays:
+            cache_key = self._get_cache_key(calendar_id, check_date)
+            cached = cache_manager.get("t2_availability", cache_key)
+            if cached is not None:
+                cached_results[check_date] = cached
+            else:
+                uncached_days.append(check_date)
+
+        # Wenn alles gecached ist, kein API-Call nötig
+        if not uncached_days:
+            logger.info(f"Month {year}-{month:02d}: all {len(workdays)} workdays cached")
+            availability = {}
+            for check_date, slots in cached_results.items():
+                total = sum(len(v) for v in slots.values())
+                if total > 0:
+                    availability[check_date.isoformat()] = total
+            return availability
+
+        logger.info(
+            f"Scanning month {year}-{month:02d}: "
+            f"{len(cached_results)} cached, {len(uncached_days)} to scan"
+        )
+
+        # 1 API-Call fuer den gesamten Monat
+        month_start = datetime.combine(
+            date(year, month, 1),
+            time(self.work_start_hour, 0)
+        )
+        month_start = self.timezone.localize(month_start)
+
+        last_day = cal_module.monthrange(year, month)[1]
+        month_end = datetime.combine(
+            date(year, month, last_day),
+            time(self.work_end_hour, 0)
+        )
+        month_end = self.timezone.localize(month_end)
+
+        response = self.calendar_service.get_all_events_paginated(
+            calendar_id=calendar_id,
+            time_min=month_start.isoformat(),
+            time_max=month_end.isoformat(),
+            cache_duration=1800  # 30 Minuten Cache für Monatsdaten
+        )
+
+        if response is None:
+            logger.error(f"Failed to fetch month events for {calendar_id}")
+            return {}
+
+        all_events = response.get('items', [])
+        logger.info(f"Fetched {len(all_events)} events for month {year}-{month:02d}")
+
+        # Events nach Datum gruppieren
+        events_by_date: Dict[date, List[dict]] = {}
+        for event in all_events:
+            start_info = event.get('start', {})
+            start_str = start_info.get('dateTime') or start_info.get('date')
+            if not start_str:
+                continue
+            try:
+                event_date = parser.isoparse(start_str).astimezone(self.timezone).date()
+                events_by_date.setdefault(event_date, []).append(event)
+            except Exception:
+                continue
+
+        # Slots pro Tag berechnen und cachen
+        availability = {}
+
+        # Gecachte Ergebnisse übernehmen
+        for check_date, slots in cached_results.items():
+            total = sum(len(v) for v in slots.values())
+            if total > 0:
+                availability[check_date.isoformat()] = total
+
+        # Ungecachte Tage berechnen
+        for check_date in uncached_days:
+            day_events = events_by_date.get(check_date, [])
+            grouped = self._compute_slots_for_day(check_date, day_events)
+
+            # Pro-Tag Cache setzen (für find_2h_slots_non_overlapping Kompatibilität)
+            cache_key = self._get_cache_key(calendar_id, check_date)
+            cache_manager.set("t2_availability", cache_key, grouped)
+
+            total = sum(len(v) for v in grouped.values())
+            if total > 0:
+                availability[check_date.isoformat()] = total
 
         logger.info(f"Month scan complete: {len(availability)} days with availability")
         return availability

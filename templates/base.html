@@ -25,13 +25,37 @@
     <!-- Particles.js -->
     <script src="{{ url_for('static', filename='particles.min.js') }}"></script>
 
+    <!-- Design Toolkit (CDN) -->
+    {% block design_toolkit %}
+    <!-- Phosphor Icons (9000+ Icons, Finance-Set) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/regular/style.css">
+    <!-- GSAP (Professional Animations) -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js"></script>
+    <!-- CountUp.js (Animated Numbers) -->
+    <script src="https://cdn.jsdelivr.net/npm/countup.js@2/dist/countUp.umd.min.js"></script>
+    <!-- SweetAlert2 (Professional Dialogs) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Tippy.js (Polished Tooltips) -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/shift-away.css">
+    <!-- Lottie (Micro-Animations) -->
+    <script src="https://cdn.jsdelivr.net/npm/lottie-web@5/build/player/lottie.min.js"></script>
+    <!-- NProgress (Page Transition Bar) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2/nprogress.css">
+    <script src="https://cdn.jsdelivr.net/npm/nprogress@0.2/nprogress.min.js"></script>
+    <!-- Auto Animate (Zero-Config List Animations) -->
+    <script src="https://cdn.jsdelivr.net/npm/@formkit/auto-animate@0.8/index.min.js"></script>
+    {% endblock %}
+
     {% block extra_head_imports %}{% endblock %}
 
     {% block theme_colors %}{% endblock %}
 
     <!-- Core Styles -->
     <style nonce="{{ csp_nonce }}">
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap');
 
         * {
             margin: 0;
@@ -272,6 +296,17 @@
             once: true,
             offset: 50
         });
+
+        // Initialize Design Toolkit
+        if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+            gsap.registerPlugin(ScrollTrigger);
+        }
+        if (typeof NProgress !== 'undefined') {
+            NProgress.configure({ showSpinner: false, trickleSpeed: 200 });
+        }
+        if (typeof tippy !== 'undefined') {
+            tippy('[data-tippy-content]', { animation: 'shift-away', theme: 'light-border' });
+        }
 
         // Re-initialize icons after Alpine loads
         document.addEventListener('alpine:initialized', () => {
