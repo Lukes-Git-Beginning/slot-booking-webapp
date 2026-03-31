@@ -203,32 +203,24 @@ var FinanzNotifications = (function() {
         }
 
         var card = document.createElement('div');
-        card.className = 'flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors';
+        card.className = 'flex items-center gap-2 text-sm py-1';
         card.style.cssText = 'animation: slideInFromTop 0.3s ease-out;';
 
-        var fileIcon = _getFileIcon(data.mime_type);
         var fileSize = _formatFileSize(data.file_size);
-        var timeStr = _formatRelativeTime(data.created_at);
-        var statusBadge = _getStatusBadge(data.status);
+        var now = new Date();
+        var timeStr = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
 
         card.innerHTML =
-            '<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">' +
-                fileIcon +
-            '</div>' +
-            '<div class="flex-1 min-w-0">' +
-                '<p class="text-sm font-semibold truncate">' + _escapeHtml(data.original_filename || 'Dokument') + '</p>' +
-                '<p class="text-xs text-gray-400">' + _escapeHtml(fileSize) + ' &middot; ' + _escapeHtml(timeStr) + '</p>' +
-            '</div>' +
-            '<div>' + statusBadge + '</div>';
+            '<span style="opacity: 0.7;">' + _escapeHtml(timeStr) + '</span>' +
+            '<span class="font-medium">' + _escapeHtml(data.original_filename || 'Dokument') + '</span>' +
+            '<span class="text-xs" style="opacity: 0.6;">' + _escapeHtml(fileSize) + '</span>';
 
         // Prepend (newest first)
         if (this.feedContainer.firstChild) {
-            // Check if there's a space-y-2 wrapper
             var wrapper = this.feedContainer.querySelector('.space-y-2');
             if (wrapper) {
                 wrapper.insertBefore(card, wrapper.firstChild);
             } else {
-                // Create wrapper if needed
                 var newWrapper = document.createElement('div');
                 newWrapper.className = 'space-y-2';
                 while (this.feedContainer.firstChild) {
@@ -244,13 +236,91 @@ var FinanzNotifications = (function() {
             this.feedContainer.appendChild(wrap);
         }
 
-        // Also update document count badge if present
-        var countBadge = document.querySelector('#documents-list')
-            ? document.querySelector('h2 .badge.badge-sm')
+        // Also add document to the Dokumente section
+        this._addToDocumentsList(data);
+    };
+
+    /**
+     * Add a new document card to the #documents-list section.
+     */
+    FinanzNotifications.prototype._addToDocumentsList = function(data) {
+        var docList = document.getElementById('documents-list');
+        if (!docList) return;
+
+        // Remove empty-state placeholder
+        var emptyPlaceholder = docList.querySelector('.text-center.py-6');
+        if (emptyPlaceholder) {
+            emptyPlaceholder.remove();
+        }
+
+        var fileSize = _formatFileSize(data.file_size);
+        var mimeType = data.mime_type || '';
+        var statusBadge = _getStatusBadge(data.status);
+
+        // Determine file icon
+        var iconName = 'file';
+        var iconColor = 'text-base-content/40';
+        if (mimeType.indexOf('pdf') !== -1) {
+            iconName = 'file-text';
+            iconColor = 'text-red-400';
+        } else if (mimeType.indexOf('image') !== -1) {
+            iconName = 'image';
+            iconColor = 'text-blue-400';
+        }
+
+        var docCard = document.createElement('div');
+        docCard.className = 'flex items-center gap-3 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors';
+        docCard.style.cssText = 'animation: slideInFromTop 0.3s ease-out;';
+
+        var now = new Date();
+        var dateStr = ('0' + now.getDate()).slice(-2) + '.' +
+            ('0' + (now.getMonth() + 1)).slice(-2) + '.' +
+            now.getFullYear() + ' ' +
+            ('0' + now.getHours()).slice(-2) + ':' +
+            ('0' + now.getMinutes()).slice(-2);
+
+        docCard.innerHTML =
+            '<div class="w-10 h-10 rounded-lg bg-base-200 flex items-center justify-center flex-shrink-0">' +
+                '<i data-lucide="' + iconName + '" class="w-5 h-5 ' + iconColor + '"></i>' +
+            '</div>' +
+            '<div class="flex-1 min-w-0">' +
+                '<p class="text-sm font-semibold truncate">' + _escapeHtml(data.original_filename || 'Dokument') + '</p>' +
+                '<p class="text-xs text-base-content/40">' + _escapeHtml(fileSize) + ' &middot; ' + _escapeHtml(dateStr) + '</p>' +
+            '</div>' +
+            '<div>' + statusBadge + '</div>';
+
+        // Get or create wrapper
+        var wrapper = docList.querySelector('.space-y-2');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'space-y-2';
+            docList.appendChild(wrapper);
+        }
+        wrapper.insertBefore(docCard, wrapper.firstChild);
+
+        // Re-render lucide icons for new elements
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+
+        // Update count badge
+        var countBadge = docList.closest('.finanz-card')
+            ? docList.closest('.finanz-card').querySelector('h2 .badge.badge-sm')
             : null;
         if (countBadge) {
             var current = parseInt(countBadge.textContent, 10) || 0;
             countBadge.textContent = current + 1;
+        } else {
+            // Create badge if it doesn't exist yet
+            var heading = docList.closest('.finanz-card')
+                ? docList.closest('.finanz-card').querySelector('h2')
+                : null;
+            if (heading && !heading.querySelector('.badge')) {
+                var badge = document.createElement('span');
+                badge.className = 'badge badge-sm badge-ghost';
+                badge.textContent = '1';
+                heading.appendChild(badge);
+            }
         }
     };
 

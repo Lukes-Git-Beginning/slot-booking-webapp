@@ -264,16 +264,14 @@
                     </p>
                 </div>
 
-                <!-- Upload Count -->
+                <!-- Upload Count (only shown to advisor, no limit displayed) -->
+                {% if active_token.upload_count > 0 %}
                 <div class="text-center mb-4">
                     <p class="text-sm text-base-content/50">
-                        <span class="font-semibold">{{ active_token.upload_count }}</span>
-                        / {{ active_token.max_uploads }} Uploads
+                        <span class="font-semibold">{{ active_token.upload_count }}</span> Uploads
                     </p>
-                    <progress class="progress w-full mt-1"
-                              value="{{ active_token.upload_count }}"
-                              max="{{ active_token.max_uploads }}"></progress>
                 </div>
+                {% endif %}
 
                 <!-- Deactivate Button -->
                 <div class="text-center">
@@ -353,11 +351,11 @@
                 <div class="space-y-2">
                     {% for doc in documents %}
                     <div class="flex items-center gap-2 text-sm py-1">
-                        <span class="text-base-content/40">
+                        <span class="text-base-content/70">
                             {% if doc.created_at %}{{ doc.created_at.strftime('%H:%M') }}{% endif %}
                         </span>
-                        <span class="text-base-content/60">{{ doc.original_filename }}</span>
-                        <span class="text-xs text-base-content/30">{{ (doc.file_size / 1024)|round(1) }} KB</span>
+                        <span class="text-base-content font-medium">{{ doc.original_filename }}</span>
+                        <span class="text-xs text-base-content/60">{{ (doc.file_size / 1024)|round(1) }} KB</span>
                     </div>
                     {% endfor %}
                 </div>
