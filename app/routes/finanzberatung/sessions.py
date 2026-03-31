@@ -1002,3 +1002,48 @@ def get_contract_types(session_id):
             "types": types,
         })
     return jsonify(categories)
+
+
+# ---------------------------------------------------------------------------
+# DELETE /sessions/<id> - Delete a session (AJAX, two-step confirmation)
+# ---------------------------------------------------------------------------
+@sessions_bp.route('/sessions/<int:session_id>/delete', methods=['POST'])
+@require_login
+def delete_session(session_id):
+    """Delete a session. Requires confirmation token to prevent accidental deletion."""
+    try:
+        current_user = _get_current_user()
+        if not _is_admin():
+            # Only admin or session opener can delete
+            s = session_service.get_session(session_id, username=current_user)
+            if s is None:
+                return jsonify({'success': False, 'message': 'Session nicht gefunden.'}), 404
+        else:
+            s = session_service.get_session(session_id, username=None)
+            if s is None:
+                return jsonify({'success': False, 'message': 'Session nicht gefunden.'}), 404
+
+        data = request.get_json(silent=True) or {}
+        confirm_name = data.get('confirm_name', '').strip()
+
+        # Two-step: user must type customer name to confirm
+        if confirm_name != s.customer_name:
+            return jsonify({
+                'success': False,
+                'message': 'Kundenname stimmt nicht überein.',
+            }), 400
+
+        session_service.delete_session(session_id)
+
+        from app.services.audit_service import audit_service
+        audit_service.log('finanz_session_deleted', current_user, {
+            'session_id': session_id,
+            'customer_name': s.customer_name,
+        })
+
+        logger.info("Session %s deleted by %s", session_id, current_user)
+        return jsonify({'success': True, 'message': 'Session gelöscht.'})
+
+    except Exception as e:
+        logger.error("Error deleting session %s: %s", session_id, e, exc_info=True)
+        return jsonify({'success': False, 'message': 'Fehler beim Löschen.'}), 500

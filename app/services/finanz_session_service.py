@@ -23,6 +23,8 @@ from app.models import get_db_session
 from app.models.finanzberatung import (
     FinanzSession,
     FinanzDocument,
+    FinanzFoerderFragebogen,
+    FinanzScorecard,
     FinanzUploadToken,
     SessionStatus,
     TokenType,
@@ -341,5 +343,41 @@ class FinanzSessionService:
                 session_id, e, exc_info=True,
             )
             return []
+        finally:
+            db.close()
+
+    def delete_session(self, session_id: int) -> bool:
+        """
+        Permanently delete a session and all related data (cascade).
+
+        Args:
+            session_id: The session's primary key
+
+        Returns:
+            True if deleted, False if not found
+        """
+        db = get_db_session()
+        try:
+            session = db.query(FinanzSession).filter(
+                FinanzSession.id == session_id,
+            ).first()
+            if session is None:
+                return False
+
+            customer_name = session.customer_name
+            db.delete(session)
+            db.commit()
+            logger.info(
+                "Session deleted: id=%s, customer=%s",
+                session_id, customer_name,
+            )
+            return True
+        except Exception as e:
+            db.rollback()
+            logger.error(
+                "Failed to delete session %s: %s",
+                session_id, e, exc_info=True,
+            )
+            raise
         finally:
             db.close()

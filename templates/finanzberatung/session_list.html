@@ -7,6 +7,30 @@
     .finanz-card { background: #f5e6c8 !important; border-color: #d4af6a40 !important; font-family: 'DM Sans', 'Inter', sans-serif; }
     .finanz-card, .finanz-card * { color: #1a1a1a; }
     .finanz-card h1, .finanz-card h2, .finanz-card h3 { font-family: 'DM Serif Display', Georgia, serif; }
+
+    /* Session Row Styling */
+    .session-row {
+        transition: all 0.15s ease;
+        border-left: 3px solid transparent;
+    }
+    .session-row:hover {
+        background: rgba(212, 175, 106, 0.15) !important;
+        border-left-color: #d4af6a;
+    }
+    .session-row td { vertical-align: middle; }
+
+    /* Customer Name prominent */
+    .customer-name {
+        font-family: 'DM Serif Display', Georgia, serif;
+        font-size: 1.05rem;
+        color: #1a1a1a;
+        letter-spacing: -0.01em;
+    }
+    .customer-name:hover { color: #d4af6a; }
+
+    /* Delete button hidden until row hover */
+    .session-row .delete-btn { opacity: 0; transition: opacity 0.15s; }
+    .session-row:hover .delete-btn { opacity: 1; }
 </style>
 {% endblock %}
 
@@ -40,72 +64,96 @@
 <!-- Session Table -->
 <div class="finanz-card rounded-lg shadow-sm border overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="table table-zebra w-full" id="sessions-table">
+        <table class="table w-full" id="sessions-table">
             <thead>
-                <tr>
-                    <th class="cursor-pointer select-none hover:bg-base-200 transition-colors"
+                <tr class="border-b border-[#d4af6a30]">
+                    <th class="cursor-pointer select-none hover:bg-[#d4af6a20] transition-colors"
                         data-sort="customer" onclick="sortTable(0, 'string')">
                         <div class="flex items-center gap-1">
                             Kunde
                             <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
                         </div>
                     </th>
-                    <th class="cursor-pointer select-none hover:bg-base-200 transition-colors"
+                    <th class="cursor-pointer select-none hover:bg-[#d4af6a20] transition-colors"
                         data-sort="status" onclick="sortTable(1, 'string')">
                         <div class="flex items-center gap-1">
                             Status
                             <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
                         </div>
                     </th>
-                    <th class="cursor-pointer select-none hover:bg-base-200 transition-colors"
+                    <th class="cursor-pointer select-none hover:bg-[#d4af6a20] transition-colors"
                         data-sort="date" onclick="sortTable(2, 'date')">
                         <div class="flex items-center gap-1">
                             Termin
                             <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
                         </div>
                     </th>
-                    <th class="cursor-pointer select-none hover:bg-base-200 transition-colors"
+                    <th class="cursor-pointer select-none hover:bg-[#d4af6a20] transition-colors"
                         data-sort="type" onclick="sortTable(3, 'string')">
                         <div class="flex items-center gap-1">
                             Art
                             <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
                         </div>
                     </th>
-                    <th class="cursor-pointer select-none hover:bg-base-200 transition-colors"
+                    <th class="cursor-pointer select-none hover:bg-[#d4af6a20] transition-colors"
                         data-sort="created" onclick="sortTable(4, 'date')">
                         <div class="flex items-center gap-1">
                             Erstellt
                             <i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-50"></i>
                         </div>
                     </th>
+                    <th class="w-12"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in sessions %}
-                <tr class="hover:bg-base-200/50 cursor-pointer transition-colors"
-                    onclick="window.location='{{ url_for('finanzberatung.finanz_sessions.session_detail', session_id=s.id) }}'">
-                    <td class="font-semibold">{{ s.customer_name }}</td>
-                    <td>
+                <tr class="session-row cursor-pointer border-b border-[#d4af6a10]"
+                    data-href="{{ url_for('finanzberatung.finanz_sessions.session_detail', session_id=s.id) }}"
+                    data-session-id="{{ s.id }}"
+                    data-customer-name="{{ s.customer_name }}">
+                    <td class="py-3">
+                        <a href="{{ url_for('finanzberatung.finanz_sessions.session_detail', session_id=s.id) }}"
+                           class="customer-name font-semibold no-underline hover:underline">
+                            <i data-lucide="user" class="w-4 h-4 inline mr-1.5 opacity-40"></i>
+                            {{ s.customer_name }}
+                        </a>
+                    </td>
+                    <td class="py-3">
                         {% if s.status == 'active' %}
-                            <span class="badge badge-success badge-sm">Aktiv</span>
+                            <span class="badge badge-success badge-sm gap-1">
+                                <i data-lucide="circle" class="w-2 h-2 fill-current"></i>
+                                Aktiv
+                            </span>
                         {% elif s.status == 'in_analysis' %}
-                            <span class="badge badge-warning badge-sm">In Bearbeitung</span>
+                            <span class="badge badge-warning badge-sm gap-1">
+                                <i data-lucide="loader" class="w-2.5 h-2.5"></i>
+                                In Bearbeitung
+                            </span>
                         {% elif s.status in ('analyzed', 'verified') %}
-                            <span class="badge badge-info badge-sm">Abgeschlossen</span>
+                            <span class="badge badge-info badge-sm gap-1">
+                                <i data-lucide="check-circle" class="w-2.5 h-2.5"></i>
+                                Abgeschlossen
+                            </span>
                         {% elif s.status == 'archived' %}
-                            <span class="badge badge-ghost badge-sm">Archiviert</span>
+                            <span class="badge badge-ghost badge-sm gap-1">
+                                <i data-lucide="archive" class="w-2.5 h-2.5"></i>
+                                Archiviert
+                            </span>
                         {% else %}
                             <span class="badge badge-ghost badge-sm">{{ s.status }}</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="py-3">
                         {% if s.appointment_date %}
-                            {{ s.appointment_date.strftime('%d.%m.%Y') }}
+                            <span class="flex items-center gap-1.5">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 opacity-40"></i>
+                                {{ s.appointment_date.strftime('%d.%m.%Y') }}
+                            </span>
                         {% else %}
-                            <span class="text-base-content/30">-</span>
+                            <span class="text-base-content/30">—</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="py-3">
                         {% if s.session_type == 'erstberatung' %}
                             Erstberatung
                         {% elif s.session_type == 'folgeberatung' %}
@@ -114,12 +162,20 @@
                             {{ s.session_type }}
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="py-3 text-sm opacity-60">
                         {% if s.created_at %}
                             {{ s.created_at.strftime('%d.%m.%Y') }}
                         {% else %}
                             -
                         {% endif %}
+                    </td>
+                    <td class="py-3 text-right">
+                        <button class="delete-btn btn btn-ghost btn-xs text-error/60 hover:text-error hover:bg-error/10"
+                                data-action="deleteSession"
+                                title="Session loeschen"
+                                onclick="event.stopPropagation();">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -153,31 +209,128 @@
 </div>
 {% endif %}
 
-<!-- Client-side Table Sorting -->
 <script nonce="{{ csp_nonce }}">
 (function() {
-    let sortDirection = {};
+    var csrfToken = '{{ csrf_token() }}';
+
+    // =========================================================================
+    // 1. CLICKABLE ROWS — navigate to session detail
+    // =========================================================================
+    document.querySelectorAll('.session-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            // Don't navigate if clicking a link or button
+            if (e.target.closest('a') || e.target.closest('button')) return;
+            var href = row.getAttribute('data-href');
+            if (href) window.location.href = href;
+        });
+    });
+
+    // =========================================================================
+    // 2. DELETE SESSION — Two-step SweetAlert2 confirmation
+    // =========================================================================
+    document.querySelectorAll('[data-action="deleteSession"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var row = btn.closest('tr');
+            var sessionId = row.getAttribute('data-session-id');
+            var customerName = row.getAttribute('data-customer-name');
+
+            // Step 1: Initial confirmation
+            Swal.fire({
+                title: 'Session loeschen?',
+                html: '<p class="mb-3">Diese Aktion loescht die Session und <strong>alle zugehoerigen Daten</strong> (Dokumente, Tokens, Analyse) unwiderruflich.</p>' +
+                      '<p class="text-sm text-gray-500">Zur Bestaetigung den Kundennamen eingeben:</p>',
+                input: 'text',
+                inputPlaceholder: customerName,
+                inputAttributes: { autocomplete: 'off' },
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Endgueltig loeschen',
+                cancelButtonText: 'Abbrechen',
+                confirmButtonColor: '#dc2626',
+                inputValidator: function(value) {
+                    if (!value || value.trim() !== customerName) {
+                        return 'Bitte geben Sie "' + customerName + '" exakt ein.';
+                    }
+                },
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                // Step 2: Execute deletion
+                btn.classList.add('loading');
+                fetch('/finanzberatung/sessions/' + sessionId + '/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ confirm_name: result.value.trim() }),
+                })
+                .then(function(resp) {
+                    if (!resp.ok) throw new Error('Server error ' + resp.status);
+                    return resp.json();
+                })
+                .then(function(data) {
+                    btn.classList.remove('loading');
+                    if (data.success) {
+                        // Animate row removal
+                        row.style.transition = 'opacity 0.3s, transform 0.3s';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(20px)';
+                        setTimeout(function() {
+                            row.remove();
+                            // Check if table is now empty
+                            var tbody = document.querySelector('#sessions-table tbody');
+                            if (tbody && tbody.children.length === 0) {
+                                window.location.reload();
+                            }
+                        }, 300);
+
+                        Swal.fire({
+                            title: 'Geloescht',
+                            text: 'Session "' + customerName + '" wurde entfernt.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Fehler', text: data.message });
+                    }
+                })
+                .catch(function(err) {
+                    btn.classList.remove('loading');
+                    console.error('Delete failed:', err);
+                    Swal.fire({ icon: 'error', title: 'Fehler', text: 'Session konnte nicht geloescht werden.' });
+                });
+            });
+        });
+    });
+
+    // =========================================================================
+    // 3. TABLE SORTING
+    // =========================================================================
+    var sortDirection = {};
 
     window.sortTable = function(columnIndex, type) {
-        const table = document.getElementById('sessions-table');
+        var table = document.getElementById('sessions-table');
         if (!table) return;
 
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const key = 'col-' + columnIndex;
+        var tbody = table.querySelector('tbody');
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        var key = 'col-' + columnIndex;
 
-        // Toggle direction
         sortDirection[key] = sortDirection[key] === 'asc' ? 'desc' : 'asc';
-        const dir = sortDirection[key];
+        var dir = sortDirection[key];
 
         rows.sort(function(a, b) {
-            let aVal = a.cells[columnIndex].textContent.trim();
-            let bVal = b.cells[columnIndex].textContent.trim();
+            var aVal = a.cells[columnIndex].textContent.trim();
+            var bVal = b.cells[columnIndex].textContent.trim();
 
             if (type === 'date') {
-                // Parse dd.mm.yyyy to comparable value
-                let aParts = aVal.split('.');
-                let bParts = bVal.split('.');
+                var aParts = aVal.split('.');
+                var bParts = bVal.split('.');
                 aVal = aParts.length === 3 ? aParts[2] + aParts[1] + aParts[0] : '';
                 bVal = bParts.length === 3 ? bParts[2] + bParts[1] + bParts[0] : '';
             }
