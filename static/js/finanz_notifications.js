@@ -455,9 +455,11 @@ var FinanzNotifications = (function() {
         var diffSec = Math.floor((now - then) / 1000);
 
         if (diffSec < 5) return 'gerade eben';
-        if (diffSec < 60) return 'vor ' + diffSec + ' Sekunden';
-        if (diffSec < 3600) return 'vor ' + Math.floor(diffSec / 60) + ' Minuten';
-        if (diffSec < 86400) return 'vor ' + Math.floor(diffSec / 3600) + ' Stunden';
+        if (diffSec < 60) return 'vor ' + diffSec + (diffSec === 1 ? ' Sekunde' : ' Sekunden');
+        var mins = Math.floor(diffSec / 60);
+        if (diffSec < 3600) return 'vor ' + mins + (mins === 1 ? ' Minute' : ' Minuten');
+        var hrs = Math.floor(diffSec / 3600);
+        if (diffSec < 86400) return 'vor ' + hrs + (hrs === 1 ? ' Stunde' : ' Stunden');
         return then.toLocaleDateString('de-DE');
     }
 

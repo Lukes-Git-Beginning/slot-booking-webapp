@@ -173,7 +173,7 @@ def upload_submit(token_value):
             'original_filename': document.original_filename,
             'file_size': document.file_size,
             'mime_type': document.mime_type,
-            'status': document.status,
+            'status': document.status.value if document.status else None,
             'created_at': document.created_at.isoformat() if document.created_at else None,
         },
     })

@@ -499,8 +499,8 @@ def get_documents(session_id):
                 'original_filename': doc.original_filename,
                 'file_size': doc.file_size,
                 'mime_type': doc.mime_type,
-                'status': doc.status,
-                'document_type': doc.document_type,
+                'status': doc.status.value if doc.status else None,
+                'document_type': doc.document_type.value if doc.document_type else None,
                 'created_at': doc.created_at.isoformat() if doc.created_at else None,
             }
             for doc in documents
