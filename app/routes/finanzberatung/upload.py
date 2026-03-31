@@ -14,7 +14,7 @@ Routes:
 
 import logging
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, g, jsonify, render_template, request
 
 from app.config.base import FinanzConfig as finanz_config
 from app.services.finanz_upload_service import FinanzUploadService
@@ -61,6 +61,7 @@ def upload_page(token_value):
         remaining_uploads=remaining_uploads,
         expires_at=expires_at,
         max_file_size_mb=finanz_config.FINANZ_MAX_FILE_SIZE_MB,
+        csp_nonce=getattr(g, 'csp_nonce', ''),
     )
 
 
