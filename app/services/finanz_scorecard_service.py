@@ -420,10 +420,7 @@ class FinanzScorecardService:
         Uses the rule-based rating as anchor and asks the LLM for a richer,
         personalised assessment text.  Falls back to rule_result on any error.
         """
-        import requests
-
-        base_url = finanz_config.FINANZ_LLM_BASE_URL
-        model = finanz_config.FINANZ_LLM_MODEL
+        from app.services.llm_client import llm_client
 
         contract_summary = self._build_contract_summary(contracts)
         cat_label = self.CATEGORY_LABELS.get(category, category.value)
@@ -448,20 +445,16 @@ Regeln:
 - details: Konkrete Beobachtungen, pipe-separiert, max 3-5 Punkte
 - Beruecksichtige die Voranalyse, aber korrigiere wenn noetig"""
 
-        response = requests.post(
-            f"{base_url}/chat/completions",
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.2,
-                "max_tokens": 500,
-            },
-            timeout=30,
+        result = llm_client.chat_completion(
+            prompt=prompt,
+            max_tokens=500,
+            temperature=0.2,
+            timeout=finanz_config.FINANZ_LLM_TIMEOUT,
         )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
 
-        result = json.loads(content.strip())
+        if result is None:
+            logger.warning("LLM scoring returned no result for %s, using rules", category.value)
+            return rule_result
 
         # Validate rating
         rating_str = result.get("rating", "").lower()

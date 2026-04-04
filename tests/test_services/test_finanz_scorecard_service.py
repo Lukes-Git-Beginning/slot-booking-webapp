@@ -84,46 +84,26 @@ class TestRuleBasedScoring:
 class TestLLMScoring:
     """Tests for LLM-based evaluation."""
 
-    def _mock_llm_response(self, rating="green", assessment="Gute Aufstellung.", details="Punkt 1 | Punkt 2"):
-        """Build a mock requests.post response."""
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "choices": [{
-                "message": {
-                    "content": json.dumps({
-                        "rating": rating,
-                        "assessment": assessment,
-                        "details": details,
-                    })
-                }
-            }]
-        }
-        return mock_resp
-
     @patch("app.services.finanz_scorecard_service.finanz_config")
     def test_llm_called_when_enabled(self, mock_config, service, sample_contracts):
         mock_config.FINANZ_LLM_ENABLED = True
-        mock_config.FINANZ_LLM_BASE_URL = "http://localhost:8000/v1"
-        mock_config.FINANZ_LLM_MODEL = "test-model"
+        mock_config.FINANZ_LLM_TIMEOUT = 30
 
-        with patch("requests.post", return_value=self._mock_llm_response()) as mock_post:
+        llm_result = {"rating": "green", "assessment": "Gute Aufstellung.", "details": "Punkt 1 | Punkt 2"}
+        with patch("app.services.llm_client.llm_client.chat_completion", return_value=llm_result) as mock_llm:
             result = service._evaluate_category(ScorecardCategory.ALTERSVORSORGE, sample_contracts)
 
-        mock_post.assert_called_once()
+        mock_llm.assert_called_once()
         assert result["rating"] == TrafficLight.GREEN
         assert result["assessment"] == "Gute Aufstellung."
         assert result["details"] == "Punkt 1 | Punkt 2"
 
     @patch("app.services.finanz_scorecard_service.finanz_config")
-    def test_llm_fallback_on_timeout(self, mock_config, service, sample_contracts):
+    def test_llm_fallback_on_error(self, mock_config, service, sample_contracts):
         mock_config.FINANZ_LLM_ENABLED = True
-        mock_config.FINANZ_LLM_BASE_URL = "http://localhost:8000/v1"
-        mock_config.FINANZ_LLM_MODEL = "test-model"
+        mock_config.FINANZ_LLM_TIMEOUT = 30
 
-        import requests as req_lib
-        with patch("requests.post", side_effect=req_lib.exceptions.Timeout("timeout")):
+        with patch("app.services.llm_client.llm_client.chat_completion", return_value=None):
             result = service._evaluate_category(ScorecardCategory.ALTERSVORSORGE, sample_contracts)
 
         # Should fall back to rule-based
@@ -131,30 +111,12 @@ class TestLLMScoring:
         assert result["rating"] in (TrafficLight.RED, TrafficLight.YELLOW, TrafficLight.GREEN)
 
     @patch("app.services.finanz_scorecard_service.finanz_config")
-    def test_llm_fallback_on_invalid_json(self, mock_config, service, sample_contracts):
-        mock_config.FINANZ_LLM_ENABLED = True
-        mock_config.FINANZ_LLM_BASE_URL = "http://localhost:8000/v1"
-        mock_config.FINANZ_LLM_MODEL = "test-model"
-
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "choices": [{"message": {"content": "not valid json {{"}}]
-        }
-
-        with patch("requests.post", return_value=mock_resp):
-            result = service._evaluate_category(ScorecardCategory.ALTERSVORSORGE, sample_contracts)
-
-        # Should fall back to rule-based
-        assert result["category"] == ScorecardCategory.ALTERSVORSORGE
-
-    @patch("app.services.finanz_scorecard_service.finanz_config")
     def test_llm_fallback_on_invalid_rating(self, mock_config, service, sample_contracts):
         mock_config.FINANZ_LLM_ENABLED = True
-        mock_config.FINANZ_LLM_BASE_URL = "http://localhost:8000/v1"
-        mock_config.FINANZ_LLM_MODEL = "test-model"
+        mock_config.FINANZ_LLM_TIMEOUT = 30
 
-        with patch("requests.post", return_value=self._mock_llm_response(rating="blue")):
+        llm_result = {"rating": "blue", "assessment": "Test", "details": ""}
+        with patch("app.services.llm_client.llm_client.chat_completion", return_value=llm_result):
             result = service._evaluate_category(ScorecardCategory.ALTERSVORSORGE, sample_contracts)
 
         # "blue" is invalid, should fall back to rule-based
@@ -163,11 +125,11 @@ class TestLLMScoring:
     @patch("app.services.finanz_scorecard_service.finanz_config")
     def test_llm_assessment_truncated_to_200(self, mock_config, service, sample_contracts):
         mock_config.FINANZ_LLM_ENABLED = True
-        mock_config.FINANZ_LLM_BASE_URL = "http://localhost:8000/v1"
-        mock_config.FINANZ_LLM_MODEL = "test-model"
+        mock_config.FINANZ_LLM_TIMEOUT = 30
 
         long_text = "A" * 300
-        with patch("requests.post", return_value=self._mock_llm_response(assessment=long_text)):
+        llm_result = {"rating": "green", "assessment": long_text, "details": "Punkt 1"}
+        with patch("app.services.llm_client.llm_client.chat_completion", return_value=llm_result):
             result = service._evaluate_category(ScorecardCategory.ALTERSVORSORGE, sample_contracts)
 
         assert len(result["assessment"]) == 200

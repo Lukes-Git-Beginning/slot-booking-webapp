@@ -396,10 +396,7 @@ class FinanzFieldExtractionService:
         self, type_key: str, text: str, pages: list[str]
     ) -> list[dict]:
         """Extract fields using LLM with structured JSON output."""
-        import requests
-
-        base_url = finanz_config.FINANZ_LLM_BASE_URL
-        model = finanz_config.FINANZ_LLM_MODEL
+        from app.services.llm_client import llm_client
 
         fields = get_fields_for_type(type_key)
         if not fields:
@@ -437,42 +434,33 @@ Regeln:
 - Waehrungsbetraege als Dezimalzahl (z.B. "234.56")
 - Daten als DD.MM.YYYY"""
 
-        try:
-            response = requests.post(
-                f"{base_url}/chat/completions",
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 2000,
-                },
-                timeout=60,
-            )
-            response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
+        result = llm_client.chat_completion(
+            prompt=prompt,
+            max_tokens=2000,
+            temperature=0.1,
+            timeout=finanz_config.FINANZ_LLM_TIMEOUT_EXTRACTION,
+        )
 
-            result = json.loads(content.strip())
-            extracted = result.get("fields", [])
-
-            # Validate and enrich with page numbers
-            valid_names = {f["name"] for f in fields}
-            validated = []
-            for item in extracted:
-                if item.get("name") not in valid_names:
-                    continue
-                field_def = next(
-                    (f for f in fields if f["name"] == item["name"]), None
-                )
-                if field_def:
-                    item["type"] = field_def["type"]
-                if not item.get("source_page"):
-                    source = item.get("source_text", "")
-                    item["source_page"] = self._find_page(source, pages) if source else 1
-                validated.append(item)
-
-            return validated
-
-        except Exception as e:
-            logger.error("LLM field extraction failed: %s", e, exc_info=True)
-            # Fallback to pattern matching
+        if result is None:
+            logger.warning("LLM field extraction returned no result, falling back to patterns")
             return self._extract_patterns(type_key, text, pages)
+
+        extracted = result.get("fields", [])
+
+        # Validate and enrich with page numbers
+        valid_names = {f["name"] for f in fields}
+        validated = []
+        for item in extracted:
+            if item.get("name") not in valid_names:
+                continue
+            field_def = next(
+                (f for f in fields if f["name"] == item["name"]), None
+            )
+            if field_def:
+                item["type"] = field_def["type"]
+            if not item.get("source_page"):
+                source = item.get("source_text", "")
+                item["source_page"] = self._find_page(source, pages) if source else 1
+            validated.append(item)
+
+        return validated

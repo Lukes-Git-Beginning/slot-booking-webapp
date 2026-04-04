@@ -152,10 +152,7 @@ class FinanzClassificationService:
         Sends document text with list of contract types to the LLM
         and expects a structured JSON response.
         """
-        import requests
-
-        base_url = finanz_config.FINANZ_LLM_BASE_URL
-        model = finanz_config.FINANZ_LLM_MODEL
+        from app.services.llm_client import llm_client
 
         type_list = "\n".join(
             f"- {key}: {ct['label']}"
@@ -176,37 +173,27 @@ Dokument-Text:
 
 Antworte NUR mit JSON im Format: {{"type": "<type_key>", "confidence": 0.0-1.0}}"""
 
-        try:
-            response = requests.post(
-                f"{base_url}/chat/completions",
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 100,
-                },
-                timeout=30,
-            )
-            response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
+        result = llm_client.chat_completion(
+            prompt=prompt,
+            max_tokens=100,
+            temperature=0.1,
+            timeout=finanz_config.FINANZ_LLM_TIMEOUT,
+        )
 
-            # Parse JSON from response
-            result = json.loads(content.strip())
-            type_key = result.get("type", "sonstige")
-            confidence = float(result.get("confidence", 0.5))
-
-            if type_key not in CONTRACT_TYPES:
-                type_key = "sonstige"
-                confidence = 0.2
-
-            ct = CONTRACT_TYPES.get(type_key, {})
-            return {
-                "type_key": type_key,
-                "type_label": ct.get("label", type_key),
-                "confidence": round(confidence, 2),
-            }
-
-        except Exception as e:
-            logger.error("LLM classification failed: %s", e, exc_info=True)
-            # Fallback to keyword matching
+        if result is None:
+            logger.warning("LLM classification returned no result, falling back to keywords")
             return self._classify_keywords(text)
+
+        type_key = result.get("type", "sonstige")
+        confidence = float(result.get("confidence", 0.5))
+
+        if type_key not in CONTRACT_TYPES:
+            type_key = "sonstige"
+            confidence = 0.2
+
+        ct = CONTRACT_TYPES.get(type_key, {})
+        return {
+            "type_key": type_key,
+            "type_label": ct.get("label", type_key),
+            "confidence": round(confidence, 2),
+        }

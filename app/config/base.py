@@ -367,6 +367,8 @@ class FinanzConfig:
     FINANZ_LLM_ENABLED: bool = get_env_bool("FINANZ_LLM_ENABLED", False)
     FINANZ_LLM_MODEL: str = os.getenv("FINANZ_LLM_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
     FINANZ_LLM_BASE_URL: str = os.getenv("FINANZ_LLM_BASE_URL", "http://localhost:8000/v1")
+    FINANZ_LLM_TIMEOUT: int = int(os.getenv("FINANZ_LLM_TIMEOUT", "30"))
+    FINANZ_LLM_TIMEOUT_EXTRACTION: int = int(os.getenv("FINANZ_LLM_TIMEOUT_EXTRACTION", "60"))
 
     # Upload limits
     FINANZ_MAX_FILE_SIZE_MB: int = int(os.getenv("FINANZ_MAX_FILE_SIZE_MB", "50"))
