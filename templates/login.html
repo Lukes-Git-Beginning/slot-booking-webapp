@@ -163,7 +163,8 @@
             required
             class="input-glow w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary transition-all"
             placeholder="Benutzername eingeben"
-            autocomplete="username">
+            autocomplete="username"
+            value="{{ username or '' }}">
         </div>
 
         <!-- Password -->
@@ -207,10 +208,6 @@
             placeholder="000000"
             autocomplete="one-time-code">
           <p class="text-xs text-white/50 mt-2">Code aus deiner Authenticator-App oder Backup-Code</p>
-          {% if username %}
-          <input type="hidden" name="username" value="{{ username }}">
-          <input type="hidden" name="password" value="{{ password }}">
-          {% endif %}
         </div>
         {% endif %}
 

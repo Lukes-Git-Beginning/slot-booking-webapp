@@ -5,6 +5,7 @@ Protokolliert Admin-Aktionen und Security-Events für Compliance & Sicherheit
 """
 
 import os
+import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
@@ -46,6 +47,23 @@ class AuditService:
     def __init__(self):
         self.audit_file = 'audit_log'
         self.max_entries = APIConfig.MAX_AUDIT_ENTRIES
+
+    @staticmethod
+    def _anonymize_ip(ip: str) -> str:
+        """Anonymisiere IP-Adresse (DSGVO-konform): letztes Oktett/Segment entfernen"""
+        if not ip or ip == 'unknown':
+            return 'unknown'
+        if ':' in ip:
+            # IPv6: letzte 2 Segmente entfernen
+            parts = ip.split(':')
+            if len(parts) > 2:
+                return ':'.join(parts[:-2]) + ':x:x'
+        elif '.' in ip:
+            # IPv4: letztes Oktett entfernen
+            parts = ip.split('.')
+            if len(parts) == 4:
+                return '.'.join(parts[:3]) + '.0'
+        return ip
 
     def _load_audit_log(self) -> List[Dict]:
         """Lade Audit-Log — PG-first mit JSON-Fallback"""
@@ -109,8 +127,9 @@ class AuditService:
             if not user:
                 user = session.get('user', 'anonymous')
 
-            # IP-Adresse erfassen
-            ip_address = request.remote_addr if request else 'unknown'
+            # IP-Adresse erfassen und anonymisieren (DSGVO)
+            raw_ip = request.remote_addr if request else 'unknown'
+            ip_address = self._anonymize_ip(raw_ip)
             user_agent = request.headers.get('User-Agent', 'unknown') if request else 'unknown'
 
             # Event erstellen

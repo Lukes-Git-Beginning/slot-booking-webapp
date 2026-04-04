@@ -74,10 +74,8 @@ def export_all_data():
         )
 
     except Exception as e:
-        return jsonify({
-            "error": "Export failed",
-            "message": str(e)
-        }), 500
+        logger.error(f"Data export failed: {e}", exc_info=True)
+        return jsonify({"error": "Export failed"}), 500
 
 
 @admin_bp.route("/export-info")
@@ -125,7 +123,5 @@ def export_info():
         })
 
     except Exception as e:
-        return jsonify({
-            "error": "Failed to get export info",
-            "message": str(e)
-        }), 500
+        logger.error(f"Export info failed: {e}", exc_info=True)
+        return jsonify({"error": "Failed to get export info"}), 500

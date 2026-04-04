@@ -4,12 +4,15 @@ Admin reports routes
 Analytics, exports, and reporting functionality
 """
 
+import logging
 from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
 from datetime import datetime, timedelta
 import pytz
 import json
 import io
 import csv
+
+logger = logging.getLogger(__name__)
 
 from app.config.base import slot_config
 from app.core.extensions import tracking_system
@@ -32,7 +35,8 @@ def weekly_tracking_report():
         return jsonify(report)
 
     except Exception as e:
-        return jsonify({"error": f"Report generation failed: {str(e)}"}), 500
+        logger.error(f"Weekly tracking report failed: {e}", exc_info=True)
+        return jsonify({"error": "Report generation failed"}), 500
 
 
 # export_analytics endpoint removed - use /admin/export-all-data instead
@@ -75,7 +79,8 @@ def export_csv():
         return response
 
     except Exception as e:
-        flash(f"CSV-Export fehlgeschlagen: {str(e)}", "danger")
+        logger.error(f"CSV export failed: {e}", exc_info=True)
+        flash("CSV-Export fehlgeschlagen", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
 
@@ -193,7 +198,8 @@ def admin_export_pdf():
             elements.append(Spacer(1, 20))
 
         except Exception as e:
-            elements.append(Paragraph(f"Fehler beim Laden der Systemdaten: {str(e)}", body_style))
+            logger.error(f"Failed to load system data for PDF: {e}", exc_info=True)
+            elements.append(Paragraph("Fehler beim Laden der Systemdaten", body_style))
             elements.append(Spacer(1, 20))
 
         # System Information
@@ -244,7 +250,8 @@ def admin_export_pdf():
         })
 
     except Exception as e:
-        flash(f"PDF-Export fehlgeschlagen: {str(e)}", "danger")
+        logger.error(f"PDF export failed: {e}", exc_info=True)
+        flash("PDF-Export fehlgeschlagen", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
 
@@ -259,7 +266,8 @@ def admin_reports_weekly(week_key=None):
         report = reports.generate_weekly_executive_report(week_key)
         return render_template("executive_weekly_report.html", report=report)
     except Exception as e:
-        flash(f"Fehler beim Generieren des Wochenberichts: {e}", "danger")
+        logger.error(f"Weekly executive report failed: {e}", exc_info=True)
+        flash("Fehler beim Generieren des Wochenberichts", "danger")
         return redirect(url_for("admin.admin_telefonie"))
 
 
@@ -274,7 +282,8 @@ def admin_reports_monthly(year=None, month=None):
         report = reports.generate_monthly_executive_report(year, month)
         return render_template("executive_monthly_report.html", report=report)
     except Exception as e:
-        flash(f"Fehler beim Generieren des Monatsberichts: {e}", "danger")
+        logger.error(f"Monthly executive report failed: {e}", exc_info=True)
+        flash("Fehler beim Generieren des Monatsberichts", "danger")
         return redirect(url_for("admin.admin_telefonie"))
 
 
@@ -640,7 +649,8 @@ def admin_telefonie_export_report(report_type):
             'Content-Disposition': f"attachment; filename={filename_prefix}_report_{datetime.now(TZ).strftime('%Y%m%d_%H%M')}.pdf"
         })
     except Exception as e:
-        flash(f"PDF Export Fehler: {e}", "danger")
+        logger.error(f"Executive report PDF export failed: {e}", exc_info=True)
+        flash("PDF-Export fehlgeschlagen", "danger")
         return redirect(url_for("admin.admin_telefonie"))
 
 
